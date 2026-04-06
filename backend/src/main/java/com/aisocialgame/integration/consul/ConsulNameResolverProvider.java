@@ -140,7 +140,7 @@ public final class ConsulNameResolverProvider extends NameResolverProvider {
                 raw = System.getenv("CONSUL_HTTP_ADDR");
             }
             if (raw == null || raw.isBlank()) {
-                raw = "http://192.168.5.141:60000";
+                raw = "http://192.168.5.208:60001";
             }
             raw = raw.trim();
             if (!raw.startsWith("http://") && !raw.startsWith("https://")) {

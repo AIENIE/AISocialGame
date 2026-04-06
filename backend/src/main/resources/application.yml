@@ -4,7 +4,7 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:ai-social-game}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQL_HOST:192.168.5.141}:${MYSQL_PORT:3306}/${MYSQL_DB:aisocialgame}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQL_HOST:192.168.5.141}:${MYSQL_PORT:13306}/${MYSQL_DB:aisocialgame}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${SPRING_DATASOURCE_USERNAME:aisocialgame}
     password: ${SPRING_DATASOURCE_PASSWORD:aisocialgame_pwd}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,7 +17,7 @@ spring:
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:192.168.5.141}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      port: ${SPRING_DATA_REDIS_PORT:16379}
 
 server:
   port: ${SERVER_PORT:20030}
@@ -25,10 +25,10 @@ server:
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
   consul:
-    address: ${CONSUL_HTTP_ADDR:http://192.168.5.141:60000}
+    address: ${CONSUL_HTTP_ADDR:http://192.168.5.208:60001}
   sso:
     user-service-name: ${SSO_USER_SERVICE_NAME:aienie-userservice-http}
-    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://userservice.seekerhut.com}
+    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:http://192.168.5.208:20000}
     callback-url: ${SSO_CALLBACK_URL:https://aisocialgame.seekerhut.com/sso/callback}
     login-path: ${SSO_LOGIN_PATH:/sso/login}
     register-path: ${SSO_REGISTER_PATH:/register}
@@ -60,7 +60,7 @@ app:
 
 qdrant:
   host: ${QDRANT_HOST:http://192.168.5.141}
-  http-port: ${QDRANT_PORT:6333}
+  http-port: ${QDRANT_PORT:16333}
   enabled: ${QDRANT_ENABLED:true}
 
 connection:
