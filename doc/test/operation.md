@@ -20,6 +20,25 @@
    - `Run full credit migration` 且 `failed=0`
 5. `build.sh` 结束后仅代表部署完成，测试需执行第 7 节真人验收流程。
 
+## 1.1 Linux 宿主机直启后端
+
+1. 在仓库根目录执行 `./build_local.sh`。
+2. 脚本会先读取根目录 `env.txt`，仅为当前 shell 未设置的变量补默认值。
+3. 当 `SERVER_PORT` 未设置时，后端会按 `BACKEND_PORT -> 20030` 回退；默认健康检查地址仍为 `http://127.0.0.1:11031/actuator/health`。
+4. 若 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 且以下变量任一缺失，脚本会直接失败：
+   - `APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN`
+   - `APP_EXTERNAL_PAYSERVICE_JWT`
+   - `APP_EXTERNAL_AISERVICE_HMAC_CALLER`
+   - `APP_EXTERNAL_AISERVICE_HMAC_SECRET`
+
+## 1.2 VS Code F5 调试（工作区根：`backend/`）
+
+1. 在 VS Code 中打开 `backend/` 目录。
+2. 运行调试配置 `Backend: Launch AiSocialGameApplication`。
+3. 调试前会自动执行 `backend: compile`，确保 protobuf/gRPC 生成代码齐备。
+4. 调试配置读取 `../env.txt`，因此默认会连接共享 MySQL、Redis、Consul、Qdrant 与三服务。
+5. 启动成功后访问 `http://127.0.0.1:11031/actuator/health`，确认返回健康状态。
+
 ## 2. SSO 登录/注册跳转
 
 1. 首页点击“登录”。

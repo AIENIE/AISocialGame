@@ -2,9 +2,14 @@ frontend/node_modules/
 dist/
 .cache/
 .vscode/
+!backend/.vscode/
+backend/.vscode/*
+!backend/.vscode/launch.json
+!backend/.vscode/tasks.json
 .idea/
 backend/target/
 /artifacts
 /screenshot
 /result
 testuser.txt
+.omx/

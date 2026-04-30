@@ -86,7 +86,7 @@ public class ConsulHttpServiceDiscovery {
     private URI normalizeBaseUri(String rawAddress) {
         String address = rawAddress;
         if (!StringUtils.hasText(address)) {
-            address = "http://192.168.5.208:60001";
+            address = "http://192.168.5.208:60000";
         }
         address = address.trim();
         if (!address.startsWith("http://") && !address.startsWith("https://")) {

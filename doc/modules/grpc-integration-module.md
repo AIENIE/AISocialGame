@@ -27,7 +27,7 @@
 
 ## 当前配置策略
 
-- Consul 地址：`CONSUL_HTTP_ADDR`（默认 `http://192.168.5.141:60000`）
+- Consul 地址：`CONSUL_HTTP_ADDR`（默认 `http://192.168.5.208:60000`）
 - 服务名：
   - `USER_GRPC_SERVICE_NAME=aienie-userservice-grpc`
   - `BILLING_GRPC_SERVICE_NAME=aienie-payservice-grpc`

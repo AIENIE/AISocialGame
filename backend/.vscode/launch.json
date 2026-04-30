@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend: Launch AiSocialGameApplication",
+      "request": "launch",
+      "mainClass": "com.aisocialgame.AiSocialGameApplication",
+      "projectName": "ai-social-game",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/../env.txt",
+      "preLaunchTask": "backend: compile",
+      "console": "integratedTerminal"
+    }
+  ]
+}

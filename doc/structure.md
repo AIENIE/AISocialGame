@@ -31,6 +31,7 @@ AISocialGame/
 ├── build.sh                                  # 测试域名部署（Linux）
 ├── build_prod.sh                             # 正式域名部署（Linux）
 ├── build_common.sh                           # build 脚本共用逻辑
+├── build_local.sh                            # Linux 宿主机后端直启入口
 ├── build_local.ps1                           # 本地 PowerShell 部署
 ├── README.md
 ├── AGENTS.md
@@ -42,6 +43,7 @@ AISocialGame/
 - 后端代码与 SQL 必须位于 `backend/`。
 - `frontend/` 与 `backend/` 外仅保留：文档、部署脚本、测试结果、`env.txt` 与项目元信息。
 - `result/` 为运行时产物目录（例如真人对局报告），由 `.gitignore` 忽略，不参与提交。
+- `backend/.vscode/launch.json` 与 `backend/.vscode/tasks.json` 允许入库，用于 Java F5 调试；其他 `.vscode` 内容仍保持忽略。
 
 ## 部署脚本一致性
 
@@ -60,4 +62,5 @@ AISocialGame/
   - `AI_GRPC_ADDR=consul:///aienie-aiservice-grpc`
 - Consul 地址通过 `CONSUL_HTTP_ADDR` 配置，不在业务代码写死。
 - 三服务 gRPC 鉴权变量通过 `env.txt` + 系统环境注入。
+- 后端端口解析链路为 `SERVER_PORT -> BACKEND_PORT -> 20030`，宿主机直启默认复用 `env.txt` 中的 `BACKEND_PORT=11031`。
 - `build_common.sh` 当前职责是构建、部署、依赖检查与迁移，不自动执行 Playwright。

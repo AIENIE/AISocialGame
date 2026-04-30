@@ -8,5 +8,5 @@
 - 后端对外端口: 11031
 
 在linux环境下，执行sudo的密码请从SUDO_PASSWORD环境变量获取。
-- 部署脚本: 公共支持项目使用 build.ps1，业务项目使用 build_local.ps1。
+- 部署脚本: 公共支持项目使用 build.sh，业务项目使用 build_local.sh。
 

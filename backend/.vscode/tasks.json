@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: compile",
+      "type": "shell",
+      "command": "mvn",
+      "args": [
+        "-DskipTests",
+        "compile"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$javac"
+      ],
+      "group": "build"
+    }
+  ]
+}

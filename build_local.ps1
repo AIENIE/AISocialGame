@@ -120,17 +120,17 @@ function Stop-PortOwner {
 
 function Set-DefaultEnv {
     if ([string]::IsNullOrWhiteSpace($env:SPRING_DATASOURCE_URL)) {
-        $mysqlHost = if ([string]::IsNullOrWhiteSpace($env:MYSQL_HOST)) { '192.168.5.141' } else { $env:MYSQL_HOST }
+        $mysqlHost = if ([string]::IsNullOrWhiteSpace($env:MYSQL_HOST)) { '192.168.5.208' } else { $env:MYSQL_HOST }
         $mysqlPort = if ([string]::IsNullOrWhiteSpace($env:MYSQL_PORT)) { '3306' } else { $env:MYSQL_PORT }
         $mysqlDb = if ([string]::IsNullOrWhiteSpace($env:MYSQL_DB)) { 'aisocialgame' } else { $env:MYSQL_DB }
         $env:SPRING_DATASOURCE_URL = "jdbc:mysql://$mysqlHost`:$mysqlPort/${mysqlDb}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
     }
     if ([string]::IsNullOrWhiteSpace($env:SPRING_DATASOURCE_USERNAME)) { $env:SPRING_DATASOURCE_USERNAME = "aisocialgame" }
     if ([string]::IsNullOrWhiteSpace($env:SPRING_DATASOURCE_PASSWORD)) { $env:SPRING_DATASOURCE_PASSWORD = "aisocialgame_pwd" }
-    if ([string]::IsNullOrWhiteSpace($env:SPRING_DATA_REDIS_HOST)) { $env:SPRING_DATA_REDIS_HOST = "192.168.5.141" }
+    if ([string]::IsNullOrWhiteSpace($env:SPRING_DATA_REDIS_HOST)) { $env:SPRING_DATA_REDIS_HOST = "192.168.5.208" }
     if ([string]::IsNullOrWhiteSpace($env:SPRING_DATA_REDIS_PORT)) { $env:SPRING_DATA_REDIS_PORT = "6379" }
-    if ([string]::IsNullOrWhiteSpace($env:CONSUL_HTTP_ADDR)) { $env:CONSUL_HTTP_ADDR = "http://192.168.5.141:60000" }
-    if ([string]::IsNullOrWhiteSpace($env:QDRANT_HOST)) { $env:QDRANT_HOST = "http://192.168.5.141" }
+    if ([string]::IsNullOrWhiteSpace($env:CONSUL_HTTP_ADDR)) { $env:CONSUL_HTTP_ADDR = "http://192.168.5.208:60000" }
+    if ([string]::IsNullOrWhiteSpace($env:QDRANT_HOST)) { $env:QDRANT_HOST = "http://192.168.5.208" }
     if ([string]::IsNullOrWhiteSpace($env:QDRANT_PORT)) { $env:QDRANT_PORT = "6333" }
     if ([string]::IsNullOrWhiteSpace($env:QDRANT_ENABLED)) { $env:QDRANT_ENABLED = "true" }
     if ([string]::IsNullOrWhiteSpace($env:USER_GRPC_SERVICE_NAME)) { $env:USER_GRPC_SERVICE_NAME = "aienie-userservice-grpc" }

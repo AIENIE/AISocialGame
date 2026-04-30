@@ -16,6 +16,7 @@
 - `build.sh`：测试域名部署脚本（`aisocialgame.seekerhut.com`）
 - `build_prod.sh`：正式域名部署脚本（`aisocialgame.aienie.com`）
 - `build_common.sh`：`build.sh/build_prod.sh` 共用部署逻辑
+- `build_local.sh`：Linux 宿主机本地直启后端
 - `build_local.ps1`：Windows 本地直启脚本
 - `env.txt`：部署配置（可被系统环境变量覆盖）
 
@@ -41,7 +42,7 @@
 
 ## 运行依赖
 
-项目依赖以下外部服务（默认 `192.168.5.141`）：
+项目依赖以下外部服务（默认统一对接 `192.168.5.208` 标准端口）：
 
 - MySQL
 - Redis
@@ -79,11 +80,31 @@
 - `build.sh` / `build_prod.sh` 仅默认域名不同，其他逻辑必须保持一致。
 - 真实验收测试（含 4 场完整游戏）采用 subagent + Playwright 手工流程，不由 `build.sh` 自动触发。
 
+### Linux（宿主机直启后端）
+
+```bash
+./build_local.sh
+```
+
+说明：
+- 脚本在仓库根目录读取 `env.txt`，仅为当前 shell 中未设置的变量补默认值。
+- 脚本会导出 `SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"`，因此可直接复用 `env.txt` 中的 `BACKEND_PORT=11031`。
+- 当 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 时，启动前会校验 4 个外部 gRPC 鉴权变量，缺失即快速失败。
+- 启动成功后，健康检查地址为 `http://127.0.0.1:11031/actuator/health`。
+
 ### Windows（本地直启）
 
 ```powershell
 .\build_local.ps1
 ```
+
+### VS Code F5（以 `backend/` 为工作区根）
+
+1. 在 VS Code 中直接打开 `backend/` 目录。
+2. 选择调试配置 `Backend: Launch AiSocialGameApplication` 并按 `F5`。
+3. 调试前会自动执行 `backend: compile`，用于生成 protobuf/gRPC 代码。
+4. 调试进程会读取 `../env.txt`，未显式提供 `SERVER_PORT` 时会回退到 `BACKEND_PORT`。
+5. 启动成功后，可访问 `http://127.0.0.1:11031/actuator/health` 验证服务状态。
 
 ## 域名与端口
 
