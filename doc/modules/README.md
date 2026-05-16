@@ -14,6 +14,10 @@
 | gRPC 集成模块 | 管理 user/pay/ai 服务发现与调用封装（默认 consul，并含严格鉴权拦截器） | `backend/src/main/java/com/aisocialgame/integration/*` |
 | 第三方组件对齐模块 | 记录 MySQL/Redis/Qdrant/Consul 依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.txt`、`build.sh` |
 
+## 后续里程碑
+
+- 后续开发主线见 `doc/milestones.md`，当前默认优先级为 AI 质量闭环、结构化事件与回放底座、GameEngine 插件化、海龟汤新增玩法。
+
 ## 回归说明
 
 - `build.sh` 当前仅负责构建、部署、健康检查与积分迁移，不自动执行 Playwright。
