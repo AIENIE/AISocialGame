@@ -116,6 +116,14 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 现有 `GameState.logs` 和前端回放页面。
 - 为 M1 的质量评测、M5 的社区战报、M6 的后台审计提供基础数据。
 
+### M2 实现记录（2026-05-16）
+
+- 新增服务端结构化事件流：`game_events` 记录事件序号、阶段、轮次、行为人、目标、可见性和结构化数据。
+- 新增服务端单局归档：`game_archives` 记录房间、玩法、胜负、玩家快照、事件数和 AI trace 摘要。
+- 新增 `ReplayController`：提供回放列表、详情和 `PUBLIC` / `PLAYER` / `GOD` 视角事件查询。
+- 前端 `/replays` 与 `/replay/:archiveId` 优先读取服务端回放，服务端不可用时保留原本地存档降级。
+- 详细架构见 `doc/modules/replay-event-module.md`。
+
 ## 7. M3：GameEngine 插件化架构
 
 ### 目标

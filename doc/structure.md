@@ -16,6 +16,7 @@ AISocialGame/
 │   │   ├── dto/                              # 请求/响应模型
 │   │   └── config/                           # 应用配置、CORS、WS 配置
 │   ├── sql/ai_quality.sql                    # AI 决策 trace 与 Persona 记忆表
+│   ├── sql/game_replays.sql                  # 结构化事件与服务端回放归档表
 │   ├── src/main/resources/application.yml
 │   └── src/test/
 ├── frontend/                                 # React + Vite 前端
@@ -67,3 +68,4 @@ AISocialGame/
 - `build_common.sh` 当前职责是构建、部署、依赖检查与迁移，不自动执行 Playwright。
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
 - 本地开箱即用数据由 `DemoSeedService` 管理，`build_local.sh` 默认开启，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
+- M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。

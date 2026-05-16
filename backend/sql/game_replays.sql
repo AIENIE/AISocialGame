@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS `game_events` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `archive_id` VARCHAR(96) NOT NULL,
+  `room_id` VARCHAR(64) NOT NULL,
+  `game_id` VARCHAR(64) NOT NULL,
+  `seq` INT NOT NULL,
+  `event_type` VARCHAR(64) NOT NULL,
+  `phase` VARCHAR(64) NULL,
+  `round_number` INT NOT NULL DEFAULT 1,
+  `actor_player_id` VARCHAR(64) NULL,
+  `target_player_id` VARCHAR(64) NULL,
+  `visibility` VARCHAR(32) NOT NULL,
+  `visible_to_player_ids` LONGTEXT NULL,
+  `data` LONGTEXT NULL,
+  `occurred_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_game_events_archive_seq` (`archive_id`, `seq`),
+  KEY `idx_game_events_room` (`room_id`, `id`),
+  KEY `idx_game_events_game` (`game_id`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `game_archives` (
+  `id` VARCHAR(96) NOT NULL,
+  `room_id` VARCHAR(64) NOT NULL,
+  `game_id` VARCHAR(64) NOT NULL,
+  `room_name` VARCHAR(128) NOT NULL,
+  `winner` VARCHAR(64) NULL,
+  `player_count` INT NOT NULL DEFAULT 0,
+  `total_rounds` INT NOT NULL DEFAULT 0,
+  `duration_seconds` BIGINT NOT NULL DEFAULT 0,
+  `event_count` BIGINT NOT NULL DEFAULT 0,
+  `players_snapshot` LONGTEXT NULL,
+  `ai_quality_summary` LONGTEXT NULL,
+  `summary` VARCHAR(512) NULL,
+  `started_at` DATETIME NULL,
+  `finished_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_game_archives_game_finished` (`game_id`, `finished_at`),
+  KEY `idx_game_archives_room` (`room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -436,3 +436,42 @@ export interface ReplayArchive {
   createdAt: string;
   events: ReplayEvent[];
 }
+
+export type ReplayViewMode = "PUBLIC" | "PLAYER" | "GOD";
+
+export interface ReplayArchiveView {
+  id: string;
+  roomId: string;
+  gameId: string;
+  roomName: string;
+  winner?: string;
+  playerCount: number;
+  totalRounds: number;
+  durationSeconds: number;
+  eventCount: number;
+  summary?: string;
+  aiQualitySummary?: Record<string, any>;
+  startedAt?: string;
+  finishedAt?: string;
+  createdAt?: string;
+}
+
+export interface ReplayStructuredEvent {
+  id: number;
+  archiveId: string;
+  seq: number;
+  eventType: string;
+  phase?: string;
+  roundNumber: number;
+  actorPlayerId?: string;
+  targetPlayerId?: string;
+  visibility: ReplayViewMode;
+  data: Record<string, any>;
+  occurredAt?: string;
+}
+
+export interface ReplayDetail {
+  archive: ReplayArchiveView;
+  viewMode: ReplayViewMode;
+  events: ReplayStructuredEvent[];
+}

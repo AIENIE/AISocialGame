@@ -37,12 +37,15 @@ test.describe("真实验收：数据、AI 对局和管理端质检", () => {
     outcomes.push(await runGameScenario(request, "werewolf", 1, 6));
     outcomes.push(await runGameScenario(request, "werewolf", 3, 6));
 
+    const archiveIds: string[] = [];
     for (const outcome of outcomes) {
       expect(outcome.phase).toBe("SETTLEMENT");
       expect(outcome.winner).toBeTruthy();
+      archiveIds.push(await verifyServerReplay(request, outcome.gameId, outcome.roomId));
       await verifyRoomUi(page, outcome.gameId, outcome.roomId, outcome.viewerPlayerId);
     }
 
+    await verifyReplayUi(page, archiveIds[0]);
     await verifyAdminAiQuality(page, request);
   });
 });
@@ -77,6 +80,53 @@ async function runGameScenario(request: APIRequestContext, gameId: "undercover" 
   let state = await postState(request, gameId, room.id, "start", undefined, humans[0].playerId);
   state = await driveToSettlement(request, gameId, room.id, humans, state);
   return { gameId, roomId: room.id, viewerPlayerId: humans[0].playerId, phase: state.phase, winner: state.winner };
+}
+
+async function verifyServerReplay(request: APIRequestContext, gameId: string, roomId: string) {
+  const listResponse = await request.get("/api/replays", {
+    params: { gameId, size: 50 },
+  });
+  expect(listResponse.ok()).toBeTruthy();
+  const list = await listResponse.json();
+  const archive = list.items.find((item: any) => item.roomId === roomId);
+  expect(archive, `missing replay archive for ${roomId}`).toBeTruthy();
+  expect(archive.eventCount).toBeGreaterThan(0);
+
+  const godResponse = await request.get(`/api/replays/${archive.id}/events`, {
+    params: { viewMode: "GOD" },
+  });
+  expect(godResponse.ok()).toBeTruthy();
+  const godReplay = await godResponse.json();
+  expect(godReplay.events.length).toBeGreaterThan(0);
+  expect(godReplay.events.map((event: any) => event.seq)).toEqual([...godReplay.events.map((event: any) => event.seq)].sort((a, b) => a - b));
+  expect(godReplay.events.some((event: any) => event.eventType === "GAME_START")).toBeTruthy();
+  expect(godReplay.events.some((event: any) => event.eventType === "GAME_END")).toBeTruthy();
+  expect(godReplay.events.some((event: any) => event.eventType.includes("SPEECH") || event.eventType === "VOTE_CAST")).toBeTruthy();
+
+  const publicResponse = await request.get(`/api/replays/${archive.id}/events`, {
+    params: { viewMode: "PUBLIC" },
+  });
+  expect(publicResponse.ok()).toBeTruthy();
+  const publicReplay = await publicResponse.json();
+  const publicTypes = publicReplay.events.map((event: any) => event.eventType);
+  expect(publicTypes).not.toContain("ROLE_ASSIGNED");
+  expect(publicTypes).not.toContain("WORD_ASSIGNED");
+  expect(publicTypes).not.toContain("WOLF_KILL");
+  expect(publicTypes).not.toContain("SEER_CHECK");
+  return archive.id as string;
+}
+
+async function verifyReplayUi(page: Page, archiveId: string) {
+  await page.goto("/replays");
+  await expect(page.getByText("对局回放")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("AI Trace").first()).toBeVisible({ timeout: 30_000 });
+  await page.goto(`/replay/${archiveId}`);
+  await expect(page.getByRole("button", { name: "播放" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "单步" })).toBeVisible();
+  const counter = page.getByText(/\d+\/\d+/).first();
+  await expect(counter).toBeVisible();
+  await page.getByRole("button", { name: "单步" }).click();
+  await expect(counter).toBeVisible();
 }
 
 async function createRoom(request: APIRequestContext, gameId: "undercover" | "werewolf", humanCount: number, playerCount: number): Promise<Room> {
@@ -204,6 +254,7 @@ function buildNightPayload(state: GameState, selfId: string) {
 async function verifyRoomUi(page: Page, gameId: string, roomId: string, playerId: string) {
   await page.addInitScript(({ rid, pid }) => {
     const userKey = "guest:游客玩家";
+    window.localStorage.setItem("aisocialgame_guest_name", "游客玩家");
     window.localStorage.setItem(`room_player_${rid}_${userKey}`, pid);
     window.localStorage.setItem(`room_player_${rid}`, pid);
   }, { rid: roomId, pid: playerId });

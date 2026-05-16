@@ -23,6 +23,9 @@ import {
   PagedResponse,
   Persona,
   PlayerStats,
+  ReplayArchiveView,
+  ReplayDetail,
+  ReplayViewMode,
   RedeemResponse,
   RedemptionRecord,
   Room,
@@ -282,6 +285,27 @@ export const communityApi = {
 export const rankingApi = {
   async list(gameId = "total"): Promise<PlayerStats[]> {
     const res = await api.get("/rankings", { params: { gameId } });
+    return res.data;
+  },
+};
+
+export const serverReplayApi = {
+  async list(params: { gameId?: string; page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
+    const res = await api.get("/replays", { params });
+    return res.data;
+  },
+  async my(params: { page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
+    const res = await api.get("/replays/my", { params });
+    return res.data;
+  },
+  async detail(archiveId: string): Promise<ReplayArchiveView> {
+    const res = await api.get(`/replays/${archiveId}`);
+    return res.data;
+  },
+  async events(archiveId: string, viewMode: ReplayViewMode = "PUBLIC", viewerPlayerId?: string): Promise<ReplayDetail> {
+    const res = await api.get(`/replays/${archiveId}/events`, {
+      params: { viewMode, ...(viewerPlayerId ? { viewerPlayerId } : {}) },
+    });
     return res.data;
   },
 };

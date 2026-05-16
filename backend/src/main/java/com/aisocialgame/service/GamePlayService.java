@@ -58,6 +58,8 @@ public class GamePlayService {
     private final AiDecisionService aiDecisionService;
     private final GamePushService gamePushService;
     private final PlayerConnectionService playerConnectionService;
+    private final GameEventRecorder gameEventRecorder;
+    private final ReplayArchiveService replayArchiveService;
     private final Duration disconnectThreshold;
 
     public GamePlayService(RoomService roomService,
@@ -68,6 +70,8 @@ public class GamePlayService {
                            AiDecisionService aiDecisionService,
                            GamePushService gamePushService,
                            PlayerConnectionService playerConnectionService,
+                           GameEventRecorder gameEventRecorder,
+                           ReplayArchiveService replayArchiveService,
                            @Value("${connection.disconnect-threshold-seconds:60}") long disconnectThresholdSeconds) {
         this.roomService = roomService;
         this.gameStateRepository = gameStateRepository;
@@ -77,6 +81,8 @@ public class GamePlayService {
         this.aiDecisionService = aiDecisionService;
         this.gamePushService = gamePushService;
         this.playerConnectionService = playerConnectionService;
+        this.gameEventRecorder = gameEventRecorder;
+        this.replayArchiveService = replayArchiveService;
         this.disconnectThreshold = Duration.ofSeconds(Math.max(5, disconnectThresholdSeconds));
     }
 
@@ -262,6 +268,17 @@ public class GamePlayService {
         data.put("hasBlank", hasBlank);
         state.setData(data);
         state.setLogs(new ArrayList<>(List.of(new GameLogEntry("system", "游戏开始，词语已发放"))));
+        recordGameStart(state, "游戏开始，词语已发放");
+        state.getPlayers().forEach(player -> {
+            gameEventRecorder.recordPrivate(state, "WORD_ASSIGNED", player.getPlayerId(), null, List.of(player.getPlayerId()), Map.of(
+                    "word", player.getWord(),
+                    "role", player.getRole()
+            ));
+            gameEventRecorder.recordGod(state, "ROLE_ASSIGNED", player.getPlayerId(), null, Map.of(
+                    "word", player.getWord(),
+                    "role", player.getRole()
+            ));
+        });
         roomService.updateStatus(room.getId(), RoomStatus.PLAYING);
         autoAdvanceUndercover(state, room);
         return gameStateRepository.save(state);
@@ -300,6 +317,15 @@ public class GamePlayService {
         state.setData(data);
         state.setLogs(new ArrayList<>(List.of(new GameLogEntry("system", "天黑请闭眼，狼人行动中"))));
         state.setPhaseEndsAt(LocalDateTime.now().plusSeconds(resolveNightTime(room)));
+        recordGameStart(state, "天黑请闭眼，狼人行动中");
+        state.getPlayers().forEach(player -> {
+            gameEventRecorder.recordPrivate(state, "ROLE_ASSIGNED", player.getPlayerId(), null, List.of(player.getPlayerId()), Map.of(
+                    "role", player.getRole()
+            ));
+            gameEventRecorder.recordGod(state, "ROLE_ASSIGNED", player.getPlayerId(), null, Map.of(
+                    "role", player.getRole()
+            ));
+        });
         roomService.updateStatus(room.getId(), RoomStatus.PLAYING);
         autoFillNightActions(state, room);
         resolveNight(state, room, false);
@@ -313,6 +339,10 @@ public class GamePlayService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
         }
         addLog(state, "speak", current.getDisplayName() + "：" + content);
+        gameEventRecorder.recordPublic(state, "SPEECH", actorId, null, Map.of(
+                "displayName", current.getDisplayName(),
+                "content", content
+        ));
         addSpeaker(state, actorId);
         moveUndercoverToNextSpeaker(state, room);
         autoAdvanceUndercover(state, room);
@@ -337,6 +367,13 @@ public class GamePlayService {
         votes.put(actorId, request.isAbstain() ? "abstain" : request.getTargetPlayerId());
         state.getData().put("votes", votes);
         addLog(state, "vote", player.getDisplayName() + " 已提交投票");
+        gameEventRecorder.recordPublic(state, "VOTE_CAST", actorId, null, Map.of(
+                "displayName", player.getDisplayName(),
+                "abstain", request.isAbstain()
+        ));
+        gameEventRecorder.recordGod(state, "VOTE_TARGET", actorId, request.isAbstain() ? null : request.getTargetPlayerId(), Map.of(
+                "abstain", request.isAbstain()
+        ));
         autoAdvanceUndercover(state, room);
     }
 
@@ -347,6 +384,10 @@ public class GamePlayService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
         }
         addLog(state, "speak", current.getDisplayName() + "：" + content);
+        gameEventRecorder.recordPublic(state, "SPEECH", actorId, null, Map.of(
+                "displayName", current.getDisplayName(),
+                "content", content
+        ));
         addSpeaker(state, actorId);
         moveWerewolfToNextSpeaker(state, room);
         autoAdvanceWerewolfDay(state, room);
@@ -371,6 +412,13 @@ public class GamePlayService {
         votes.put(actorId, request.isAbstain() ? "abstain" : request.getTargetPlayerId());
         state.getData().put("votes", votes);
         addLog(state, "vote", player.getDisplayName() + " 已提交投票");
+        gameEventRecorder.recordPublic(state, "VOTE_CAST", actorId, null, Map.of(
+                "displayName", player.getDisplayName(),
+                "abstain", request.isAbstain()
+        ));
+        gameEventRecorder.recordGod(state, "VOTE_TARGET", actorId, request.isAbstain() ? null : request.getTargetPlayerId(), Map.of(
+                "abstain", request.isAbstain()
+        ));
         resolveWerewolfVoting(state, room, false);
     }
 
@@ -388,6 +436,8 @@ public class GamePlayService {
                 validateTargetAlive(state, request.getTargetPlayerId());
                 data.put("wolfTarget", request.getTargetPlayerId());
                 addLog(state, "night", "狼人阵营已锁定目标");
+                gameEventRecorder.recordPrivate(state, "WOLF_KILL", actorId, request.getTargetPlayerId(), wolfPlayerIds(state), Map.of("action", action));
+                gameEventRecorder.recordGod(state, "WOLF_KILL", actorId, request.getTargetPlayerId(), Map.of("action", action));
             }
             case "SEER_CHECK" -> {
                 ensureRole(actor, "SEER");
@@ -396,6 +446,8 @@ public class GamePlayService {
                 Map<String, String> seerResults = seerResultMap(state);
                 GamePlayerState target = playerById(state, request.getTargetPlayerId());
                 seerResults.put(actor.getPlayerId(), target.getRole().startsWith("WEREWOLF") ? "WOLF" : "GOOD");
+                gameEventRecorder.recordPrivate(state, "SEER_CHECK", actorId, request.getTargetPlayerId(), List.of(actorId), Map.of("result", target.getRole().startsWith("WEREWOLF") ? "WOLF" : "GOOD"));
+                gameEventRecorder.recordGod(state, "SEER_CHECK", actorId, request.getTargetPlayerId(), Map.of("result", target.getRole().startsWith("WEREWOLF") ? "WOLF" : "GOOD"));
             }
             case "WITCH_SAVE" -> {
                 ensureRole(actor, "WITCH");
@@ -404,6 +456,8 @@ public class GamePlayService {
                 }
                 data.put("witchSaveTarget", request.isUseHeal() ? data.get("wolfTarget") : null);
                 data.put("witchAntidoteUsed", request.isUseHeal());
+                gameEventRecorder.recordPrivate(state, "WITCH_SAVE", actorId, (String) data.get("witchSaveTarget"), List.of(actorId), Map.of("useHeal", request.isUseHeal()));
+                gameEventRecorder.recordGod(state, "WITCH_SAVE", actorId, (String) data.get("witchSaveTarget"), Map.of("useHeal", request.isUseHeal()));
             }
             case "WITCH_POISON" -> {
                 ensureRole(actor, "WITCH");
@@ -413,6 +467,8 @@ public class GamePlayService {
                 validateTargetAlive(state, request.getTargetPlayerId());
                 data.put("witchPoisonTarget", request.getTargetPlayerId());
                 data.put("witchPoisonUsed", true);
+                gameEventRecorder.recordPrivate(state, "WITCH_POISON", actorId, request.getTargetPlayerId(), List.of(actorId), Map.of("action", action));
+                gameEventRecorder.recordGod(state, "WITCH_POISON", actorId, request.getTargetPlayerId(), Map.of("action", action));
             }
             default -> throw new ApiException(HttpStatus.BAD_REQUEST, "未知夜晚指令");
         }
@@ -928,11 +984,17 @@ public class GamePlayService {
             default -> "好人/平民阵营";
         };
         addLog(state, "system", "游戏结束，获胜方：" + winnerText);
+        gameEventRecorder.recordPublic(state, "GAME_END", null, null, Map.of(
+                "winner", winner,
+                "winnerText", winnerText,
+                "roundNumber", state.getRoundNumber()
+        ));
         state.setPhaseEndsAt(null);
         if (!Boolean.TRUE.equals(state.getData().get("statsRecorded"))) {
             statsService.recordResult(room.getGameId(), state.getPlayers(), winnerIds);
             state.getData().put("statsRecorded", true);
         }
+        replayArchiveService.archiveFinishedGame(state, room);
         roomService.updateStatus(room.getId(), RoomStatus.WAITING);
         pushStateEvent(room.getId(), "SETTLEMENT", state);
     }
@@ -1178,6 +1240,39 @@ public class GamePlayService {
         entry.setMetadata(metadata);
         logs.add(entry);
         state.setLogs(logs);
+        Map<String, Object> data = new HashMap<>();
+        data.put("message", message);
+        data.put("logType", type);
+        if (metadata != null && !metadata.isEmpty()) {
+            data.put("metadata", metadata);
+        }
+        gameEventRecorder.recordPublic(state, eventTypeForLog(type), null, null, data);
+    }
+
+    private void recordGameStart(GameState state, String message) {
+        gameEventRecorder.ensureArchiveId(state);
+        gameEventRecorder.recordPublic(state, "GAME_START", null, null, Map.of(
+                "message", message,
+                "phase", state.getPhase(),
+                "roundNumber", state.getRoundNumber()
+        ));
+    }
+
+    private String eventTypeForLog(String type) {
+        return switch (type) {
+            case "speak" -> "SPEECH_LOG";
+            case "vote" -> "VOTE_LOG";
+            case "night" -> "NIGHT_RESULT";
+            case "system" -> "SYSTEM_LOG";
+            default -> "LOG";
+        };
+    }
+
+    private List<String> wolfPlayerIds(GameState state) {
+        return state.getPlayers().stream()
+                .filter(player -> player.getRole() != null && player.getRole().startsWith("WEREWOLF"))
+                .map(GamePlayerState::getPlayerId)
+                .toList();
     }
 
     private String buildAiDescription(GameState state, GamePlayerState player) {
