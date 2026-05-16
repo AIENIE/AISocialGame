@@ -13,6 +13,7 @@ public class AppProperties {
     private Credit credit = new Credit();
     private Admin admin = new Admin();
     private External external = new External();
+    private DemoSeed demoSeed = new DemoSeed();
 
     public String getProjectKey() {
         return projectKey;
@@ -68,6 +69,14 @@ public class AppProperties {
 
     public void setExternal(External external) {
         this.external = external;
+    }
+
+    public DemoSeed getDemoSeed() {
+        return demoSeed;
+    }
+
+    public void setDemoSeed(DemoSeed demoSeed) {
+        this.demoSeed = demoSeed;
     }
 
     public static class Ai {
@@ -274,6 +283,18 @@ public class AppProperties {
 
         public void setAiserviceHmacSecret(String aiserviceHmacSecret) {
             this.aiserviceHmacSecret = aiserviceHmacSecret;
+        }
+    }
+
+    public static class DemoSeed {
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

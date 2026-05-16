@@ -51,6 +51,8 @@ app:
     password: ${APP_ADMIN_PASSWORD:admin123}
     display-name: ${APP_ADMIN_DISPLAY_NAME:系统管理员}
     token-ttl-hours: ${APP_ADMIN_TOKEN_TTL_HOURS:8}
+  demo-seed:
+    enabled: ${APP_DEMO_SEED_ENABLED:false}
   external:
     grpc-auth-required: ${APP_EXTERNAL_GRPC_AUTH_REQUIRED:true}
     userservice-internal-grpc-token: ${APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN:}

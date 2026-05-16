@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:e2e:real": "REAL_E2E=1 playwright test tests/real-flow.spec.ts"
+    "test:e2e:real": "REAL_E2E=1 playwright test tests/real-flow.spec.ts",
+    "test:acceptance": "REAL_ACCEPTANCE=1 playwright test tests/acceptance-real.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

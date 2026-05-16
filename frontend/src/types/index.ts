@@ -161,6 +161,45 @@ export interface AdminRedeemCode {
   redeemedCount: number;
 }
 
+export interface AdminAiDecisionTrace {
+  id: number;
+  roomId?: string;
+  gameId: string;
+  phase?: string;
+  roundNumber: number;
+  action: string;
+  actorPlayerId?: string;
+  personaId?: string;
+  roleKey?: string;
+  modelKey?: string;
+  latencyMs: number;
+  fallback: boolean;
+  validDecision: boolean;
+  confidence?: number;
+  targetPlayerId?: string;
+  nightAction?: string;
+  reason?: string;
+  outputSummary?: string;
+  inputSummary?: string;
+  quality?: Record<string, any>;
+  beliefSnapshot?: Record<string, any>;
+  memorySnapshot?: Record<string, any>;
+  createdAt?: string;
+}
+
+export interface AdminAiPersonaMemory {
+  id: number;
+  personaId: string;
+  gameId: string;
+  roleKey: string;
+  memorySummary?: string;
+  strategyNotes?: string;
+  mistakeNotes?: string;
+  speechPatterns?: string;
+  gamesPlayed: number;
+  updatedAt?: string;
+}
+
 export interface CheckinResponse {
   success: boolean;
   tokensGranted: number;

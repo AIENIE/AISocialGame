@@ -1,6 +1,8 @@
 import axios from "axios";
 import {
   AdminAuthResponse,
+  AdminAiDecisionTrace,
+  AdminAiPersonaMemory,
   AdminIntegrationStatus,
   AdminRedeemCode,
   AiChatResponse,
@@ -369,6 +371,26 @@ export const adminApi = {
   async testChat(payload: { userId?: number; sessionId?: string; model?: string; messages: AiMessage[] }): Promise<AiChatResponse> {
     const res = await adminApiClient.post("/admin/ai/test-chat", payload);
     return res.data;
+  },
+  async aiDecisionTraces(params: {
+    roomId?: string;
+    gameId?: string;
+    personaId?: string;
+    action?: string;
+    fallback?: boolean;
+    qualityFlag?: string;
+    page?: number;
+    size?: number;
+  } = {}): Promise<PagedResponse<AdminAiDecisionTrace>> {
+    const res = await adminApiClient.get("/admin/ai/decision-traces", { params });
+    return res.data;
+  },
+  async aiPersonaMemories(personaId?: string): Promise<AdminAiPersonaMemory[]> {
+    const res = await adminApiClient.get("/admin/ai/persona-memories", { params: personaId ? { personaId } : undefined });
+    return res.data;
+  },
+  async resetAiPersonaMemory(id: number): Promise<void> {
+    await adminApiClient.post(`/admin/ai/persona-memories/${id}/reset`);
   },
 };
 

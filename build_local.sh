@@ -67,6 +67,7 @@ cd "$repo_root"
 load_env_file "$repo_root/env.txt"
 
 export SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"
+export APP_DEMO_SEED_ENABLED="${APP_DEMO_SEED_ENABLED:-true}"
 
 if [[ "${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}" == "true" ]]; then
   assert_required_env \

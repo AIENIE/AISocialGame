@@ -90,7 +90,37 @@
   - 日志 metadata 只有安全摘要，不包含隐藏词语、隐藏身份或完整 Prompt。
   - `ai_persona_memories` 会沉淀 Persona 级策略和错误记忆，可通过管理端重置。
 
-## 8. 最近一次执行记录（2026-03-04）
+## 8. 本地开箱即用数据
+
+- 本地直启 `./build_local.sh` 默认导出 `APP_DEMO_SEED_ENABLED=true`。
+- 部署脚本与默认配置保持 `APP_DEMO_SEED_ENABLED=false`，避免测试服/正式服启动时自动写入演示数据。
+- 本地 seed 内容：
+  - 社区演示帖：AI 质检、谁是卧底、狼人杀。
+  - 等待房：`demo-undercover-room`、`demo-werewolf-room`。
+  - 排行榜样例：总榜、谁是卧底、狼人杀。
+  - 兑换码：`DEMO-LOCAL-1000`、`DEMO-LOCAL-TEMP-300`。
+  - AI 质检样例：`ai_decision_traces` 与 `ai_persona_memories`。
+- 后端验证：
+  - `cd backend`
+  - `mvn test -Dtest=DemoSeedServiceTest`
+
+## 9. Playwright 可复用验收
+
+- Mock/UI 基线：
+  - `cd frontend`
+  - `pnpm test:e2e`
+- 真实测试服验收：
+  - `cd frontend`
+  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_BASE_URL=https://aisocialgame.seekerhut.com pnpm test:acceptance`
+- 如果当前机器 DNS 无法解析测试域名，可添加 Chromium host resolver：
+  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_HOST_RESOLVER_RULES="MAP aisocialgame.seekerhut.com 192.168.5.208" pnpm test:acceptance`
+- 验收覆盖：
+  - 首页、社区、排行榜基础页面。
+  - 谁是卧底：`1 真人 + AI`、`3 真人 + AI`。
+  - 狼人杀：`1 真人 + AI`、`3 真人 + AI`。
+  - 管理端 `/admin/ai` 的模型、决策 trace 与 Persona 记忆可见性。
+
+## 10. 最近一次执行记录（2026-03-04）
 
 - 报告目录：`result/game-reports/20260304132122-subagent-rerun/`
 - 4 场真人对局均完成到结算：

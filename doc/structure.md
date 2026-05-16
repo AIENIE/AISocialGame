@@ -66,3 +66,4 @@ AISocialGame/
 - 后端端口解析链路为 `SERVER_PORT -> BACKEND_PORT -> 20030`，宿主机直启默认复用 `env.txt` 中的 `BACKEND_PORT=11031`。
 - `build_common.sh` 当前职责是构建、部署、依赖检查与迁移，不自动执行 Playwright。
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
+- 本地开箱即用数据由 `DemoSeedService` 管理，`build_local.sh` 默认开启，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。

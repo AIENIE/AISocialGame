@@ -6,7 +6,7 @@ const navItems = [
   { path: "/admin", label: "仪表盘" },
   { path: "/admin/users", label: "用户管理" },
   { path: "/admin/billing", label: "积分查询" },
-  { path: "/admin/ai", label: "AI 测试" },
+  { path: "/admin/ai", label: "AI 质检" },
   { path: "/admin/integration", label: "服务联通" },
 ];
 
