@@ -76,7 +76,21 @@
 - 对局流程卡住（未推进到结算）
   - 处置：按真实用户视角重试当前回合动作；若可稳定复现，先修复代码再重新部署与复测。
 
-## 7. 最近一次执行记录（2026-03-04）
+## 7. AI 质量闭环联调
+
+- Mock 自动化：
+  - `cd backend`
+  - `mvn test -Dtest=AiDecisionServiceTest,GamePlayServiceUndercoverTest,GamePlayServiceWerewolfTest`
+- 真实 ai-service 联调：
+  - `cd backend`
+  - `set -a && source ../env.txt && set +a`
+  - `REAL_AI_INTEGRATION=1 mvn test -Dtest=AiDecisionRealIntegrationTest`
+- 验收重点：
+  - AI 发言/投票/夜晚行动后生成 `ai_decision_traces`。
+  - 日志 metadata 只有安全摘要，不包含隐藏词语、隐藏身份或完整 Prompt。
+  - `ai_persona_memories` 会沉淀 Persona 级策略和错误记忆，可通过管理端重置。
+
+## 8. 最近一次执行记录（2026-03-04）
 
 - 报告目录：`result/game-reports/20260304132122-subagent-rerun/`
 - 4 场真人对局均完成到结算：

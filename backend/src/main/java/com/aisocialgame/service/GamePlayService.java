@@ -591,14 +591,16 @@ public class GamePlayService {
             GamePlayerState speaker = currentSpeaker(state);
             if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                 if (speaker.isAi()) {
-                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiDescription(state, speaker));
+                    AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
+                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + decision.content(), decision.logMetadata());
                     addSpeaker(state, speaker.getPlayerId());
                     moveUndercoverToNextSpeaker(state, room);
                     changed = true;
                 } else if (isPhaseTimeout(state.getPhaseEndsAt())) {
                     if (isPlayerDisconnected(speaker)) {
                         markAiTakeover(state, speaker);
-                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiDescription(state, speaker));
+                        AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
+                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + decision.content(), decision.logMetadata());
                     } else {
                         addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                     }
@@ -633,14 +635,16 @@ public class GamePlayService {
                 GamePlayerState speaker = currentSpeaker(state);
                 if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                     if (speaker.isAi()) {
-                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiSuspicion(state, speaker));
+                        AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
+                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + decision.content(), decision.logMetadata());
                         addSpeaker(state, speaker.getPlayerId());
                         moveWerewolfToNextSpeaker(state, room);
                         changed = true;
                     } else if (isPhaseTimeout(state.getPhaseEndsAt())) {
                         if (isPlayerDisconnected(speaker)) {
                             markAiTakeover(state, speaker);
-                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiSuspicion(state, speaker));
+                            AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
+                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + decision.content(), decision.logMetadata());
                         } else {
                             addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                         }
@@ -808,7 +812,7 @@ public class GamePlayService {
                 continue;
             }
             votes.put(player.getPlayerId(), targetPlayerId);
-            addLog(state, "vote", buildAiVoteLog(player.getDisplayName()));
+            addLog(state, "vote", buildAiVoteLog(player.getDisplayName()), decision.logMetadata());
             changed = true;
         }
         state.getData().put("votes", votes);
@@ -1163,10 +1167,15 @@ public class GamePlayService {
     }
 
     private void addLog(GameState state, String type, String message) {
+        addLog(state, type, message, null);
+    }
+
+    private void addLog(GameState state, String type, String message, Map<String, Object> metadata) {
         List<GameLogEntry> logs = state.getLogs() == null ? new ArrayList<>() : new ArrayList<>(state.getLogs());
         GameLogEntry entry = new GameLogEntry(type, message);
         entry.setPhase(state.getPhase());
         entry.setRoundNumber(state.getRoundNumber());
+        entry.setMetadata(metadata);
         logs.add(entry);
         state.setLogs(logs);
     }

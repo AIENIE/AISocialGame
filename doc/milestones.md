@@ -73,6 +73,13 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - AI 决策日志中能看到信念状态、关键依据、是否兜底、模型调用耗时。
 - 同一 Persona 连续多轮发言风格稳定，重复模板化发言明显减少。
 
+### M1 实现记录（2026-05-16）
+
+- 新增服务端 AI 质量闭环：信念快照、局内短期记忆、Persona 跨局记忆、决策 trace、质量 flags 与安全日志 metadata。
+- 新增管理端 API：AI 决策 trace 查询、Persona 记忆查询与重置。
+- 玩家端继续只展示 AI 身份、发言和公开行动，不展示隐藏身份、隐藏词语、完整 Prompt 或内部推理链。
+- 详细架构见 `doc/modules/ai-quality-loop-module.md`。
+
 ### 依赖
 
 - 现有 `AiDecisionService`、`GameLogEntry` 结构化字段、`Persona` 扩展字段。

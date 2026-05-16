@@ -5,6 +5,9 @@ import com.aisocialgame.dto.AiChatRequest;
 import com.aisocialgame.dto.AiChatResponse;
 import com.aisocialgame.dto.AiMessageRequest;
 import com.aisocialgame.dto.AiModelView;
+import com.aisocialgame.dto.PagedResponse;
+import com.aisocialgame.dto.admin.AdminAiDecisionTraceView;
+import com.aisocialgame.dto.admin.AdminAiPersonaMemoryView;
 import com.aisocialgame.dto.admin.AdminDashboardSummaryResponse;
 import com.aisocialgame.dto.admin.AdminIntegrationStatusResponse;
 import com.aisocialgame.dto.admin.AdminLedgerPageResponse;
@@ -16,10 +19,13 @@ import com.aisocialgame.integration.grpc.client.UserGrpcClient;
 import com.aisocialgame.integration.grpc.dto.BalanceSnapshot;
 import com.aisocialgame.integration.grpc.dto.ExternalUserProfile;
 import com.aisocialgame.model.credit.CreditRedeemCode;
+import com.aisocialgame.repository.AiPersonaMemoryRepository;
 import com.aisocialgame.repository.CommunityPostRepository;
 import com.aisocialgame.repository.GameStateRepository;
 import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.UserRepository;
+import com.aisocialgame.service.ai.AiDecisionTraceService;
+import com.aisocialgame.service.ai.AiReflectionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +47,9 @@ public class AdminOpsService {
     private final CommunityPostRepository communityPostRepository;
     private final GameStateRepository gameStateRepository;
     private final AppProperties appProperties;
+    private final AiDecisionTraceService aiDecisionTraceService;
+    private final AiPersonaMemoryRepository aiPersonaMemoryRepository;
+    private final AiReflectionService aiReflectionService;
 
     public AdminOpsService(UserGrpcClient userGrpcClient,
                            BillingGrpcClient billingGrpcClient,
@@ -49,9 +58,12 @@ public class AdminOpsService {
                            AiProxyService aiProxyService,
                            UserRepository userRepository,
                            RoomRepository roomRepository,
-                           CommunityPostRepository communityPostRepository,
-                           GameStateRepository gameStateRepository,
-                           AppProperties appProperties) {
+	                           CommunityPostRepository communityPostRepository,
+	                           GameStateRepository gameStateRepository,
+	                           AppProperties appProperties,
+	                           AiDecisionTraceService aiDecisionTraceService,
+	                           AiPersonaMemoryRepository aiPersonaMemoryRepository,
+	                           AiReflectionService aiReflectionService) {
         this.userGrpcClient = userGrpcClient;
         this.billingGrpcClient = billingGrpcClient;
         this.balanceService = balanceService;
@@ -62,6 +74,9 @@ public class AdminOpsService {
         this.communityPostRepository = communityPostRepository;
         this.gameStateRepository = gameStateRepository;
         this.appProperties = appProperties;
+        this.aiDecisionTraceService = aiDecisionTraceService;
+        this.aiPersonaMemoryRepository = aiPersonaMemoryRepository;
+        this.aiReflectionService = aiReflectionService;
     }
 
     public AdminDashboardSummaryResponse dashboardSummary() {
@@ -222,6 +237,38 @@ public class AdminOpsService {
         request.setMessages(messages);
         long effectiveUserId = userId > 0 ? userId : Math.max(1, appProperties.getAi().getSystemUserId());
         return new AiChatResponse(aiProxyService.chatByIdentity(request, effectiveUserId, sessionId));
+    }
+
+    public PagedResponse<AdminAiDecisionTraceView> decisionTraces(String roomId,
+                                                                  String gameId,
+                                                                  String personaId,
+                                                                  String action,
+                                                                  Boolean fallback,
+                                                                  String qualityFlag,
+                                                                  int page,
+                                                                  int size) {
+        var result = aiDecisionTraceService.search(roomId, gameId, personaId, action, fallback, qualityFlag, page, size);
+        return new PagedResponse<>(
+                result.getContent().stream().map(AdminAiDecisionTraceView::new).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements()
+        );
+    }
+
+    public List<AdminAiPersonaMemoryView> personaMemories(String personaId) {
+        if (personaId != null && !personaId.isBlank()) {
+            return aiPersonaMemoryRepository.findByPersonaIdOrderByUpdatedAtDesc(personaId).stream()
+                    .map(AdminAiPersonaMemoryView::new)
+                    .toList();
+        }
+        return aiPersonaMemoryRepository.findAll(Sort.by(Sort.Direction.DESC, "updatedAt")).stream()
+                .map(AdminAiPersonaMemoryView::new)
+                .toList();
+    }
+
+    public void resetPersonaMemory(Long id) {
+        aiReflectionService.resetMemory(id);
     }
 
     private AdminIntegrationStatusResponse.ServiceStatus probe(String service, Probe probe) {

@@ -4,6 +4,8 @@ import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.config.PromptProperties;
 import com.aisocialgame.integration.grpc.client.AiGrpcClient;
 import com.aisocialgame.integration.grpc.dto.AiChatMessageDto;
+import com.aisocialgame.integration.grpc.dto.AiChatResult;
+import com.aisocialgame.model.AiDecisionTrace;
 import com.aisocialgame.model.GameLogEntry;
 import com.aisocialgame.model.GamePlayerState;
 import com.aisocialgame.model.GameState;
@@ -32,32 +34,50 @@ public class AiDecisionService {
     private final AppProperties appProperties;
     private final PromptProperties promptProperties;
     private final PersonaRepository personaRepository;
+    private final AiBeliefService aiBeliefService;
+    private final AiQualityService aiQualityService;
+    private final AiReflectionService aiReflectionService;
+    private final AiDecisionTraceService aiDecisionTraceService;
 
     public AiDecisionService(AiGrpcClient aiGrpcClient,
                              AppProperties appProperties,
                              PromptProperties promptProperties,
-                             PersonaRepository personaRepository) {
+                             PersonaRepository personaRepository,
+                             AiBeliefService aiBeliefService,
+                             AiQualityService aiQualityService,
+                             AiReflectionService aiReflectionService,
+                             AiDecisionTraceService aiDecisionTraceService) {
         this.aiGrpcClient = aiGrpcClient;
         this.appProperties = appProperties;
         this.promptProperties = promptProperties;
         this.personaRepository = personaRepository;
+        this.aiBeliefService = aiBeliefService;
+        this.aiQualityService = aiQualityService;
+        this.aiReflectionService = aiReflectionService;
+        this.aiDecisionTraceService = aiDecisionTraceService;
     }
 
     public AiDecisionResult generateSpeech(GameState state, GamePlayerState actor) {
-        AiGameContext context = buildContext(state, actor, "SPEECH");
+        DecisionInput input = decisionInput(state, actor, "SPEECH");
+        AiGameContext context = input.context();
         String fallback = fallbackSpeech(context);
-        return callAndParse(context, promptFor(context), fallback)
+        CallResult call = callAndParse(context, promptFor(context), fallback);
+        AiDecisionResult result = call.payload()
                 .map(payload -> {
                     String content = sanitizeText(asString(payload.get("content")), 90);
-                    return StringUtils.hasText(content) ? AiDecisionResult.speech(content, false) : AiDecisionResult.speech(fallback, true);
+                    AiDecisionResult parsed = StringUtils.hasText(content) ? AiDecisionResult.speech(content, false) : AiDecisionResult.speech(fallback, true);
+                    return withPayloadQuality(parsed, payload);
                 })
                 .orElseGet(() -> AiDecisionResult.speech(fallback, true));
+        return finalizeDecision(state, actor, "SPEECH", input, result, call);
     }
 
     public AiDecisionResult decideVote(GameState state, GamePlayerState actor) {
-        AiGameContext context = buildContext(state, actor, "VOTE");
+        DecisionInput input = decisionInput(state, actor, "VOTE");
+        AiGameContext context = input.context();
         String fallbackTarget = fallbackVoteTarget(context);
-        return callAndParse(context, promptFor(context), "")
+        CallResult call = callAndParse(context, promptFor(context), "");
+        AiDecisionResult result = call.payload()
                 .map(payload -> {
                     Integer targetSeat = asInteger(payload.get("targetSeat"));
                     String targetId = playerIdBySeat(context, targetSeat);
@@ -66,32 +86,102 @@ public class AiDecisionService {
                         targetId = fallbackTarget;
                         usedFallback = true;
                     }
-                    return AiDecisionResult.vote(targetId, sanitizeText(asString(payload.get("reason")), 80), usedFallback);
+                    return withPayloadQuality(AiDecisionResult.vote(targetId, sanitizeText(asString(payload.get("reason")), 80), usedFallback), payload);
                 })
                 .orElseGet(() -> AiDecisionResult.vote(fallbackTarget, "规则兜底", true));
+        return finalizeDecision(state, actor, "VOTE", input, result, call);
     }
 
     public AiDecisionResult decideNightAction(GameState state, GamePlayerState actor) {
-        AiGameContext context = buildContext(state, actor, "NIGHT_ACTION");
+        DecisionInput input = decisionInput(state, actor, "NIGHT_ACTION");
+        AiGameContext context = input.context();
         AiDecisionResult fallback = fallbackNightAction(context);
-        return callAndParse(context, promptFor(context), "")
+        CallResult call = callAndParse(context, promptFor(context), "");
+        AiDecisionResult result = call.payload()
                 .map(payload -> {
                     String action = normalizeAction(asString(payload.get("action")));
                     Integer targetSeat = asInteger(payload.get("targetSeat"));
                     String targetId = playerIdBySeat(context, targetSeat);
                     boolean useHeal = Boolean.TRUE.equals(payload.get("useHeal"));
                     if (!isLegalNightAction(context, action, targetId, useHeal)) {
-                        return fallback;
+                        return withPayloadQuality(fallback, payload);
                     }
-                    return AiDecisionResult.nightAction(action, targetId, useHeal, sanitizeText(asString(payload.get("reason")), 80), false);
+                    return withPayloadQuality(AiDecisionResult.nightAction(action, targetId, useHeal, sanitizeText(asString(payload.get("reason")), 80), false), payload);
                 })
                 .orElse(fallback);
+        return finalizeDecision(state, actor, "NIGHT_ACTION", input, result, call);
     }
 
-    private Optional<Map<String, Object>> callAndParse(AiGameContext context, String actionPrompt, String fallbackText) {
+    private DecisionInput decisionInput(GameState state, GamePlayerState actor, String action) {
+        Map<String, Object> belief = aiBeliefService.buildBelief(state, actor);
+        aiBeliefService.rememberBelief(state, actor, belief);
+        Map<String, Object> memory = aiReflectionService.memorySnapshot(state, actor);
+        AiGameContext context = buildContext(state, actor, action, belief, memory);
+        return new DecisionInput(context, belief, memory);
+    }
+
+    private AiDecisionResult finalizeDecision(GameState state,
+                                              GamePlayerState actor,
+                                              String action,
+                                              DecisionInput input,
+                                              AiDecisionResult result,
+                                              CallResult call) {
+        List<String> qualityFlags = aiQualityService.evaluate(state, actor, result);
+        String reflection = StringUtils.hasText(result.reflection())
+                ? result.reflection()
+                : aiReflectionService.summarizeDecision(state, actor, result, qualityFlags);
+        aiReflectionService.rememberShortReflection(state, actor, reflection);
+        AiDecisionResult enriched = result.withQuality(
+                result.confidence(),
+                result.evidence(),
+                reflection,
+                qualityFlags,
+                null,
+                Map.of()
+        );
+        AiDecisionTrace trace = null;
+        try {
+            trace = aiDecisionTraceService.record(
+                    state,
+                    actor,
+                    action,
+                    enriched,
+                    call.rawOutput(),
+                    call.response(),
+                    call.latencyMs(),
+                    input.belief(),
+                    input.memory(),
+                    qualityFlags,
+                    inputSummary(input.context())
+            );
+            aiReflectionService.updatePersonaMemory(state, actor, enriched, reflection, qualityFlags);
+        } catch (Exception ignored) {
+            // AI quality logging must never block a live game action.
+        }
+        Map<String, Object> metadata = trace != null
+                ? aiDecisionTraceService.safeLogMetadata(trace, enriched.evidence(), reflection)
+                : Map.of("aiQualityFlags", qualityFlags, "aiFallback", enriched.fallback(), "aiReflection", reflection);
+        return enriched.withQuality(enriched.confidence(), enriched.evidence(), reflection, qualityFlags, trace != null ? trace.getId() : null, metadata);
+    }
+
+    private AiDecisionResult withPayloadQuality(AiDecisionResult result, Map<String, Object> payload) {
+        return result.withQuality(
+                asDouble(payload.get("confidence")),
+                asStringList(payload.get("evidence")),
+                sanitizeText(asString(payload.get("reflection")), 180),
+                asStringList(payload.get("qualityNotes")),
+                null,
+                Map.of()
+        );
+    }
+
+    private CallResult callAndParse(AiGameContext context, String actionPrompt, String fallbackText) {
+        long startedAt = System.nanoTime();
+        AiChatResult response = null;
+        Map<String, Object> rawOutput = Map.of();
         try {
             String userPrompt = buildUserPrompt(context, actionPrompt);
-            var response = aiGrpcClient.chatCompletions(
+            response = aiGrpcClient.chatCompletions(
                     appProperties.getProjectKey(),
                     appProperties.getAi().getSystemUserId(),
                     "",
@@ -105,13 +195,15 @@ public class AiDecisionService {
             if (!StringUtils.hasText(content)) {
                 content = fallbackText;
             }
-            return parseJsonObject(content);
+            Optional<Map<String, Object>> parsed = parseJsonObject(content);
+            rawOutput = parsed.<Map<String, Object>>map(HashMap::new).orElseGet(HashMap::new);
+            return new CallResult(parsed, rawOutput, response, elapsedMs(startedAt));
         } catch (Exception ignored) {
-            return Optional.empty();
+            return new CallResult(Optional.empty(), rawOutput, response, elapsedMs(startedAt));
         }
     }
 
-    private AiGameContext buildContext(GameState state, GamePlayerState actor, String action) {
+    private AiGameContext buildContext(GameState state, GamePlayerState actor, String action, Map<String, Object> belief, Map<String, Object> memory) {
         Persona persona = personaRepository.findById(actor.getPersonaId());
         List<AiPlayerInfo> players = state.getPlayers().stream()
                 .sorted(Comparator.comparingInt(GamePlayerState::getSeatNumber))
@@ -146,6 +238,8 @@ public class AiDecisionService {
         extra.put("seerResults", visibleSeerResults(state, actor));
         extra.put("wolfTarget", state.getData().get("wolfTarget"));
         extra.put("lastNightEvents", events.stream().filter(e -> e.contains("今晚") || e.contains("平安夜") || e.contains("天亮")).toList());
+        extra.put("belief", belief);
+        extra.put("memory", memory);
         return new AiGameContext(
                 state.getGameId(),
                 state.getPhase(),
@@ -233,6 +327,13 @@ public class AiDecisionService {
         payload.put("events", tail(context.events(), 20));
         payload.put("extra", context.extra());
         return MAPPER.writeValueAsString(payload);
+    }
+
+    private String inputSummary(AiGameContext context) {
+        return context.gameId() + "/" + context.phase() + "/round=" + context.round()
+                + "/action=" + context.action()
+                + "/speeches=" + context.speeches().size()
+                + "/votes=" + context.votes().size();
     }
 
     private Optional<Map<String, Object>> parseJsonObject(String content) throws JsonProcessingException {
@@ -363,6 +464,10 @@ public class AiDecisionService {
         return values.subList(values.size() - limit, values.size());
     }
 
+    private long elapsedMs(long startedAt) {
+        return Math.max(0, (System.nanoTime() - startedAt) / 1_000_000);
+    }
+
     private Integer asInteger(Object value) {
         if (value instanceof Number number) {
             return number.intValue();
@@ -375,6 +480,33 @@ public class AiDecisionService {
             }
         }
         return null;
+    }
+
+    private Double asDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Double.parseDouble(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private List<String> asStringList(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(item -> item == null ? "" : sanitizeText(item.toString(), 120))
+                    .filter(StringUtils::hasText)
+                    .toList();
+        }
+        if (StringUtils.hasText(asString(value))) {
+            return List.of(sanitizeText(asString(value), 120));
+        }
+        return List.of();
     }
 
     private String asString(Object value) {
@@ -399,4 +531,11 @@ public class AiDecisionService {
         }
         return normalized;
     }
+
+    private record DecisionInput(AiGameContext context, Map<String, Object> belief, Map<String, Object> memory) {}
+
+    private record CallResult(Optional<Map<String, Object>> payload,
+                              Map<String, Object> rawOutput,
+                              AiChatResult response,
+                              long latencyMs) {}
 }
