@@ -1,6 +1,6 @@
 # AISocialGame 后续开发里程碑
 
-> 更新时间：2026-05-16
+> 更新时间：2026-05-17
 
 ## 1. 总目标
 
@@ -34,12 +34,14 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 | 里程碑 | 优先级 | 主题 | 核心产出 |
 |---|---|---|---|
-| M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测 |
-| M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据 |
+| M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；开发记录见 `doc/milestones/m1-ai-quality-loop/development.md` |
+| M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
 | M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、AI Adapter、现有玩法迁移 |
 | M4 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
 | M5 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
 | M6 | P1 | AI 运营后台与安全治理 | Persona/Prompt/模型/成本/审计/灰度 |
+
+已完成里程碑的分目录归档入口见 `doc/milestones/README.md`。
 
 ## 5. M1：AI 拟人质量闭环
 
@@ -79,6 +81,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 新增管理端 API：AI 决策 trace 查询、Persona 记忆查询与重置。
 - 玩家端继续只展示 AI 身份、发言和公开行动，不展示隐藏身份、隐藏词语、完整 Prompt 或内部推理链。
 - 详细架构见 `doc/modules/ai-quality-loop-module.md`。
+- 分目录开发记录见 `doc/milestones/m1-ai-quality-loop/development.md`。
 
 ### 依赖
 
@@ -123,6 +126,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 新增 `ReplayController`：提供回放列表、详情和 `PUBLIC` / `PLAYER` / `GOD` 视角事件查询。
 - 前端 `/replays` 与 `/replay/:archiveId` 优先读取服务端回放，服务端不可用时保留原本地存档降级。
 - 详细架构见 `doc/modules/replay-event-module.md`。
+- 分目录开发记录见 `doc/milestones/m2-structured-replay/development.md`。
 
 ## 7. M3：GameEngine 插件化架构
 
@@ -260,6 +264,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 ## 12. 推进规则
 
 - 每个里程碑开始前，先确认该里程碑是否仍是当前最高优先级。
-- 每个里程碑交付必须包含：代码实现、测试/验收记录、相关 `doc` 更新。
+- 每个里程碑交付必须包含：代码实现、测试/验收记录、相关 `doc` 更新，并在 `doc/milestones/<milestone-id>/development.md` 记录阶段修改。
 - 涉及 AI 行为的功能必须同时考虑：可见信息边界、非法动作兜底、成本控制、日志审计。
 - 涉及新游戏的功能必须优先沉淀通用能力，避免只为单个玩法写死流程。
