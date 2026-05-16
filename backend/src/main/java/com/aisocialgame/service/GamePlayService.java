@@ -20,6 +20,8 @@ import com.aisocialgame.model.UndercoverWordPair;
 import com.aisocialgame.model.User;
 import com.aisocialgame.repository.GameStateRepository;
 import com.aisocialgame.repository.UndercoverWordRepository;
+import com.aisocialgame.service.ai.AiDecisionResult;
+import com.aisocialgame.service.ai.AiDecisionService;
 import com.aisocialgame.websocket.GamePushService;
 import com.aisocialgame.websocket.PlayerConnectionService;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +55,7 @@ public class GamePlayService {
     private final UndercoverWordRepository undercoverWordRepository;
     private final StatsService statsService;
     private final PromptProperties promptProperties;
-    private final AiGameSpeechService aiGameSpeechService;
+    private final AiDecisionService aiDecisionService;
     private final GamePushService gamePushService;
     private final PlayerConnectionService playerConnectionService;
     private final Duration disconnectThreshold;
@@ -63,7 +65,7 @@ public class GamePlayService {
                            UndercoverWordRepository undercoverWordRepository,
                            StatsService statsService,
                            PromptProperties promptProperties,
-                           AiGameSpeechService aiGameSpeechService,
+                           AiDecisionService aiDecisionService,
                            GamePushService gamePushService,
                            PlayerConnectionService playerConnectionService,
                            @Value("${connection.disconnect-threshold-seconds:60}") long disconnectThresholdSeconds) {
@@ -72,7 +74,7 @@ public class GamePlayService {
         this.undercoverWordRepository = undercoverWordRepository;
         this.statsService = statsService;
         this.promptProperties = promptProperties;
-        this.aiGameSpeechService = aiGameSpeechService;
+        this.aiDecisionService = aiDecisionService;
         this.gamePushService = gamePushService;
         this.playerConnectionService = playerConnectionService;
         this.disconnectThreshold = Duration.ofSeconds(Math.max(5, disconnectThresholdSeconds));
@@ -589,14 +591,14 @@ public class GamePlayService {
             GamePlayerState speaker = currentSpeaker(state);
             if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                 if (speaker.isAi()) {
-                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiDescription(speaker.getWord()));
+                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiDescription(state, speaker));
                     addSpeaker(state, speaker.getPlayerId());
                     moveUndercoverToNextSpeaker(state, room);
                     changed = true;
                 } else if (isPhaseTimeout(state.getPhaseEndsAt())) {
                     if (isPlayerDisconnected(speaker)) {
                         markAiTakeover(state, speaker);
-                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiDescription(speaker.getWord()));
+                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiDescription(state, speaker));
                     } else {
                         addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                     }
@@ -631,14 +633,14 @@ public class GamePlayService {
                 GamePlayerState speaker = currentSpeaker(state);
                 if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                     if (speaker.isAi()) {
-                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiSuspicion(speaker.getSeatNumber()));
+                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + buildAiSuspicion(state, speaker));
                         addSpeaker(state, speaker.getPlayerId());
                         moveWerewolfToNextSpeaker(state, room);
                         changed = true;
                     } else if (isPhaseTimeout(state.getPhaseEndsAt())) {
                         if (isPlayerDisconnected(speaker)) {
                             markAiTakeover(state, speaker);
-                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiSuspicion(speaker.getSeatNumber()));
+                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + buildAiSuspicion(state, speaker));
                         } else {
                             addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                         }
@@ -784,7 +786,6 @@ public class GamePlayService {
     private boolean fillAiVotes(GameState state) {
         Map<String, String> votes = voteMap(state);
         List<GamePlayerState> alivePlayers = state.getPlayers().stream().filter(GamePlayerState::isAlive).toList();
-        Random random = new Random();
         boolean changed = false;
         for (GamePlayerState player : alivePlayers) {
             if (!player.isAi() || votes.containsKey(player.getPlayerId())) {
@@ -794,8 +795,19 @@ public class GamePlayService {
             if (targets.isEmpty()) {
                 continue;
             }
-            GamePlayerState target = targets.get(random.nextInt(targets.size()));
-            votes.put(player.getPlayerId(), target.getPlayerId());
+            AiDecisionResult decision = aiDecisionService.decideVote(state, player);
+            String decidedTargetPlayerId = decision.targetPlayerId();
+            String targetPlayerId = decidedTargetPlayerId;
+            if (!StringUtils.hasText(decidedTargetPlayerId) || targets.stream().noneMatch(t -> t.getPlayerId().equals(decidedTargetPlayerId))) {
+                targetPlayerId = targets.stream()
+                        .min(Comparator.comparingInt(GamePlayerState::getSeatNumber))
+                        .map(GamePlayerState::getPlayerId)
+                        .orElse(null);
+            }
+            if (!StringUtils.hasText(targetPlayerId)) {
+                continue;
+            }
+            votes.put(player.getPlayerId(), targetPlayerId);
             addLog(state, "vote", buildAiVoteLog(player.getDisplayName()));
             changed = true;
         }
@@ -853,21 +865,20 @@ public class GamePlayService {
 
     private void autoFillNightActions(GameState state, Room room) {
         Map<String, Object> data = state.getData();
-        Random random = new Random();
         if (data.get("wolfTarget") == null && !hasConnectedHumanWolf(state)) {
             List<GamePlayerState> wolves = state.getPlayers().stream().filter(p -> p.isAlive() && p.isAi() && p.getRole().startsWith("WEREWOLF")).toList();
             if (!wolves.isEmpty()) {
-                List<GamePlayerState> targets = state.getPlayers().stream().filter(p -> p.isAlive() && !p.getRole().startsWith("WEREWOLF")).toList();
-                if (!targets.isEmpty()) {
-                    data.put("wolfTarget", targets.get(random.nextInt(targets.size())).getPlayerId());
+                AiDecisionResult decision = aiDecisionService.decideNightAction(state, wolves.get(0));
+                if ("WOLF_KILL".equals(decision.action()) && StringUtils.hasText(decision.targetPlayerId())) {
+                    data.put("wolfTarget", decision.targetPlayerId());
                 }
             }
         }
         if (data.get("seerTarget") == null && !hasConnectedHumanRole(state, "SEER")) {
             state.getPlayers().stream().filter(p -> p.isAlive() && p.isAi() && "SEER".equals(p.getRole())).findFirst().ifPresent(seer -> {
-                List<GamePlayerState> targets = state.getPlayers().stream().filter(p -> p.isAlive() && !p.getPlayerId().equals(seer.getPlayerId())).toList();
-                if (!targets.isEmpty()) {
-                    GamePlayerState target = targets.get(random.nextInt(targets.size()));
+                AiDecisionResult decision = aiDecisionService.decideNightAction(state, seer);
+                GamePlayerState target = playerById(state, decision.targetPlayerId());
+                if ("SEER_CHECK".equals(decision.action()) && target != null && target.isAlive() && !target.getPlayerId().equals(seer.getPlayerId())) {
                     data.put("seerTarget", target.getPlayerId());
                     Map<String, String> res = seerResultMap(state);
                     res.put(seer.getPlayerId(), target.getRole().startsWith("WEREWOLF") ? "WOLF" : "GOOD");
@@ -877,14 +888,13 @@ public class GamePlayService {
         }
         if (!hasConnectedHumanRole(state, "WITCH")) {
             state.getPlayers().stream().filter(p -> p.isAlive() && p.isAi() && "WITCH".equals(p.getRole())).findFirst().ifPresent(witch -> {
-                if (!Boolean.TRUE.equals(data.getOrDefault("witchAntidoteUsed", false)) && data.get("wolfTarget") != null && random.nextBoolean()) {
+                AiDecisionResult decision = aiDecisionService.decideNightAction(state, witch);
+                if ("WITCH_SAVE".equals(decision.action()) && !Boolean.TRUE.equals(data.getOrDefault("witchAntidoteUsed", false)) && data.get("wolfTarget") != null && decision.useHeal()) {
                     data.put("witchSaveTarget", data.get("wolfTarget"));
                     data.put("witchAntidoteUsed", true);
-                }
-                if (data.get("witchPoisonTarget") == null && !Boolean.TRUE.equals(data.getOrDefault("witchPoisonUsed", false)) && random.nextInt(100) < 30) {
-                    List<GamePlayerState> targets = state.getPlayers().stream().filter(p -> p.isAlive() && !p.getPlayerId().equals(witch.getPlayerId())).toList();
-                    if (!targets.isEmpty()) {
-                        GamePlayerState target = targets.get(random.nextInt(targets.size()));
+                } else if ("WITCH_POISON".equals(decision.action()) && data.get("witchPoisonTarget") == null && !Boolean.TRUE.equals(data.getOrDefault("witchPoisonUsed", false))) {
+                    GamePlayerState target = playerById(state, decision.targetPlayerId());
+                    if (target != null && target.isAlive() && !target.getPlayerId().equals(witch.getPlayerId())) {
                         data.put("witchPoisonTarget", target.getPlayerId());
                         data.put("witchPoisonUsed", true);
                     }
@@ -1154,16 +1164,19 @@ public class GamePlayService {
 
     private void addLog(GameState state, String type, String message) {
         List<GameLogEntry> logs = state.getLogs() == null ? new ArrayList<>() : new ArrayList<>(state.getLogs());
-        logs.add(new GameLogEntry(type, message));
+        GameLogEntry entry = new GameLogEntry(type, message);
+        entry.setPhase(state.getPhase());
+        entry.setRoundNumber(state.getRoundNumber());
+        logs.add(entry);
         state.setLogs(logs);
     }
 
-    private String buildAiDescription(String word) {
-        return aiGameSpeechService.buildDescription(word);
+    private String buildAiDescription(GameState state, GamePlayerState player) {
+        return aiDecisionService.generateSpeech(state, player).content();
     }
 
-    private String buildAiSuspicion(int seatNumber) {
-        return aiGameSpeechService.buildSuspicion(seatNumber);
+    private String buildAiSuspicion(GameState state, GamePlayerState player) {
+        return aiDecisionService.generateSpeech(state, player).content();
     }
 
     private String buildAiVoteLog(String displayName) {

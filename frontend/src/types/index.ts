@@ -46,6 +46,10 @@ export interface Persona {
   name: string;
   trait: string;
   avatar: string;
+  speechStyle?: string;
+  strategyStyle?: string;
+  difficultyLevel?: number;
+  memorySeed?: string;
 }
 
 export interface RoomSeat {
