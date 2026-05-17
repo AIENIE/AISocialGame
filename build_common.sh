@@ -73,7 +73,7 @@ load_env_file() {
 load_env_file "$repo_root/env.txt"
 ensure_build_wrapper_sync
 
-export MYSQL_HOST="${MYSQL_HOST:-192.168.5.208}"
+export MYSQL_HOST="${MYSQL_HOST:-base.seekerhut.com}"
 export MYSQL_PORT="${MYSQL_PORT:-3306}"
 export MYSQL_DB="${MYSQL_DB:-aisocialgame}"
 export MYSQL_ROOT_USERNAME="${MYSQL_ROOT_USERNAME:-root}"
@@ -82,26 +82,25 @@ export MYSQL_BOOTSTRAP_ENABLED="${MYSQL_BOOTSTRAP_ENABLED:-true}"
 export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
 export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-aisocialgame_pwd}"
-export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-192.168.5.208}"
+export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
 export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-6379}"
-export CONSUL_HTTP_ADDR="${CONSUL_HTTP_ADDR:-http://192.168.5.208:60000}"
 export USER_GRPC_SERVICE_NAME="${USER_GRPC_SERVICE_NAME:-aienie-userservice-grpc}"
 export BILLING_GRPC_SERVICE_NAME="${BILLING_GRPC_SERVICE_NAME:-aienie-payservice-grpc}"
 export AI_GRPC_SERVICE_NAME="${AI_GRPC_SERVICE_NAME:-aienie-aiservice-grpc}"
-export USER_GRPC_ADDR="${USER_GRPC_ADDR:-consul:///${USER_GRPC_SERVICE_NAME}}"
-export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-consul:///${BILLING_GRPC_SERVICE_NAME}}"
-export AI_GRPC_ADDR="${AI_GRPC_ADDR:-consul:///${AI_GRPC_SERVICE_NAME}}"
-export QDRANT_HOST="${QDRANT_HOST:-http://192.168.5.208}"
+export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.seekerhut.com:10001}"
+export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:20021}"
+export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:10011}"
+export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
 export QDRANT_PORT="${QDRANT_PORT:-6333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
 export SSO_USER_SERVICE_NAME="${SSO_USER_SERVICE_NAME:-aienie-userservice-http}"
-export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-http://192.168.5.208:10000}"
+export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
 export SSO_CALLBACK_URL="${SSO_CALLBACK_URL:-https://${APP_DOMAIN}/sso/callback}"
 export SSO_LOGIN_PATH="${SSO_LOGIN_PATH:-/sso/login}"
 export SSO_REGISTER_PATH="${SSO_REGISTER_PATH:-/register}"
-export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-http://192.168.5.208:10000}"
-export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-http://192.168.5.208:10020}"
-export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-http://192.168.5.208:10010}"
+export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
+export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.seekerhut.com}"
+export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.seekerhut.com}"
 export APP_EXTERNAL_GRPC_AUTH_REQUIRED="${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}"
 
 require_env_vars() {
@@ -171,7 +170,6 @@ check_external_dependencies() {
   local consul_host consul_port
   consul_host="$(echo "$CONSUL_HTTP_ADDR" | sed -E 's#https?://##; s#/.*##; s#:.*$##')"
   consul_port="$(echo "$CONSUL_HTTP_ADDR" | sed -E 's#https?://##; s#/.*##; s#.*:##')"
-  ensure_tcp_ready "$consul_host" "$consul_port" "Consul"
 }
 
 ensure_mysql_ready() {
@@ -249,9 +247,9 @@ step "Docker compose pull & restart"
 COMPOSE="$(docker_compose_cmd)"
 check_external_dependencies
 ensure_mysql_ready
-echo "Using shared services: MYSQL=${MYSQL_HOST}:${MYSQL_PORT} REDIS=${SPRING_DATA_REDIS_HOST}:${SPRING_DATA_REDIS_PORT} QDRANT=${QDRANT_HOST}:${QDRANT_PORT} CONSUL=${CONSUL_HTTP_ADDR}"
+echo "Using shared services: MYSQL=${MYSQL_HOST}:${MYSQL_PORT} REDIS=${SPRING_DATA_REDIS_HOST}:${SPRING_DATA_REDIS_PORT} QDRANT=${QDRANT_HOST}:${QDRANT_PORT}"
 echo "External domains: USER=${USER_SERVICE_BASE_URL} PAY=${PAY_SERVICE_BASE_URL} AI=${AI_SERVICE_BASE_URL}"
-echo "gRPC services via consul: user=${USER_GRPC_SERVICE_NAME} billing=${BILLING_GRPC_SERVICE_NAME} ai=${AI_GRPC_SERVICE_NAME}"
+echo "gRPC targets: user=${USER_GRPC_ADDR} billing=${BILLING_GRPC_ADDR} ai=${AI_GRPC_ADDR}"
 $COMPOSE down -v || true
 $COMPOSE pull
 $COMPOSE up -d

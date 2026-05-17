@@ -25,10 +25,10 @@ server:
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
   consul:
-    address: ${CONSUL_HTTP_ADDR:http://192.168.5.208:60000}
+    address: ${CONSUL_HTTP_ADDR:}
   sso:
     user-service-name: ${SSO_USER_SERVICE_NAME:aienie-userservice-http}
-    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:http://192.168.5.208:10000}
+    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://userservice.seekerhut.com}
     callback-url: ${SSO_CALLBACK_URL:https://aisocialgame.seekerhut.com/sso/callback}
     login-path: ${SSO_LOGIN_PATH:/sso/login}
     register-path: ${SSO_REGISTER_PATH:/register}
@@ -71,11 +71,11 @@ connection:
 grpc:
   client:
     user:
-      address: ${USER_GRPC_ADDR:consul:///${USER_GRPC_SERVICE_NAME:aienie-userservice-grpc}}
+      address: ${USER_GRPC_ADDR:static://userservice.seekerhut.com:10001}
       negotiationType: PLAINTEXT
     billing:
-      address: ${BILLING_GRPC_ADDR:consul:///${BILLING_GRPC_SERVICE_NAME:aienie-payservice-grpc}}
+      address: ${BILLING_GRPC_ADDR:static://payservice.seekerhut.com:20021}
       negotiationType: PLAINTEXT
     ai:
-      address: ${AI_GRPC_ADDR:consul:///${AI_GRPC_SERVICE_NAME:aienie-aiservice-grpc}}
+      address: ${AI_GRPC_ADDR:static://aiservice.seekerhut.com:10011}
       negotiationType: PLAINTEXT

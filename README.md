@@ -42,13 +42,20 @@
 
 ## 运行依赖
 
-项目依赖以下外部服务（默认统一对接 `192.168.5.208` 标准端口）：
+项目依赖以下外部服务：
 
 - MySQL
 - Redis
 - Qdrant
-- Consul
 - user-service / pay-service / ai-service
+
+测试服默认不再依赖 Consul：
+
+- MySQL / Redis / Qdrant：`base.seekerhut.com` 标准端口 `3306 / 6379 / 6333`
+- user-service gRPC：`static://userservice.seekerhut.com:10001`
+- pay-service gRPC：`static://payservice.seekerhut.com:20021`
+- ai-service gRPC：`static://aiservice.seekerhut.com:10011`
+- SSO 入口：`https://userservice.seekerhut.com`
 
 当依赖不可达时，部署脚本会直接失败并提示缺失依赖。
 
