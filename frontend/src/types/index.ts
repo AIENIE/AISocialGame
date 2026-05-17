@@ -21,6 +21,9 @@ export interface Game {
   status: GameStatus | "active" | "maintenance" | "coming_soon";
   onlineCount: number;
   configSchema: GameConfigOption[];
+  engineBacked?: boolean;
+  phaseDefinitions?: PhaseDefinition[];
+  roleDefinitions?: RoleDefinition[];
 }
 
 export interface User {
@@ -311,6 +314,30 @@ export interface PendingAction {
   type: string;
   description: string;
   deadlineSeconds: number;
+}
+
+export interface PhaseDefinition {
+  phase: string;
+  displayName: string;
+  defaultDurationSeconds: number;
+  allowChat: boolean;
+}
+
+export interface RoleDefinition {
+  role: string;
+  displayName: string;
+  faction: string;
+  hasNightAction: boolean;
+}
+
+export interface PlayerAction {
+  type: "SPEAK" | "VOTE" | "NIGHT_ACTION";
+  content?: string;
+  targetPlayerId?: string;
+  abstain?: boolean;
+  nightAction?: string;
+  useHeal?: boolean;
+  extra?: Record<string, any>;
 }
 
 export interface GameState {

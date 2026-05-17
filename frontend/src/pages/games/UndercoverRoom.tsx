@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { gameplayApi, personaApi, roomApi } from "@/services/api";
+import { personaApi, roomApi } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useGameSocket } from "@/hooks/useGameSocket";
-import { ChatMessage, GameState } from "@/types";
+import { useGameEngine } from "@/hooks/useGameEngine";
+import { ChatMessage } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,12 +57,7 @@ const UndercoverRoom = () => {
     enabled: !!roomId && !!gameId,
   });
 
-  const stateQuery = useQuery<GameState>({
-    queryKey: ["game-state", roomId],
-    queryFn: () => gameplayApi.state(gameId || "undercover", roomId || "", playerId || undefined),
-    enabled: !!roomId && !!gameId,
-    refetchInterval: false,
-  });
+  const { stateQuery, startMutation, actionMutation } = useGameEngine(gameId || "undercover", roomId, playerId || undefined);
 
   const socket = useGameSocket({
     roomId,
@@ -151,14 +147,8 @@ const UndercoverRoom = () => {
     joinMutation.mutate();
   }, [room, loading, token, playerId, stateQuery.data]);
 
-  const startMutation = useMutation({
-    mutationFn: () => gameplayApi.start(gameId || "undercover", roomId || "", playerId || undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["game-state", roomId] }),
-    onError: (err: any) => toast.error(err?.response?.data?.message || "开局失败"),
-  });
-
   const speakMutation = useMutation({
-    mutationFn: () => gameplayApi.speak(gameId || "undercover", roomId || "", speakContent || "我已描述完毕", playerId || undefined),
+    mutationFn: () => actionMutation.mutateAsync({ type: "SPEAK", content: speakContent || "我已描述完毕" }),
     onSuccess: () => {
       setSpeakContent("");
       queryClient.invalidateQueries({ queryKey: ["game-state", roomId] });
@@ -167,7 +157,7 @@ const UndercoverRoom = () => {
   });
 
   const voteMutation = useMutation({
-    mutationFn: () => gameplayApi.vote(gameId || "undercover", roomId || "", selectedVote || "", false, playerId || undefined),
+    mutationFn: () => actionMutation.mutateAsync({ type: "VOTE", targetPlayerId: selectedVote || "", abstain: false }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["game-state", roomId] }),
     onError: (error: any) => handleActionError(error, "投票失败"),
   });
@@ -289,7 +279,7 @@ const UndercoverRoom = () => {
                   {phase === "WAITING" && (
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">满足人数后房主可以开局。</p>
-                      <Button data-testid="game-start-btn" onClick={() => startMutation.mutate()} disabled={startMutation.isPending} className="w-full">
+                      <Button data-testid="game-start-btn" onClick={() => startMutation.mutate(undefined, { onError: (err: any) => toast.error(err?.response?.data?.message || "开局失败") })} disabled={startMutation.isPending} className="w-full">
                         <Play className="mr-2 h-4 w-4" /> 开始游戏
                       </Button>
                     </div>

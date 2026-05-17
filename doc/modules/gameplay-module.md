@@ -4,14 +4,16 @@
 
 - 提供“开局 -> 阶段推进 -> 投票/夜晚行动 -> 结算”的统一对局主流程。
 - 在 v2 中补充实时推送、断线状态同步、超时托管（AI takeover）与自动推进能力。
+- M3 后 `GamePlayService` 作为兼容编排层，具体玩法入口由 `GameEngineRegistry` 分发。
 
 ## 功能点清单
 
 | 功能点 | 作用 | 实现位置 |
 |---|---|---|
 | 状态查询 `/state` | 返回当前阶段、回合、当前座位、日志、玩家私有身份信息、夜晚待办 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
+| GameEngine 分发 | 将具体玩法动作分发到注册 engine，减少主流程 `gameId` 分支 | `backend/src/main/java/com/aisocialgame/engine/*.java` |
 | 开局与私有身份下发 | 房主开局后完成角色/词语分配，并通过 WS 私有队列下发身份信息 | `backend/src/main/java/com/aisocialgame/service/GamePlayService.java`、`backend/src/main/java/com/aisocialgame/websocket/GamePushService.java` |
-| 发言/投票/夜晚行动 | 处理卧底与狼人杀的阶段动作，动作后推送状态变更事件 | `backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
+| 发言/投票/夜晚行动 | 旧接口继续兼容，统一 `/action` 作为插件化动作入口 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/engine/GameEngine.java` |
 | AI 行为质检挂载 | AI 自动发言/投票/夜晚行动后写入 trace，并把安全摘要写入日志 metadata | `backend/src/main/java/com/aisocialgame/service/ai/*`、`backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java` |
 | 断线检测与托管 | 按连接活跃时间更新 `ONLINE/DISCONNECTED/AI_TAKEOVER`，超时后自动托管/弃票 | `backend/src/main/java/com/aisocialgame/websocket/PlayerConnectionService.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
 | 前端房间实时渲染 | 取消轮询，改为 WS 事件驱动刷新；展示倒计时、阶段过渡、连接状态、聊天面板 | `frontend/src/hooks/useGameSocket.ts`、`frontend/src/pages/games/UndercoverRoom.tsx`、`frontend/src/pages/games/WerewolfRoom.tsx`、`frontend/src/components/game/*` |
@@ -19,7 +21,7 @@
 ## 关键流程
 
 1. 房主调用 `/start`，后端初始化 `GameState` 并推送 `PHASE_CHANGE`。
-2. 玩家通过 `/speak`、`/vote`、`/night-action` 交互，后端保存状态并推送 `state` 事件。
+2. 玩家通过 `/action` 或旧 `/speak`、`/vote`、`/night-action` 交互，后端保存状态并推送 `state` 事件。
 3. 玩家连接状态由 STOMP 连接 + 活跃打点共同维护，断线后进入 `DISCONNECTED`，超时后进入 `AI_TAKEOVER`。
 4. 阶段超时或操作完备时自动推进，结算后记录统计并回写房间状态。
 5. AI 动作会同步更新 `GameState.data.aiBeliefs`、`GameState.data.aiShortMemories` 与后台 trace，不改变玩家端可见信息边界。
@@ -39,6 +41,14 @@
 3. 满房重连玩家识别修复：
    - `RoomService.joinRoom` 调整为“先匹配已在房间玩家，再检查满房”；
    - 变更目标：确保已在房玩家重连后仍能拿到 `myPlayerId/mySeatNumber`，避免出现“轮到发言但无输入框”。
+
+## M3 插件化入口（2026-05-17）
+
+- 新增 `GameEngine` 与 `GameEngineRegistry`。
+- 新增 `UndercoverGameEngine`、`WerewolfGameEngine`。
+- `GamePlayService` 保留旧服务方法签名，但通过 registry 分发到具体 engine。
+- 新增 `PlayerAction` 与 `/action`，前端房间页已通过 `useGameEngine` 使用统一动作入口。
+- 当前 `GameRuntimeSupport` 仍保留迁移阶段的规则支撑逻辑，后续可继续拆入各 engine。
 
 ## 相关文件
 

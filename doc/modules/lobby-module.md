@@ -1,7 +1,7 @@
 # 大厅/房间模块说明
 
 ## 目标
-支撑“创建房间 → 等待/入座 → 开局”的通用流程，并对不同玩法（狼人杀、谁是卧底）提供定制 UI。
+支撑“创建房间 → 等待/入座 → 开局”的通用流程，并通过玩法组件注册表对不同玩法（狼人杀、谁是卧底）提供定制 UI。
 
 ## 后端职责
 - 提供游戏配置 schema（`/api/games`）驱动前端动态表单。
@@ -19,7 +19,8 @@
 - **房间列表**：`RoomList.tsx` 读取 `/rooms` 并跳转。
 - **大厅页**：
   - 通用大厅 `Lobby.tsx`：加载房间详情、自动入座、添加 AI（聊天室占位已移除，日志统一在玩法页呈现）。
-  - 玩法大厅 `games/UndercoverRoom.tsx`、`games/WerewolfRoom.tsx`：基于 `useGameSocket` 接收实时推送并刷新对局状态、座位、聊天。
+  - 玩法组件注册：`pages/games/registry.tsx` 按 `gameId` lazy 加载玩法页。
+  - 玩法大厅 `games/UndercoverRoom.tsx`、`games/WerewolfRoom.tsx`：基于 `useGameSocket` 接收实时推送，并通过 `useGameEngine` 的统一 `/action` 提交发言、投票和夜晚行动。
 - **鉴权/游客**：`useAuth` 负责 token 缓存与游客名生成。
 
 ## 数据流
@@ -28,7 +29,8 @@
 3. 创建房间 → 成功后跳转 `/room/:gameId/:roomId`，自动调用 `/join` 并缓存 `selfPlayerId`。
 4. 在大厅添加 AI → `/ai`，后端通过 WS 推送座位变化。
 5. 玩法页通过 WS `state/seat/private/chat` 多路订阅驱动界面刷新，必要时再调用 `/state` 校准数据。
-6. 聊天文本在夜晚阶段受限，表情和快捷短语可发送；发送频率受后端限流控制。
+6. 玩家动作优先走 `/api/games/{gameId}/rooms/{roomId}/action`，旧动作接口继续兼容现有客户端。
+7. 聊天文本在夜晚阶段受限，表情和快捷短语可发送；发送频率受后端限流控制。
 
 ## 已知限制
 - 当前环境若后端依赖未就绪，前端会显示“连接中断，正在自动重连”，聊天发送会提示失败。

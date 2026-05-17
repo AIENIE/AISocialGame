@@ -1,4 +1,4 @@
-import { ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +9,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Bot, Plus, Share2, MessageSquare, Mic, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import UndercoverRoom from "./games/UndercoverRoom";
-import WerewolfRoom from "./games/WerewolfRoom";
+import { gameRoomComponents } from "./games/registry";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { personaApi, roomApi } from "@/services/api";
 import { RoomSeat } from "@/types";
@@ -35,14 +34,13 @@ const Lobby = () => {
 
   const hasJoinedRef = useRef(false);
 
-  const gameRoomComponents: Record<string, ComponentType> = {
-    undercover: UndercoverRoom,
-    werewolf: WerewolfRoom,
-  };
-
   const GameRoomComponent = gameId ? gameRoomComponents[gameId] : undefined;
   if (GameRoomComponent) {
-    return <GameRoomComponent />;
+    return (
+      <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">正在加载房间...</div>}>
+        <GameRoomComponent />
+      </Suspense>
+    );
   }
 
   // --- GENERIC LOBBY FALLBACK ---

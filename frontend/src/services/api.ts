@@ -22,6 +22,7 @@ import {
   LedgerEntry,
   PagedResponse,
   Persona,
+  PlayerAction,
   PlayerStats,
   ReplayArchiveView,
   ReplayDetail,
@@ -257,6 +258,14 @@ export const gameplayApi = {
     const res = await api.post(
       `/games/${gameId}/rooms/${roomId}/night-action`,
       payload,
+      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
+    );
+    return res.data;
+  },
+  async action(gameId: string, roomId: string, action: PlayerAction, playerId?: string): Promise<GameState> {
+    const res = await api.post(
+      `/games/${gameId}/rooms/${roomId}/action`,
+      action,
       { headers: playerId ? { "X-Player-Id": playerId } : undefined }
     );
     return res.data;

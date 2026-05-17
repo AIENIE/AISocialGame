@@ -1,5 +1,8 @@
 package com.aisocialgame.model;
 
+import com.aisocialgame.engine.PhaseDefinition;
+import com.aisocialgame.engine.RoleDefinition;
+
 import java.util.List;
 
 public class Game {
@@ -13,6 +16,9 @@ public class Game {
     private GameStatus status;
     private int onlineCount;
     private List<GameConfigOption> configSchema;
+    private boolean engineBacked;
+    private List<PhaseDefinition> phaseDefinitions;
+    private List<RoleDefinition> roleDefinitions;
 
     public Game() {}
 
@@ -72,5 +78,29 @@ public class Game {
 
     public List<GameConfigOption> getConfigSchema() {
         return configSchema;
+    }
+
+    public boolean isEngineBacked() {
+        return engineBacked;
+    }
+
+    public void setEngineBacked(boolean engineBacked) {
+        this.engineBacked = engineBacked;
+    }
+
+    public List<PhaseDefinition> getPhaseDefinitions() {
+        return phaseDefinitions;
+    }
+
+    public void setPhaseDefinitions(List<PhaseDefinition> phaseDefinitions) {
+        this.phaseDefinitions = phaseDefinitions;
+    }
+
+    public List<RoleDefinition> getRoleDefinitions() {
+        return roleDefinitions;
+    }
+
+    public void setRoleDefinitions(List<RoleDefinition> roleDefinitions) {
+        this.roleDefinitions = roleDefinitions;
     }
 }

@@ -6,6 +6,7 @@
 |---|---|---|
 | 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/*.tsx` |
 | 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
+| GameEngine 插件化模块 | 管理玩法 engine 注册、统一 action 和现有玩法插件化入口 | `backend/src/main/java/com/aisocialgame/engine/*.java`、`frontend/src/hooks/useGameEngine.ts`、`doc/modules/game-engine-module.md` |
 | AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与规则兜底 | `backend/src/main/java/com/aisocialgame/service/ai/*.java`、`backend/src/main/resources/prompt.yml`、`doc/modules/ai-decision-module.md` |
 | AI 拟人质量闭环模块 | 管理 AI 信念、局内短期记忆、Persona 跨局记忆、质量检测、决策 trace 与管理端质检 | `backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java`、`backend/src/main/java/com/aisocialgame/model/AiPersonaMemory.java`、`doc/modules/ai-quality-loop-module.md` |
 | 结构化事件与服务端回放模块 | 管理服务端对局事件流、单局归档、回放查询和视角过滤 | `backend/src/main/java/com/aisocialgame/model/GameEvent.java`、`backend/src/main/java/com/aisocialgame/model/GameArchive.java`、`backend/src/main/java/com/aisocialgame/controller/ReplayController.java`、`doc/modules/replay-event-module.md` |

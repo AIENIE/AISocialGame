@@ -2,6 +2,7 @@ package com.aisocialgame.controller;
 
 import com.aisocialgame.dto.GameStateResponse;
 import com.aisocialgame.dto.NightActionRequest;
+import com.aisocialgame.dto.PlayerAction;
 import com.aisocialgame.dto.SpeakRequest;
 import com.aisocialgame.dto.VoteRequest;
 import com.aisocialgame.exception.ApiException;
@@ -73,5 +74,15 @@ public class GamePlayController {
                                                          @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
         User user = authService.authenticate(token);
         return ResponseEntity.ok(gamePlayService.nightAction(gameId, roomId, request, user, playerIdHeader));
+    }
+
+    @PostMapping("/action")
+    public ResponseEntity<GameStateResponse> action(@PathVariable String gameId,
+                                                    @PathVariable String roomId,
+                                                    @RequestBody PlayerAction action,
+                                                    @RequestHeader(value = "X-Auth-Token", required = false) String token,
+                                                    @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
+        User user = authService.authenticate(token);
+        return ResponseEntity.ok(gamePlayService.action(gameId, roomId, action, user, playerIdHeader));
     }
 }

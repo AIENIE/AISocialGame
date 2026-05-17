@@ -30,6 +30,7 @@ test.describe("真实验收：数据、AI 对局和管理端质检", () => {
   test("开箱功能与四场 AI 社交游戏闭环", async ({ page, request }) => {
     await verifyPublicPages(page);
     await seedCommunityPost(request);
+    await verifyUnifiedActionEndpoint(request);
 
     const outcomes = [];
     outcomes.push(await runGameScenario(request, "undercover", 1, 4));
@@ -82,6 +83,21 @@ async function runGameScenario(request: APIRequestContext, gameId: "undercover" 
   return { gameId, roomId: room.id, viewerPlayerId: humans[0].playerId, phase: state.phase, winner: state.winner };
 }
 
+async function verifyUnifiedActionEndpoint(request: APIRequestContext) {
+  const room = await createRoom(request, "undercover", 1, 4);
+  const humans = await joinHumans(request, room, 1);
+  await fillAiSeats(request, room, 4);
+
+  let state = await postState(request, "undercover", room.id, "start", undefined, humans[0].playerId);
+  if (state.mySeatNumber === state.currentSeat && state.phase === "DESCRIPTION") {
+    state = await postUnifiedAction(request, "undercover", room.id, {
+      type: "SPEAK",
+      content: `${RUN_ID} unified action speech`,
+    }, humans[0].playerId);
+  }
+  expect(["DESCRIPTION", "VOTING", "SETTLEMENT"]).toContain(state.phase);
+}
+
 async function verifyServerReplay(request: APIRequestContext, gameId: string, roomId: string) {
   const listResponse = await request.get("/api/replays", {
     params: { gameId, size: 50 },
@@ -101,7 +117,14 @@ async function verifyServerReplay(request: APIRequestContext, gameId: string, ro
   expect(godReplay.events.map((event: any) => event.seq)).toEqual([...godReplay.events.map((event: any) => event.seq)].sort((a, b) => a - b));
   expect(godReplay.events.some((event: any) => event.eventType === "GAME_START")).toBeTruthy();
   expect(godReplay.events.some((event: any) => event.eventType === "GAME_END")).toBeTruthy();
-  expect(godReplay.events.some((event: any) => event.eventType.includes("SPEECH") || event.eventType === "VOTE_CAST")).toBeTruthy();
+  expect(godReplay.events.some((event: any) =>
+    event.eventType.includes("SPEECH")
+    || event.eventType === "VOTE_CAST"
+    || event.eventType === "NIGHT_RESULT"
+    || event.eventType === "WOLF_KILL"
+    || event.eventType === "SEER_CHECK"
+    || event.eventType === "WITCH_POISON"
+  )).toBeTruthy();
 
   const publicResponse = await request.get(`/api/replays/${archive.id}/events`, {
     params: { viewMode: "PUBLIC" },
@@ -231,6 +254,17 @@ async function postState(request: APIRequestContext, gameId: string, roomId: str
   });
   if (!response.ok()) {
     throw new Error(`${gameId}/${roomId}/${action} failed: ${response.status()} ${await response.text()}`);
+  }
+  return response.json();
+}
+
+async function postUnifiedAction(request: APIRequestContext, gameId: string, roomId: string, data: Record<string, any>, playerId?: string): Promise<GameState> {
+  const response = await request.post(`/api/games/${gameId}/rooms/${roomId}/action`, {
+    headers: playerId ? { "X-Player-Id": playerId } : undefined,
+    data,
+  });
+  if (!response.ok()) {
+    throw new Error(`${gameId}/${roomId}/action failed: ${response.status()} ${await response.text()}`);
   }
   return response.json();
 }

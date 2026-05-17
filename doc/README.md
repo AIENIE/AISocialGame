@@ -10,11 +10,13 @@
 - 已完成里程碑归档：[milestones/README.md](milestones/README.md)
 - M1 AI 拟人质量闭环：[milestones/m1-ai-quality-loop/development.md](milestones/m1-ai-quality-loop/development.md)
 - M2 结构化事件与回放/质检底座：[milestones/m2-structured-replay/development.md](milestones/m2-structured-replay/development.md)
+- M3 GameEngine 插件化架构：[milestones/m3-game-engine-plugin-architecture/development.md](milestones/m3-game-engine-plugin-architecture/development.md)
 
 ## 架构与模块
 
 - 项目结构：[structure.md](structure.md)
 - 模块索引：[modules/README.md](modules/README.md)
+- GameEngine 插件化模块：[modules/game-engine-module.md](modules/game-engine-module.md)
 - API 文档：[api/](api/)
 - 测试与验收：[test/](test/)
 - 问题与试错记录：[issues.md](issues.md)、[trialAndError/](trialAndError/)

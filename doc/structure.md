@@ -9,6 +9,7 @@ AISocialGame/
 │   ├── sql/                                  # 后端 SQL
 │   ├── src/main/java/com/aisocialgame/
 │   │   ├── controller/                       # HTTP/WS 入口（含 auth、wallet、admin）
+│   │   ├── engine/                           # GameEngine 插件化入口与玩法注册
 │   │   ├── service/                          # 业务流程（SSO、本地积分、AI、后台运营）
 │   │   ├── integration/                      # Consul + gRPC 调用封装
 │   │   ├── model/                            # JPA 实体（含 credit 领域）
@@ -69,3 +70,4 @@ AISocialGame/
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
 - 本地开箱即用数据由 `DemoSeedService` 管理，`build_local.sh` 默认开启，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
 - M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。
+- M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`GamePlayService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。

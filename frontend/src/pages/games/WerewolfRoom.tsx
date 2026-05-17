@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { gameplayApi, personaApi, roomApi } from "@/services/api";
+import { personaApi, roomApi } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useGameSocket } from "@/hooks/useGameSocket";
-import { ChatMessage, GameState } from "@/types";
+import { useGameEngine } from "@/hooks/useGameEngine";
+import { ChatMessage } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,12 +50,7 @@ const WerewolfRoom = () => {
   const { data: personas = [] } = useQuery({ queryKey: ["personas"], queryFn: personaApi.list });
   const { data: room } = useQuery({ queryKey: ["room", roomId], queryFn: () => roomApi.detail(gameId || "", roomId || ""), enabled: !!roomId && !!gameId });
 
-  const stateQuery = useQuery<GameState>({
-    queryKey: ["game-state", roomId],
-    queryFn: () => gameplayApi.state(gameId || "werewolf", roomId || "", playerId || undefined),
-    enabled: !!roomId && !!gameId,
-    refetchInterval: false,
-  });
+  const { stateQuery, startMutation, actionMutation } = useGameEngine(gameId || "werewolf", roomId, playerId || undefined);
 
   const socket = useGameSocket({
     roomId,
@@ -140,14 +136,8 @@ const WerewolfRoom = () => {
     joinMutation.mutate();
   }, [room, loading, token, playerId, stateQuery.data]);
 
-  const startMutation = useMutation({
-    mutationFn: () => gameplayApi.start(gameId || "werewolf", roomId || "", playerId || undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["game-state", roomId] }),
-    onError: (err: any) => toast.error(err?.response?.data?.message || "开局失败"),
-  });
-
   const speakMutation = useMutation({
-    mutationFn: () => gameplayApi.speak(gameId || "werewolf", roomId || "", speakContent || "结束发言", playerId || undefined),
+    mutationFn: () => actionMutation.mutateAsync({ type: "SPEAK", content: speakContent || "结束发言" }),
     onSuccess: () => {
       setSpeakContent("");
       queryClient.invalidateQueries({ queryKey: ["game-state", roomId] });
@@ -156,13 +146,14 @@ const WerewolfRoom = () => {
   });
 
   const voteMutation = useMutation({
-    mutationFn: () => gameplayApi.vote(gameId || "werewolf", roomId || "", selectedVote || "", false, playerId || undefined),
+    mutationFn: () => actionMutation.mutateAsync({ type: "VOTE", targetPlayerId: selectedVote || "", abstain: false }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["game-state", roomId] }),
     onError: (error: any) => handleActionError(error, "投票失败"),
   });
 
   const nightMutation = useMutation({
-    mutationFn: (payload: { action: string; targetPlayerId?: string; useHeal?: boolean }) => gameplayApi.nightAction(gameId || "werewolf", roomId || "", payload, playerId || undefined),
+    mutationFn: (payload: { action: string; targetPlayerId?: string; useHeal?: boolean }) =>
+      actionMutation.mutateAsync({ type: "NIGHT_ACTION", nightAction: payload.action, targetPlayerId: payload.targetPlayerId, useHeal: payload.useHeal }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["game-state", roomId] }),
     onError: (error: any) => handleActionError(error, "夜晚行动失败"),
   });
@@ -286,7 +277,7 @@ const WerewolfRoom = () => {
                   {phase === "WAITING" && (
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">满足人数后由房主开局。</p>
-                      <Button data-testid="game-start-btn" onClick={() => startMutation.mutate()} disabled={startMutation.isPending} className="w-full">
+                      <Button data-testid="game-start-btn" onClick={() => startMutation.mutate(undefined, { onError: (err: any) => toast.error(err?.response?.data?.message || "开局失败") })} disabled={startMutation.isPending} className="w-full">
                         <Play className="mr-2 h-4 w-4" /> 开始游戏
                       </Button>
                     </div>

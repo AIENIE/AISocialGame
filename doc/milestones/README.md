@@ -10,6 +10,7 @@
 |---|---|---|---|
 | M1 | 已完成 | [m1-ai-quality-loop/](m1-ai-quality-loop/) | AI 拟人质量闭环、决策 trace、Persona 记忆、管理端质检 |
 | M2 | 已完成 | [m2-structured-replay/](m2-structured-replay/) | 结构化事件流、服务端回放归档、视角过滤和回放验收 |
+| M3 | 已完成 | [m3-game-engine-plugin-architecture/](m3-game-engine-plugin-architecture/) | GameEngine 注册表、统一 action、现有玩法插件化入口 |
 
 ## 后续规则
 

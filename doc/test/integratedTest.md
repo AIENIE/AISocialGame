@@ -118,6 +118,7 @@
   - 首页、社区、排行榜基础页面。
   - 谁是卧底：`1 真人 + AI`、`3 真人 + AI`。
   - 狼人杀：`1 真人 + AI`、`3 真人 + AI`。
+  - 统一 `/api/games/{gameId}/rooms/{roomId}/action` 可提交 `SPEAK`、`VOTE`、`NIGHT_ACTION`，旧接口继续兼容。
   - 每场结算后生成服务端回放归档，事件 `seq` 递增，`PUBLIC` 视角不暴露身份、词语或夜晚私密动作。
   - `/replays` 与 `/replay/{archiveId}` 可打开服务端回放并执行播放/单步。
   - 管理端 `/admin/ai` 的模型、决策 trace 与 Persona 记忆可见性。

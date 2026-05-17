@@ -36,7 +36,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 |---|---|---|---|
 | M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；开发记录见 `doc/milestones/m1-ai-quality-loop/development.md` |
 | M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
-| M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、AI Adapter、现有玩法迁移 |
+| M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md` |
 | M4 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
 | M5 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
 | M6 | P1 | AI 运营后台与安全治理 | Persona/Prompt/模型/成本/审计/灰度 |
@@ -159,6 +159,16 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - M1 的 AI 决策抽象经验。
 - M2 的统一事件记录。
+
+### M3 实现记录（2026-05-17）
+
+- 新增 `GameEngine`、`GameEngineRegistry`、阶段/角色定义和开局校验结果类型。
+- 新增 `UndercoverGameEngine` 与 `WerewolfGameEngine`，现有玩法由 engine 注册表承接入口。
+- `GamePlayService` 改为编排与兼容层，通过 registry 分发到具体 engine。
+- 新增统一 `/api/games/{gameId}/rooms/{roomId}/action` 接口，旧 `/speak`、`/vote`、`/night-action` 保持兼容。
+- 前端新增 `useGameEngine` 和玩法组件 registry，现有房间页动作提交切换到统一 action。
+- 详细架构见 `doc/modules/game-engine-module.md`。
+- 分目录开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md`。
 
 ## 8. M4：新增海龟汤玩法
 

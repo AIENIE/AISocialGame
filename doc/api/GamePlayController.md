@@ -14,6 +14,7 @@
 | POST | `/speak` | 提交发言并推进流程 |
 | POST | `/vote` | 提交投票 |
 | POST | `/night-action` | 狼人杀夜晚行动 |
+| POST | `/action` | 统一动作入口，兼容发言、投票和夜晚行动 |
 
 ## 接口详情
 
@@ -131,3 +132,28 @@ Headers：
 
 **WS 联动**
 - 成功后推送 `state` 事件类型 `PHASE_CHANGE`。
+
+### POST `/action` - 统一动作入口
+
+**用途**：为 GameEngine 插件化后的玩法提供统一动作协议。当前支持谁是卧底和狼人杀，并保留旧接口兼容。
+
+**请求体**
+
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+|---|---|---|---|---|
+| type | String | 是 | `SPEAK/VOTE/NIGHT_ACTION` | `SPEAK` |
+| content | String | 否 | 发言内容，`SPEAK` 使用 | `我描述一个线索` |
+| targetPlayerId | String | 否 | 投票或夜晚行动目标 | `player-3` |
+| abstain | Boolean | 否 | 投票是否弃票，`VOTE` 使用 | `false` |
+| nightAction | String | 否 | 狼人杀夜晚行动类型 | `WOLF_KILL` |
+| useHeal | Boolean | 否 | 女巫是否使用解药 | `true` |
+| extra | Object | 否 | 后续新玩法扩展字段 | `{}` |
+
+**返回值**
+- 200：最新 `GameStateResponse`
+
+**兼容策略**
+- `SPEAK` 等价于旧 `/speak`。
+- `VOTE` 等价于旧 `/vote`。
+- `NIGHT_ACTION` 等价于旧 `/night-action`。
+- 新玩法应优先接入 `/action`，旧接口仅服务现有页面和兼容测试。
