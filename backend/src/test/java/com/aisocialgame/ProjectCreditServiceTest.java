@@ -20,6 +20,7 @@ import com.aisocialgame.repository.credit.CreditRedeemCodeRepository;
 import com.aisocialgame.repository.credit.CreditRedemptionRecordRepository;
 import com.aisocialgame.service.CreditExchangeResult;
 import com.aisocialgame.service.ProjectCreditService;
+import com.aisocialgame.service.credit.CreditLedgerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +77,11 @@ class ProjectCreditServiceTest {
         appProperties.getCredit().setExchangeDailyLimit(100);
         appProperties.getCredit().setRedeemFailureLimitPerDay(2);
         appProperties.getCredit().setTempExpiryDays(30);
+        CreditLedgerService creditLedgerService = new CreditLedgerService(
+                creditLedgerEntryRepository,
+                appProperties,
+                new ObjectMapper()
+        );
 
         lenient().when(transactionManager.getTransaction(any(TransactionDefinition.class)))
                 .thenReturn(new SimpleTransactionStatus());
@@ -89,7 +95,7 @@ class ProjectCreditServiceTest {
                 creditExchangeTransactionRepository,
                 billingGrpcClient,
                 appProperties,
-                new ObjectMapper(),
+                creditLedgerService,
                 transactionManager
         );
     }

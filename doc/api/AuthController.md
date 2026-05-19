@@ -11,8 +11,8 @@
 
 ## 地址解析与回调策略
 
-- SSO 登录页基地址优先取 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）。
-- 当该配置为空时，回退 Consul HTTP 服务发现（`app.sso.user-service-name`）。
+- SSO 登录页基地址取 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）。
+- 当前版本不使用 Consul 服务发现；如果该配置缺失，后端会返回用户服务地址未配置。
 - 回调地址由 `app.sso.callback-url` 控制，测试环境默认：
   - `https://aisocialgame.seekerhut.com/sso/callback`
 
@@ -97,4 +97,4 @@ curl -k "https://aisocialgame.seekerhut.com/api/auth/me" \
 
 - `400`：参数不合法（例如 `state` 格式不合法）
 - `401`：未登录 / token 失效 / SSO 会话无效
-- `503`：仅在未配置 `user-service-base-url` 且 Consul 发现失败时出现
+- `503`：用户服务地址未配置或外部 user-service 不可用

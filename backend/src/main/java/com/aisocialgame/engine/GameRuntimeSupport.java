@@ -42,17 +42,17 @@ import java.util.stream.Collectors;
 @Component
 @Transactional
 public class GameRuntimeSupport {
-    private static final String PHASE_WAITING = "WAITING";
-    private static final String PHASE_DESCRIPTION = "DESCRIPTION";
-    private static final String PHASE_VOTING = "VOTING";
-    private static final String PHASE_DISTRIBUTION = "DISTRIBUTION";
-    private static final String PHASE_NIGHT = "NIGHT";
-    private static final String PHASE_DAY_DISCUSS = "DAY_DISCUSS";
-    private static final String PHASE_DAY_VOTE = "DAY_VOTE";
-    private static final String PHASE_SETTLEMENT = "SETTLEMENT";
-    private static final String STATUS_ONLINE = "ONLINE";
-    private static final String STATUS_DISCONNECTED = "DISCONNECTED";
-    private static final String STATUS_AI_TAKEOVER = "AI_TAKEOVER";
+    private static final String PHASE_WAITING = GamePhases.WAITING;
+    private static final String PHASE_DESCRIPTION = GamePhases.DESCRIPTION;
+    private static final String PHASE_VOTING = GamePhases.VOTING;
+    private static final String PHASE_DISTRIBUTION = GamePhases.DISTRIBUTION;
+    private static final String PHASE_NIGHT = GamePhases.NIGHT;
+    private static final String PHASE_DAY_DISCUSS = GamePhases.DAY_DISCUSS;
+    private static final String PHASE_DAY_VOTE = GamePhases.DAY_VOTE;
+    private static final String PHASE_SETTLEMENT = GamePhases.SETTLEMENT;
+    private static final String STATUS_ONLINE = PlayerConnectionStatuses.ONLINE;
+    private static final String STATUS_DISCONNECTED = PlayerConnectionStatuses.DISCONNECTED;
+    private static final String STATUS_AI_TAKEOVER = PlayerConnectionStatuses.AI_TAKEOVER;
 
     private final RoomService roomService;
     private final GameStateRepository gameStateRepository;

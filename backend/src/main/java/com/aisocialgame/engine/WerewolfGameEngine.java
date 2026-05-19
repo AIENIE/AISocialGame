@@ -15,7 +15,7 @@ import java.util.List;
 
 @Component
 public class WerewolfGameEngine implements GameEngine {
-    private static final String GAME_ID = "werewolf";
+    private static final String GAME_ID = GameIds.WEREWOLF;
     private final GameRuntimeSupport runtime;
 
     public WerewolfGameEngine(GameRuntimeSupport runtime) {
@@ -76,10 +76,10 @@ public class WerewolfGameEngine implements GameEngine {
     @Override
     public List<PhaseDefinition> phaseDefinitions() {
         return List.of(
-                new PhaseDefinition("NIGHT", "夜晚行动", 30, false),
-                new PhaseDefinition("DAY_DISCUSS", "白天讨论", 90, true),
-                new PhaseDefinition("DAY_VOTE", "白天投票", 30, true),
-                new PhaseDefinition("SETTLEMENT", "结算", 0, true)
+                new PhaseDefinition(GamePhases.NIGHT, "夜晚行动", 30, false),
+                new PhaseDefinition(GamePhases.DAY_DISCUSS, "白天讨论", 90, true),
+                new PhaseDefinition(GamePhases.DAY_VOTE, "白天投票", 30, true),
+                new PhaseDefinition(GamePhases.SETTLEMENT, "结算", 0, true)
         );
     }
 

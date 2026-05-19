@@ -1,11 +1,15 @@
 package com.aisocialgame.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class NightActionRequest {
     @NotBlank
+    @Pattern(regexp = "^(WOLF_KILL|SEER_CHECK|WITCH_SAVE|WITCH_POISON|WEREWOLF|SEER|WITCH)$", message = "夜晚行动类型不支持")
     private String action;
 
+    @Size(max = 128)
     private String targetPlayerId;
     private boolean useHeal;
 

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public class AiChatRequest {
+    @Size(max = 128)
     private String model;
 
     @Valid

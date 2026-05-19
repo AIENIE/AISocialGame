@@ -3,6 +3,7 @@ package com.aisocialgame.controller.admin;
 import com.aisocialgame.dto.admin.AdminAuthResponse;
 import com.aisocialgame.dto.admin.AdminLoginRequest;
 import com.aisocialgame.service.AdminAuthService;
+import com.aisocialgame.web.CurrentAdmin;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,8 +29,8 @@ public class AdminAuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AdminAuthResponse> me(@RequestHeader(value = "X-Admin-Token", required = false) String token) {
-        String username = adminAuthService.requireAdmin(token);
+    public ResponseEntity<AdminAuthResponse> me(@CurrentAdmin String username,
+                                                @RequestHeader(value = "X-Admin-Token", required = false) String token) {
         return ResponseEntity.ok(new AdminAuthResponse(token, username, adminAuthService.getDisplayName()));
     }
 }

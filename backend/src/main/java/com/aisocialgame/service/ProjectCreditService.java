@@ -25,9 +25,7 @@ import com.aisocialgame.repository.credit.CreditExchangeTransactionRepository;
 import com.aisocialgame.repository.credit.CreditLedgerEntryRepository;
 import com.aisocialgame.repository.credit.CreditRedeemCodeRepository;
 import com.aisocialgame.repository.credit.CreditRedemptionRecordRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.aisocialgame.service.credit.CreditLedgerService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -65,7 +63,7 @@ public class ProjectCreditService {
     private final CreditExchangeTransactionRepository creditExchangeTransactionRepository;
     private final BillingGrpcClient billingGrpcClient;
     private final AppProperties appProperties;
-    private final ObjectMapper objectMapper;
+    private final CreditLedgerService creditLedgerService;
     private final TransactionTemplate transactionTemplate;
 
     public ProjectCreditService(CreditAccountRepository creditAccountRepository,
@@ -76,7 +74,7 @@ public class ProjectCreditService {
                                 CreditExchangeTransactionRepository creditExchangeTransactionRepository,
                                 BillingGrpcClient billingGrpcClient,
                                 AppProperties appProperties,
-                                ObjectMapper objectMapper,
+                                CreditLedgerService creditLedgerService,
                                 PlatformTransactionManager transactionManager) {
         this.creditAccountRepository = creditAccountRepository;
         this.creditLedgerEntryRepository = creditLedgerEntryRepository;
@@ -86,7 +84,7 @@ public class ProjectCreditService {
         this.creditExchangeTransactionRepository = creditExchangeTransactionRepository;
         this.billingGrpcClient = billingGrpcClient;
         this.appProperties = appProperties;
-        this.objectMapper = objectMapper;
+        this.creditLedgerService = creditLedgerService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -144,7 +142,7 @@ public class ProjectCreditService {
         creditAccountRepository.save(account);
 
         String requestId = projectKey + ":checkin:" + userId + ":" + today.format(DateTimeFormatter.BASIC_ISO_DATE);
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 requestId,
                 userId,
                 "CHECKIN",
@@ -274,7 +272,7 @@ public class ProjectCreditService {
         creditAccountRepository.save(account);
 
         String requestId = projectKey + ":redeem:" + userId + ":" + UUID.randomUUID();
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 requestId,
                 userId,
                 "REDEEM",
@@ -334,33 +332,7 @@ public class ProjectCreditService {
     }
 
     public PagedResult<UsageRecordSnapshot> listUsageRecords(long userId, int page, int size) {
-        int normalizedPage = Math.max(1, page);
-        int normalizedSize = Math.min(Math.max(1, size), 100);
-        var pageData = creditLedgerEntryRepository.findByUserIdAndProjectKeyAndTypeInOrderByIdDesc(
-                userId,
-                appProperties.getProjectKey(),
-                List.of("CONSUME"),
-                PageRequest.of(normalizedPage - 1, normalizedSize)
-        );
-        List<UsageRecordSnapshot> records = pageData.getContent().stream()
-                .map(entry -> {
-                    Map<String, String> metadata = deserializeMetadata(entry.getMetadataJson());
-                    long promptTokens = parseLong(metadata.get("promptTokens"));
-                    long completionTokens = parseLong(metadata.get("completionTokens"));
-                    long billedTokens = parseLong(metadata.getOrDefault("billedTokens", String.valueOf(Math.abs(entry.getTokenDeltaTemp() + entry.getTokenDeltaPermanent()))));
-                    return new UsageRecordSnapshot(
-                            entry.getId(),
-                            entry.getRequestId(),
-                            entry.getProjectKey(),
-                            metadata.getOrDefault("modelKey", ""),
-                            promptTokens,
-                            completionTokens,
-                            billedTokens,
-                            entry.getCreatedAt()
-                    );
-                })
-                .toList();
-        return new PagedResult<>(normalizedPage, normalizedSize, pageData.getTotalElements(), records);
+        return creditLedgerService.listUsageRecords(userId, page, size);
     }
 
     public PagedResult<LedgerEntrySnapshot> listLedgerEntries(long userId, int page, int size) {
@@ -369,31 +341,7 @@ public class ProjectCreditService {
     }
 
     public PagedLedgerSnapshot listLedgerEntriesForAdmin(long userId, int page, int size) {
-        int normalizedPage = Math.max(1, page);
-        int normalizedSize = Math.min(Math.max(1, size), 100);
-        var pageData = creditLedgerEntryRepository.findByUserIdAndProjectKeyOrderByIdDesc(
-                userId,
-                appProperties.getProjectKey(),
-                PageRequest.of(normalizedPage - 1, normalizedSize)
-        );
-        List<LedgerEntrySnapshot> entries = pageData.getContent().stream()
-                .map(entry -> new LedgerEntrySnapshot(
-                        entry.getId(),
-                        entry.getRequestId(),
-                        entry.getProjectKey(),
-                        entry.getType(),
-                        entry.getTokenDeltaTemp(),
-                        entry.getTokenDeltaPermanent(),
-                        entry.getTokenDeltaPublic(),
-                        entry.getBalanceTemp(),
-                        entry.getBalancePermanent(),
-                        entry.getBalancePublic(),
-                        entry.getSource(),
-                        entry.getCreatedAt(),
-                        deserializeMetadata(entry.getMetadataJson())
-                ))
-                .toList();
-        return new PagedLedgerSnapshot(normalizedPage, normalizedSize, pageData.getTotalElements(), entries);
+        return creditLedgerService.listLedgerEntriesForAdmin(userId, page, size);
     }
 
     @Transactional
@@ -431,7 +379,7 @@ public class ProjectCreditService {
 
         Map<String, String> normalizedMetadata = metadata == null ? new HashMap<>() : new HashMap<>(metadata);
         normalizedMetadata.put("billedTokens", String.valueOf(billedTokens));
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 normalizedRequestId,
                 userId,
                 "CONSUME",
@@ -519,7 +467,7 @@ public class ProjectCreditService {
             account.setPermanentBalance(account.getPermanentBalance() + tokens);
             creditAccountRepository.save(account);
 
-            insertLedgerEntry(
+            creditLedgerService.insertLedgerEntry(
                     normalizedRequestId,
                     userId,
                     "EXCHANGE_IN",
@@ -604,7 +552,7 @@ public class ProjectCreditService {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("reason", StringUtils.hasText(reason) ? reason.trim() : "admin_adjust");
         metadata.put("operator", StringUtils.hasText(operator) ? operator.trim() : "admin");
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 normalizedRequestId,
                 userId,
                 "ADJUST",
@@ -659,7 +607,7 @@ public class ProjectCreditService {
         metadata.put("reason", StringUtils.hasText(reason) ? reason.trim() : "admin_reversal");
         metadata.put("operator", StringUtils.hasText(operator) ? operator.trim() : "admin");
         metadata.put("originalRequestId", original.getRequestId());
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 appProperties.getProjectKey() + ":reversal:" + userId + ":" + UUID.randomUUID(),
                 userId,
                 "REVERSAL",
@@ -701,7 +649,7 @@ public class ProjectCreditService {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("operator", StringUtils.hasText(operator) ? operator.trim() : "admin");
         metadata.put("source", "payservice_snapshot");
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 requestId,
                 userId,
                 "MIGRATION_INIT",
@@ -748,37 +696,6 @@ public class ProjectCreditService {
         creditRedemptionRecordRepository.save(failure);
     }
 
-    private void insertLedgerEntry(String requestId,
-                                   long userId,
-                                   String type,
-                                   long deltaTemp,
-                                   long deltaPermanent,
-                                   long deltaPublic,
-                                   long publicBalance,
-                                   String source,
-                                   Map<String, String> metadata,
-                                   Long relatedEntryId,
-                                   CreditAccount account) {
-        if (creditLedgerEntryRepository.findByRequestId(requestId).isPresent()) {
-            return;
-        }
-        CreditLedgerEntry entry = new CreditLedgerEntry();
-        entry.setRequestId(requestId);
-        entry.setUserId(userId);
-        entry.setProjectKey(appProperties.getProjectKey());
-        entry.setType(type);
-        entry.setTokenDeltaTemp(deltaTemp);
-        entry.setTokenDeltaPermanent(deltaPermanent);
-        entry.setTokenDeltaPublic(deltaPublic);
-        entry.setBalanceTemp(account.getTempBalance());
-        entry.setBalancePermanent(account.getPermanentBalance());
-        entry.setBalancePublic(publicBalance);
-        entry.setSource(source);
-        entry.setMetadataJson(serializeMetadata(metadata));
-        entry.setRelatedEntryId(relatedEntryId);
-        creditLedgerEntryRepository.save(entry);
-    }
-
     private CreditAccount getOrCreateAccountForUpdate(long userId, String projectKey) {
         return creditAccountRepository.findForUpdate(userId, projectKey)
                 .orElseGet(() -> {
@@ -800,7 +717,7 @@ public class ProjectCreditService {
         account.setTempBalance(0);
         account.setTempExpiresAt(null);
         creditAccountRepository.save(account);
-        insertLedgerEntry(
+        creditLedgerService.insertLedgerEntry(
                 appProperties.getProjectKey() + ":expire:" + account.getUserId() + ":" + UUID.randomUUID(),
                 account.getUserId(),
                 "EXPIRE",
@@ -877,39 +794,6 @@ public class ProjectCreditService {
             return requestId.trim();
         }
         return appProperties.getProjectKey() + ":" + action + ":" + userId + ":" + UUID.randomUUID();
-    }
-
-    private String serializeMetadata(Map<String, String> metadata) {
-        if (metadata == null || metadata.isEmpty()) {
-            return "{}";
-        }
-        try {
-            return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
-            return "{}";
-        }
-    }
-
-    private Map<String, String> deserializeMetadata(String metadataJson) {
-        if (!StringUtils.hasText(metadataJson)) {
-            return Map.of();
-        }
-        try {
-            return objectMapper.readValue(metadataJson, new TypeReference<Map<String, String>>() {});
-        } catch (Exception ignored) {
-            return Map.of();
-        }
-    }
-
-    private long parseLong(String value) {
-        if (!StringUtils.hasText(value)) {
-            return 0;
-        }
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
     }
 
     private String truncate(String text, int maxLength) {

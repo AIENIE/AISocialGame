@@ -16,7 +16,7 @@
 | 发言/投票/夜晚行动 | 旧接口继续兼容，统一 `/action` 作为插件化动作入口 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/engine/GameEngine.java` |
 | AI 行为质检挂载 | AI 自动发言/投票/夜晚行动后写入 trace，并把安全摘要写入日志 metadata | `backend/src/main/java/com/aisocialgame/service/ai/*`、`backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java` |
 | 断线检测与托管 | 按连接活跃时间更新 `ONLINE/DISCONNECTED/AI_TAKEOVER`，超时后自动托管/弃票 | `backend/src/main/java/com/aisocialgame/websocket/PlayerConnectionService.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
-| 前端房间实时渲染 | 取消轮询，改为 WS 事件驱动刷新；展示倒计时、阶段过渡、连接状态、聊天面板 | `frontend/src/hooks/useGameSocket.ts`、`frontend/src/pages/games/UndercoverRoom.tsx`、`frontend/src/pages/games/WerewolfRoom.tsx`、`frontend/src/components/game/*` |
+| 前端房间实时渲染 | 取消轮询，改为 WS 事件驱动刷新；展示倒计时、阶段过渡、连接状态、聊天面板 | `frontend/src/hooks/useGameSocket.ts`、`frontend/src/pages/games/shared/*`、`frontend/src/components/game/*` |
 
 ## 关键流程
 
@@ -49,6 +49,12 @@
 - `GamePlayService` 保留旧服务方法签名，但通过 registry 分发到具体 engine。
 - 新增 `PlayerAction` 与 `/action`，前端房间页已通过 `useGameEngine` 使用统一动作入口。
 - 当前 `GameRuntimeSupport` 仍保留迁移阶段的规则支撑逻辑，后续可继续拆入各 engine。
+
+## v1.0 可维护性整改（2026-05-19）
+
+- `GamePlayController` 改为通过 `@CurrentUser` 接收登录用户，避免每个接口重复读取 `X-Auth-Token`。
+- 请求 DTO 增加长度、枚举与 URL 校验，明显非法输入会在进入业务服务前被拒绝。
+- 房间页共享运行时负责 room/state/personas/socket/join/addAI/settlement 归档；玩法页只保留差异化展示和动作表单。
 
 ## 相关文件
 

@@ -19,6 +19,7 @@
 - GameEngine 插件化模块：[modules/game-engine-module.md](modules/game-engine-module.md)
 - 安全加固模块：[modules/security-hardening-module.md](modules/security-hardening-module.md)
 - 性能与稳定性加固模块：[modules/performance-stability-module.md](modules/performance-stability-module.md)
+- v1.0 可维护性整改记录：[versions/v1.0/audit/maintainability-remediation.md](versions/v1.0/audit/maintainability-remediation.md)
 - API 文档：[api/](api/)
 - 测试与验收：[test/](test/)
 - 问题与试错记录：[issues.md](issues.md)、[trialAndError/](trialAndError/)

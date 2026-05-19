@@ -2,9 +2,10 @@
 
 > 更新时间：2026-02-24
 
-## 服务名
+## 服务地址与服务名
 
-- Consul：`aienie-payservice-grpc`
+- 当前地址：`BILLING_GRPC_ADDR=static://payservice.seekerhut.com:20021`
+- 当前发现方式：静态域名/端口，不使用 Consul。
 - gRPC 服务：
   - `fireflychat.billing.v1.BillingBalanceService`
   - `fireflychat.billing.v1.BillingConversionService`

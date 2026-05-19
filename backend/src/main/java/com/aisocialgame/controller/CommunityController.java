@@ -3,8 +3,8 @@ package com.aisocialgame.controller;
 import com.aisocialgame.dto.CommunityPostRequest;
 import com.aisocialgame.model.CommunityPost;
 import com.aisocialgame.model.User;
-import com.aisocialgame.service.AuthService;
 import com.aisocialgame.service.CommunityService;
+import com.aisocialgame.web.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +15,9 @@ import java.util.List;
 @RequestMapping("/api/community")
 public class CommunityController {
     private final CommunityService communityService;
-    private final AuthService authService;
 
-    public CommunityController(CommunityService communityService, AuthService authService) {
+    public CommunityController(CommunityService communityService) {
         this.communityService = communityService;
-        this.authService = authService;
     }
 
     @GetMapping("/posts")
@@ -29,9 +27,8 @@ public class CommunityController {
 
     @PostMapping("/posts")
     public ResponseEntity<CommunityPost> create(@Valid @RequestBody CommunityPostRequest request,
-                                                @RequestHeader(value = "X-Auth-Token", required = false) String token,
+                                                @CurrentUser(required = false) User user,
                                                 @RequestHeader(value = "X-Guest-Name", required = false) String guestName) {
-        User user = authService.authenticate(token);
         CommunityPost post = communityService.create(request, user, guestName);
         return ResponseEntity.ok(post);
     }

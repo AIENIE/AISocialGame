@@ -2,9 +2,10 @@
 
 > 更新时间：2026-02-24
 
-## 服务名
+## 服务地址与服务名
 
-- Consul：`aienie-userservice-grpc`
+- 当前地址：`USER_GRPC_ADDR=static://userservice.seekerhut.com:10001`
+- 当前发现方式：静态域名/端口，不使用 Consul。
 - gRPC 服务：
   - `fireflychat.user.v1.UserAuthService`
   - `fireflychat.user.v1.UserDirectoryService`

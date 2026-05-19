@@ -12,7 +12,7 @@ import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.AiProxyService;
 import com.aisocialgame.service.AiStreamConcurrencyLimiter;
-import com.aisocialgame.service.AuthService;
+import com.aisocialgame.web.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
@@ -22,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -34,16 +33,13 @@ import java.util.concurrent.RejectedExecutionException;
 @RequestMapping("/api/ai")
 public class AiController {
     private final AiProxyService aiProxyService;
-    private final AuthService authService;
     private final TaskExecutor aiStreamTaskExecutor;
     private final AiStreamConcurrencyLimiter aiStreamConcurrencyLimiter;
 
     public AiController(AiProxyService aiProxyService,
-                        AuthService authService,
                         @Qualifier("aiStreamTaskExecutor") TaskExecutor aiStreamTaskExecutor,
                         AiStreamConcurrencyLimiter aiStreamConcurrencyLimiter) {
         this.aiProxyService = aiProxyService;
-        this.authService = authService;
         this.aiStreamTaskExecutor = aiStreamTaskExecutor;
         this.aiStreamConcurrencyLimiter = aiStreamConcurrencyLimiter;
     }
@@ -55,15 +51,13 @@ public class AiController {
 
     @PostMapping("/chat")
     public ResponseEntity<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request,
-                                               @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = requireUser(token);
+                                               @CurrentUser User user) {
         return ResponseEntity.ok(new AiChatResponse(aiProxyService.chat(request, user)));
     }
 
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request,
-                                 @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = requireUser(token);
+                                 @CurrentUser User user) {
         SseEmitter emitter = new SseEmitter(60_000L);
         String userId = user.getId();
         if (!aiStreamConcurrencyLimiter.tryAcquire(userId)) {
@@ -97,23 +91,13 @@ public class AiController {
 
     @PostMapping("/embeddings")
     public ResponseEntity<AiEmbeddingsResponse> embeddings(@Valid @RequestBody AiEmbeddingsRequest request,
-                                                           @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = requireUser(token);
+                                                           @CurrentUser User user) {
         return ResponseEntity.ok(new AiEmbeddingsResponse(aiProxyService.embeddings(request, user)));
     }
 
     @PostMapping("/ocr")
-    public ResponseEntity<AiOcrResponse> ocr(@RequestBody AiOcrRequest request,
-                                             @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = requireUser(token);
+    public ResponseEntity<AiOcrResponse> ocr(@Valid @RequestBody AiOcrRequest request,
+                                             @CurrentUser User user) {
         return ResponseEntity.ok(new AiOcrResponse(aiProxyService.ocrParse(request, user)));
-    }
-
-    private User requireUser(String token) {
-        User user = authService.authenticate(token);
-        if (user == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "未登录");
-        }
-        return user;
     }
 }

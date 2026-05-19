@@ -4,7 +4,7 @@
 
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
-| 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/*.tsx` |
+| 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/shared/*` |
 | 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
 | GameEngine 插件化模块 | 管理玩法 engine 注册、统一 action 和现有玩法插件化入口 | `backend/src/main/java/com/aisocialgame/engine/*.java`、`frontend/src/hooks/useGameEngine.ts`、`doc/modules/game-engine-module.md` |
 | AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与规则兜底 | `backend/src/main/java/com/aisocialgame/service/ai/*.java`、`backend/src/main/resources/prompt.yml`、`doc/modules/ai-decision-module.md` |
@@ -19,6 +19,7 @@
 | gRPC 集成模块 | 管理 user/pay/ai 静态地址调用封装与严格鉴权拦截器 | `backend/src/main/java/com/aisocialgame/integration/*` |
 | 第三方组件对齐模块 | 记录 MySQL/Redis/Qdrant 外部依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.txt`、`build.sh` |
 | 安全加固模块 | 记录 v1.0 审计后的登录边界、房间权限、WS/CORS、AI 接口与运行配置加固 | `doc/modules/security-hardening-module.md`、`backend/src/main/java/com/aisocialgame/config/*` |
+| 可维护性整改模块 | 记录 v1.0 审计后的鉴权参数解析、房间页复用、账务账本拆分和 DTO 校验边界 | `doc/versions/v1.0/audit/maintainability-remediation.md`、`backend/src/main/java/com/aisocialgame/web/*` |
 
 ## 后续里程碑
 

@@ -11,10 +11,11 @@ AISocialGame/
 │   │   ├── controller/                       # HTTP/WS 入口（含 auth、wallet、admin）
 │   │   ├── engine/                           # GameEngine 插件化入口与玩法注册
 │   │   ├── service/                          # 业务流程（SSO、本地积分、AI、后台运营）
-│   │   ├── integration/                      # Consul + gRPC 调用封装
+│   │   ├── integration/                      # 静态地址 gRPC 调用封装
 │   │   ├── model/                            # JPA 实体（含 credit 领域）
 │   │   ├── repository/                       # 数据访问层
 │   │   ├── dto/                              # 请求/响应模型
+│   │   ├── web/                              # MVC 参数解析器（当前用户/管理员）
 │   │   └── config/                           # 应用配置、CORS、WS 配置
 │   ├── sql/ai_quality.sql                    # AI 决策 trace 与 Persona 记忆表
 │   ├── sql/20260519_performance_stability.sql # v1.0 性能稳定性迁移
@@ -74,3 +75,4 @@ AISocialGame/
 - M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。
 - M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`GamePlayService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。
 - v1.0 性能稳定性整改新增 `AsyncExecutionConfig`、`RequestIdFilter`、房间 `seatCount/version`、AI SSE 线程池和房间分页接口；详见 `doc/modules/performance-stability-module.md`。
+- v1.0 可维护性整改新增 `backend/src/main/java/com/aisocialgame/web/`、`backend/src/main/java/com/aisocialgame/service/credit/CreditLedgerService.java` 和 `frontend/src/pages/games/shared/`，用于集中鉴权参数解析、账本逻辑与房间页复用。

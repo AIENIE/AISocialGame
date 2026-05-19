@@ -19,8 +19,10 @@
   - `WalletController` / `WalletService`
     - `GET/POST /api/wallet/*`
 - `ProjectCreditService`
-    - 本地账户初始化、签到、兑换码、账本、通用转专属、消耗流水
+    - 作为本地积分门面，保留账户初始化、签到、兑换码、通用转专属、消耗、管理员调账/冲正/迁移入口
     - 通用转专属采用 PENDING -> pay-service -> SUCCESS/FAILED 状态机，远程 gRPC 不在本地数据库事务内执行。
+- `CreditLedgerService`
+    - 统一账本写入、账本查询、消耗记录查询和 metadata JSON 编解码。
 - 前端
   - `useAuth`：生成一次性 `state` 并跳转 SSO
   - `SsoCallback`：校验 `state` 并调用后端回调
@@ -30,8 +32,8 @@
 
 `AuthService` 的 user-service 地址解析顺序：
 
-1. 优先 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）
-2. 未配置时回退 Consul HTTP 服务发现（`app.sso.user-service-name`）
+1. 使用 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）
+2. 当前版本不使用 Consul 服务发现；如地址变化，应通过环境变量 `SSO_USER_SERVICE_BASE_URL` 调整。
 
 ## 首次登录初始化
 
@@ -60,8 +62,10 @@
 - 用户所有注册登录流程均在 user-service SSO 页面完成。
 - 对局、观战状态、WebSocket 和 AI 调用均要求登录用户身份。
 - 前端用户 token 与管理员 token 使用 `sessionStorage`，降低跨会话持久化暴露风险。
+- 业务控制器通过 `@CurrentUser` 参数解析器获取登录用户，避免新增接口漏掉登录校验。
 
 ## 管理员 session
 
 - 非 test 环境使用 Redis TTL 存储管理员 session，key 前缀为 `<projectKey>:admin:session:`。
 - test/无 Redis 构造路径使用内存 Map，并由定时任务清理过期 token。
+- 管理端业务控制器通过 `@CurrentAdmin` 参数解析器获取操作者用户名，用于调账、冲正、迁移等审计字段。

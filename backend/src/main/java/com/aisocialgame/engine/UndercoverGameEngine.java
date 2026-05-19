@@ -18,7 +18,7 @@ import java.util.List;
 
 @Component
 public class UndercoverGameEngine implements GameEngine {
-    private static final String GAME_ID = "undercover";
+    private static final String GAME_ID = GameIds.UNDERCOVER;
     private final GameRuntimeSupport runtime;
 
     public UndercoverGameEngine(GameRuntimeSupport runtime) {
@@ -77,9 +77,9 @@ public class UndercoverGameEngine implements GameEngine {
     @Override
     public List<PhaseDefinition> phaseDefinitions() {
         return List.of(
-                new PhaseDefinition("DESCRIPTION", "描述阶段", 60, true),
-                new PhaseDefinition("VOTING", "投票阶段", 30, true),
-                new PhaseDefinition("SETTLEMENT", "结算", 0, true)
+                new PhaseDefinition(GamePhases.DESCRIPTION, "描述阶段", 60, true),
+                new PhaseDefinition(GamePhases.VOTING, "投票阶段", 30, true),
+                new PhaseDefinition(GamePhases.SETTLEMENT, "结算", 0, true)
         );
     }
 
