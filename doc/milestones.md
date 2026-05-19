@@ -1,6 +1,6 @@
 # AISocialGame 后续开发里程碑
 
-> 更新时间：2026-05-17
+> 更新时间：2026-05-19
 
 ## 1. 总目标
 
@@ -37,11 +37,12 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 | M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；开发记录见 `doc/milestones/m1-ai-quality-loop/development.md` |
 | M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
 | M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md` |
-| M4 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
-| M5 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
-| M6 | P1 | AI 运营后台与安全治理 | Persona/Prompt/模型/成本/审计/灰度 |
+| M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；规划记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md` |
+| M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
+| M6 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
+| M7 | P1 | AI 运营后台与策略治理 | Persona/Prompt/模型/成本/审计/灰度 |
 
-已完成里程碑的分目录归档入口见 `doc/milestones/README.md`。
+里程碑阶段记录入口见 `doc/milestones/README.md`。
 
 ## 5. M1：AI 拟人质量闭环
 
@@ -117,7 +118,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 ### 依赖
 
 - 现有 `GameState.logs` 和前端回放页面。
-- 为 M1 的质量评测、M5 的社区战报、M6 的后台审计提供基础数据。
+- 为 M1 的质量评测、M4 的安全治理、M6 的社区战报、M7 的后台审计提供基础数据。
 
 ### M2 实现记录（2026-05-16）
 
@@ -170,7 +171,70 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 详细架构见 `doc/modules/game-engine-module.md`。
 - 分目录开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md`。
 
-## 8. M4：新增海龟汤玩法
+## 8. M4：AI 安全治理与 Admin 应急运营
+
+### 目标
+
+在继续扩展玩法前，先补齐 AI 与玩家内容的安全治理、风险可观测和运营介入能力。系统需要减少聊天、社区内容和 AI 输出出现违规回复的概率，并在出现危险聊天、Prompt 注入、隐藏信息泄露、异常额度消耗、模型或 Persona 行为异常时，让管理员能及时发现、确认、处置和回溯。
+
+### 交付项
+
+- AI Safety 治理层：
+  - 覆盖玩家房间聊天、社区发帖、通用 `/api/ai/chat` 输入输出、管理端 AI 测试调用、AI 玩家自动发言输出。
+  - 统一输出 `ALLOW` / `REDACT` / `BLOCK` / `RATE_LIMIT` / `ESCALATE` 分级处置结果。
+  - 默认先使用本地规则、项目上下文校验和现有 AI 质量 flags；预留外部 moderation provider 接口，后续可接入 OpenAI Moderation、ai-service moderation RPC 或其他合规服务。
+- 风险事件与审计：
+  - 新增安全事件模型，记录来源、房间、用户、Persona、模型、trace、风险分类、严重级别、处置动作、状态、内容摘要和时间。
+  - 玩家可见信息、管理员审计信息和服务端内部诊断信息分层保存，不向玩家暴露完整 Prompt、隐藏身份、隐藏词语或内部推理链。
+  - 风险分类至少覆盖危险/违法内容、仇恨与骚扰、色情、隐私泄露、Prompt Injection、隐藏信息泄露、重复异常调用和额度异常消耗。
+- Admin 应急运营：
+  - 后台新增安全事件队列、风险摘要、筛选、详情、确认、关闭和处置记录。
+  - 支持临时控制：用户禁言、房间安全暂停、Persona 禁用、模型禁用、AI 调用限流、房间强制转人工观察。
+  - 仪表盘增加未处理高危事件、近 24 小时拦截数、成本异常、活跃控制数。
+- AI 行为安全加固：
+  - AI 玩家发言输出在进入游戏日志和 WebSocket 前经过安全审核。
+  - 对局上下文继续严格过滤可见信息，避免模型借 prompt 或 trace 泄露不可见身份、隐藏词、汤底等信息。
+  - 通用 AI Chat 和管理端测试调用需要记录安全摘要与额度消耗，便于排查卡 bug 大量消耗额度的问题。
+
+### 验收标准
+
+- 高风险玩家聊天会被拦截或替换，并生成管理员可见安全事件。
+- 中风险 AI 输出可被替换为安全提示或安全降级发言，同时保留 trace 与风险原因。
+- 重复异常 AI 调用或短时间大量额度消耗能触发限流或升级事件。
+- 管理员能查看、筛选、确认、关闭安全事件，并下发或撤销临时控制。
+- 玩家端仍明确展示 AI 身份，不要求 AI 冒充真人；玩家不可见信息边界不回退。
+
+### 测试计划
+
+- 后端单元测试：
+  - 审核规则、风险分类、分级处置、控制命中、事件状态流转。
+  - AI 输出安全降级、Prompt Injection 检测、隐藏信息泄露检测、异常额度限流。
+- 后端集成测试：
+  - 房间聊天风险内容被拦截并落库为安全事件。
+  - AI 玩家发言触发中/高风险时不会进入公开日志或 WebSocket 原文。
+  - Persona/模型/用户/房间控制生效后，对应操作被限制并生成审计记录。
+- 前端构建与页面验收：
+  - 管理端 safety 页面可展示风险摘要、事件列表、筛选条件、详情、确认/关闭和控制操作。
+  - 玩家端收到安全提示时文案清晰，不泄露内部审核原因。
+- Playwright 可复用验收：
+  - 登录管理端，触发风险聊天，验证事件生成、状态流转和临时控制生效。
+  - 验证原有 AI 对局、回放和 AI 质检入口不回退。
+- browser-use 手工验收：
+  - 在真实房间中模拟危险聊天、异常频率发送和管理员介入，确认端到端体验。
+
+### 依赖
+
+- M1 的 AI 决策 trace、质量 flags 和 Persona 记忆。
+- M2 的结构化事件流和回放审计底座。
+- M3 的统一 action 与 GameEngine 插件化入口。
+- 现有 admin 模块、用户封禁、积分账本和 AI 网关调用记录。
+
+### M4 规划记录（2026-05-19）
+
+- 本阶段当前只新增里程碑规划，不进行代码开发、建表、接口实现或测试执行。
+- 分目录规划记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md`。
+
+## 9. M5：新增海龟汤玩法
 
 ### 目标
 
@@ -201,8 +265,9 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 ### 依赖
 
 - M3 完成后实现成本最低；如果业务需要提前上线，可先以轻量独立引擎实现，再在 M3 中迁移。
+- M4 的内容安全治理完成后，主持 Prompt 防泄底、危险题材过滤和玩家提问审核可以复用统一安全底座。
 
-## 9. M5：社交平台化与留存
+## 10. M6：社交平台化与留存
 
 ### 目标
 
@@ -230,8 +295,9 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - M2 的回放/战报数据。
 - M3 的游戏元数据。
+- M4 的安全事件和临时控制能力。
 
-## 10. M6：AI 运营后台与安全治理
+## 11. M7：AI 运营后台与策略治理
 
 ### 目标
 
@@ -246,9 +312,9 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
   - 支持模型路由、超时、重试、成本预算和降级策略。
 - AI 质量看板：
   - 展示模型调用量、成功率、兜底率、平均耗时、单局成本、玩家反馈、异常输出。
-- 安全治理：
+- 策略治理：
   - 明示 AI 身份作为默认规则。
-  - 敏感内容过滤、不可见信息泄露检测、恶意 Prompt 注入检测。
+  - 在 M4 安全治理底座上管理 Persona、Prompt、模型策略和实验组的灰度发布。
   - 支持运营封禁某个 Persona、某类 Prompt 或某个模型策略。
 
 ### 验收标准
@@ -261,17 +327,23 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - M1 的决策日志。
 - M2 的事件流。
+- M4 的安全事件、分级处置和 admin 应急控制能力。
 - 管理后台现有 admin 模块。
 
-## 11. 参考资料与设计启发
+## 12. 参考资料与设计启发
 
 - [Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/abs/2304.03442)：可信拟人行为需要观察、记忆、反思和计划，对 M1 的记忆/反思设计有直接参考价值。
 - [Werewolf Arena: A Case Study in LLM Evaluation via Social Deduction](https://arxiv.org/abs/2407.13943)：将狼人杀作为 LLM 社交推理评测场景，强调欺骗、推理、说服和动态发言机制，对 M1/M2 的 AI 评测有参考价值。
 - [AIWolf Project](https://aiwolf.org/en/)：长期围绕狼人杀智能体竞赛建设工具、规则和评测环境，说明社交推理玩法适合作为 AI 游戏平台的核心基准。
 - [WOLF: Werewolf-based Observations for LLM Deception and Falsehoods](https://arxiv.org/abs/2512.09187)：用狼人杀拆分评估欺骗生成、欺骗识别、信任变化等能力，对后续社交推理质量指标设计有参考价值。
 - [Voyager: An Open-Ended Embodied Agent with Large Language Models](https://arxiv.org/abs/2305.16291)：技能库、自验证和持续学习思路可作为远期 AI 游戏技能库参考，但不作为 M1-M2 的前置依赖。
+- [OpenAI Safety best practices](https://platform.openai.com/docs/guides/safety-best-practices/constrain-user-input-and-limit-output-tokens.pls)：建议限制输入/输出、使用内容审核、人工介入和对抗测试，可作为 M4 分级处置和测试计划参考。
+- [OpenAI Moderation](https://platform.openai.com/docs/guides/moderation/overview?lang=curl)：内容审核 API 的分类与工作流可作为后续外部 moderation provider 参考。
+- [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)：Prompt Injection、敏感信息泄露、无界消耗等风险对 M4 的风险分类和异常额度治理有直接参考价值。
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)：Govern / Map / Measure / Manage 思路可用于组织 AI 风险识别、度量、处置和持续改进。
+- [生成式人工智能服务管理暂行办法](https://www.cac.gov.cn/2023-07/13/c_1690898326795531.htm) 与 [人工智能生成合成内容标识办法](https://www.cac.gov.cn/2025-03/14/c_1743654685899683.htm)：对内容安全、生成内容标识和处置机制有合规参考意义。
 
-## 12. 推进规则
+## 13. 推进规则
 
 - 每个里程碑开始前，先确认该里程碑是否仍是当前最高优先级。
 - 每个里程碑交付必须包含：代码实现、测试/验收记录、相关 `doc` 更新，并在 `doc/milestones/<milestone-id>/development.md` 记录阶段修改。

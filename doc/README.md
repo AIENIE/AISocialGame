@@ -2,15 +2,16 @@
 
 > 更新时间：2026-05-19
 
-本目录同时保存项目长期路线图、已完成里程碑记录、模块架构、接口说明和测试验收记录。后续开发应优先从本文件进入，避免里程碑记录散落在单个模块文档中。
+本目录同时保存项目长期路线图、里程碑阶段记录、模块架构、接口说明和测试验收记录。后续开发应优先从本文件进入，避免里程碑记录散落在单个模块文档中。
 
 ## 里程碑文档
 
 - 总路线图：[milestones.md](milestones.md)
-- 已完成里程碑归档：[milestones/README.md](milestones/README.md)
+- 里程碑阶段记录：[milestones/README.md](milestones/README.md)
 - M1 AI 拟人质量闭环：[milestones/m1-ai-quality-loop/development.md](milestones/m1-ai-quality-loop/development.md)
 - M2 结构化事件与回放/质检底座：[milestones/m2-structured-replay/development.md](milestones/m2-structured-replay/development.md)
 - M3 GameEngine 插件化架构：[milestones/m3-game-engine-plugin-architecture/development.md](milestones/m3-game-engine-plugin-architecture/development.md)
+- M4 AI 安全治理与 Admin 应急运营：[milestones/m4-ai-safety-admin-ops/development.md](milestones/m4-ai-safety-admin-ops/development.md)
 
 ## 架构与模块
 

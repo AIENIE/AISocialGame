@@ -23,8 +23,8 @@
 
 ## 后续里程碑
 
-- 后续开发主线见 `doc/milestones.md`，已完成里程碑的阶段修改记录见 `doc/milestones/README.md`。
-- 当前默认优先级为 AI 质量闭环、结构化事件与回放底座、GameEngine 插件化、海龟汤新增玩法。
+- 后续开发主线见 `doc/milestones.md`，里程碑阶段记录见 `doc/milestones/README.md`。
+- 当前默认优先级为 AI 质量闭环、结构化事件与回放底座、GameEngine 插件化、AI 安全治理与 Admin 应急运营，然后再推进海龟汤新增玩法。
 
 ## 回归说明
 
