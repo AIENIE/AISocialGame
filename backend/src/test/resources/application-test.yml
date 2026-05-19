@@ -22,7 +22,7 @@ app:
     system-user-id: 1
   admin:
     username: admin
-    password: admin123
+    password: test-admin-password
     token-ttl-hours: 1
   external:
     grpc-auth-required: false

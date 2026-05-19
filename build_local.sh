@@ -65,6 +65,7 @@ backend_dir="$repo_root/backend"
 
 cd "$repo_root"
 load_env_file "$repo_root/env.txt"
+load_env_file "$repo_root/env.local"
 
 export SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"
 export APP_DEMO_SEED_ENABLED="${APP_DEMO_SEED_ENABLED:-true}"
@@ -75,6 +76,21 @@ if [[ "${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}" == "true" ]]; then
     APP_EXTERNAL_PAYSERVICE_JWT \
     APP_EXTERNAL_AISERVICE_HMAC_CALLER \
     APP_EXTERNAL_AISERVICE_HMAC_SECRET
+fi
+
+assert_required_env SPRING_DATASOURCE_PASSWORD APP_ADMIN_PASSWORD
+
+if [[ "${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}" != "true" ]]; then
+  if [[ "${SPRING_DATASOURCE_PASSWORD:-}" == "aisocialgame""_pwd" || "${APP_ADMIN_PASSWORD:-}" == "admin""123" ]]; then
+    printf 'Refusing to start with default database or admin passwords\n' >&2
+    exit 1
+  fi
+  insecure_ssl_param="use""SSL" insecure_ssl_value="false"
+  insecure_key_retrieval_param="allowPublicKey""Retrieval" insecure_key_retrieval_value="true"
+  if [[ "${SPRING_DATASOURCE_URL:-}" == *"${insecure_ssl_param}=${insecure_ssl_value}"* || "${SPRING_DATASOURCE_URL:-}" == *"${insecure_key_retrieval_param}=${insecure_key_retrieval_value}"* ]]; then
+    printf 'Refusing to start with insecure datasource URL\n' >&2
+    exit 1
+  fi
 fi
 
 log_step "Backend: spring-boot:run"

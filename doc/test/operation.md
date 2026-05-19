@@ -71,7 +71,7 @@
 
 ## 5. 管理后台
 
-1. 管理员登录：`admin/admin123`（可由环境变量覆盖）。
+1. 管理员登录：使用 `APP_ADMIN_USERNAME`/`APP_ADMIN_PASSWORD` 中配置的受控账号。
 2. 进入积分管理页执行：
    - `migrate-user`
    - `migrate-all`

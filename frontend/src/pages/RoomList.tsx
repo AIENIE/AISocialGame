@@ -10,13 +10,11 @@ import { Game, Room } from "@/types";
 import { quickMatchApi } from "@/services/v2Social";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { buildPlayerStorageUserKey, getQuickMatchPlayerId, setQuickMatchPlayerId, setRoomPlayerId } from "@/utils/playerStorage";
 
 const RoomList = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
-  const { displayName, user } = useAuth();
-  const storageUserKey = buildPlayerStorageUserKey(user?.id, displayName);
+  const { displayName, user, redirectToSsoLogin } = useAuth();
   const { data: game } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
@@ -60,13 +58,12 @@ const RoomList = () => {
 
   const quickStart = async () => {
     if (!gameId) return;
+    if (!user) {
+      await redirectToSsoLogin();
+      return;
+    }
     try {
-      const savedPlayerId = getQuickMatchPlayerId(gameId, storageUserKey);
-      const result = await quickMatchApi.start(gameId, displayName, savedPlayerId);
-      if (result.playerId) {
-        setQuickMatchPlayerId(gameId, storageUserKey, result.playerId);
-        setRoomPlayerId(result.roomId, storageUserKey, result.playerId);
-      }
+      const result = await quickMatchApi.start(gameId, displayName);
       navigate(`/room/${gameId}/${result.roomId}`);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "快速匹配失败");

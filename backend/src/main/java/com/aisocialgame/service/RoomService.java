@@ -12,9 +12,12 @@ import com.aisocialgame.repository.PersonaRepository;
 import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.dto.ws.SeatEvent;
 import com.aisocialgame.websocket.GamePushService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +27,9 @@ import java.util.UUID;
 @Service
 @Transactional
 public class RoomService {
+    private static final int MIN_PRIVATE_ROOM_PASSWORD_LENGTH = 4;
+    private static final int MAX_PRIVATE_ROOM_PASSWORD_LENGTH = 64;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final RoomRepository roomRepository;
     private final GameService gameService;
     private final PersonaRepository personaRepository;
@@ -45,8 +51,12 @@ public class RoomService {
     public Room createRoom(String gameId, String name, boolean isPrivate, String password, String commMode, Map<String, Object> config, User creator) {
         Game game = gameService.findById(gameId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "游戏不存在"));
         int maxPlayers = normalizeMaxPlayers(gameId, resolveMaxPlayers(config, game.getMaxPlayers()), game.getMaxPlayers());
+        String storedPassword = null;
+        if (isPrivate) {
+            storedPassword = encodePrivateRoomPassword(password);
+        }
 
-        Room room = new Room(UUID.randomUUID().toString(), gameId, name, RoomStatus.WAITING, maxPlayers, isPrivate, password, commMode, config != null ? config : new HashMap<>());
+        Room room = new Room(UUID.randomUUID().toString(), gameId, name, RoomStatus.WAITING, maxPlayers, isPrivate, storedPassword, commMode, config != null ? config : new HashMap<>());
 
         // Auto seat creator as host
         if (creator != null) {
@@ -67,20 +77,17 @@ public class RoomService {
         return roomRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
     }
 
-    public synchronized JoinRoomResult joinRoom(String roomId, String displayName, User user, String preferredPlayerId) {
+    public synchronized JoinRoomResult joinRoom(String roomId, String displayName, User user, String password) {
         Room room = getRoom(roomId);
+        if (user == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        validatePrivateRoomPassword(room, password);
 
         // Already joined
-        String userId = user != null ? user.getId() : null;
+        String userId = user.getId();
         if (userId != null) {
             RoomSeat seat = room.getSeats().stream().filter(s -> userId.equals(s.getPlayerId())).findFirst().orElse(null);
-            if (seat != null) {
-                return new JoinRoomResult(room, seat);
-            }
-        }
-
-        if (userId == null && preferredPlayerId != null && !preferredPlayerId.isBlank()) {
-            RoomSeat seat = room.getSeats().stream().filter(s -> preferredPlayerId.equals(s.getPlayerId())).findFirst().orElse(null);
             if (seat != null) {
                 return new JoinRoomResult(room, seat);
             }
@@ -100,8 +107,12 @@ public class RoomService {
         return new JoinRoomResult(room, seat);
     }
 
-    public synchronized Room addAi(String roomId, String personaId) {
+    public synchronized Room addAi(String roomId, String personaId, User actor) {
         Room room = getRoom(roomId);
+        requireHost(room, actor);
+        if (room.getStatus() != RoomStatus.WAITING) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "只有等待中的房间可以添加 AI");
+        }
         if (room.getSeats().size() >= room.getMaxPlayers()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满");
         }
@@ -116,6 +127,39 @@ public class RoomService {
         roomRepository.save(room);
         gamePushService.pushSeatChange(roomId, new SeatEvent("AI_ADDED", seat));
         return room;
+    }
+
+    private String encodePrivateRoomPassword(String password) {
+        String normalized = password == null ? "" : password.trim();
+        if (normalized.length() < MIN_PRIVATE_ROOM_PASSWORD_LENGTH || normalized.length() > MAX_PRIVATE_ROOM_PASSWORD_LENGTH) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "私密房间密码长度需为 4-64 位");
+        }
+        return passwordEncoder.encode(normalized);
+    }
+
+    private void validatePrivateRoomPassword(Room room, String password) {
+        if (!room.isPrivate()) {
+            return;
+        }
+        String stored = room.getPassword();
+        if (!StringUtils.hasText(stored)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码未配置");
+        }
+        String normalized = password == null ? "" : password.trim();
+        if (!StringUtils.hasText(normalized) || !passwordEncoder.matches(normalized, stored)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码错误");
+        }
+    }
+
+    private void requireHost(Room room, User actor) {
+        if (actor == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        boolean host = room.getSeats().stream()
+                .anyMatch(seat -> actor.getId().equals(seat.getPlayerId()) && seat.isHost());
+        if (!host) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "只有房主可以添加 AI");
+        }
     }
 
     public void updateStatus(String roomId, RoomStatus status) {

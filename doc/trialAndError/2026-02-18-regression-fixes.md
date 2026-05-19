@@ -44,7 +44,7 @@
     - 自动入座等待 `auth loading` 结束。
     - 已有 seat 状态下避免无效重复 join。
   - `frontend/src/services/api.ts`
-    - `roomApi.join` 在 `401/403` 时按游客模式重试。
+    - 历史版本中 `roomApi.join` 在 `401/403` 时按未登录访客重试；v1.0 安全整改后已移除。
   - `frontend/vite.config.ts`
     - 新增 `/ws` 代理，`ws: true`，目标 `http://localhost:20030`。
 - 验证：
@@ -67,7 +67,7 @@
   - 控制台出现 `POST /api/community/posts` 返回 `403 (Forbidden)`。
 - 已尝试：
   - 清理本地 `aisocialgame_admin_token`。
-  - 清理本地 `aisocialgame_token` 并刷新页面，按游客身份再次发帖。
+  - 清理本地 `aisocialgame_token` 并刷新页面，按未登录访客再次发帖。
   - 结果仍为 `403`。
 - 当前判断：
   - API 冒烟脚本中“社区发帖”可通过；仅前端交互链路出现 403，疑似页面态鉴权/请求头状态与接口预期不一致，需要进一步抓包对比 UI 请求与脚本请求差异。

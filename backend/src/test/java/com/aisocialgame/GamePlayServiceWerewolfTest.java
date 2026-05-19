@@ -52,7 +52,7 @@ class GamePlayServiceWerewolfTest {
         Room room = roomService.createRoom("werewolf", "夜晚待办房", false, null, "text", Map.of("playerCount", 6), host);
         addAiSeats(room, 5);
 
-        gamePlayService.start("werewolf", room.getId(), host, host.getId());
+        gamePlayService.start("werewolf", room.getId(), host);
 
         GameState state = gameStateRepository.findById(room.getId()).orElseThrow();
         List<GamePlayerState> players = new ArrayList<>(state.getPlayers());
@@ -88,7 +88,7 @@ class GamePlayServiceWerewolfTest {
 
         VoteRequest hostVote = new VoteRequest();
         hostVote.setTargetPlayerId(targetId);
-        GameStateResponse response = gamePlayService.vote("werewolf", room.getId(), hostVote, host, host.getId());
+        GameStateResponse response = gamePlayService.vote("werewolf", room.getId(), hostVote, host);
 
         Assertions.assertEquals("NIGHT", response.getPhase());
         Assertions.assertEquals("WEREWOLF", response.getMyRole());
@@ -102,7 +102,7 @@ class GamePlayServiceWerewolfTest {
         Room room = roomService.createRoom("werewolf", "夜晚自动推进房", false, null, "text", Map.of("playerCount", 6), host);
         addAiSeats(room, 5);
 
-        gamePlayService.start("werewolf", room.getId(), host, host.getId());
+        gamePlayService.start("werewolf", room.getId(), host);
 
         GameState state = gameStateRepository.findById(room.getId()).orElseThrow();
         List<GamePlayerState> players = new ArrayList<>(state.getPlayers());
@@ -138,7 +138,7 @@ class GamePlayServiceWerewolfTest {
 
         VoteRequest hostVote = new VoteRequest();
         hostVote.setTargetPlayerId(targetId);
-        GameStateResponse response = gamePlayService.vote("werewolf", room.getId(), hostVote, host, host.getId());
+        GameStateResponse response = gamePlayService.vote("werewolf", room.getId(), hostVote, host);
 
         Assertions.assertNotEquals("NIGHT", response.getPhase());
     }
@@ -157,8 +157,9 @@ class GamePlayServiceWerewolfTest {
     }
 
     private void addAiSeats(Room room, int count) {
+        User host = userRepository.findById(room.getSeats().get(0).getPlayerId()).orElseThrow();
         for (int i = 0; i < count; i++) {
-            roomService.addAi(room.getId(), PERSONA_IDS[i % PERSONA_IDS.length]);
+            roomService.addAi(room.getId(), PERSONA_IDS[i % PERSONA_IDS.length], host);
         }
     }
 }

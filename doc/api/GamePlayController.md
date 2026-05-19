@@ -2,7 +2,7 @@
 
 ## 简介
 - 职责：管理狼人杀/谁是卧底的对局状态查询与动作提交。
-- 鉴权要求：支持 `X-Auth-Token`（登录用户）或 `X-Player-Id`（游客/重连玩家）。
+- 鉴权要求：全部接口均需要 `X-Auth-Token`，玩家身份由登录用户 ID 决定。
 - 基础路径：`/api/games/{gameId}/rooms/{roomId}`
 
 ## 接口列表
@@ -35,8 +35,7 @@ Headers：
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 |---|---|---|---|---|
-| X-Auth-Token | String | 否 | 登录态 token | `<token>` |
-| X-Player-Id | String | 否 | 游客或重连玩家 ID | `guest-abc` |
+| X-Auth-Token | String | 是 | 登录态 token | `<token>` |
 
 **返回值（核心字段）**
 
@@ -62,8 +61,7 @@ Headers：
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| X-Auth-Token | String | 否 | 登录用户 token |
-| X-Player-Id | String | 否 | 游客玩家 ID |
+| X-Auth-Token | String | 是 | 登录用户 token |
 
 **返回值**
 - 200：`GameStateResponse`
@@ -72,7 +70,7 @@ Headers：
 
 | 错误码 | 说明 |
 |---|---|
-| 401 | 未提供玩家身份 |
+| 401 | 未登录 |
 | 403 | 非房主 |
 | 400 | 人数不足或状态非法 |
 

@@ -22,14 +22,12 @@ import { toast } from "sonner";
 import { SettlementPanel } from "@/components/game/SettlementPanel";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 import { achievementApi, replayApi } from "@/services/v2Social";
-import { buildPlayerStorageUserKey, getRoomPlayerId, setRoomPlayerId } from "@/utils/playerStorage";
 
 const WerewolfRoom = () => {
   const { roomId, gameId } = useParams();
-  const { user, displayName, token, loading } = useAuth();
+  const { user, displayName, token, loading, redirectToSsoLogin } = useAuth();
   const queryClient = useQueryClient();
-  const storageUserKey = buildPlayerStorageUserKey(user?.id, displayName);
-  const [playerId, setPlayerId] = useState<string | null>(null);
+  const playerId = user?.id || null;
   const [speakContent, setSpeakContent] = useState("");
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [nightTarget, setNightTarget] = useState<string | null>(null);
@@ -40,17 +38,10 @@ const WerewolfRoom = () => {
   const settlementSnapshotRef = useRef<string | null>(null);
   const userKey = user?.id || `guest:${displayName}`;
 
-  useEffect(() => {
-    if (!roomId) {
-      return;
-    }
-    setPlayerId(getRoomPlayerId(roomId, storageUserKey));
-  }, [roomId, storageUserKey]);
-
   const { data: personas = [] } = useQuery({ queryKey: ["personas"], queryFn: personaApi.list });
   const { data: room } = useQuery({ queryKey: ["room", roomId], queryFn: () => roomApi.detail(gameId || "", roomId || ""), enabled: !!roomId && !!gameId });
 
-  const { stateQuery, startMutation, actionMutation } = useGameEngine(gameId || "werewolf", roomId, playerId || undefined);
+  const { stateQuery, startMutation, actionMutation } = useGameEngine(gameId || "werewolf", user ? roomId : undefined);
 
   const socket = useGameSocket({
     roomId,
@@ -111,12 +102,13 @@ const WerewolfRoom = () => {
   }, [stateQuery.data?.phase]);
 
   const joinMutation = useMutation({
-    mutationFn: () => roomApi.join(gameId || "", roomId || "", displayName, playerId || undefined),
+    mutationFn: () => {
+      const password = room?.isPrivate ? window.prompt("请输入私密房间密码") || undefined : undefined;
+      return roomApi.join(gameId || "", roomId || "", displayName, password);
+    },
     onSuccess: (data) => {
       const pid = (data as any).selfPlayerId;
       if (pid && roomId) {
-        setPlayerId(pid);
-        setRoomPlayerId(roomId, storageUserKey, pid);
         queryClient.invalidateQueries({ queryKey: ["game-state", roomId] });
       }
     },
@@ -127,14 +119,15 @@ const WerewolfRoom = () => {
     if (!room || loading || joinMutation.isSuccess || joinMutation.isPending) {
       return;
     }
-    if (playerId && !stateQuery.data) {
+    if (!user) {
+      void redirectToSsoLogin();
       return;
     }
-    if (playerId && stateQuery.data?.myPlayerId) {
+    if (room.seats?.some((seat) => seat.playerId === user.id)) {
       return;
     }
     joinMutation.mutate();
-  }, [room, loading, token, playerId, stateQuery.data]);
+  }, [room, loading, token, playerId, user, redirectToSsoLogin]);
 
   const speakMutation = useMutation({
     mutationFn: () => actionMutation.mutateAsync({ type: "SPEAK", content: speakContent || "结束发言" }),

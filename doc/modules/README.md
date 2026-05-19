@@ -1,6 +1,6 @@
 # 模块文档索引
 
-> 更新时间：2026-05-17
+> 更新时间：2026-05-19
 
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
@@ -17,6 +17,7 @@
 | 管理后台模块 | 管理管理员登录、用户封禁、积分流水检查、调账/冲正/迁移、兑换码创建、联通性诊断 | `backend/src/main/java/com/aisocialgame/controller/admin/*.java`、`frontend/src/pages/admin/*` |
 | gRPC 集成模块 | 管理 user/pay/ai 静态地址调用封装与严格鉴权拦截器 | `backend/src/main/java/com/aisocialgame/integration/*` |
 | 第三方组件对齐模块 | 记录 MySQL/Redis/Qdrant 外部依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.txt`、`build.sh` |
+| 安全加固模块 | 记录 v1.0 审计后的登录边界、房间权限、WS/CORS、AI 接口与运行配置加固 | `doc/modules/security-hardening-module.md`、`backend/src/main/java/com/aisocialgame/config/*` |
 
 ## 后续里程碑
 

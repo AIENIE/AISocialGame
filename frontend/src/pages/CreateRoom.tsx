@@ -19,10 +19,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gameApi, roomApi } from "@/services/api";
 import { Game, GameConfigOption } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateRoom = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
+  const { user, redirectToSsoLogin } = useAuth();
   const { data: game } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
@@ -70,6 +72,14 @@ const CreateRoom = () => {
   });
 
   const handleCreate = () => {
+    if (!user) {
+      void redirectToSsoLogin();
+      return;
+    }
+    if (formData.isPrivate && (!formData.password || String(formData.password).trim().length < 4)) {
+      toast.error("私密房间密码至少 4 位");
+      return;
+    }
     createMutation.mutate();
   };
 

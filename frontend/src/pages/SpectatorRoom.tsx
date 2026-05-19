@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { gameplayApi, roomApi } from "@/services/api";
@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, Send } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SpectatorChatMessage {
   id: string;
@@ -20,6 +21,7 @@ interface SpectatorChatMessage {
 
 const SpectatorRoom = () => {
   const { gameId, roomId } = useParams();
+  const { user, loading, redirectToSsoLogin } = useAuth();
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<SpectatorChatMessage[]>([]);
 
@@ -32,9 +34,15 @@ const SpectatorRoom = () => {
   const { data: state, isLoading } = useQuery({
     queryKey: ["spectator-state", gameId, roomId],
     queryFn: () => gameplayApi.state(gameId || "", roomId || ""),
-    enabled: !!gameId && !!roomId,
+    enabled: !!gameId && !!roomId && !!user,
     refetchInterval: 2000,
   });
+
+  useEffect(() => {
+    if (!loading && !user) {
+      void redirectToSsoLogin();
+    }
+  }, [loading, user, redirectToSsoLogin]);
 
   const players = state?.players || [];
   const aliveCount = useMemo(() => players.filter((p) => p.alive).length, [players]);

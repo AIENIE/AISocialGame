@@ -1,6 +1,6 @@
 # gRPC 集成模块说明（v1.6）
 
-> 更新时间：2026-03-04
+> 更新时间：2026-05-19
 
 ## 目标
 
@@ -28,6 +28,11 @@
   - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:10011`
 - SSO HTTP 入口：
   - `SSO_USER_SERVICE_BASE_URL=https://userservice.seekerhut.com`
+- 传输：
+  - 默认 `USER_GRPC_NEGOTIATION_TYPE=TLS`
+  - 默认 `BILLING_GRPC_NEGOTIATION_TYPE=TLS`
+  - 默认 `AI_GRPC_NEGOTIATION_TYPE=TLS`
+  - 如外部服务短期只能明文，必须显式设置 `APP_SECURITY_ALLOW_PLAINTEXT_GRPC=true` 并记录网络隔离前提。
 
 ## 鉴权约束（严格）
 

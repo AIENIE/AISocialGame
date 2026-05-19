@@ -28,23 +28,22 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         String token = sanitizeToken(accessor.getFirstNativeHeader("Authorization"));
-        String playerId = trim(accessor.getFirstNativeHeader("X-Player-Id"));
-        String resolvedPlayerId = resolvePlayerId(token, playerId);
+        String resolvedPlayerId = resolvePlayerId(token);
         if (!StringUtils.hasText(resolvedPlayerId)) {
-            throw new IllegalArgumentException("WebSocket 连接缺少玩家身份");
+            throw new IllegalArgumentException("WebSocket 连接需要登录");
         }
         accessor.setUser(new StompPrincipal(resolvedPlayerId));
         return message;
     }
 
-    private String resolvePlayerId(String token, String playerId) {
+    private String resolvePlayerId(String token) {
         if (StringUtils.hasText(token)) {
             User user = authService.authenticate(token);
             if (user != null) {
                 return user.getId();
             }
         }
-        return playerId;
+        return null;
     }
 
     private String sanitizeToken(String raw) {

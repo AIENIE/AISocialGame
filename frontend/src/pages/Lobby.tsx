@@ -14,12 +14,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { personaApi, roomApi } from "@/services/api";
 import { RoomSeat } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
-import { buildPlayerStorageUserKey, getRoomPlayerId, setRoomPlayerId } from "@/utils/playerStorage";
 
 const Lobby = () => {
   const { roomId, gameId } = useParams();
-  const { displayName, user } = useAuth();
-  const storageUserKey = buildPlayerStorageUserKey(user?.id, displayName);
+  const { displayName, user, redirectToSsoLogin } = useAuth();
 
   const { data: personas = [] } = useQuery({
     queryKey: ["personas"],
@@ -48,12 +46,12 @@ const Lobby = () => {
   const [seats, setSeats] = useState<RoomSeat[]>([]);
 
   const joinMutation = useMutation({
-    mutationFn: (name: string) => roomApi.join(gameId || "", roomId || "", name, roomId ? getRoomPlayerId(roomId, storageUserKey) || undefined : undefined),
+    mutationFn: (name: string) => {
+      const password = room?.isPrivate ? window.prompt("请输入私密房间密码") || undefined : undefined;
+      return roomApi.join(gameId || "", roomId || "", name, password);
+    },
     onSuccess: (data) => {
       setSeats(data.seats || []);
-      if ((data as any).selfPlayerId && roomId) {
-        setRoomPlayerId(roomId, storageUserKey, (data as any).selfPlayerId);
-      }
       refetch();
     },
     onError: () => toast.error("加入房间失败"),
@@ -74,10 +72,14 @@ const Lobby = () => {
       setSeats(room.seats || []);
       if (!hasJoinedRef.current) {
         hasJoinedRef.current = true;
+        if (!user) {
+          void redirectToSsoLogin();
+          return;
+        }
         joinMutation.mutate(displayName);
       }
     }
-  }, [room, displayName]);
+  }, [room, displayName, user, redirectToSsoLogin]);
 
   const displaySeats = useMemo(() => {
     const filled = Array.from({ length: room?.maxPlayers || 9 }, (_, idx) => seats.find(s => s.seatNumber === idx) || null);

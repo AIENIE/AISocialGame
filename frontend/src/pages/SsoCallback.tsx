@@ -29,7 +29,7 @@ const SsoCallback = () => {
     const username = params.get("username");
     const sessionId = params.get("session_id");
     const state = params.get("state");
-    const hasToken = !!localStorage.getItem(LOCAL_TOKEN_KEY);
+    const hasToken = !!sessionStorage.getItem(LOCAL_TOKEN_KEY);
     const expectedState = sessionStorage.getItem(LOCAL_SSO_STATE_KEY);
     if (expectedState) {
       sessionStorage.removeItem(LOCAL_SSO_STATE_KEY);

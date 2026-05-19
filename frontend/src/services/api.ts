@@ -195,20 +195,9 @@ export const roomApi = {
     const res = await api.get(`/games/${gameId}/rooms/${roomId}`);
     return res.data;
   },
-  async join(gameId: string, roomId: string, displayName: string, playerId?: string): Promise<Room> {
-    const headers = playerId ? { "X-Player-Id": playerId } : undefined;
-    try {
-      const res = await api.post(`/games/${gameId}/rooms/${roomId}/join`, { displayName }, { headers });
-      return res.data;
-    } catch (error: any) {
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        const retryHeaders = { ...(headers || {}), "X-Auth-Token": "" };
-        const retryRes = await api.post(`/games/${gameId}/rooms/${roomId}/join`, { displayName }, { headers: retryHeaders });
-        return retryRes.data;
-      }
-      throw error;
-    }
+  async join(gameId: string, roomId: string, displayName: string, password?: string): Promise<Room> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/join`, { displayName, password });
+    return res.data;
   },
   async addAi(gameId: string, roomId: string, personaId: string): Promise<Room> {
     const res = await api.post(`/games/${gameId}/rooms/${roomId}/ai`, { personaId });
@@ -224,50 +213,28 @@ export const personaApi = {
 };
 
 export const gameplayApi = {
-  async state(gameId: string, roomId: string, playerId?: string): Promise<GameState> {
-    const res = await api.get(`/games/${gameId}/rooms/${roomId}/state`, {
-      headers: playerId ? { "X-Player-Id": playerId } : undefined,
-    });
+  async state(gameId: string, roomId: string): Promise<GameState> {
+    const res = await api.get(`/games/${gameId}/rooms/${roomId}/state`);
     return res.data;
   },
-  async start(gameId: string, roomId: string, playerId?: string): Promise<GameState> {
-    const res = await api.post(
-      `/games/${gameId}/rooms/${roomId}/start`,
-      {},
-      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
-    );
+  async start(gameId: string, roomId: string): Promise<GameState> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/start`, {});
     return res.data;
   },
-  async speak(gameId: string, roomId: string, content: string, playerId?: string): Promise<GameState> {
-    const res = await api.post(
-      `/games/${gameId}/rooms/${roomId}/speak`,
-      { content },
-      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
-    );
+  async speak(gameId: string, roomId: string, content: string): Promise<GameState> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/speak`, { content });
     return res.data;
   },
-  async vote(gameId: string, roomId: string, targetPlayerId: string, abstain = false, playerId?: string): Promise<GameState> {
-    const res = await api.post(
-      `/games/${gameId}/rooms/${roomId}/vote`,
-      { targetPlayerId, abstain },
-      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
-    );
+  async vote(gameId: string, roomId: string, targetPlayerId: string, abstain = false): Promise<GameState> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/vote`, { targetPlayerId, abstain });
     return res.data;
   },
-  async nightAction(gameId: string, roomId: string, payload: { action: string; targetPlayerId?: string; useHeal?: boolean }, playerId?: string): Promise<GameState> {
-    const res = await api.post(
-      `/games/${gameId}/rooms/${roomId}/night-action`,
-      payload,
-      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
-    );
+  async nightAction(gameId: string, roomId: string, payload: { action: string; targetPlayerId?: string; useHeal?: boolean }): Promise<GameState> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/night-action`, payload);
     return res.data;
   },
-  async action(gameId: string, roomId: string, action: PlayerAction, playerId?: string): Promise<GameState> {
-    const res = await api.post(
-      `/games/${gameId}/rooms/${roomId}/action`,
-      action,
-      { headers: playerId ? { "X-Player-Id": playerId } : undefined }
-    );
+  async action(gameId: string, roomId: string, action: PlayerAction): Promise<GameState> {
+    const res = await api.post(`/games/${gameId}/rooms/${roomId}/action`, action);
     return res.data;
   },
 };

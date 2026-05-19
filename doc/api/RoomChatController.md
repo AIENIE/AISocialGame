@@ -2,7 +2,7 @@
 
 ## 简介
 - 职责：处理房间聊天消息（文本、表情、快捷短语）并广播给同房间订阅者。
-- 鉴权要求：必须通过 STOMP CONNECT 建立 `Principal`（`Authorization` 或 `X-Player-Id`）。
+- 鉴权要求：必须通过 STOMP CONNECT 建立 `Principal`（`Authorization: Bearer <token>`）。
 - 基础路径：STOMP `@MessageMapping`，应用前缀 `/app`。
 
 ## 接口列表

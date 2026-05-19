@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { buildPlayerStorageUserKey, getQuickMatchPlayerId, setQuickMatchPlayerId, setRoomPlayerId } from "@/utils/playerStorage";
+import { useAuth } from "@/hooks/useAuth";
 
 interface QuickMatchDialogProps {
   open: boolean;
@@ -18,7 +18,7 @@ interface QuickMatchDialogProps {
 
 export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatchDialogProps) => {
   const navigate = useNavigate();
-  const storageUserKey = buildPlayerStorageUserKey(null, displayName);
+  const { user, redirectToSsoLogin } = useAuth();
   const { data: games = [] } = useQuery<Game[]>({ queryKey: ["games"], queryFn: gameApi.list });
   const activeGames = games.filter((g) => String(g.status).toLowerCase() === "active");
   const [gameId, setGameId] = useState<string>("");
@@ -29,14 +29,13 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
       toast.error("请选择游戏类型");
       return;
     }
+    if (!user) {
+      await redirectToSsoLogin();
+      return;
+    }
     setMatching(true);
     try {
-      const currentPlayerId = getQuickMatchPlayerId(gameId, storageUserKey);
-      const result = await quickMatchApi.start(gameId, displayName, currentPlayerId);
-      if (result.playerId) {
-        setQuickMatchPlayerId(gameId, storageUserKey, result.playerId);
-        setRoomPlayerId(result.roomId, storageUserKey, result.playerId);
-      }
+      const result = await quickMatchApi.start(gameId, displayName);
       toast.success(result.autoStarted ? "匹配成功，已自动开局" : "匹配成功，已进入房间");
       onOpenChange(false);
       navigate(`/room/${gameId}/${result.roomId}`);

@@ -91,9 +91,9 @@ public class GameRuntimeSupport {
     }
 
     @Transactional
-    public GameStateResponse state(String gameId, String roomId, User user, String playerIdHeader) {
+    public GameStateResponse state(String gameId, String roomId, User user) {
         Room room = roomService.getRoom(roomId);
-        String viewerId = resolvePlayerId(room, user, playerIdHeader);
+        String viewerId = resolvePlayerId(user);
         Optional<GameState> optionalState = gameStateRepository.findById(roomId);
         if (optionalState.isEmpty()) {
             return buildWaitingResponse(room, viewerId);
@@ -127,9 +127,9 @@ public class GameRuntimeSupport {
         return buildResponse(gameId, room, state, viewerId);
     }
 
-    public GameStateResponse start(String gameId, String roomId, User user, String playerIdHeader) {
+    public GameStateResponse start(String gameId, String roomId, User user) {
         Room room = roomService.getRoom(roomId);
-        String actorId = resolvePlayerId(room, user, playerIdHeader);
+        String actorId = resolvePlayerId(user);
         if (!isHost(room, actorId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "只有房主可以开始游戏");
         }
@@ -154,9 +154,9 @@ public class GameRuntimeSupport {
         throw new ApiException(HttpStatus.BAD_REQUEST, "暂不支持的游戏");
     }
 
-    public GameStateResponse speak(String gameId, String roomId, SpeakRequest request, User user, String playerIdHeader) {
+    public GameStateResponse speak(String gameId, String roomId, SpeakRequest request, User user) {
         Room room = roomService.getRoom(roomId);
-        String actorId = requirePlayer(room, user, playerIdHeader);
+        String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
         if (gameId.equals("undercover")) {
             speakUndercover(state, room, actorId, request.getContent());
@@ -172,9 +172,9 @@ public class GameRuntimeSupport {
         return buildResponse(gameId, room, state, actorId);
     }
 
-    public GameStateResponse vote(String gameId, String roomId, VoteRequest request, User user, String playerIdHeader) {
+    public GameStateResponse vote(String gameId, String roomId, VoteRequest request, User user) {
         Room room = roomService.getRoom(roomId);
-        String actorId = requirePlayer(room, user, playerIdHeader);
+        String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
         if (gameId.equals("undercover")) {
             voteUndercover(state, room, actorId, request);
@@ -190,12 +190,12 @@ public class GameRuntimeSupport {
         return buildResponse(gameId, room, state, actorId);
     }
 
-    public GameStateResponse nightAction(String gameId, String roomId, NightActionRequest request, User user, String playerIdHeader) {
+    public GameStateResponse nightAction(String gameId, String roomId, NightActionRequest request, User user) {
         if (!"werewolf".equals(gameId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "该接口仅支持狼人杀夜晚行动");
         }
         Room room = roomService.getRoom(roomId);
-        String actorId = requirePlayer(room, user, playerIdHeader);
+        String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
 
         // 如果仍停留在白天环节（讨论/投票），先强制推进到夜晚，避免玩家因未投票而被卡住
@@ -1142,18 +1142,15 @@ public class GameRuntimeSupport {
         }
     }
 
-    private String resolvePlayerId(Room room, User user, String playerIdHeader) {
+    private String resolvePlayerId(User user) {
         if (user != null) {
             return user.getId();
-        }
-        if (playerIdHeader != null && room.getSeats().stream().anyMatch(s -> playerIdHeader.equals(s.getPlayerId()))) {
-            return playerIdHeader;
         }
         return null;
     }
 
-    private String requirePlayer(Room room, User user, String playerIdHeader) {
-        String id = resolvePlayerId(room, user, playerIdHeader);
+    private String requirePlayer(User user) {
+        String id = resolvePlayerId(user);
         if (id == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "未找到你的座位信息");
         }

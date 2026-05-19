@@ -41,7 +41,7 @@ const buildSsoEntryUrl = (entry: "login" | "register", state: string) => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(LOCAL_TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(LOCAL_TOKEN_KEY));
   const [loading, setLoading] = useState<boolean>(!!token);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [token]);
 
   const applyAuthResponse = (res: AuthResponse) => {
-    localStorage.setItem(LOCAL_TOKEN_KEY, res.token);
+    sessionStorage.setItem(LOCAL_TOKEN_KEY, res.token);
     setToken(res.token);
     setUser(res.user);
   };
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem(LOCAL_TOKEN_KEY);
+    sessionStorage.removeItem(LOCAL_TOKEN_KEY);
     setUser(null);
     setToken(null);
     setAuthToken(undefined);

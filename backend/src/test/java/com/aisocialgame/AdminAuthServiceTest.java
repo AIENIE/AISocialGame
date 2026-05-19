@@ -12,11 +12,11 @@ class AdminAuthServiceTest {
     void loginAndValidateToken() {
         AppProperties properties = new AppProperties();
         properties.getAdmin().setUsername("admin");
-        properties.getAdmin().setPassword("admin123");
+        properties.getAdmin().setPassword("test-admin-password");
         properties.getAdmin().setTokenTtlHours(1);
         AdminAuthService adminAuthService = new AdminAuthService(properties);
 
-        String token = adminAuthService.login("admin", "admin123");
+        String token = adminAuthService.login("admin", "test-admin-password");
         Assertions.assertNotNull(token);
         Assertions.assertEquals("admin", adminAuthService.requireAdmin(token));
     }
@@ -25,7 +25,7 @@ class AdminAuthServiceTest {
     void wrongPasswordShouldThrow() {
         AppProperties properties = new AppProperties();
         properties.getAdmin().setUsername("admin");
-        properties.getAdmin().setPassword("admin123");
+        properties.getAdmin().setPassword("test-admin-password");
         AdminAuthService adminAuthService = new AdminAuthService(properties);
 
         Assertions.assertThrows(ApiException.class, () -> adminAuthService.login("admin", "bad"));

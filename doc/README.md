@@ -1,6 +1,6 @@
 # AISocialGame 文档索引
 
-> 更新时间：2026-05-17
+> 更新时间：2026-05-19
 
 本目录同时保存项目长期路线图、已完成里程碑记录、模块架构、接口说明和测试验收记录。后续开发应优先从本文件进入，避免里程碑记录散落在单个模块文档中。
 
@@ -17,6 +17,7 @@
 - 项目结构：[structure.md](structure.md)
 - 模块索引：[modules/README.md](modules/README.md)
 - GameEngine 插件化模块：[modules/game-engine-module.md](modules/game-engine-module.md)
+- 安全加固模块：[modules/security-hardening-module.md](modules/security-hardening-module.md)
 - API 文档：[api/](api/)
 - 测试与验收：[test/](test/)
 - 问题与试错记录：[issues.md](issues.md)、[trialAndError/](trialAndError/)

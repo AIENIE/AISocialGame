@@ -26,35 +26,35 @@ public interface GameEngine {
 
     ValidationResult validateStart(Room room);
 
-    GameStateResponse state(String roomId, User user, String playerIdHeader);
+    GameStateResponse state(String roomId, User user);
 
-    GameStateResponse start(String roomId, User user, String playerIdHeader);
+    GameStateResponse start(String roomId, User user);
 
-    GameStateResponse speak(String roomId, SpeakRequest request, User user, String playerIdHeader);
+    GameStateResponse speak(String roomId, SpeakRequest request, User user);
 
-    GameStateResponse vote(String roomId, VoteRequest request, User user, String playerIdHeader);
+    GameStateResponse vote(String roomId, VoteRequest request, User user);
 
-    GameStateResponse nightAction(String roomId, NightActionRequest request, User user, String playerIdHeader);
+    GameStateResponse nightAction(String roomId, NightActionRequest request, User user);
 
-    default GameStateResponse action(String roomId, PlayerAction action, User user, String playerIdHeader) {
+    default GameStateResponse action(String roomId, PlayerAction action, User user) {
         String type = action != null ? action.getType() : null;
         if ("SPEAK".equalsIgnoreCase(type)) {
             SpeakRequest request = new SpeakRequest();
             request.setContent(action.getContent());
-            return speak(roomId, request, user, playerIdHeader);
+            return speak(roomId, request, user);
         }
         if ("VOTE".equalsIgnoreCase(type)) {
             VoteRequest request = new VoteRequest();
             request.setTargetPlayerId(action.getTargetPlayerId());
             request.setAbstain(action.isAbstain());
-            return vote(roomId, request, user, playerIdHeader);
+            return vote(roomId, request, user);
         }
         if ("NIGHT_ACTION".equalsIgnoreCase(type)) {
             NightActionRequest request = new NightActionRequest();
             request.setAction(action.getNightAction());
             request.setTargetPlayerId(action.getTargetPlayerId());
             request.setUseHeal(action.isUseHeal());
-            return nightAction(roomId, request, user, playerIdHeader);
+            return nightAction(roomId, request, user);
         }
         throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "未知游戏动作");
     }

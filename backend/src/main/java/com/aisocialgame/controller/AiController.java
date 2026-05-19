@@ -46,7 +46,7 @@ public class AiController {
     @PostMapping("/chat")
     public ResponseEntity<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request,
                                                @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = authService.authenticate(token);
+        User user = requireUser(token);
         return ResponseEntity.ok(new AiChatResponse(aiProxyService.chat(request, user)));
     }
 

@@ -24,33 +24,33 @@ public class GamePlayService {
     }
 
     @Transactional
-    public GameStateResponse state(String gameId, String roomId, User user, String playerIdHeader) {
-        return engine(gameId).state(roomId, user, playerIdHeader);
+    public GameStateResponse state(String gameId, String roomId, User user) {
+        return engine(gameId).state(roomId, user);
     }
 
-    public GameStateResponse start(String gameId, String roomId, User user, String playerIdHeader) {
+    public GameStateResponse start(String gameId, String roomId, User user) {
         Room room = roomService.getRoom(roomId);
         var validation = engine(gameId).validateStart(room);
         if (!validation.valid()) {
             throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, validation.message());
         }
-        return engine(gameId).start(roomId, user, playerIdHeader);
+        return engine(gameId).start(roomId, user);
     }
 
-    public GameStateResponse speak(String gameId, String roomId, SpeakRequest request, User user, String playerIdHeader) {
-        return engine(gameId).speak(roomId, request, user, playerIdHeader);
+    public GameStateResponse speak(String gameId, String roomId, SpeakRequest request, User user) {
+        return engine(gameId).speak(roomId, request, user);
     }
 
-    public GameStateResponse vote(String gameId, String roomId, VoteRequest request, User user, String playerIdHeader) {
-        return engine(gameId).vote(roomId, request, user, playerIdHeader);
+    public GameStateResponse vote(String gameId, String roomId, VoteRequest request, User user) {
+        return engine(gameId).vote(roomId, request, user);
     }
 
-    public GameStateResponse nightAction(String gameId, String roomId, NightActionRequest request, User user, String playerIdHeader) {
-        return engine(gameId).nightAction(roomId, request, user, playerIdHeader);
+    public GameStateResponse nightAction(String gameId, String roomId, NightActionRequest request, User user) {
+        return engine(gameId).nightAction(roomId, request, user);
     }
 
-    public GameStateResponse action(String gameId, String roomId, PlayerAction action, User user, String playerIdHeader) {
-        return engine(gameId).action(roomId, action, user, playerIdHeader);
+    public GameStateResponse action(String gameId, String roomId, PlayerAction action, User user) {
+        return engine(gameId).action(roomId, action, user);
     }
 
     private GameEngine engine(String gameId) {

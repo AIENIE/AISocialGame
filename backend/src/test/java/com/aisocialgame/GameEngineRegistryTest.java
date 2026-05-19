@@ -44,27 +44,27 @@ class GameEngineRegistryTest {
         }
 
         @Override
-        public GameStateResponse state(String roomId, User user, String playerIdHeader) {
+        public GameStateResponse state(String roomId, User user) {
             return null;
         }
 
         @Override
-        public GameStateResponse start(String roomId, User user, String playerIdHeader) {
+        public GameStateResponse start(String roomId, User user) {
             return null;
         }
 
         @Override
-        public GameStateResponse speak(String roomId, SpeakRequest request, User user, String playerIdHeader) {
+        public GameStateResponse speak(String roomId, SpeakRequest request, User user) {
             return null;
         }
 
         @Override
-        public GameStateResponse vote(String roomId, VoteRequest request, User user, String playerIdHeader) {
+        public GameStateResponse vote(String roomId, VoteRequest request, User user) {
             return null;
         }
 
         @Override
-        public GameStateResponse nightAction(String roomId, NightActionRequest request, User user, String playerIdHeader) {
+        public GameStateResponse nightAction(String roomId, NightActionRequest request, User user) {
             return null;
         }
     }

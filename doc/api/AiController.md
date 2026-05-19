@@ -93,6 +93,12 @@ Body：
 | model | String | 否 | 指定模型 | `"gpt-4o-mini"` |
 | messages | Array | 是 | 对话消息列表 | `[{...}]` |
 
+**请求限制**
+
+- `messages` 最多 20 条。
+- 单条 `role` 最多 32 字符。
+- 单条 `content` 最多 4000 字符。
+
 **返回值**
 
 | 字段 | 类型 | 说明 | 示例 |

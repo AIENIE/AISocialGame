@@ -3,6 +3,8 @@ package com.aisocialgame.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
@@ -13,6 +15,7 @@ public class AppProperties {
     private Admin admin = new Admin();
     private External external = new External();
     private DemoSeed demoSeed = new DemoSeed();
+    private Cors cors = new Cors();
 
     public String getProjectKey() {
         return projectKey;
@@ -68,6 +71,14 @@ public class AppProperties {
 
     public void setDemoSeed(DemoSeed demoSeed) {
         this.demoSeed = demoSeed;
+    }
+
+    public Cors getCors() {
+        return cors;
+    }
+
+    public void setCors(Cors cors) {
+        this.cors = cors;
     }
 
     public static class Ai {
@@ -132,7 +143,7 @@ public class AppProperties {
 
     public static class Admin {
         private String username = "admin";
-        private String password = "admin123";
+        private String password = "";
         private String displayName = "系统管理员";
         private long tokenTtlHours = 8;
 
@@ -253,6 +264,33 @@ public class AppProperties {
 
         public void setAiserviceHmacSecret(String aiserviceHmacSecret) {
             this.aiserviceHmacSecret = aiserviceHmacSecret;
+        }
+    }
+
+    public static class Cors {
+        private List<String> allowedOrigins = List.of(
+                "http://localhost:5173",
+                "http://localhost:4173",
+                "http://localhost:11030",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:4173",
+                "http://127.0.0.1:11030",
+                "http://localhost",
+                "https://localhost",
+                "http://aisocialgame.seekerhut.com",
+                "http://aisocialgame.seekerhut.com:11030",
+                "https://aisocialgame.seekerhut.com",
+                "http://aisocialgame.aienie.com",
+                "http://aisocialgame.aienie.com:11030",
+                "https://aisocialgame.aienie.com"
+        );
+
+        public List<String> getAllowedOrigins() {
+            return allowedOrigins;
+        }
+
+        public void setAllowedOrigins(List<String> allowedOrigins) {
+            this.allowedOrigins = allowedOrigins;
         }
     }
 

@@ -39,7 +39,7 @@ public class RoomController {
     public ResponseEntity<RoomResponse> createRoom(@PathVariable("gameId") String gameId,
                                                    @Valid @RequestBody CreateRoomRequest request,
                                                    @RequestHeader(value = "X-Auth-Token", required = false) String token) {
-        User user = authService.authenticate(token);
+        User user = requireUser(token);
         Room room = roomService.createRoom(gameId, request.getRoomName(), request.getIsPrivate(), request.getPassword(), request.getCommMode(), request.getConfig(), user);
         return ResponseEntity.status(HttpStatus.CREATED).body(new RoomResponse(room));
     }
@@ -53,20 +53,26 @@ public class RoomController {
     @PostMapping("/{roomId}/join")
     public ResponseEntity<RoomResponse> joinRoom(@PathVariable("roomId") String roomId,
                                                  @Valid @RequestBody JoinRoomRequest request,
-                                                 @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                 @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        if (user == null && (request.getDisplayName() == null || request.getDisplayName().isBlank())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "未提供玩家昵称");
-        }
-        String displayName = user != null ? user.getNickname() : request.getDisplayName();
-        JoinRoomResult result = roomService.joinRoom(roomId, displayName, user, playerIdHeader);
+                                                 @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        User user = requireUser(token);
+        String displayName = user.getNickname();
+        JoinRoomResult result = roomService.joinRoom(roomId, displayName, user, request.getPassword());
         return ResponseEntity.ok(new RoomResponse(result.getRoom(), result.getSeat().getPlayerId()));
     }
 
     @PostMapping("/{roomId}/ai")
-    public ResponseEntity<RoomResponse> addAi(@PathVariable("roomId") String roomId, @Valid @RequestBody AddAiRequest request) {
-        Room room = roomService.addAi(roomId, request.getPersonaId());
+    public ResponseEntity<RoomResponse> addAi(@PathVariable("roomId") String roomId,
+                                              @Valid @RequestBody AddAiRequest request,
+                                              @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        Room room = roomService.addAi(roomId, request.getPersonaId(), requireUser(token));
         return ResponseEntity.ok(new RoomResponse(room));
+    }
+
+    private User requireUser(String token) {
+        User user = authService.authenticate(token);
+        if (user == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        return user;
     }
 }

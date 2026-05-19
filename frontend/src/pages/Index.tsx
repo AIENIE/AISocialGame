@@ -9,7 +9,6 @@ import { Game } from "@/types";
 import { quickMatchApi } from "@/services/v2Social";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { buildPlayerStorageUserKey, getQuickMatchPlayerId, setQuickMatchPlayerId, setRoomPlayerId } from "@/utils/playerStorage";
 
 // Helper to render dynamic icons based on string name
 const IconMap: Record<string, any> = {
@@ -20,21 +19,19 @@ const IconMap: Record<string, any> = {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { displayName, user } = useAuth();
-  const storageUserKey = buildPlayerStorageUserKey(user?.id, displayName);
+  const { displayName, user, redirectToSsoLogin } = useAuth();
   const { data: games = [], isLoading } = useQuery<Game[]>({
     queryKey: ["games"],
     queryFn: gameApi.list,
   });
 
   const quickStart = async (gameId: string) => {
+    if (!user) {
+      await redirectToSsoLogin();
+      return;
+    }
     try {
-      const savedPlayerId = getQuickMatchPlayerId(gameId, storageUserKey);
-      const result = await quickMatchApi.start(gameId, displayName, savedPlayerId);
-      if (result.playerId) {
-        setQuickMatchPlayerId(gameId, storageUserKey, result.playerId);
-        setRoomPlayerId(result.roomId, storageUserKey, result.playerId);
-      }
+      const result = await quickMatchApi.start(gameId, displayName);
       navigate(`/room/${gameId}/${result.roomId}`);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "快速匹配失败，请稍后重试");

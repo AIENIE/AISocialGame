@@ -28,61 +28,54 @@ public class GamePlayController {
     @GetMapping("/state")
     public ResponseEntity<GameStateResponse> state(@PathVariable String gameId,
                                                    @PathVariable String roomId,
-                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                   @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        return ResponseEntity.ok(gamePlayService.state(gameId, roomId, user, playerIdHeader));
+                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.state(gameId, roomId, requireUser(token)));
     }
 
     @PostMapping("/start")
     public ResponseEntity<GameStateResponse> start(@PathVariable String gameId,
                                                    @PathVariable String roomId,
-                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                   @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        if (user == null && (playerIdHeader == null || playerIdHeader.isBlank())) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "需提供玩家身份才能开局");
-        }
-        return ResponseEntity.ok(gamePlayService.start(gameId, roomId, user, playerIdHeader));
+                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.start(gameId, roomId, requireUser(token)));
     }
 
     @PostMapping("/speak")
     public ResponseEntity<GameStateResponse> speak(@PathVariable String gameId,
                                                    @PathVariable String roomId,
                                                    @Valid @RequestBody SpeakRequest request,
-                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                   @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        return ResponseEntity.ok(gamePlayService.speak(gameId, roomId, request, user, playerIdHeader));
+                                                   @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.speak(gameId, roomId, request, requireUser(token)));
     }
 
     @PostMapping("/vote")
     public ResponseEntity<GameStateResponse> vote(@PathVariable String gameId,
                                                   @PathVariable String roomId,
                                                   @Valid @RequestBody VoteRequest request,
-                                                  @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                  @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        return ResponseEntity.ok(gamePlayService.vote(gameId, roomId, request, user, playerIdHeader));
+                                                  @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.vote(gameId, roomId, request, requireUser(token)));
     }
 
     @PostMapping("/night-action")
     public ResponseEntity<GameStateResponse> nightAction(@PathVariable String gameId,
                                                          @PathVariable String roomId,
                                                          @Valid @RequestBody NightActionRequest request,
-                                                         @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                         @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
-        User user = authService.authenticate(token);
-        return ResponseEntity.ok(gamePlayService.nightAction(gameId, roomId, request, user, playerIdHeader));
+                                                         @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.nightAction(gameId, roomId, request, requireUser(token)));
     }
 
     @PostMapping("/action")
     public ResponseEntity<GameStateResponse> action(@PathVariable String gameId,
                                                     @PathVariable String roomId,
                                                     @RequestBody PlayerAction action,
-                                                    @RequestHeader(value = "X-Auth-Token", required = false) String token,
-                                                    @RequestHeader(value = "X-Player-Id", required = false) String playerIdHeader) {
+                                                    @RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        return ResponseEntity.ok(gamePlayService.action(gameId, roomId, action, requireUser(token)));
+    }
+
+    private User requireUser(String token) {
         User user = authService.authenticate(token);
-        return ResponseEntity.ok(gamePlayService.action(gameId, roomId, action, user, playerIdHeader));
+        if (user == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        return user;
     }
 }

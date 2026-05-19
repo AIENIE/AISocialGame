@@ -98,27 +98,27 @@ public class UndercoverGameEngine implements GameEngine {
     }
 
     @Override
-    public GameStateResponse state(String roomId, User user, String playerIdHeader) {
-        return runtime.state(GAME_ID, roomId, user, playerIdHeader);
+    public GameStateResponse state(String roomId, User user) {
+        return runtime.state(GAME_ID, roomId, user);
     }
 
     @Override
-    public GameStateResponse start(String roomId, User user, String playerIdHeader) {
-        return runtime.start(GAME_ID, roomId, user, playerIdHeader);
+    public GameStateResponse start(String roomId, User user) {
+        return runtime.start(GAME_ID, roomId, user);
     }
 
     @Override
-    public GameStateResponse speak(String roomId, SpeakRequest request, User user, String playerIdHeader) {
-        return runtime.speak(GAME_ID, roomId, request, user, playerIdHeader);
+    public GameStateResponse speak(String roomId, SpeakRequest request, User user) {
+        return runtime.speak(GAME_ID, roomId, request, user);
     }
 
     @Override
-    public GameStateResponse vote(String roomId, VoteRequest request, User user, String playerIdHeader) {
-        return runtime.vote(GAME_ID, roomId, request, user, playerIdHeader);
+    public GameStateResponse vote(String roomId, VoteRequest request, User user) {
+        return runtime.vote(GAME_ID, roomId, request, user);
     }
 
     @Override
-    public GameStateResponse nightAction(String roomId, NightActionRequest request, User user, String playerIdHeader) {
+    public GameStateResponse nightAction(String roomId, NightActionRequest request, User user) {
         throw new ApiException(HttpStatus.BAD_REQUEST, "谁是卧底不支持夜晚行动");
     }
 }

@@ -2,7 +2,11 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const RUN_ID = `e2e-${Date.now().toString(36)}`;
 const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
+const USER_TOKENS = (process.env.E2E_AUTH_TOKENS || process.env.E2E_AUTH_TOKEN || "")
+  .split(",")
+  .map((token) => token.trim())
+  .filter(Boolean);
 
 type Room = {
   id: string;
@@ -29,6 +33,8 @@ test.describe("真实验收：数据、AI 对局和管理端质检", () => {
 
   test("开箱功能与四场 AI 社交游戏闭环", async ({ page, request }) => {
     await verifyPublicPages(page);
+    test.skip(!USER_TOKENS.length, "Set E2E_AUTH_TOKEN or E2E_AUTH_TOKENS for authenticated game acceptance.");
+    test.skip(!ADMIN_PASSWORD, "Set E2E_ADMIN_PASSWORD for admin acceptance.");
     await seedCommunityPost(request);
     await verifyUnifiedActionEndpoint(request);
 
@@ -43,7 +49,7 @@ test.describe("真实验收：数据、AI 对局和管理端质检", () => {
       expect(outcome.phase).toBe("SETTLEMENT");
       expect(outcome.winner).toBeTruthy();
       archiveIds.push(await verifyServerReplay(request, outcome.gameId, outcome.roomId));
-      await verifyRoomUi(page, outcome.gameId, outcome.roomId, outcome.viewerPlayerId);
+      await verifyRoomUi(page, outcome.gameId, outcome.roomId, outcome.viewerToken);
     }
 
     await verifyReplayUi(page, archiveIds[0]);
@@ -74,26 +80,28 @@ async function seedCommunityPost(request: APIRequestContext) {
 }
 
 async function runGameScenario(request: APIRequestContext, gameId: "undercover" | "werewolf", humanCount: number, playerCount: number) {
-  const room = await createRoom(request, gameId, humanCount, playerCount);
-  const humans = await joinHumans(request, room, humanCount);
+  const humans = buildHumans(humanCount);
+  const room = await createRoom(request, gameId, humanCount, playerCount, humans[0].token);
+  await joinHumans(request, room, humans);
   await fillAiSeats(request, room, playerCount);
 
-  let state = await postState(request, gameId, room.id, "start", undefined, humans[0].playerId);
+  let state = await postState(request, gameId, room.id, "start", undefined, humans[0].token);
   state = await driveToSettlement(request, gameId, room.id, humans, state);
-  return { gameId, roomId: room.id, viewerPlayerId: humans[0].playerId, phase: state.phase, winner: state.winner };
+  return { gameId, roomId: room.id, viewerPlayerId: humans[0].playerId, viewerToken: humans[0].token, phase: state.phase, winner: state.winner };
 }
 
 async function verifyUnifiedActionEndpoint(request: APIRequestContext) {
-  const room = await createRoom(request, "undercover", 1, 4);
-  const humans = await joinHumans(request, room, 1);
+  const humans = buildHumans(1);
+  const room = await createRoom(request, "undercover", 1, 4, humans[0].token);
+  await joinHumans(request, room, humans);
   await fillAiSeats(request, room, 4);
 
-  let state = await postState(request, "undercover", room.id, "start", undefined, humans[0].playerId);
+  let state = await postState(request, "undercover", room.id, "start", undefined, humans[0].token);
   if (state.mySeatNumber === state.currentSeat && state.phase === "DESCRIPTION") {
     state = await postUnifiedAction(request, "undercover", room.id, {
       type: "SPEAK",
       content: `${RUN_ID} unified action speech`,
-    }, humans[0].playerId);
+    }, humans[0].token);
   }
   expect(["DESCRIPTION", "VOTING", "SETTLEMENT"]).toContain(state.phase);
 }
@@ -152,11 +160,12 @@ async function verifyReplayUi(page: Page, archiveId: string) {
   await expect(counter).toBeVisible();
 }
 
-async function createRoom(request: APIRequestContext, gameId: "undercover" | "werewolf", humanCount: number, playerCount: number): Promise<Room> {
+async function createRoom(request: APIRequestContext, gameId: "undercover" | "werewolf", humanCount: number, playerCount: number, token: string): Promise<Room> {
   const config = gameId === "undercover"
     ? { playerCount, spyMode: "auto", hasBlank: false, wordPack: "daily", speakTime: 30 }
     : { playerCount, template: "standard", witchRule: "first_night", winCondition: "side", speechTime: 60, hasLastWords: "first_night" };
   const response = await request.post(`/api/games/${gameId}/rooms`, {
+    headers: authHeaders(token),
     data: {
       roomName: `${RUN_ID}-${gameId}-${humanCount}human`,
       isPrivate: false,
@@ -168,18 +177,24 @@ async function createRoom(request: APIRequestContext, gameId: "undercover" | "we
   return response.json();
 }
 
-async function joinHumans(request: APIRequestContext, room: Room, humanCount: number) {
-  const humans: { name: string; playerId: string }[] = [];
-  for (let i = 0; i < humanCount; i += 1) {
-    const name = `${RUN_ID}-玩家${i + 1}`;
+function buildHumans(humanCount: number) {
+  return Array.from({ length: humanCount }, (_, index) => ({
+    name: `${RUN_ID}-玩家${index + 1}`,
+    token: USER_TOKENS[index] || USER_TOKENS[0],
+    playerId: "",
+  }));
+}
+
+async function joinHumans(request: APIRequestContext, room: Room, humans: { name: string; token: string; playerId: string }[]) {
+  for (const human of humans) {
     const response = await request.post(`/api/games/${room.gameId}/rooms/${room.id}/join`, {
-      data: { displayName: name },
+      headers: authHeaders(human.token),
+      data: { displayName: human.name },
     });
     expect(response.ok()).toBeTruthy();
     const joined = await response.json();
-    humans.push({ name, playerId: joined.selfPlayerId });
+    human.playerId = joined.selfPlayerId;
   }
-  return humans;
 }
 
 async function fillAiSeats(request: APIRequestContext, room: Room, playerCount: number) {
@@ -191,6 +206,7 @@ async function fillAiSeats(request: APIRequestContext, room: Room, playerCount: 
       return;
     }
     const response = await request.post(`/api/games/${room.gameId}/rooms/${room.id}/ai`, {
+      headers: authHeaders(USER_TOKENS[0]),
       data: { personaId: personas[i % personas.length] },
     });
     expect(response.ok()).toBeTruthy();
@@ -201,14 +217,14 @@ async function driveToSettlement(
   request: APIRequestContext,
   gameId: "undercover" | "werewolf",
   roomId: string,
-  humans: { name: string; playerId: string }[],
+  humans: { name: string; token: string; playerId: string }[],
   initialState: GameState,
 ) {
   let state = initialState;
   for (let step = 0; step < 80 && state.phase !== "SETTLEMENT"; step += 1) {
     let acted = false;
     for (const human of humans) {
-      const view = await getState(request, gameId, roomId, human.playerId);
+      const view = await getState(request, gameId, roomId, human.token);
       if (view.phase === "SETTLEMENT") {
         return view;
       }
@@ -216,40 +232,40 @@ async function driveToSettlement(
         continue;
       }
       if (view.phase === "DESCRIPTION" && view.mySeatNumber === view.currentSeat) {
-        state = await postState(request, gameId, roomId, "speak", { content: `${human.name} 描述一个不暴露身份的线索。` }, human.playerId);
+        state = await postState(request, gameId, roomId, "speak", { content: `${human.name} 描述一个不暴露身份的线索。` }, human.token);
         acted = true;
       } else if (view.phase === "DAY_DISCUSS" && view.mySeatNumber === view.currentSeat) {
-        state = await postState(request, gameId, roomId, "speak", { content: `${human.name} 根据发言链给出当前怀疑对象。` }, human.playerId);
+        state = await postState(request, gameId, roomId, "speak", { content: `${human.name} 根据发言链给出当前怀疑对象。` }, human.token);
         acted = true;
       } else if ((view.phase === "VOTING" || view.phase === "DAY_VOTE") && !view.votes?.[human.playerId]) {
         const target = firstAliveTarget(view, human.playerId);
-        state = await postState(request, gameId, roomId, "vote", { targetPlayerId: target, abstain: !target }, human.playerId);
+        state = await postState(request, gameId, roomId, "vote", { targetPlayerId: target, abstain: !target }, human.token);
         acted = true;
       } else if (view.phase === "NIGHT" && view.pendingAction) {
         const payload = buildNightPayload(view, human.playerId);
-        state = await postState(request, gameId, roomId, "night-action", payload, human.playerId);
+        state = await postState(request, gameId, roomId, "night-action", payload, human.token);
         acted = true;
       }
     }
     if (!acted) {
-      state = await getState(request, gameId, roomId, humans[0].playerId);
+      state = await getState(request, gameId, roomId, humans[0].token);
     }
   }
   expect(state.phase).toBe("SETTLEMENT");
   return state;
 }
 
-async function getState(request: APIRequestContext, gameId: string, roomId: string, playerId: string): Promise<GameState> {
+async function getState(request: APIRequestContext, gameId: string, roomId: string, token: string): Promise<GameState> {
   const response = await request.get(`/api/games/${gameId}/rooms/${roomId}/state`, {
-    headers: { "X-Player-Id": playerId },
+    headers: authHeaders(token),
   });
   expect(response.ok()).toBeTruthy();
   return response.json();
 }
 
-async function postState(request: APIRequestContext, gameId: string, roomId: string, action: string, data?: Record<string, any>, playerId?: string): Promise<GameState> {
+async function postState(request: APIRequestContext, gameId: string, roomId: string, action: string, data?: Record<string, any>, token?: string): Promise<GameState> {
   const response = await request.post(`/api/games/${gameId}/rooms/${roomId}/${action}`, {
-    headers: playerId ? { "X-Player-Id": playerId } : undefined,
+    headers: token ? authHeaders(token) : undefined,
     data: data || {},
   });
   if (!response.ok()) {
@@ -258,9 +274,9 @@ async function postState(request: APIRequestContext, gameId: string, roomId: str
   return response.json();
 }
 
-async function postUnifiedAction(request: APIRequestContext, gameId: string, roomId: string, data: Record<string, any>, playerId?: string): Promise<GameState> {
+async function postUnifiedAction(request: APIRequestContext, gameId: string, roomId: string, data: Record<string, any>, token?: string): Promise<GameState> {
   const response = await request.post(`/api/games/${gameId}/rooms/${roomId}/action`, {
-    headers: playerId ? { "X-Player-Id": playerId } : undefined,
+    headers: token ? authHeaders(token) : undefined,
     data,
   });
   if (!response.ok()) {
@@ -285,13 +301,10 @@ function buildNightPayload(state: GameState, selfId: string) {
   return { action: state.pendingAction?.type || "SEER_CHECK", targetPlayerId };
 }
 
-async function verifyRoomUi(page: Page, gameId: string, roomId: string, playerId: string) {
-  await page.addInitScript(({ rid, pid }) => {
-    const userKey = "guest:游客玩家";
-    window.localStorage.setItem("aisocialgame_guest_name", "游客玩家");
-    window.localStorage.setItem(`room_player_${rid}_${userKey}`, pid);
-    window.localStorage.setItem(`room_player_${rid}`, pid);
-  }, { rid: roomId, pid: playerId });
+async function verifyRoomUi(page: Page, gameId: string, roomId: string, token: string) {
+  await page.addInitScript((authToken) => {
+    window.sessionStorage.setItem("aisocialgame_token", authToken);
+  }, token);
   await page.goto(`/room/${gameId}/${roomId}`);
   await expect(page.getByTestId("game-phase-text")).toContainText("SETTLEMENT", { timeout: 30_000 });
   await expect(page.getByTestId("game-logs-panel")).toBeVisible();
@@ -312,8 +325,12 @@ async function verifyAdminAiQuality(page: Page, request: APIRequestContext) {
   const traces = await tracesResponse.json();
   expect(traces.total).toBeGreaterThan(0);
 
-  await page.addInitScript((token) => window.localStorage.setItem("aisocialgame_admin_token", token), login.token);
+  await page.addInitScript((token) => window.sessionStorage.setItem("aisocialgame_admin_token", token), login.token);
   await page.goto("/admin/ai");
   await expect(page.getByText("AI 运营与质检")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("tab", { name: "决策 Trace" })).toBeVisible();
+}
+
+function authHeaders(token: string) {
+  return { "X-Auth-Token": token };
 }

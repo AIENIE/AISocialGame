@@ -16,7 +16,7 @@ const LOCAL_ADMIN_TOKEN_KEY = "aisocialgame_admin_token";
 
 export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [admin, setAdmin] = useState<AdminAuthResponse | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(LOCAL_ADMIN_TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(LOCAL_ADMIN_TOKEN_KEY));
   const [loading, setLoading] = useState<boolean>(!!token);
 
   useEffect(() => {
@@ -38,14 +38,14 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const login = async (username: string, password: string) => {
     setLoading(true);
     const res = await adminApi.login(username, password);
-    localStorage.setItem(LOCAL_ADMIN_TOKEN_KEY, res.token);
+    sessionStorage.setItem(LOCAL_ADMIN_TOKEN_KEY, res.token);
     setToken(res.token);
     setAdmin(res);
     setLoading(false);
   };
 
   const logout = () => {
-    localStorage.removeItem(LOCAL_ADMIN_TOKEN_KEY);
+    sessionStorage.removeItem(LOCAL_ADMIN_TOKEN_KEY);
     setToken(null);
     setAdmin(null);
     setAdminToken(undefined);

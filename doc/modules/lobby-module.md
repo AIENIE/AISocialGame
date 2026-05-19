@@ -6,9 +6,9 @@
 ## 后端职责
 - 提供游戏配置 schema（`/api/games`）驱动前端动态表单。
 - 房间生命周期：
-  - 创建：保存配置、人数上限、公开/私密、沟通模式。
-  - 入座：人类或游客占位，房主自动入座。
-  - 添加 AI：基于 `/api/personas` 预设补位。
+  - 创建：要求登录，保存配置、人数上限、公开/私密、沟通模式；私密房密码使用 BCrypt 存储。
+  - 入座：要求登录；私密房必须提交正确密码。
+  - 添加 AI：仅房主可在等待中房间基于 `/api/personas` 预设补位。
 - 房间实时事件：
   - 入座/补位后广播 `SeatEvent` 到 `/topic/room/{roomId}/seat`。
   - 房间聊天由 STOMP 入口 `/app/room/{roomId}/chat` 接收，并广播到 `/topic/room/{roomId}/chat`。
@@ -21,12 +21,12 @@
   - 通用大厅 `Lobby.tsx`：加载房间详情、自动入座、添加 AI（聊天室占位已移除，日志统一在玩法页呈现）。
   - 玩法组件注册：`pages/games/registry.tsx` 按 `gameId` lazy 加载玩法页。
   - 玩法大厅 `games/UndercoverRoom.tsx`、`games/WerewolfRoom.tsx`：基于 `useGameSocket` 接收实时推送，并通过 `useGameEngine` 的统一 `/action` 提交发言、投票和夜晚行动。
-- **鉴权/游客**：`useAuth` 负责 token 缓存与游客名生成。
+- **鉴权**：`useAuth` 负责 SSO token 缓存与未登录跳转；对局能力不再支持游客身份冒用式重连。
 
 ## 数据流
 1. 首页获取游戏列表。
 2. 进入游戏房间列表，前端拉取 `/rooms`。
-3. 创建房间 → 成功后跳转 `/room/:gameId/:roomId`，自动调用 `/join` 并缓存 `selfPlayerId`。
+3. 创建房间 → 成功后跳转 `/room/:gameId/:roomId`，自动调用 `/join`，私密房需输入密码。
 4. 在大厅添加 AI → `/ai`，后端通过 WS 推送座位变化。
 5. 玩法页通过 WS `state/seat/private/chat` 多路订阅驱动界面刷新，必要时再调用 `/state` 校准数据。
 6. 玩家动作优先走 `/api/games/{gameId}/rooms/{roomId}/action`，旧动作接口继续兼容现有客户端。

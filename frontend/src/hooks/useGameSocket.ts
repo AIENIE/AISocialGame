@@ -93,7 +93,6 @@ export const useGameSocket = ({
             "accept-version": "1.2",
             host: window.location.host,
             Authorization: token ? `Bearer ${token}` : "",
-            "X-Player-Id": playerId,
             "X-Room-Id": roomId,
             "heart-beat": "10000,10000",
           })

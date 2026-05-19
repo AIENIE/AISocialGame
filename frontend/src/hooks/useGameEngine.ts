@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { gameplayApi } from "@/services/api";
 import { GameState, PlayerAction } from "@/types";
 
-export function useGameEngine(gameId: string | undefined, roomId: string | undefined, playerId?: string) {
+export function useGameEngine(gameId: string | undefined, roomId: string | undefined) {
   const queryClient = useQueryClient();
   const queryKey = ["game-state", roomId];
 
   const stateQuery = useQuery<GameState>({
     queryKey,
-    queryFn: () => gameplayApi.state(gameId || "", roomId || "", playerId),
+    queryFn: () => gameplayApi.state(gameId || "", roomId || ""),
     enabled: !!gameId && !!roomId,
     refetchInterval: 0,
   });
@@ -16,12 +16,12 @@ export function useGameEngine(gameId: string | undefined, roomId: string | undef
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
   const startMutation = useMutation({
-    mutationFn: () => gameplayApi.start(gameId || "", roomId || "", playerId),
+    mutationFn: () => gameplayApi.start(gameId || "", roomId || ""),
     onSuccess: invalidate,
   });
 
   const actionMutation = useMutation({
-    mutationFn: (action: PlayerAction) => gameplayApi.action(gameId || "", roomId || "", action, playerId),
+    mutationFn: (action: PlayerAction) => gameplayApi.action(gameId || "", roomId || "", action),
     onSuccess: invalidate,
   });
 

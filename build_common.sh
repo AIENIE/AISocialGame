@@ -71,16 +71,19 @@ load_env_file() {
 }
 
 load_env_file "$repo_root/env.txt"
+load_env_file "$repo_root/env.local"
 ensure_build_wrapper_sync
 
-export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
+export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
-export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-aisocialgame_pwd}"
 export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
 export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-6379}"
 export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.seekerhut.com:10001}"
 export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:20021}"
 export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:10011}"
+export USER_GRPC_NEGOTIATION_TYPE="${USER_GRPC_NEGOTIATION_TYPE:-TLS}"
+export BILLING_GRPC_NEGOTIATION_TYPE="${BILLING_GRPC_NEGOTIATION_TYPE:-TLS}"
+export AI_GRPC_NEGOTIATION_TYPE="${AI_GRPC_NEGOTIATION_TYPE:-TLS}"
 export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
 export QDRANT_PORT="${QDRANT_PORT:-6333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
@@ -92,6 +95,8 @@ export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.seeke
 export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.seekerhut.com}"
 export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.seekerhut.com}"
 export APP_EXTERNAL_GRPC_AUTH_REQUIRED="${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}"
+export APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS="${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}"
+export APP_SECURITY_ALLOW_PLAINTEXT_GRPC="${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-false}"
 
 require_env_vars() {
   local missing=()
@@ -112,6 +117,28 @@ if [[ "$APP_EXTERNAL_GRPC_AUTH_REQUIRED" == "true" ]]; then
     APP_EXTERNAL_PAYSERVICE_JWT \
     APP_EXTERNAL_AISERVICE_HMAC_CALLER \
     APP_EXTERNAL_AISERVICE_HMAC_SECRET
+fi
+
+require_env_vars SPRING_DATASOURCE_PASSWORD APP_ADMIN_PASSWORD
+
+if [[ "$APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS" != "true" ]]; then
+  if [[ "$SPRING_DATASOURCE_PASSWORD" == "aisocialgame""_pwd" || "${APP_ADMIN_PASSWORD:-}" == "admin""123" ]]; then
+    echo "Refusing to deploy with default database or admin passwords" >&2
+    exit 1
+  fi
+  insecure_ssl_param="use""SSL" insecure_ssl_value="false"
+  insecure_key_retrieval_param="allowPublicKey""Retrieval" insecure_key_retrieval_value="true"
+  if [[ "$SPRING_DATASOURCE_URL" == *"${insecure_ssl_param}=${insecure_ssl_value}"* || "$SPRING_DATASOURCE_URL" == *"${insecure_key_retrieval_param}=${insecure_key_retrieval_value}"* ]]; then
+    echo "Refusing to deploy with insecure datasource URL" >&2
+    exit 1
+  fi
+fi
+
+if [[ "$APP_SECURITY_ALLOW_PLAINTEXT_GRPC" != "true" ]]; then
+  if [[ "$USER_GRPC_NEGOTIATION_TYPE" == "PLAINTEXT" || "$BILLING_GRPC_NEGOTIATION_TYPE" == "PLAINTEXT" || "$AI_GRPC_NEGOTIATION_TYPE" == "PLAINTEXT" ]]; then
+    echo "Refusing to deploy with PLAINTEXT gRPC unless APP_SECURITY_ALLOW_PLAINTEXT_GRPC=true" >&2
+    exit 1
+  fi
 fi
 
 docker_compose_cmd() {
@@ -145,7 +172,7 @@ run_migration() {
   step "Run full credit migration"
   local backend_url="http://127.0.0.1:${BACKEND_PORT:-11031}"
   local admin_username="${APP_ADMIN_USERNAME:-admin}"
-  local admin_password="${APP_ADMIN_PASSWORD:-admin123}"
+  local admin_password="${APP_ADMIN_PASSWORD}"
   local login_response token migrate_response failed_count
 
   login_response="$(curl -fsS -X POST "${backend_url}/api/admin/auth/login" \
