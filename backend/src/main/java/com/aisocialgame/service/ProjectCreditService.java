@@ -31,7 +31,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
@@ -64,6 +66,7 @@ public class ProjectCreditService {
     private final BillingGrpcClient billingGrpcClient;
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
     public ProjectCreditService(CreditAccountRepository creditAccountRepository,
                                 CreditLedgerEntryRepository creditLedgerEntryRepository,
@@ -73,7 +76,8 @@ public class ProjectCreditService {
                                 CreditExchangeTransactionRepository creditExchangeTransactionRepository,
                                 BillingGrpcClient billingGrpcClient,
                                 AppProperties appProperties,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                PlatformTransactionManager transactionManager) {
         this.creditAccountRepository = creditAccountRepository;
         this.creditLedgerEntryRepository = creditLedgerEntryRepository;
         this.creditCheckinRecordRepository = creditCheckinRecordRepository;
@@ -83,6 +87,7 @@ public class ProjectCreditService {
         this.billingGrpcClient = billingGrpcClient;
         this.appProperties = appProperties;
         this.objectMapper = objectMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     public BalanceSnapshot getBalance(long userId, long publicPermanentTokens) {
@@ -442,56 +447,74 @@ public class ProjectCreditService {
         return toBalanceSnapshot(account, publicTokens);
     }
 
-    @Transactional
     public CreditExchangeResult exchangePublicToProject(long userId, long tokens, String requestId) {
         if (tokens <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "兑换数量必须大于 0");
         }
         String normalizedRequestId = normalizeRequestId(requestId, "exchange", userId);
         String projectKey = appProperties.getProjectKey();
-
-        Optional<CreditExchangeTransaction> existing = creditExchangeTransactionRepository.findByRequestId(normalizedRequestId);
-        if (existing.isPresent()) {
-            CreditExchangeTransaction txn = existing.get();
-            if (EXCHANGE_SUCCESS.equals(txn.getStatus())) {
-                long publicTokens = safeGetPublicTokens(userId);
-                return new CreditExchangeResult(normalizedRequestId, txn.getProjectTokens(), getBalance(userId, publicTokens));
-            }
-            if (EXCHANGE_PENDING.equals(txn.getStatus())) {
-                throw new ApiException(HttpStatus.CONFLICT, "请求处理中，请勿重复提交");
-            }
-            throw new ApiException(HttpStatus.BAD_REQUEST, "该 requestId 已失败，请使用新的 requestId 重试");
-        }
-
-        LocalDateTime start = LocalDate.now(ZoneOffset.UTC).atStartOfDay();
-        LocalDateTime end = start.plusDays(1);
-        long dailyUsed = creditExchangeTransactionRepository.sumSuccessTokensBetween(userId, projectKey, start, end);
-        long dailyLimit = Math.max(1, appProperties.getCredit().getExchangeDailyLimit());
-        if (dailyUsed + tokens > dailyLimit) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "超出当日可兑换上限");
-        }
-
-        CreditExchangeTransaction txn = new CreditExchangeTransaction();
-        txn.setRequestId(normalizedRequestId);
-        txn.setUserId(userId);
-        txn.setProjectKey(projectKey);
-        txn.setPublicTokens(tokens);
-        txn.setProjectTokens(tokens);
-        txn.setStatus(EXCHANGE_PENDING);
-        txn.setRetriable(true);
         long publicBefore = safeGetPublicTokens(userId);
-        CreditAccount account = getOrCreateAccountForUpdate(userId, projectKey);
-        expireTempIfNeeded(account, publicBefore);
-        long projectPermanentBefore = account.getPermanentBalance();
-        txn.setPublicBefore(publicBefore);
-        txn.setPublicAfter(publicBefore);
-        txn.setProjectPermanentBefore(projectPermanentBefore);
-        txn.setProjectPermanentAfter(projectPermanentBefore);
-        creditExchangeTransactionRepository.save(txn);
 
+        CreditExchangeTransaction pending = transactionTemplate.execute(status -> {
+            Optional<CreditExchangeTransaction> existing = creditExchangeTransactionRepository.findByRequestId(normalizedRequestId);
+            if (existing.isPresent()) {
+                CreditExchangeTransaction txn = existing.get();
+                if (EXCHANGE_SUCCESS.equals(txn.getStatus())) {
+                    return txn;
+                }
+                if (EXCHANGE_PENDING.equals(txn.getStatus())) {
+                    throw new ApiException(HttpStatus.CONFLICT, "请求处理中，请勿重复提交");
+                }
+                throw new ApiException(HttpStatus.BAD_REQUEST, "该 requestId 已失败，请使用新的 requestId 重试");
+            }
+
+            LocalDateTime start = LocalDate.now(ZoneOffset.UTC).atStartOfDay();
+            LocalDateTime end = start.plusDays(1);
+            long dailyUsed = creditExchangeTransactionRepository.sumSuccessTokensBetween(userId, projectKey, start, end);
+            long dailyLimit = Math.max(1, appProperties.getCredit().getExchangeDailyLimit());
+            if (dailyUsed + tokens > dailyLimit) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "超出当日可兑换上限");
+            }
+
+            CreditAccount account = getOrCreateAccountForUpdate(userId, projectKey);
+            expireTempIfNeeded(account, publicBefore);
+            long projectPermanentBefore = account.getPermanentBalance();
+            CreditExchangeTransaction txn = new CreditExchangeTransaction();
+            txn.setRequestId(normalizedRequestId);
+            txn.setUserId(userId);
+            txn.setProjectKey(projectKey);
+            txn.setPublicTokens(tokens);
+            txn.setProjectTokens(tokens);
+            txn.setStatus(EXCHANGE_PENDING);
+            txn.setRetriable(true);
+            txn.setPublicBefore(publicBefore);
+            txn.setPublicAfter(publicBefore);
+            txn.setProjectPermanentBefore(projectPermanentBefore);
+            txn.setProjectPermanentAfter(projectPermanentBefore);
+            return creditExchangeTransactionRepository.save(txn);
+        });
+
+        if (pending != null && EXCHANGE_SUCCESS.equals(pending.getStatus())) {
+            long publicTokens = safeGetPublicTokens(userId);
+            return new CreditExchangeResult(normalizedRequestId, pending.getProjectTokens(), getBalance(userId, publicTokens));
+        }
+
+        BalanceSnapshot converted;
         try {
-            BalanceSnapshot converted = billingGrpcClient.convertPublicToProject(normalizedRequestId, projectKey, userId, tokens);
-            long publicAfterConvert = converted.publicPermanentTokens();
+            converted = billingGrpcClient.convertPublicToProject(normalizedRequestId, projectKey, userId, tokens);
+        } catch (Exception ex) {
+            markExchangeFailed(normalizedRequestId, ex);
+            throw ex;
+        }
+
+        long publicAfterConvert = converted.publicPermanentTokens();
+        return transactionTemplate.execute(status -> {
+            CreditExchangeTransaction txn = creditExchangeTransactionRepository.findByRequestId(normalizedRequestId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "兑换事务不存在"));
+            if (EXCHANGE_SUCCESS.equals(txn.getStatus())) {
+                return new CreditExchangeResult(normalizedRequestId, txn.getProjectTokens(), getBalance(userId, publicAfterConvert));
+            }
+            CreditAccount account = getOrCreateAccountForUpdate(userId, projectKey);
             expireTempIfNeeded(account, publicAfterConvert);
             account.setPermanentBalance(account.getPermanentBalance() + tokens);
             creditAccountRepository.save(account);
@@ -516,13 +539,16 @@ public class ProjectCreditService {
             txn.setProjectPermanentAfter(account.getPermanentBalance());
             creditExchangeTransactionRepository.save(txn);
             return new CreditExchangeResult(normalizedRequestId, tokens, toBalanceSnapshot(account, publicAfterConvert));
-        } catch (Exception ex) {
+        });
+    }
+
+    private void markExchangeFailed(String requestId, Exception ex) {
+        transactionTemplate.executeWithoutResult(status -> creditExchangeTransactionRepository.findByRequestId(requestId).ifPresent(txn -> {
             txn.setStatus(EXCHANGE_FAILED);
             txn.setRetriable(true);
             txn.setFailReason(truncate(ex.getMessage(), 255));
             creditExchangeTransactionRepository.save(txn);
-            throw ex;
-        }
+        }));
     }
 
     public PagedResult<ExchangeHistorySnapshot> listExchangeHistory(long userId, int page, int size) {

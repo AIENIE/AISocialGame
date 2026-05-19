@@ -11,8 +11,11 @@ import com.aisocialgame.dto.AiOcrResponse;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.AiProxyService;
+import com.aisocialgame.service.AiStreamConcurrencyLimiter;
 import com.aisocialgame.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,17 +28,24 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 
 @RestController
 @RequestMapping("/api/ai")
 public class AiController {
     private final AiProxyService aiProxyService;
     private final AuthService authService;
+    private final TaskExecutor aiStreamTaskExecutor;
+    private final AiStreamConcurrencyLimiter aiStreamConcurrencyLimiter;
 
-    public AiController(AiProxyService aiProxyService, AuthService authService) {
+    public AiController(AiProxyService aiProxyService,
+                        AuthService authService,
+                        @Qualifier("aiStreamTaskExecutor") TaskExecutor aiStreamTaskExecutor,
+                        AiStreamConcurrencyLimiter aiStreamConcurrencyLimiter) {
         this.aiProxyService = aiProxyService;
         this.authService = authService;
+        this.aiStreamTaskExecutor = aiStreamTaskExecutor;
+        this.aiStreamConcurrencyLimiter = aiStreamConcurrencyLimiter;
     }
 
     @GetMapping("/models")
@@ -55,22 +65,33 @@ public class AiController {
                                  @RequestHeader(value = "X-Auth-Token", required = false) String token) {
         User user = requireUser(token);
         SseEmitter emitter = new SseEmitter(60_000L);
-        CompletableFuture.runAsync(() -> {
-            try {
-                AiChatResponse response = new AiChatResponse(aiProxyService.chat(request, user));
-                String content = response.getContent() == null ? "" : response.getContent();
-                int chunkSize = 2;
-                for (int i = 0; i < content.length(); i += chunkSize) {
-                    String chunk = content.substring(i, Math.min(i + chunkSize, content.length()));
-                    emitter.send(SseEmitter.event().data(new AiChatStreamEvent(chunk, false)));
-                    Thread.sleep(30L);
+        String userId = user.getId();
+        if (!aiStreamConcurrencyLimiter.tryAcquire(userId)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "AI 流式请求过多，请稍后再试");
+        }
+        emitter.onCompletion(() -> aiStreamConcurrencyLimiter.release(userId));
+        emitter.onTimeout(() -> aiStreamConcurrencyLimiter.release(userId));
+        emitter.onError(ignored -> aiStreamConcurrencyLimiter.release(userId));
+        try {
+            aiStreamTaskExecutor.execute(() -> {
+                try {
+                    AiChatResponse response = new AiChatResponse(aiProxyService.chat(request, user));
+                    String content = response.getContent() == null ? "" : response.getContent();
+                    int chunkSize = 16;
+                    for (int i = 0; i < content.length(); i += chunkSize) {
+                        String chunk = content.substring(i, Math.min(i + chunkSize, content.length()));
+                        emitter.send(SseEmitter.event().data(new AiChatStreamEvent(chunk, false)));
+                    }
+                    emitter.send(SseEmitter.event().data(AiChatStreamEvent.done(response)));
+                    emitter.complete();
+                } catch (Exception ex) {
+                    emitter.completeWithError(ex);
                 }
-                emitter.send(SseEmitter.event().data(AiChatStreamEvent.done(response)));
-                emitter.complete();
-            } catch (Exception ex) {
-                emitter.completeWithError(ex);
-            }
-        });
+            });
+        } catch (RejectedExecutionException ex) {
+            aiStreamConcurrencyLimiter.release(userId);
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "AI 流式服务繁忙，请稍后再试");
+        }
         return emitter;
     }
 

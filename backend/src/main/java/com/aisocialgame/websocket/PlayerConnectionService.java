@@ -1,6 +1,7 @@
 package com.aisocialgame.websocket;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -14,9 +15,11 @@ public class PlayerConnectionService {
     private final Map<String, ConnectionState> byPlayer = new ConcurrentHashMap<>();
     private final Map<String, String> playerBySession = new ConcurrentHashMap<>();
     private final Duration staleThreshold;
+    private final Duration retention;
 
     public PlayerConnectionService(@Value("${connection.disconnect-threshold-seconds:15}") long disconnectThresholdSeconds) {
         this.staleThreshold = Duration.ofSeconds(Math.max(5, disconnectThresholdSeconds));
+        this.retention = this.staleThreshold.multipliedBy(4);
     }
 
     public void onConnect(String playerId, String roomId, String sessionId) {
@@ -63,6 +66,19 @@ public class PlayerConnectionService {
             return true;
         }
         return Duration.between(state.lastActiveAt(), LocalDateTime.now()).compareTo(staleThreshold) < 0;
+    }
+
+    @Scheduled(fixedDelayString = "${app.websocket.connection-cleanup-interval-ms:300000}")
+    public void cleanupStaleConnections() {
+        LocalDateTime cutoff = LocalDateTime.now().minus(retention);
+        byPlayer.entrySet().removeIf(entry -> {
+            ConnectionState state = entry.getValue();
+            if (StringUtils.hasText(state.sessionId()) || state.lastActiveAt().isAfter(cutoff)) {
+                return false;
+            }
+            return true;
+        });
+        playerBySession.entrySet().removeIf(entry -> !byPlayer.containsKey(entry.getValue()));
     }
 
     private record ConnectionState(String playerId, String roomId, String sessionId, LocalDateTime lastActiveAt) {

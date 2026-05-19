@@ -3,6 +3,8 @@ package com.aisocialgame.exception;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.aisocialgame.config.RequestIdFilter;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -23,6 +25,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("message", ex.getMessage());
         body.put("status", ex.getStatus().value());
+        addRequestId(body);
         return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
@@ -36,6 +39,7 @@ public class GlobalExceptionHandler {
         }
         body.put("errors", errors);
         body.put("message", "参数校验失败");
+        addRequestId(body);
         return ResponseEntity.badRequest().body(body);
     }
 
@@ -44,6 +48,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("message", ex.getMessage());
+        addRequestId(body);
         return ResponseEntity.badRequest().body(body);
     }
 
@@ -52,15 +57,24 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("message", "请求体格式错误");
+        addRequestId(body);
         return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        log.error("Unhandled API exception", ex);
+        log.error("Unhandled API exception requestId={}", MDC.get(RequestIdFilter.MDC_KEY), ex);
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         body.put("message", "服务器内部错误");
+        addRequestId(body);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+
+    private void addRequestId(Map<String, Object> body) {
+        String requestId = MDC.get(RequestIdFilter.MDC_KEY);
+        if (requestId != null && !requestId.isBlank()) {
+            body.put("requestId", requestId);
+        }
     }
 }

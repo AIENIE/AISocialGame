@@ -12,6 +12,8 @@ import com.aisocialgame.repository.PersonaRepository;
 import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.dto.ws.SeatEvent;
 import com.aisocialgame.websocket.GamePushService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
@@ -73,12 +75,23 @@ public class RoomService {
     }
 
     @Transactional(readOnly = true)
+    public Page<Room> listByGame(String gameId, RoomStatus status, int page, int size) {
+        int normalizedPage = Math.max(1, page);
+        int normalizedSize = Math.min(Math.max(1, size), 100);
+        PageRequest pageable = PageRequest.of(normalizedPage - 1, normalizedSize);
+        if (status == null) {
+            return roomRepository.findByGameIdOrderByCreatedAtDesc(gameId, pageable);
+        }
+        return roomRepository.findByGameIdAndStatusOrderByCreatedAtDesc(gameId, status, pageable);
+    }
+
+    @Transactional(readOnly = true)
     public Room getRoom(String roomId) {
         return roomRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
     }
 
-    public synchronized JoinRoomResult joinRoom(String roomId, String displayName, User user, String password) {
-        Room room = getRoom(roomId);
+    public JoinRoomResult joinRoom(String roomId, String displayName, User user, String password) {
+        Room room = getRoomForUpdate(roomId);
         if (user == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
         }
@@ -102,13 +115,14 @@ public class RoomService {
         String playerId = userId != null ? userId : UUID.randomUUID().toString();
         RoomSeat seat = new RoomSeat(seatNumber, playerId, displayName, false, null, avatar, true, room.getSeats().isEmpty());
         room.getSeats().add(seat);
+        room.syncSeatCount();
         roomRepository.save(room);
         gamePushService.pushSeatChange(roomId, new SeatEvent("JOIN", seat));
         return new JoinRoomResult(room, seat);
     }
 
-    public synchronized Room addAi(String roomId, String personaId, User actor) {
-        Room room = getRoom(roomId);
+    public Room addAi(String roomId, String personaId, User actor) {
+        Room room = getRoomForUpdate(roomId);
         requireHost(room, actor);
         if (room.getStatus() != RoomStatus.WAITING) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "只有等待中的房间可以添加 AI");
@@ -124,9 +138,14 @@ public class RoomService {
         String aiDisplayName = aiNameService.generateName(persona);
         RoomSeat seat = new RoomSeat(seatNumber, "ai-" + personaId + "-" + seatNumber, aiDisplayName, true, personaId, persona.getAvatar(), true, false);
         room.getSeats().add(seat);
+        room.syncSeatCount();
         roomRepository.save(room);
         gamePushService.pushSeatChange(roomId, new SeatEvent("AI_ADDED", seat));
         return room;
+    }
+
+    private Room getRoomForUpdate(String roomId) {
+        return roomRepository.findByIdForUpdate(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
     }
 
     private String encodePrivateRoomPassword(String password) {

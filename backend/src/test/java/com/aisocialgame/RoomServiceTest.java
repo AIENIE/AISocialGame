@@ -113,6 +113,19 @@ class RoomServiceTest {
         Assertions.assertEquals(3, updated.getSeats().size());
     }
 
+    @Test
+    void listByGameShouldDefaultToWaitingRoomsWithPageLimit() {
+        var user = createLocalUser("paged-host@example.com", "分页房主");
+        roomService.createRoom("undercover", "分页房间A", false, null, "text", Map.of("playerCount", 4), user);
+        roomService.createRoom("undercover", "分页房间B", false, null, "text", Map.of("playerCount", 4), user);
+
+        var page = roomService.listByGame("undercover", com.aisocialgame.model.RoomStatus.WAITING, 1, 1);
+
+        Assertions.assertEquals(1, page.getContent().size());
+        Assertions.assertTrue(page.getTotalElements() >= 2);
+        Assertions.assertEquals(1, page.getSize());
+    }
+
     private User createLocalUser(String email, String nickname) {
         User user = new User();
         user.setId(UUID.randomUUID().toString());

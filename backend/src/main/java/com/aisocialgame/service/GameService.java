@@ -33,9 +33,7 @@ public class GameService {
     }
 
     private Game attachOnlineCount(Game game) {
-        int online = roomRepository.findByGameIdOrderByCreatedAtAsc(game.getId()).stream()
-                .mapToInt(room -> room.getSeats() != null ? room.getSeats().size() : 0)
-                .sum();
+        int online = Math.toIntExact(Math.min(Integer.MAX_VALUE, roomRepository.sumSeatCountByGameId(game.getId())));
         game.setOnlineCount(online);
         GameEngineRegistry registry = engineRegistryProvider.getIfAvailable();
         if (registry != null && registry.supports(game.getId())) {

@@ -69,6 +69,7 @@ load_env_file "$repo_root/env.local"
 
 export SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"
 export APP_DEMO_SEED_ENABLED="${APP_DEMO_SEED_ENABLED:-true}"
+export SPRING_JPA_HIBERNATE_DDL_AUTO="${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}"
 
 if [[ "${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}" == "true" ]]; then
   assert_required_env \

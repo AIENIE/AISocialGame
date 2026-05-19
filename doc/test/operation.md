@@ -30,6 +30,7 @@
    - `APP_EXTERNAL_PAYSERVICE_JWT`
    - `APP_EXTERNAL_AISERVICE_HMAC_CALLER`
    - `APP_EXTERNAL_AISERVICE_HMAC_SECRET`
+5. 本地直启默认设置 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`，仅用于开发调试。
 
 ## 1.2 VS Code F5 调试（工作区根：`backend/`）
 
@@ -64,7 +65,7 @@
    - `projectPermanentTokens`
 3. 执行 `100` 通用积分兑换专属积分：
    - 接口：`POST /api/wallet/exchange/public-to-project`
-   - 期望：兑换成功，余额更新，记录写入。
+   - 期望：兑换成功，余额更新，记录写入；远程 pay-service 调用不占用本地数据库事务。
 4. 查看 `通用积分兑换记录`：
    - 期望能看到 `兑换数量：100`
    - 期望展示 `通用积分：<前> -> <后>` 与 `项目永久积分：<前> -> <后>`。
@@ -115,3 +116,7 @@
 7. 现象：房间补满后刷新或重连，页面提示“等待当前玩家发言”，但当前真人看不到输入框。
 8. 根因：后端 `RoomService.joinRoom` 在“已在房间重连”路径上先执行满房校验，导致 `myPlayerId/mySeatNumber` 绑定失败。
 9. 处理：升级到包含该修复的版本（`joinRoom` 先判已在房再判满房），或临时避免在满房后刷新。
+
+10. 现象：部署环境启动时报 schema validate 失败。
+11. 根因：测试/正式环境默认不再使用 `ddl-auto:update` 自动改表。
+12. 处理：先执行 `backend/sql/20260519_performance_stability.sql` 等迁移脚本，再重新启动。

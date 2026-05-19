@@ -17,6 +17,7 @@ AISocialGame/
 │   │   ├── dto/                              # 请求/响应模型
 │   │   └── config/                           # 应用配置、CORS、WS 配置
 │   ├── sql/ai_quality.sql                    # AI 决策 trace 与 Persona 记忆表
+│   ├── sql/20260519_performance_stability.sql # v1.0 性能稳定性迁移
 │   ├── sql/game_replays.sql                  # 结构化事件与服务端回放归档表
 │   ├── src/main/resources/application.yml
 │   └── src/test/
@@ -72,3 +73,4 @@ AISocialGame/
 - 本地开箱即用数据由 `DemoSeedService` 管理，`build_local.sh` 默认开启，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
 - M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。
 - M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`GamePlayService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。
+- v1.0 性能稳定性整改新增 `AsyncExecutionConfig`、`RequestIdFilter`、房间 `seatCount/version`、AI SSE 线程池和房间分页接口；详见 `doc/modules/performance-stability-module.md`。

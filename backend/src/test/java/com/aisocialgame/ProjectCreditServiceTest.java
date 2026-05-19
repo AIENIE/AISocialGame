@@ -29,15 +29,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +63,8 @@ class ProjectCreditServiceTest {
     private CreditExchangeTransactionRepository creditExchangeTransactionRepository;
     @Mock
     private BillingGrpcClient billingGrpcClient;
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     private ProjectCreditService projectCreditService;
 
@@ -70,6 +77,9 @@ class ProjectCreditServiceTest {
         appProperties.getCredit().setRedeemFailureLimitPerDay(2);
         appProperties.getCredit().setTempExpiryDays(30);
 
+        lenient().when(transactionManager.getTransaction(any(TransactionDefinition.class)))
+                .thenReturn(new SimpleTransactionStatus());
+
         projectCreditService = new ProjectCreditService(
                 creditAccountRepository,
                 creditLedgerEntryRepository,
@@ -79,7 +89,8 @@ class ProjectCreditServiceTest {
                 creditExchangeTransactionRepository,
                 billingGrpcClient,
                 appProperties,
-                new ObjectMapper()
+                new ObjectMapper(),
+                transactionManager
         );
     }
 
@@ -210,6 +221,40 @@ class ProjectCreditServiceTest {
         Assertions.assertEquals(30L, result.exchangedTokens());
         Assertions.assertEquals(new BalanceSnapshot(50, 0, 12, null), result.balance());
         verify(billingGrpcClient, never()).convertPublicToProject(anyString(), anyString(), anyLong(), anyLong());
+    }
+
+    @Test
+    void exchangeShouldPersistFailedWhenRemoteConvertFails() {
+        CreditAccount account = new CreditAccount();
+        account.setUserId(1001L);
+        account.setProjectKey("aisocialgame");
+        account.setPermanentBalance(12L);
+        AtomicReference<CreditExchangeTransaction> saved = new AtomicReference<>();
+
+        when(billingGrpcClient.getPublicPermanentTokens(1001L)).thenReturn(80L);
+        when(creditExchangeTransactionRepository.findByRequestId("req-fail"))
+                .thenReturn(Optional.empty())
+                .thenAnswer(invocation -> Optional.ofNullable(saved.get()));
+        when(creditExchangeTransactionRepository.sumSuccessTokensBetween(anyLong(), anyString(), any(), any()))
+                .thenReturn(0L);
+        when(creditAccountRepository.findForUpdate(1001L, "aisocialgame")).thenReturn(Optional.of(account));
+        when(creditExchangeTransactionRepository.save(any(CreditExchangeTransaction.class))).thenAnswer(invocation -> {
+            CreditExchangeTransaction txn = invocation.getArgument(0);
+            saved.set(txn);
+            return txn;
+        });
+        when(billingGrpcClient.convertPublicToProject("req-fail", "aisocialgame", 1001L, 30L))
+                .thenThrow(new ApiException(HttpStatus.BAD_GATEWAY, "pay-service timeout"));
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () ->
+                projectCreditService.exchangePublicToProject(1001L, 30L, "req-fail")
+        );
+
+        Assertions.assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatus());
+        Assertions.assertNotNull(saved.get());
+        Assertions.assertEquals("FAILED", saved.get().getStatus());
+        Assertions.assertTrue(saved.get().isRetriable());
+        Assertions.assertEquals("pay-service timeout", saved.get().getFailReason());
     }
 
     @Test

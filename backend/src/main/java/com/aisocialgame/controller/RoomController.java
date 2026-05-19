@@ -3,19 +3,22 @@ package com.aisocialgame.controller;
 import com.aisocialgame.dto.AddAiRequest;
 import com.aisocialgame.dto.CreateRoomRequest;
 import com.aisocialgame.dto.JoinRoomRequest;
+import com.aisocialgame.dto.PagedResponse;
 import com.aisocialgame.dto.RoomResponse;
 import com.aisocialgame.dto.JoinRoomResult;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.Room;
+import com.aisocialgame.model.RoomStatus;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.AuthService;
 import com.aisocialgame.service.RoomService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/games/{gameId}/rooms")
@@ -30,9 +33,18 @@ public class RoomController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RoomResponse>> listRooms(@PathVariable("gameId") String gameId) {
-        List<RoomResponse> rooms = roomService.listByGame(gameId).stream().map(RoomResponse::new).toList();
-        return ResponseEntity.ok(rooms);
+    public ResponseEntity<PagedResponse<RoomResponse>> listRooms(@PathVariable("gameId") String gameId,
+                                                                 @RequestParam(defaultValue = "1") int page,
+                                                                 @RequestParam(defaultValue = "30") int size,
+                                                                 @RequestParam(required = false) String status) {
+        RoomStatus roomStatus = parseStatus(status);
+        Page<Room> rooms = roomService.listByGame(gameId, roomStatus, page, size);
+        return ResponseEntity.ok(new PagedResponse<>(
+                rooms.getContent().stream().map(RoomResponse::new).toList(),
+                Math.max(1, page),
+                Math.min(Math.max(1, size), 100),
+                rooms.getTotalElements()
+        ));
     }
 
     @PostMapping
@@ -74,5 +86,16 @@ public class RoomController {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
         }
         return user;
+    }
+
+    private RoomStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return RoomStatus.WAITING;
+        }
+        try {
+            return RoomStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "房间状态不合法");
+        }
     }
 }

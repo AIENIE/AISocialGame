@@ -24,6 +24,12 @@
   - `/user/queue/private`
 4. 游戏服务或房间服务触发动作后，由 `GamePushService` 推送对应事件。
 
+## 稳定性策略
+
+- `PlayerConnectionService` 定期清理无 session 且超过保留窗口的玩家连接状态。
+- `ChatRateLimiter` 定期清理长时间未发言玩家，避免玩家 ID 积累导致内存增长。
+- 清理周期通过 `app.websocket.connection-cleanup-interval-ms` 和 `app.websocket.rate-limit-cleanup-interval-ms` 配置。
+
 ## 相关文件
 - `backend/src/main/java/com/aisocialgame/dto/ws/GameStateEvent.java`
 - `backend/src/main/java/com/aisocialgame/dto/ws/PrivateEvent.java`

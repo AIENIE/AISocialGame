@@ -19,15 +19,32 @@
 
 ### GET `/` - 房间列表
 
-**用途**：按玩法返回房间数组。
+**用途**：按玩法分页返回房间列表。默认只返回等待中房间，避免老房间无限累积导致大厅响应变慢。
+
+**Query**
+
+| 字段 | 类型 | 必填 | 默认 | 说明 |
+|---|---|---|---|---|
+| page | Integer | 否 | 1 | 页码，从 1 开始 |
+| size | Integer | 否 | 30 | 每页数量，最大 100 |
+| status | String | 否 | WAITING | `WAITING` / `PLAYING` |
+
+**返回值**
+
+`PagedResponse<RoomResponse>`
 
 **返回值（核心字段）**
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
+| items | Array | 房间列表 |
+| page | Integer | 当前页 |
+| size | Integer | 每页数量 |
+| total | Long | 总数 |
 | id | String | 房间 ID |
 | status | String | WAITING/PLAYING |
 | maxPlayers | Integer | 最大人数 |
+| seatCount | Integer | 当前座位数 |
 | seats | Array | 座位列表 |
 
 ### POST `/` - 创建房间

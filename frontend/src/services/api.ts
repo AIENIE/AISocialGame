@@ -183,8 +183,8 @@ export const gameApi = {
 };
 
 export const roomApi = {
-  async list(gameId: string): Promise<Room[]> {
-    const res = await api.get(`/games/${gameId}/rooms`);
+  async list(gameId: string, params: { page?: number; size?: number; status?: string } = {}): Promise<PagedResponse<Room>> {
+    const res = await api.get(`/games/${gameId}/rooms`, { params });
     return res.data;
   },
   async create(gameId: string, payload: Record<string, any>): Promise<Room> {

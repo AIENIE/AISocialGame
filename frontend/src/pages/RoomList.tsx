@@ -21,11 +21,12 @@ const RoomList = () => {
     enabled: !!gameId,
   });
 
-  const { data: rooms = [], isLoading } = useQuery<Room[]>({
+  const { data: roomPage, isLoading } = useQuery({
     queryKey: ["rooms", gameId],
-    queryFn: () => roomApi.list(gameId || ""),
+    queryFn: () => roomApi.list(gameId || "", { page: 1, size: 30, status: "WAITING" }),
     enabled: !!gameId,
   });
+  const rooms: Room[] = roomPage?.items || [];
 
   const templateOptions = game?.configSchema.find((f) => f.id === "template")?.options || [];
 
@@ -117,7 +118,7 @@ const RoomList = () => {
                     <span>人数</span>
                   </div>
                   <span className="font-medium text-slate-900">
-                    {room.seats?.length ?? 0} <span className="text-slate-300">/</span> {room.maxPlayers}
+                    {room.seatCount ?? room.seats?.length ?? 0} <span className="text-slate-300">/</span> {room.maxPlayers}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">

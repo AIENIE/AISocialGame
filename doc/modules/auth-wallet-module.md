@@ -18,8 +18,9 @@
     - `GET /api/auth/me`
   - `WalletController` / `WalletService`
     - `GET/POST /api/wallet/*`
-  - `ProjectCreditService`
+- `ProjectCreditService`
     - 本地账户初始化、签到、兑换码、账本、通用转专属、消耗流水
+    - 通用转专属采用 PENDING -> pay-service -> SUCCESS/FAILED 状态机，远程 gRPC 不在本地数据库事务内执行。
 - 前端
   - `useAuth`：生成一次性 `state` 并跳转 SSO
   - `SsoCallback`：校验 `state` 并调用后端回调
@@ -59,3 +60,8 @@
 - 用户所有注册登录流程均在 user-service SSO 页面完成。
 - 对局、观战状态、WebSocket 和 AI 调用均要求登录用户身份。
 - 前端用户 token 与管理员 token 使用 `sessionStorage`，降低跨会话持久化暴露风险。
+
+## 管理员 session
+
+- 非 test 环境使用 Redis TTL 存储管理员 session，key 前缀为 `<projectKey>:admin:session:`。
+- test/无 Redis 构造路径使用内存 Map，并由定时任务清理过期 token。

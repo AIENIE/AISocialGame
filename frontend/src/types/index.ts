@@ -72,6 +72,7 @@ export interface Room {
   name: string;
   status: "WAITING" | "PLAYING" | "waiting" | "playing";
   maxPlayers: number;
+  seatCount?: number;
   isPrivate: boolean;
   commMode?: string;
   config?: Record<string, any>;

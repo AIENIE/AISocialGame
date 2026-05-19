@@ -249,8 +249,8 @@ export const replayApi = {
 
 export const quickMatchApi = {
   async start(gameId: string, displayName: string): Promise<{ roomId: string; playerId?: string; autoStarted: boolean }> {
-    const [game, rooms] = await Promise.all([gameApi.detail(gameId), roomApi.list(gameId)]);
-    let room: Room | undefined = rooms.find((r) => String(r.status).toLowerCase() === "waiting" && (r.seats?.length || 0) < r.maxPlayers);
+    const [game, roomPage] = await Promise.all([gameApi.detail(gameId), roomApi.list(gameId, { page: 1, size: 30, status: "WAITING" })]);
+    let room: Room | undefined = roomPage.items.find((r) => String(r.status).toLowerCase() === "waiting" && (r.seatCount ?? r.seats?.length ?? 0) < r.maxPlayers);
     let autoStarted = false;
 
     if (!room) {

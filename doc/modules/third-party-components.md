@@ -36,3 +36,12 @@
 
 - `build_common.sh` 会校验 `build.sh` 与 `build_prod.sh` 除默认域名外保持一致。
 - `build_common.sh` 不部署、不初始化、不预检 MySQL/Redis/Qdrant；外部依赖不可用时由后端启动或业务调用暴露错误。
+
+## Schema 稳定性
+
+- 测试/正式部署默认使用 `SPRING_JPA_HIBERNATE_DDL_AUTO=validate`。
+- 本地直启 `build_local.sh` 默认使用 `update`，仅用于开发调试。
+- 新增表结构必须同步更新：
+  - `backend/sql/schema.sql`
+  - 对应日期迁移脚本
+- v1.0 性能整改迁移脚本：`backend/sql/20260519_performance_stability.sql`。

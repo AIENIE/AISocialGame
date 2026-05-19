@@ -140,7 +140,7 @@ curl -X POST "http://localhost:20030/api/ai/chat" \
 
 ### POST /api/ai/chat/stream - SSE 流式对话
 
-**用途**：基于 gRPC Unary 结果分块推送，前端可逐字渲染。
+**用途**：基于 gRPC Unary 结果分块推送，前端可流式渲染。后端使用受控线程池和单用户并发限制保护 SSE 资源。
 
 **鉴权**：需要 `X-Auth-Token`
 
@@ -186,6 +186,7 @@ data: {"content":"","done":true,"modelKey":"gpt-4o-mini","promptTokens":10,"comp
 | 错误码 | 说明 |
 |--------|------|
 | 401 | 未登录 |
+| 429 | 流式请求过多或服务繁忙 |
 | 400 | 专属积分不足，请先充值或兑换 |
 | 502 | AI 服务调用失败 |
 

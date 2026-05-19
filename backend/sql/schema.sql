@@ -31,11 +31,14 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `comm_mode` VARCHAR(64) NULL,
   `config` LONGTEXT NULL,
   `seats` LONGTEXT NULL,
+  `seat_count` INT NOT NULL DEFAULT 0,
+  `version` BIGINT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `idx_rooms_game` (`game_id`),
-  KEY `idx_rooms_status` (`status`)
+  KEY `idx_rooms_status` (`status`),
+  KEY `idx_rooms_game_status_created` (`game_id`, `status`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `game_states` (

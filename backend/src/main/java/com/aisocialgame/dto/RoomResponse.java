@@ -12,6 +12,7 @@ public class RoomResponse {
     private String name;
     private String status;
     private int maxPlayers;
+    private int seatCount;
     private boolean isPrivate;
     private String commMode;
     private Map<String, Object> config;
@@ -24,6 +25,7 @@ public class RoomResponse {
         this.name = room.getName();
         this.status = room.getStatus().name();
         this.maxPlayers = room.getMaxPlayers();
+        this.seatCount = room.getSeatCount();
         this.isPrivate = room.isPrivate();
         this.commMode = room.getCommMode();
         this.config = room.getConfig();
@@ -40,6 +42,7 @@ public class RoomResponse {
     public String getName() { return name; }
     public String getStatus() { return status; }
     public int getMaxPlayers() { return maxPlayers; }
+    public int getSeatCount() { return seatCount; }
     public boolean isPrivate() { return isPrivate; }
     public String getCommMode() { return commMode; }
     public Map<String, Object> getConfig() { return config; }

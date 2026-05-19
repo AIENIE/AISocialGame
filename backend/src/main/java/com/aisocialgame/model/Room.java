@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -53,6 +54,12 @@ public class Room {
     @Column(columnDefinition = "LONGTEXT")
     private List<RoomSeat> seats = new ArrayList<>();
 
+    @Column(name = "seat_count", nullable = false)
+    private int seatCount;
+
+    @Version
+    private Long version;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -86,11 +93,13 @@ public class Room {
         if (this.seats == null) {
             this.seats = new ArrayList<>();
         }
+        syncSeatCount();
     }
 
     @PreUpdate
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        syncSeatCount();
     }
 
     public String getId() { return id; }
@@ -114,6 +123,8 @@ public class Room {
         }
         return seats;
     }
+    public int getSeatCount() { return seatCount; }
+    public Long getVersion() { return version; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -126,7 +137,16 @@ public class Room {
     public void setPassword(String password) { this.password = password; }
     public void setCommMode(String commMode) { this.commMode = commMode; }
     public void setConfig(Map<String, Object> config) { this.config = config; }
-    public void setSeats(List<RoomSeat> seats) { this.seats = seats; }
+    public void setSeats(List<RoomSeat> seats) {
+        this.seats = seats;
+        syncSeatCount();
+    }
+    public void setSeatCount(int seatCount) { this.seatCount = Math.max(0, seatCount); }
+    public void setVersion(Long version) { this.version = version; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public void syncSeatCount() {
+        this.seatCount = getSeats().size();
+    }
 }
