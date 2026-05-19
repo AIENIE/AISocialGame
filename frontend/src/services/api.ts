@@ -1,4 +1,6 @@
 import axios from "axios";
+export { getApiErrorMessage } from "./apiError";
+export type { ApiErrorResponse } from "./apiError";
 import {
   AdminAuthResponse,
   AdminAiDecisionTrace,
