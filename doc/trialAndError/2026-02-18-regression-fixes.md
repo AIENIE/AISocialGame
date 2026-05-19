@@ -5,7 +5,7 @@
 - 目标：将数据库与 Redis 统一到 `192.168.1.4`，并使用项目专属数据库/Key 前缀。
 - 处理：
   - `backend/src/main/resources/application.yml`
-    - MySQL 默认连接改为 `jdbc:mysql://192.168.1.4:3306/aisocialgame_main...&createDatabaseIfNotExist=true`
+    - MySQL 默认连接改为外部托管实例地址，并移除项目侧建库参数。
     - Redis 默认连接改为 `192.168.1.4:6379`
     - 新增 `app.project-key=aisocialgame`
     - Token 前缀默认 `aisocialgame:auth:token:`
@@ -54,7 +54,7 @@
     - `artifacts/test/20260218-084707/werewolf-room-ws-ok.png`
     - `artifacts/test/20260218-084707/playwright-console-ws-ok.log`
 
-## 4. 补充：Windows PowerShell 进程重启细节
+## 4. 补充：本地进程重启细节
 
 - 现象：重启前端 dev server 时使用 `$pid` 变量报只读错误。
 - 处理：改用 `$targetPid` 并使用 `npm.cmd` 启动。

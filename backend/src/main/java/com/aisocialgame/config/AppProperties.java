@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
     private String projectKey = "aisocialgame";
-    private Consul consul = new Consul();
     private Sso sso = new Sso();
     private Ai ai = new Ai();
     private Credit credit = new Credit();
@@ -29,14 +28,6 @@ public class AppProperties {
 
     public void setAi(Ai ai) {
         this.ai = ai;
-    }
-
-    public Consul getConsul() {
-        return consul;
-    }
-
-    public void setConsul(Consul consul) {
-        this.consul = consul;
     }
 
     public Sso getSso() {
@@ -100,32 +91,11 @@ public class AppProperties {
         }
     }
 
-    public static class Consul {
-        private String address = "http://192.168.5.208:60000";
-
-        public String getAddress() {
-            return address;
-        }
-
-        public void setAddress(String address) {
-            this.address = address;
-        }
-    }
-
     public static class Sso {
-        private String userServiceName = "aienie-userservice-http";
-        private String userServiceBaseUrl = "http://192.168.5.208:10000";
+        private String userServiceBaseUrl = "https://userservice.seekerhut.com";
         private String callbackUrl = "https://aisocialgame.seekerhut.com/sso/callback";
         private String loginPath = "/sso/login";
         private String registerPath = "/register";
-
-        public String getUserServiceName() {
-            return userServiceName;
-        }
-
-        public void setUserServiceName(String userServiceName) {
-            this.userServiceName = userServiceName;
-        }
 
         public String getCallbackUrl() {
             return callbackUrl;

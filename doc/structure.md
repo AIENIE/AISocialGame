@@ -35,7 +35,6 @@ AISocialGame/
 ├── build_prod.sh                             # 正式域名部署（Linux）
 ├── build_common.sh                           # build 脚本共用逻辑
 ├── build_local.sh                            # Linux 宿主机后端直启入口
-├── build_local.ps1                           # 本地 PowerShell 部署
 ├── README.md
 ├── AGENTS.md
 └── projectStructure.md
@@ -59,11 +58,11 @@ AISocialGame/
 
 ## 关键配置约束
 
-- gRPC 地址默认走 consul：
-  - `USER_GRPC_ADDR=consul:///aienie-userservice-grpc`
-  - `BILLING_GRPC_ADDR=consul:///aienie-payservice-grpc`
-  - `AI_GRPC_ADDR=consul:///aienie-aiservice-grpc`
-- Consul 地址通过 `CONSUL_HTTP_ADDR` 配置，不在业务代码写死。
+- gRPC 地址默认走静态域名：
+  - `USER_GRPC_ADDR=static://userservice.seekerhut.com:10001`
+  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:20021`
+  - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:10011`
+- SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量通过 `env.txt` + 系统环境注入。
 - 后端端口解析链路为 `SERVER_PORT -> BACKEND_PORT -> 20030`，宿主机直启默认复用 `env.txt` 中的 `BACKEND_PORT=11031`。
 - `build_common.sh` 当前职责是构建、部署、依赖检查与迁移，不自动执行 Playwright。

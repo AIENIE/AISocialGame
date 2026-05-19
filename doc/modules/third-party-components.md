@@ -9,7 +9,6 @@
 - MySQL
 - Redis
 - Qdrant
-- Consul
 
 ## 对齐结果
 
@@ -18,17 +17,16 @@
   - `env.txt`
   - `build_common.sh`（`build.sh/build_prod.sh` 共用）
 - 默认连接：
-  - MySQL：`192.168.5.208:3306`
-  - Redis：`192.168.5.208:6379`
-  - Qdrant：`http://192.168.5.208:6333`
-  - Consul：`http://192.168.5.208:60000`
+  - MySQL：`base.seekerhut.com:3306`
+  - Redis：`base.seekerhut.com:6379`
+  - Qdrant：`http://base.seekerhut.com:6333`
 
 ## 服务发现与域名策略
 
-- 三服务 gRPC 默认走 consul：
-  - `consul:///aienie-userservice-grpc`
-  - `consul:///aienie-payservice-grpc`
-  - `consul:///aienie-aiservice-grpc`
+- 三服务 gRPC 默认走静态域名：
+  - `static://userservice.seekerhut.com:10001`
+  - `static://payservice.seekerhut.com:20021`
+  - `static://aiservice.seekerhut.com:10011`
 - SSO/HTTP 对外地址默认使用域名：
   - `userservice.seekerhut.com`
   - `payservice.seekerhut.com`
@@ -36,7 +34,5 @@
 
 ## 部署脚本行为
 
-- `build_common.sh` 在部署前会检测上述依赖可达性。
 - `build_common.sh` 会校验 `build.sh` 与 `build_prod.sh` 除默认域名外保持一致。
-- 若依赖未就绪，脚本直接失败退出，不会在本机拉起替代依赖。
-- MySQL 库/账号引导可通过 `MYSQL_BOOTSTRAP_ENABLED` 控制。
+- `build_common.sh` 不部署、不初始化、不预检 MySQL/Redis/Qdrant；外部依赖不可用时由后端启动或业务调用暴露错误。

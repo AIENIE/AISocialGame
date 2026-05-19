@@ -4,7 +4,6 @@ import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.dto.AuthResponse;
 import com.aisocialgame.dto.AuthUserView;
 import com.aisocialgame.exception.ApiException;
-import com.aisocialgame.integration.consul.ConsulHttpServiceDiscovery;
 import com.aisocialgame.integration.grpc.client.BillingGrpcClient;
 import com.aisocialgame.integration.grpc.client.UserGrpcClient;
 import com.aisocialgame.integration.grpc.dto.BalanceSnapshot;
@@ -36,7 +35,6 @@ public class AuthService {
     private final BalanceService balanceService;
     private final ProjectCreditService projectCreditService;
     private final AppProperties appProperties;
-    private final ConsulHttpServiceDiscovery consulHttpServiceDiscovery;
 
     public AuthService(UserRepository userRepository,
                        TokenStore tokenStore,
@@ -44,8 +42,7 @@ public class AuthService {
                        BillingGrpcClient billingGrpcClient,
                        BalanceService balanceService,
                        ProjectCreditService projectCreditService,
-                       AppProperties appProperties,
-                       ConsulHttpServiceDiscovery consulHttpServiceDiscovery) {
+                       AppProperties appProperties) {
         this.userRepository = userRepository;
         this.tokenStore = tokenStore;
         this.userGrpcClient = userGrpcClient;
@@ -53,7 +50,6 @@ public class AuthService {
         this.balanceService = balanceService;
         this.projectCreditService = projectCreditService;
         this.appProperties = appProperties;
-        this.consulHttpServiceDiscovery = consulHttpServiceDiscovery;
     }
 
     public String buildSsoLoginRedirectUrl(String state) {
@@ -79,14 +75,7 @@ public class AuthService {
         if (StringUtils.hasText(appProperties.getSso().getUserServiceBaseUrl())) {
             return appProperties.getSso().getUserServiceBaseUrl().trim();
         }
-        try {
-            return consulHttpServiceDiscovery.resolveHttpAddress(appProperties.getSso().getUserServiceName());
-        } catch (Exception ex) {
-            if (ex instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "用户服务地址解析失败");
-        }
+        throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "用户服务地址未配置");
     }
 
     public AuthResponse ssoCallback(long userId, String username, String sessionId, String accessToken) {

@@ -17,7 +17,6 @@
 - `build_prod.sh`：正式域名部署脚本（`aisocialgame.aienie.com`）
 - `build_common.sh`：`build.sh/build_prod.sh` 共用部署逻辑
 - `build_local.sh`：Linux 宿主机本地直启后端
-- `build_local.ps1`：Windows 本地直启脚本
 - `env.txt`：部署配置（可被系统环境变量覆盖）
 
 ## 认证与积分
@@ -57,7 +56,7 @@
 - ai-service gRPC：`static://aiservice.seekerhut.com:10011`
 - SSO 入口：`https://userservice.seekerhut.com`
 
-当依赖不可达时，部署脚本会直接失败并提示缺失依赖。
+MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
 
 ## 部署
 
@@ -98,12 +97,6 @@
 - 脚本会导出 `SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"`，因此可直接复用 `env.txt` 中的 `BACKEND_PORT=11031`。
 - 当 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 时，启动前会校验 4 个外部 gRPC 鉴权变量，缺失即快速失败。
 - 启动成功后，健康检查地址为 `http://127.0.0.1:11031/actuator/health`。
-
-### Windows（本地直启）
-
-```powershell
-.\build_local.ps1
-```
 
 ### VS Code F5（以 `backend/` 为工作区根）
 

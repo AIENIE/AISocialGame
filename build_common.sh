@@ -73,27 +73,17 @@ load_env_file() {
 load_env_file "$repo_root/env.txt"
 ensure_build_wrapper_sync
 
-export MYSQL_HOST="${MYSQL_HOST:-base.seekerhut.com}"
-export MYSQL_PORT="${MYSQL_PORT:-3306}"
-export MYSQL_DB="${MYSQL_DB:-aisocialgame}"
-export MYSQL_ROOT_USERNAME="${MYSQL_ROOT_USERNAME:-root}"
-export MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-password}"
-export MYSQL_BOOTSTRAP_ENABLED="${MYSQL_BOOTSTRAP_ENABLED:-true}"
-export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
+export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
 export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-aisocialgame_pwd}"
 export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
 export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-6379}"
-export USER_GRPC_SERVICE_NAME="${USER_GRPC_SERVICE_NAME:-aienie-userservice-grpc}"
-export BILLING_GRPC_SERVICE_NAME="${BILLING_GRPC_SERVICE_NAME:-aienie-payservice-grpc}"
-export AI_GRPC_SERVICE_NAME="${AI_GRPC_SERVICE_NAME:-aienie-aiservice-grpc}"
 export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.seekerhut.com:10001}"
 export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:20021}"
 export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:10011}"
 export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
 export QDRANT_PORT="${QDRANT_PORT:-6333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
-export SSO_USER_SERVICE_NAME="${SSO_USER_SERVICE_NAME:-aienie-userservice-http}"
 export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
 export SSO_CALLBACK_URL="${SSO_CALLBACK_URL:-https://${APP_DOMAIN}/sso/callback}"
 export SSO_LOGIN_PATH="${SSO_LOGIN_PATH:-/sso/login}"
@@ -144,49 +134,6 @@ wait_for_http() {
   done
   echo "Service $url not ready after $tries attempts" >&2
   return 1
-}
-
-ensure_tcp_ready() {
-  local host="$1"
-  local port="$2"
-  local name="$3"
-  local tries=${4:-20}
-  for i in $(seq 1 "$tries"); do
-    if timeout 2 bash -c "</dev/tcp/${host}/${port}" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
-  echo "Dependency ${name} is not reachable at ${host}:${port}" >&2
-  return 1
-}
-
-check_external_dependencies() {
-  step "Check external dependencies"
-  ensure_tcp_ready "$MYSQL_HOST" "$MYSQL_PORT" "MySQL"
-  ensure_tcp_ready "$SPRING_DATA_REDIS_HOST" "$SPRING_DATA_REDIS_PORT" "Redis"
-  ensure_tcp_ready "$(echo "$QDRANT_HOST" | sed -E 's#https?://##')" "$QDRANT_PORT" "Qdrant"
-
-  local consul_host consul_port
-  consul_host="$(echo "$CONSUL_HTTP_ADDR" | sed -E 's#https?://##; s#/.*##; s#:.*$##')"
-  consul_port="$(echo "$CONSUL_HTTP_ADDR" | sed -E 's#https?://##; s#/.*##; s#.*:##')"
-}
-
-ensure_mysql_ready() {
-  if [[ "${MYSQL_BOOTSTRAP_ENABLED}" != "true" ]]; then
-    echo "Skip MySQL bootstrap (MYSQL_BOOTSTRAP_ENABLED=${MYSQL_BOOTSTRAP_ENABLED})"
-    return 0
-  fi
-
-  step "Ensure MySQL database/user"
-  docker run --rm --network host mysql:8.0 sh -c \
-    "mysql --connect-timeout=10 --ssl-mode=DISABLED --get-server-public-key -h '${MYSQL_HOST}' -P '${MYSQL_PORT}' -u '${MYSQL_ROOT_USERNAME}' -p'${MYSQL_ROOT_PASSWORD}' <<'SQL'
-CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '${SPRING_DATASOURCE_USERNAME}'@'%' IDENTIFIED BY '${SPRING_DATASOURCE_PASSWORD}';
-ALTER USER '${SPRING_DATASOURCE_USERNAME}'@'%' IDENTIFIED BY '${SPRING_DATASOURCE_PASSWORD}';
-GRANT ALL PRIVILEGES ON \`${MYSQL_DB}\`.* TO '${SPRING_DATASOURCE_USERNAME}'@'%';
-FLUSH PRIVILEGES;
-SQL"
 }
 
 run_migration() {
@@ -245,9 +192,7 @@ step "Frontend: install & build"
 
 step "Docker compose pull & restart"
 COMPOSE="$(docker_compose_cmd)"
-check_external_dependencies
-ensure_mysql_ready
-echo "Using shared services: MYSQL=${MYSQL_HOST}:${MYSQL_PORT} REDIS=${SPRING_DATA_REDIS_HOST}:${SPRING_DATA_REDIS_PORT} QDRANT=${QDRANT_HOST}:${QDRANT_PORT}"
+echo "Using external services: datasource=${SPRING_DATASOURCE_URL} redis=${SPRING_DATA_REDIS_HOST}:${SPRING_DATA_REDIS_PORT} qdrant=${QDRANT_HOST}:${QDRANT_PORT}"
 echo "External domains: USER=${USER_SERVICE_BASE_URL} PAY=${PAY_SERVICE_BASE_URL} AI=${AI_SERVICE_BASE_URL}"
 echo "gRPC targets: user=${USER_GRPC_ADDR} billing=${BILLING_GRPC_ADDR} ai=${AI_GRPC_ADDR}"
 $COMPOSE down -v || true

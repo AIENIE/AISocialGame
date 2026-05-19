@@ -5,7 +5,7 @@ services:
     ports:
       - "11031:20030"
     environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://${MYSQL_HOST:-base.seekerhut.com}:${MYSQL_PORT:-3306}/${MYSQL_DB:-aisocialgame}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-aisocialgame}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-aisocialgame_pwd}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -17,13 +17,9 @@ services:
       APP_AI_SYSTEM_USER_ID: ${APP_AI_SYSTEM_USER_ID:-1}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin123}
-      USER_GRPC_SERVICE_NAME: ${USER_GRPC_SERVICE_NAME:-aienie-userservice-grpc}
-      BILLING_GRPC_SERVICE_NAME: ${BILLING_GRPC_SERVICE_NAME:-aienie-payservice-grpc}
-      AI_GRPC_SERVICE_NAME: ${AI_GRPC_SERVICE_NAME:-aienie-aiservice-grpc}
       USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice.seekerhut.com:10001}
       BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:20021}
       AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:10011}
-      SSO_USER_SERVICE_NAME: ${SSO_USER_SERVICE_NAME:-aienie-userservice-http}
       SSO_USER_SERVICE_BASE_URL: ${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}
       QDRANT_HOST: ${QDRANT_HOST:-http://base.seekerhut.com}
       QDRANT_PORT: ${QDRANT_PORT:-6333}
@@ -40,7 +36,7 @@ services:
       JAVA_OPTS: ""
       SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
     working_dir: /app
-    command: ["sh", "-c", "java ${JAVA_OPTS} -jar /app/app.jar"]
+    command: ["sh", "-c", "java $${JAVA_OPTS} -jar /app/app.jar"]
     volumes:
       - ./backend/target/ai-social-game-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
       - ./backend/src/main/resources/application.yml:/app/config/application.yml:ro

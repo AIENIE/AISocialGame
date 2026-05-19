@@ -4,7 +4,7 @@
 
 ## 目标
 
-对接 user-service、pay-service、ai-service 三个外部服务，并通过 Consul 进行服务发现。
+对接 user-service、pay-service、ai-service 三个外部服务，并通过静态域名地址建立 gRPC 通道。
 
 ## 组成
 
@@ -20,22 +20,14 @@
   - 自动注入 `authorization: Bearer <service_jwt>`
 - `integration/grpc/auth/AiGrpcHmacClientInterceptor`
   - 自动注入 `x-aienie-*` HMAC metadata
-- `integration/consul/ConsulNameResolverProvider`
-  - 支持 `consul:///service-name` 名称解析
-- `integration/consul/ConsulHttpServiceDiscovery`
-  - SSO HTTP 地址发现回退
-
 ## 当前配置策略
 
-- Consul 地址：`CONSUL_HTTP_ADDR`（默认 `http://192.168.5.208:60000`）
-- 服务名：
-  - `USER_GRPC_SERVICE_NAME=aienie-userservice-grpc`
-  - `BILLING_GRPC_SERVICE_NAME=aienie-payservice-grpc`
-  - `AI_GRPC_SERVICE_NAME=aienie-aiservice-grpc`
 - 地址：
-  - `USER_GRPC_ADDR=consul:///aienie-userservice-grpc`
-  - `BILLING_GRPC_ADDR=consul:///aienie-payservice-grpc`
-  - `AI_GRPC_ADDR=consul:///aienie-aiservice-grpc`
+  - `USER_GRPC_ADDR=static://userservice.seekerhut.com:10001`
+  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:20021`
+  - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:10011`
+- SSO HTTP 入口：
+  - `SSO_USER_SERVICE_BASE_URL=https://userservice.seekerhut.com`
 
 ## 鉴权约束（严格）
 

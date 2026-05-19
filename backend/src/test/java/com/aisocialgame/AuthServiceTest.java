@@ -3,7 +3,6 @@ package com.aisocialgame;
 import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.dto.AuthResponse;
 import com.aisocialgame.exception.ApiException;
-import com.aisocialgame.integration.consul.ConsulHttpServiceDiscovery;
 import com.aisocialgame.integration.grpc.client.BillingGrpcClient;
 import com.aisocialgame.integration.grpc.client.UserGrpcClient;
 import com.aisocialgame.integration.grpc.dto.BalanceSnapshot;
@@ -39,9 +38,6 @@ class AuthServiceTest {
 
     @MockBean
     private BalanceService balanceService;
-
-    @MockBean
-    private ConsulHttpServiceDiscovery consulHttpServiceDiscovery;
 
     @MockBean
     private BillingGrpcClient billingGrpcClient;

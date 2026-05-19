@@ -4,7 +4,7 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:ai-social-game}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQL_HOST:192.168.5.208}:${MYSQL_PORT:3306}/${MYSQL_DB:aisocialgame}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${SPRING_DATASOURCE_USERNAME:aisocialgame}
     password: ${SPRING_DATASOURCE_PASSWORD:aisocialgame_pwd}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -24,10 +24,7 @@ server:
 
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
-  consul:
-    address: ${CONSUL_HTTP_ADDR:}
   sso:
-    user-service-name: ${SSO_USER_SERVICE_NAME:aienie-userservice-http}
     user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://userservice.seekerhut.com}
     callback-url: ${SSO_CALLBACK_URL:https://aisocialgame.seekerhut.com/sso/callback}
     login-path: ${SSO_LOGIN_PATH:/sso/login}

@@ -36,7 +36,7 @@
 1. 在 VS Code 中打开 `backend/` 目录。
 2. 运行调试配置 `Backend: Launch AiSocialGameApplication`。
 3. 调试前会自动执行 `backend: compile`，确保 protobuf/gRPC 生成代码齐备。
-4. 调试配置读取 `../env.txt`，因此默认会连接共享 MySQL、Redis、Consul、Qdrant 与三服务。
+4. 调试配置读取 `../env.txt`，因此默认会连接共享 MySQL、Redis、Qdrant 与三服务静态地址。
 5. 启动成功后访问 `http://127.0.0.1:11031/actuator/health`，确认返回健康状态。
 
 ## 2. SSO 登录/注册跳转
