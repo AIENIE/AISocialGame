@@ -60,6 +60,37 @@ MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初
 
 ## 部署
 
+### 启动前脚本清单
+
+测试/正式环境默认以 `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` 启动，后端不会在启动时自动改表。涉及表结构变更的 SQL 需要先在目标数据库执行，确认成功后再启动应用。
+
+一次性执行：
+
+```bash
+mysql \
+  --host="${MYSQL_HOST:-base.seekerhut.com}" \
+  --port="${MYSQL_PORT:-3306}" \
+  --user="${SPRING_DATASOURCE_USERNAME:-aisocialgame}" \
+  --password \
+  aisocialgame < backend/sql/20260519_performance_stability.sql
+```
+
+说明：
+- 执行前先备份目标库或至少备份 `rooms` 表。
+- 同一环境只需要执行一次 `backend/sql/20260519_performance_stability.sql`；如果已经成功执行，不要重复执行，避免重复加列或重复建索引失败。
+- 后续新增版本化 SQL 时，按文件日期顺序在测试/正式环境启动前执行。
+
+每次测试/正式部署执行：
+
+```bash
+./build.sh       # 测试环境：aisocialgame.seekerhut.com
+./build_prod.sh  # 正式环境：aisocialgame.aienie.com
+```
+
+持续或可重复执行：
+- `build.sh` / `build_prod.sh` 每次部署后会默认调用 `/api/admin/billing/migrate-all` 执行全量积分迁移；如需临时跳过，可设置 `RUN_FULL_MIGRATION=false`。
+- `build_local.sh` 仅用于宿主机开发直启，保留 `SPRING_JPA_HIBERNATE_DDL_AUTO=update` 默认值，不作为测试/正式环境启动入口。
+
 ### Linux
 
 测试环境部署：
