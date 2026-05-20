@@ -9,6 +9,10 @@ interface Summary {
   localPosts: number;
   localGameStates: number;
   aiModels: number;
+  openHighRiskSafetyEvents: number;
+  safetyBlocksLast24h: number;
+  safetyCostAnomaliesLast24h: number;
+  activeSafetyControls: number;
 }
 
 const Dashboard = () => {
@@ -26,6 +30,9 @@ const Dashboard = () => {
     { label: "社区帖子", value: summary?.localPosts ?? 0 },
     { label: "进行中状态", value: summary?.localGameStates ?? 0 },
     { label: "可用模型", value: summary?.aiModels ?? 0 },
+    { label: "未处理高危", value: summary?.openHighRiskSafetyEvents ?? 0 },
+    { label: "24h 拦截", value: summary?.safetyBlocksLast24h ?? 0 },
+    { label: "活跃安全控制", value: summary?.activeSafetyControls ?? 0 },
   ];
 
   return (

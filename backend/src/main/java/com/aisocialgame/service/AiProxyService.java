@@ -13,6 +13,8 @@ import com.aisocialgame.integration.grpc.dto.AiModelOptionDto;
 import com.aisocialgame.integration.grpc.dto.AiOcrParams;
 import com.aisocialgame.integration.grpc.dto.AiOcrResult;
 import com.aisocialgame.model.User;
+import com.aisocialgame.service.safety.AiSafetyContext;
+import com.aisocialgame.service.safety.AiSafetyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -29,13 +31,16 @@ public class AiProxyService {
     private final AiGrpcClient aiGrpcClient;
     private final ProjectCreditService projectCreditService;
     private final AppProperties appProperties;
+    private final AiSafetyService aiSafetyService;
 
     public AiProxyService(AiGrpcClient aiGrpcClient,
                           ProjectCreditService projectCreditService,
-                          AppProperties appProperties) {
+                          AppProperties appProperties,
+                          AiSafetyService aiSafetyService) {
         this.aiGrpcClient = aiGrpcClient;
         this.projectCreditService = projectCreditService;
         this.appProperties = appProperties;
+        this.aiSafetyService = aiSafetyService;
     }
 
     public List<AiModelOptionDto> listModels() {
@@ -47,14 +52,23 @@ public class AiProxyService {
                 ? user.getExternalUserId()
                 : appProperties.getAi().getSystemUserId();
         String sessionId = user != null && StringUtils.hasText(user.getSessionId()) ? user.getSessionId() : "";
-        return chatByIdentity(request, userId, sessionId);
+        AiSafetyContext context = AiSafetyContext.source(AiSafetyService.SOURCE_AI_CHAT_INPUT)
+                .user(String.valueOf(userId), user == null ? null : user.getId());
+        return chatByIdentity(request, userId, sessionId, context);
     }
 
     public AiChatResult chatByIdentity(AiChatRequest request, long userId, String sessionId) {
+        return chatByIdentity(request, userId, sessionId, AiSafetyContext.source(AiSafetyService.SOURCE_AI_CHAT_INPUT).user(String.valueOf(userId), null));
+    }
+
+    public AiChatResult chatByIdentity(AiChatRequest request, long userId, String sessionId, AiSafetyContext context) {
         List<String> candidateModels = resolveChatModels(request.getModel());
         boolean explicitModel = StringUtils.hasText(request.getModel());
         List<AiChatMessageDto> messages = request.getMessages().stream()
-                .map(message -> new AiChatMessageDto(message.getRole(), message.getContent()))
+                .map(message -> new AiChatMessageDto(message.getRole(), aiSafetyService.requireAllowedInput(
+                        message.getContent(),
+                        copyContext(context, context.getSource()).metadata("role", message.getRole())
+                )))
                 .toList();
         ApiException lastError = null;
         AiChatResult result = null;
@@ -92,8 +106,23 @@ public class AiProxyService {
         metadata.put("modelKey", result.modelKey());
         metadata.put("promptTokens", String.valueOf(result.promptTokens()));
         metadata.put("completionTokens", String.valueOf(result.completionTokens()));
+        String safeContent = aiSafetyService.safeOutput(
+                result.content(),
+                copyContext(context, AiSafetyService.SOURCE_AI_CHAT_OUTPUT).model(result.modelKey()).metadata("promptTokens", result.promptTokens()).metadata("completionTokens", result.completionTokens())
+        );
         applyConsume(userId, Math.max(0, result.promptTokens()) + Math.max(0, result.completionTokens()), "AI_CHAT", metadata);
-        return result;
+        return new AiChatResult(safeContent, result.modelKey(), result.promptTokens(), result.completionTokens());
+    }
+
+    private AiSafetyContext copyContext(AiSafetyContext source, String nextSource) {
+        AiSafetyContext context = AiSafetyContext.source(nextSource)
+                .room(source.getRoomId(), source.getGameId())
+                .user(source.getUserId(), source.getPlayerId())
+                .persona(source.getPersonaId())
+                .model(source.getModelKey())
+                .trace(source.getTraceId());
+        context.setMetadata(new HashMap<>(source.getMetadata()));
+        return context;
     }
 
     public AiEmbeddingsResult embeddings(AiEmbeddingsRequest request, User user) {

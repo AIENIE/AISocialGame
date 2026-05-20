@@ -204,6 +204,54 @@ export interface AdminAiPersonaMemory {
   updatedAt?: string;
 }
 
+export type SafetyAction = "ALLOW" | "REDACT" | "BLOCK" | "RATE_LIMIT" | "ESCALATE";
+export type SafetyEventStatus = "OPEN" | "ACKED" | "CLOSED";
+
+export interface AiSafetySummary {
+  openHighRiskEvents: number;
+  blockedLast24h: number;
+  costAnomaliesLast24h: number;
+  activeControls: number;
+}
+
+export interface AiSafetyEvent {
+  id: number;
+  source: string;
+  action: SafetyAction;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  category: string;
+  status: SafetyEventStatus;
+  roomId?: string;
+  gameId?: string;
+  userId?: string;
+  playerId?: string;
+  personaId?: string;
+  modelKey?: string;
+  traceId?: string;
+  contentSummary?: string;
+  sanitizedContent?: string;
+  reason?: string;
+  metadata?: Record<string, any>;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  closedBy?: string;
+  closedAt?: string;
+  closeReason?: string;
+  createdAt?: string;
+}
+
+export interface AiSafetyControl {
+  id: number;
+  scope: "USER" | "ROOM" | "PERSONA" | "MODEL" | "GLOBAL";
+  targetKey: string;
+  action: SafetyAction;
+  reason?: string;
+  createdBy?: string;
+  active: boolean;
+  expiresAt?: string;
+  createdAt?: string;
+}
+
 export interface CheckinResponse {
   success: boolean;
   tokensGranted: number;

@@ -7,6 +7,9 @@ import {
   AdminAiPersonaMemory,
   AdminIntegrationStatus,
   AdminRedeemCode,
+  AiSafetyControl,
+  AiSafetyEvent,
+  AiSafetySummary,
   AiChatResponse,
   AiEmbeddingsResponse,
   AiMessage,
@@ -250,7 +253,11 @@ export const communityApi = {
     const res = await api.post(
       "/community/posts",
       { content, tags },
-      { headers: guestName ? { "X-Guest-Name": guestName } : undefined }
+      {
+        headers: guestName
+          ? { "X-Guest-Name": encodeURIComponent(guestName) }
+          : undefined,
+      }
     );
     return res.data;
   },
@@ -310,7 +317,17 @@ export const adminApi = {
     const res = await adminApiClient.get("/admin/auth/me");
     return res.data;
   },
-  async dashboardSummary(): Promise<{ localUsers: number; localRooms: number; localPosts: number; localGameStates: number; aiModels: number }> {
+  async dashboardSummary(): Promise<{
+    localUsers: number;
+    localRooms: number;
+    localPosts: number;
+    localGameStates: number;
+    aiModels: number;
+    openHighRiskSafetyEvents: number;
+    safetyBlocksLast24h: number;
+    safetyCostAnomaliesLast24h: number;
+    activeSafetyControls: number;
+  }> {
     const res = await adminApiClient.get("/admin/dashboard/summary");
     return res.data;
   },
@@ -393,6 +410,47 @@ export const adminApi = {
   },
   async resetAiPersonaMemory(id: number): Promise<void> {
     await adminApiClient.post(`/admin/ai/persona-memories/${id}/reset`);
+  },
+  async safetySummary(): Promise<AiSafetySummary> {
+    const res = await adminApiClient.get("/admin/safety/summary");
+    return res.data;
+  },
+  async safetyEvents(params: {
+    status?: string;
+    severity?: string;
+    source?: string;
+    roomId?: string;
+    userId?: string;
+    personaId?: string;
+    modelKey?: string;
+    page?: number;
+    size?: number;
+  } = {}): Promise<PagedResponse<AiSafetyEvent>> {
+    const res = await adminApiClient.get("/admin/safety/events", { params });
+    return res.data;
+  },
+  async safetyEventDetail(id: number): Promise<AiSafetyEvent> {
+    const res = await adminApiClient.get(`/admin/safety/events/${id}`);
+    return res.data;
+  },
+  async ackSafetyEvent(id: number): Promise<AiSafetyEvent> {
+    const res = await adminApiClient.post(`/admin/safety/events/${id}/ack`);
+    return res.data;
+  },
+  async closeSafetyEvent(id: number, reason = ""): Promise<AiSafetyEvent> {
+    const res = await adminApiClient.post(`/admin/safety/events/${id}/close`, { reason });
+    return res.data;
+  },
+  async safetyControls(): Promise<AiSafetyControl[]> {
+    const res = await adminApiClient.get("/admin/safety/controls");
+    return res.data;
+  },
+  async createSafetyControl(payload: { scope: string; targetKey: string; action?: string; reason?: string; expiresAt?: string }): Promise<AiSafetyControl> {
+    const res = await adminApiClient.post("/admin/safety/controls", payload);
+    return res.data;
+  },
+  async disableSafetyControl(id: number): Promise<void> {
+    await adminApiClient.delete(`/admin/safety/controls/${id}`);
   },
 };
 

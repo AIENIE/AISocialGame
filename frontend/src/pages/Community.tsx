@@ -8,13 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Heart, Share2, PenSquare, Flame, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { communityApi } from "@/services/api";
+import { communityApi, getApiErrorMessage } from "@/services/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CommunityPost } from "@/types";
 
 const Community = () => {
   const { displayName, avatar } = useAuth();
   const [input, setInput] = useState("");
+  const [publishError, setPublishError] = useState("");
   const queryClient = useQueryClient();
 
   const { data: posts = [], isLoading } = useQuery<CommunityPost[]>({
@@ -26,10 +27,15 @@ const Community = () => {
     mutationFn: () => communityApi.create(input.trim(), [], displayName),
     onSuccess: () => {
       setInput("");
+      setPublishError("");
       queryClient.invalidateQueries({ queryKey: ["community", "posts"] });
       toast.success("发布成功");
     },
-    onError: () => toast.error("发布失败，请稍后重试"),
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "发布失败，请稍后重试");
+      setPublishError(message);
+      toast.error(message);
+    },
   });
 
   const likeMutation = useMutation({
@@ -43,6 +49,7 @@ const Community = () => {
       toast.error("请输入内容后再发布");
       return;
     }
+    setPublishError("");
     publishMutation.mutate();
   };
 
@@ -92,10 +99,11 @@ const Community = () => {
                   <div className="flex gap-2 text-slate-400 text-sm">
                     <Button variant="ghost" size="sm" className="h-8 px-2 text-xs md:text-sm"><Hash className="h-3 w-3 md:h-4 md:w-4 mr-1" /> 话题</Button>
                   </div>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs md:text-sm" onClick={publish} disabled={publishMutation.isLoading}>
+                  <Button data-testid="community-publish-btn" size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs md:text-sm" onClick={publish} disabled={publishMutation.isPending}>
                     <PenSquare className="h-3 w-3 md:h-4 md:w-4 mr-2" /> 发布
                   </Button>
                 </div>
+                {publishError && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{publishError}</div>}
               </div>
             </div>
           </CardContent>

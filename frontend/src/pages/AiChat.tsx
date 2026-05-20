@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { aiApi } from "@/services/api";
+import { aiApi, getApiErrorMessage } from "@/services/api";
 import { AiMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ const AiChat = () => {
         () => {},
       );
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "AI 调用失败");
+      toast.error(getApiErrorMessage(error, "AI 调用失败"));
       setMessages(nextMessages);
     } finally {
       setSending(false);

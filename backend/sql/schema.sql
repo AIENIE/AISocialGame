@@ -137,6 +137,56 @@ CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
   KEY `idx_ai_trace_persona` (`persona_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `ai_safety_events` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `source` VARCHAR(64) NOT NULL,
+  `action` VARCHAR(32) NOT NULL,
+  `severity` VARCHAR(32) NOT NULL,
+  `category` VARCHAR(64) NOT NULL,
+  `status` VARCHAR(32) NOT NULL,
+  `room_id` VARCHAR(64) NULL,
+  `game_id` VARCHAR(64) NULL,
+  `user_id` VARCHAR(64) NULL,
+  `player_id` VARCHAR(64) NULL,
+  `persona_id` VARCHAR(64) NULL,
+  `model_key` VARCHAR(128) NULL,
+  `trace_id` VARCHAR(64) NULL,
+  `content_summary` VARCHAR(512) NULL,
+  `sanitized_content` VARCHAR(512) NULL,
+  `reason` VARCHAR(255) NULL,
+  `metadata` LONGTEXT NULL,
+  `acknowledged_by` VARCHAR(64) NULL,
+  `acknowledged_at` DATETIME NULL,
+  `closed_by` VARCHAR(64) NULL,
+  `closed_at` DATETIME NULL,
+  `close_reason` VARCHAR(255) NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_safety_event_status_severity_id` (`status`, `severity`, `id`),
+  KEY `idx_ai_safety_event_source_created` (`source`, `created_at`),
+  KEY `idx_ai_safety_event_room` (`room_id`, `id`),
+  KEY `idx_ai_safety_event_user` (`user_id`, `id`),
+  KEY `idx_ai_safety_event_persona` (`persona_id`, `id`),
+  KEY `idx_ai_safety_event_model` (`model_key`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_safety_controls` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `scope` VARCHAR(32) NOT NULL,
+  `target_key` VARCHAR(128) NOT NULL,
+  `action` VARCHAR(32) NOT NULL,
+  `reason` VARCHAR(255) NULL,
+  `created_by` VARCHAR(64) NULL,
+  `active` TINYINT(1) NOT NULL DEFAULT 1,
+  `expires_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_safety_control_active_scope` (`active`, `scope`, `target_key`),
+  KEY `idx_ai_safety_control_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `game_events` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `archive_id` VARCHAR(96) NOT NULL,

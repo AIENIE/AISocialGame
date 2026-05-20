@@ -14,6 +14,8 @@ import com.aisocialgame.integration.grpc.dto.AiOcrResult;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.AiProxyService;
 import com.aisocialgame.service.ProjectCreditService;
+import com.aisocialgame.service.safety.AiSafetyContext;
+import com.aisocialgame.service.safety.AiSafetyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,11 +30,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +47,8 @@ class AiProxyServiceTest {
     private AiGrpcClient aiGrpcClient;
     @Mock
     private ProjectCreditService projectCreditService;
+    @Mock
+    private AiSafetyService aiSafetyService;
 
     private AiProxyService aiProxyService;
 
@@ -52,7 +58,9 @@ class AiProxyServiceTest {
         appProperties.setProjectKey("aisocialgame");
         appProperties.getAi().setDefaultModel("default-model");
         appProperties.getAi().setSystemUserId(1L);
-        aiProxyService = new AiProxyService(aiGrpcClient, projectCreditService, appProperties);
+        lenient().when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(aiSafetyService.safeOutput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        aiProxyService = new AiProxyService(aiGrpcClient, projectCreditService, appProperties, aiSafetyService);
     }
 
     @Test
@@ -126,6 +134,17 @@ class AiProxyServiceTest {
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
 
         verify(aiGrpcClient, never()).listModels();
+    }
+
+    @Test
+    void chatShouldNotCallAiWhenSafetyBlocksInput() {
+        AiChatRequest request = buildChatRequest(null, "M4_TEST_BLOCK");
+        when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class)))
+                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "内容未通过安全检查，请调整后再试"));
+
+        assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
+
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     private AiChatRequest buildChatRequest(String model, String content) {

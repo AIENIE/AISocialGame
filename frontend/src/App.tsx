@@ -27,6 +27,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import UserAdmin from "./pages/admin/UserAdmin";
 import BillingAdmin from "./pages/admin/BillingAdmin";
 import AiAdmin from "./pages/admin/AiAdmin";
+import SafetyAdmin from "./pages/admin/SafetyAdmin";
 import IntegrationAdmin from "./pages/admin/IntegrationAdmin";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/admin/users" element={<UserAdmin />} />
                 <Route path="/admin/billing" element={<BillingAdmin />} />
                 <Route path="/admin/ai" element={<AiAdmin />} />
+                <Route path="/admin/safety" element={<SafetyAdmin />} />
                 <Route path="/admin/integration" element={<IntegrationAdmin />} />
               </Route>
 

@@ -122,8 +122,23 @@
   - 每场结算后生成服务端回放归档，事件 `seq` 递增，`PUBLIC` 视角不暴露身份、词语或夜晚私密动作。
   - `/replays` 与 `/replay/{archiveId}` 可打开服务端回放并执行播放/单步。
   - 管理端 `/admin/ai` 的模型、决策 trace 与 Persona 记忆可见性。
+  - 管理端 `/admin/safety` 的安全摘要、事件列表、确认/关闭和临时控制。
+  - 房间聊天、社区发帖、AI Chat 和 AI 玩家发言的安全拦截/替换不暴露内部 Prompt 或隐藏信息。
 
-## 10. 最近一次执行记录（2026-03-04）
+## 10. M4 AI 安全治理验收
+
+- 后端：
+  - `cd backend && mvn test -Dtest=AiSafetyServiceTest,AiProxyServiceTest`
+  - 覆盖本地规则、分级动作、安全事件、临时控制、AI Chat 输入阻断。
+- 前端：
+  - `cd frontend && pnpm test:e2e tests/m4-safety.spec.ts`
+  - 覆盖 `/admin/safety`、仪表盘安全指标和社区安全错误提示。
+- browser-use 一次性验收：
+  - 在真实房间发送 `M4_TEST_BLOCK`，确认玩家收到安全提示且聊天室不出现原文。
+  - 在 `/community` 发布 `M4_TEST_BLOCK`，确认发布被拒绝；若使用中文访客名，浏览器端会先编码再发送，后端解码后入库。
+  - 在 `/admin/safety` 查看事件，执行确认、关闭、创建临时控制。
+
+## 11. 最近一次执行记录（2026-03-04）
 
 - 报告目录：`result/game-reports/20260304132122-subagent-rerun/`
 - 4 场真人对局均完成到结算：

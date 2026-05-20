@@ -26,6 +26,8 @@ import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.UserRepository;
 import com.aisocialgame.service.ai.AiDecisionTraceService;
 import com.aisocialgame.service.ai.AiReflectionService;
+import com.aisocialgame.service.safety.AiSafetyContext;
+import com.aisocialgame.service.safety.AiSafetyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +52,7 @@ public class AdminOpsService {
     private final AiDecisionTraceService aiDecisionTraceService;
     private final AiPersonaMemoryRepository aiPersonaMemoryRepository;
     private final AiReflectionService aiReflectionService;
+    private final AiSafetyService aiSafetyService;
 
     public AdminOpsService(UserGrpcClient userGrpcClient,
                            BillingGrpcClient billingGrpcClient,
@@ -63,7 +66,8 @@ public class AdminOpsService {
 	                           AppProperties appProperties,
 	                           AiDecisionTraceService aiDecisionTraceService,
 	                           AiPersonaMemoryRepository aiPersonaMemoryRepository,
-	                           AiReflectionService aiReflectionService) {
+	                           AiReflectionService aiReflectionService,
+                               AiSafetyService aiSafetyService) {
         this.userGrpcClient = userGrpcClient;
         this.billingGrpcClient = billingGrpcClient;
         this.balanceService = balanceService;
@@ -77,6 +81,7 @@ public class AdminOpsService {
         this.aiDecisionTraceService = aiDecisionTraceService;
         this.aiPersonaMemoryRepository = aiPersonaMemoryRepository;
         this.aiReflectionService = aiReflectionService;
+        this.aiSafetyService = aiSafetyService;
     }
 
     public AdminDashboardSummaryResponse dashboardSummary() {
@@ -90,7 +95,18 @@ public class AdminOpsService {
         } catch (Exception e) {
             modelCount = 0;
         }
-        return new AdminDashboardSummaryResponse(users, rooms, posts, gameStates, modelCount);
+        var safety = aiSafetyService.summary();
+        return new AdminDashboardSummaryResponse(
+                users,
+                rooms,
+                posts,
+                gameStates,
+                modelCount,
+                safety.openHighRiskEvents(),
+                safety.blockedLast24h(),
+                safety.costAnomaliesLast24h(),
+                safety.activeControls()
+        );
     }
 
     public AdminIntegrationStatusResponse integrationStatus() {
@@ -236,7 +252,10 @@ public class AdminOpsService {
         request.setModel(model);
         request.setMessages(messages);
         long effectiveUserId = userId > 0 ? userId : Math.max(1, appProperties.getAi().getSystemUserId());
-        return new AiChatResponse(aiProxyService.chatByIdentity(request, effectiveUserId, sessionId));
+        AiSafetyContext context = AiSafetyContext.source(AiSafetyService.SOURCE_ADMIN_AI_TEST)
+                .user(String.valueOf(effectiveUserId), null)
+                .metadata("adminTest", true);
+        return new AiChatResponse(aiProxyService.chatByIdentity(request, effectiveUserId, sessionId, context));
     }
 
     public PagedResponse<AdminAiDecisionTraceView> decisionTraces(String roomId,

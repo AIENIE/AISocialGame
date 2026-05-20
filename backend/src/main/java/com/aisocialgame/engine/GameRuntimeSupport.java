@@ -26,6 +26,9 @@ import com.aisocialgame.service.RoomService;
 import com.aisocialgame.service.StatsService;
 import com.aisocialgame.service.ai.AiDecisionResult;
 import com.aisocialgame.service.ai.AiDecisionService;
+import com.aisocialgame.service.safety.AiSafetyContext;
+import com.aisocialgame.service.safety.AiSafetyResult;
+import com.aisocialgame.service.safety.AiSafetyService;
 import com.aisocialgame.websocket.GamePushService;
 import com.aisocialgame.websocket.PlayerConnectionService;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,6 +67,7 @@ public class GameRuntimeSupport {
     private final PlayerConnectionService playerConnectionService;
     private final GameEventRecorder gameEventRecorder;
     private final ReplayArchiveService replayArchiveService;
+    private final AiSafetyService aiSafetyService;
     private final Duration disconnectThreshold;
 
     public GameRuntimeSupport(RoomService roomService,
@@ -76,6 +80,7 @@ public class GameRuntimeSupport {
                               PlayerConnectionService playerConnectionService,
                               GameEventRecorder gameEventRecorder,
                               ReplayArchiveService replayArchiveService,
+                              AiSafetyService aiSafetyService,
                               @Value("${connection.disconnect-threshold-seconds:60}") long disconnectThresholdSeconds) {
         this.roomService = roomService;
         this.gameStateRepository = gameStateRepository;
@@ -87,6 +92,7 @@ public class GameRuntimeSupport {
         this.playerConnectionService = playerConnectionService;
         this.gameEventRecorder = gameEventRecorder;
         this.replayArchiveService = replayArchiveService;
+        this.aiSafetyService = aiSafetyService;
         this.disconnectThreshold = Duration.ofSeconds(Math.max(5, disconnectThresholdSeconds));
     }
 
@@ -342,10 +348,13 @@ public class GameRuntimeSupport {
         if (current == null || !current.getPlayerId().equals(actorId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
         }
-        addLog(state, "speak", current.getDisplayName() + "：" + content);
+        String safeContent = aiSafetyService.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH)
+                .room(state.getRoomId(), state.getGameId())
+                .user(actorId, actorId));
+        addLog(state, "speak", current.getDisplayName() + "：" + safeContent);
         gameEventRecorder.recordPublic(state, "SPEECH", actorId, null, Map.of(
                 "displayName", current.getDisplayName(),
-                "content", content
+                "content", safeContent
         ));
         addSpeaker(state, actorId);
         moveUndercoverToNextSpeaker(state, room);
@@ -387,10 +396,13 @@ public class GameRuntimeSupport {
         if (current == null || !current.getPlayerId().equals(actorId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
         }
-        addLog(state, "speak", current.getDisplayName() + "：" + content);
+        String safeContent = aiSafetyService.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH)
+                .room(state.getRoomId(), state.getGameId())
+                .user(actorId, actorId));
+        addLog(state, "speak", current.getDisplayName() + "：" + safeContent);
         gameEventRecorder.recordPublic(state, "SPEECH", actorId, null, Map.of(
                 "displayName", current.getDisplayName(),
-                "content", content
+                "content", safeContent
         ));
         addSpeaker(state, actorId);
         moveWerewolfToNextSpeaker(state, room);
@@ -652,7 +664,7 @@ public class GameRuntimeSupport {
             if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                 if (speaker.isAi()) {
                     AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + decision.content(), decision.logMetadata());
+                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
                     addSpeaker(state, speaker.getPlayerId());
                     moveUndercoverToNextSpeaker(state, room);
                     changed = true;
@@ -660,7 +672,7 @@ public class GameRuntimeSupport {
                     if (isPlayerDisconnected(speaker)) {
                         markAiTakeover(state, speaker);
                         AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + decision.content(), decision.logMetadata());
+                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
                     } else {
                         addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                     }
@@ -696,7 +708,7 @@ public class GameRuntimeSupport {
                 if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                     if (speaker.isAi()) {
                         AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + decision.content(), decision.logMetadata());
+                        addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
                         addSpeaker(state, speaker.getPlayerId());
                         moveWerewolfToNextSpeaker(state, room);
                         changed = true;
@@ -704,7 +716,7 @@ public class GameRuntimeSupport {
                         if (isPlayerDisconnected(speaker)) {
                             markAiTakeover(state, speaker);
                             AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + decision.content(), decision.logMetadata());
+                            addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
                         } else {
                             addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                         }
@@ -1248,6 +1260,15 @@ public class GameRuntimeSupport {
             data.put("metadata", metadata);
         }
         gameEventRecorder.recordPublic(state, eventTypeForLog(type), null, null, data);
+    }
+
+    private String safeAiSpeech(GameState state, GamePlayerState speaker, AiDecisionResult decision) {
+        AiSafetyResult result = aiSafetyService.review(decision.content(), AiSafetyContext.source(AiSafetyService.SOURCE_AI_PLAYER)
+                .room(state.getRoomId(), state.getGameId())
+                .user(speaker.getPlayerId(), speaker.getPlayerId())
+                .persona(speaker.getPersonaId())
+                .trace(String.valueOf(decision.traceId())));
+        return result.allowed() ? decision.content() : result.safeContent();
     }
 
     private void recordGameStart(GameState state, String message) {

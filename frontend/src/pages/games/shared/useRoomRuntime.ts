@@ -58,7 +58,13 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     token,
     onStateChange: invalidateRuntime,
     onSeatChange: invalidateRoom,
-    onPrivate: invalidateRuntime,
+    onPrivate: (event) => {
+      if (event.type === "SAFETY_NOTICE") {
+        const message = typeof event.payload?.message === "string" ? event.payload.message : "内容未通过安全检查";
+        toast.warning(message);
+      }
+      invalidateRuntime();
+    },
     onChat: (msg) => setChatMessages((prev) => [...prev.slice(-99), msg]),
   });
 

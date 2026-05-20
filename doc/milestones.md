@@ -37,7 +37,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 | M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；开发记录见 `doc/milestones/m1-ai-quality-loop/development.md` |
 | M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
 | M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md` |
-| M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；规划记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md` |
+| M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；开发记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md` |
 | M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
 | M6 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
 | M7 | P1 | AI 运营后台与策略治理 | Persona/Prompt/模型/成本/审计/灰度 |
@@ -229,10 +229,14 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - M3 的统一 action 与 GameEngine 插件化入口。
 - 现有 admin 模块、用户封禁、积分账本和 AI 网关调用记录。
 
-### M4 规划记录（2026-05-19）
+### M4 实现记录（2026-05-20）
 
-- 本阶段当前只新增里程碑规划，不进行代码开发、建表、接口实现或测试执行。
-- 分目录规划记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md`。
+- 新增 AI Safety 治理层，统一输出 `ALLOW` / `REDACT` / `BLOCK` / `RATE_LIMIT` / `ESCALATE`。
+- 新增 `ai_safety_events` 与 `ai_safety_controls`，支持安全事件队列和 `USER` / `ROOM` / `PERSONA` / `MODEL` / `GLOBAL` 临时控制。
+- 房间聊天、社区发帖、通用 AI Chat、管理端 AI 测试、真人局内发言和 AI 玩家自动发言均接入 safety gate。
+- 管理端新增 `/admin/safety` 安全运营页面，仪表盘增加安全指标。
+- 详细架构见 `doc/modules/ai-safety-admin-ops-module.md`。
+- 分目录开发记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md`。
 
 ## 9. M5：新增海龟汤玩法
 
