@@ -91,7 +91,7 @@ public class AdminOpsService {
         long gameStates = gameStateRepository.count();
         int modelCount;
         try {
-            modelCount = aiProxyService.listModels().size();
+            modelCount = aiProxyService.listModelsForSystem().size();
         } catch (Exception e) {
             modelCount = 0;
         }
@@ -114,7 +114,7 @@ public class AdminOpsService {
         List<AdminIntegrationStatusResponse.ServiceStatus> statuses = List.of(
                 probe("user-service", () -> userGrpcClient.getUserBasic(probeUserId)),
                 probe("pay-service", () -> billingGrpcClient.getBalance(appProperties.getProjectKey(), probeUserId)),
-                probe("ai-service", aiProxyService::listModels)
+                probe("ai-service", aiProxyService::listModelsForSystem)
         );
         return new AdminIntegrationStatusResponse(statuses);
     }
@@ -244,7 +244,7 @@ public class AdminOpsService {
     }
 
     public List<AiModelView> listModels() {
-        return aiProxyService.listModels().stream().map(AiModelView::new).toList();
+        return aiProxyService.listModelsForSystem().stream().map(AiModelView::new).toList();
     }
 
     public AiChatResponse testChat(long userId, String sessionId, String model, List<AiMessageRequest> messages) {

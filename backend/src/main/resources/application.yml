@@ -76,8 +76,8 @@ grpc:
       address: ${USER_GRPC_ADDR:static://userservice.seekerhut.com:10001}
       negotiationType: ${USER_GRPC_NEGOTIATION_TYPE:TLS}
     billing:
-      address: ${BILLING_GRPC_ADDR:static://payservice.seekerhut.com:20021}
-      negotiationType: ${BILLING_GRPC_NEGOTIATION_TYPE:TLS}
+      address: ${BILLING_GRPC_ADDR:static://payservice.seekerhut.com:10021}
+      negotiationType: ${BILLING_GRPC_NEGOTIATION_TYPE:PLAINTEXT}
     ai:
       address: ${AI_GRPC_ADDR:static://aiservice.seekerhut.com:10011}
       negotiationType: ${AI_GRPC_NEGOTIATION_TYPE:TLS}

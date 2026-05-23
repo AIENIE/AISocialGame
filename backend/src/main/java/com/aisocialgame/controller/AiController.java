@@ -45,8 +45,8 @@ public class AiController {
     }
 
     @GetMapping("/models")
-    public ResponseEntity<List<AiModelView>> listModels() {
-        return ResponseEntity.ok(aiProxyService.listModels().stream().map(AiModelView::new).toList());
+    public ResponseEntity<List<AiModelView>> listModels(@CurrentUser User user) {
+        return ResponseEntity.ok(aiProxyService.listModels(user).stream().map(AiModelView::new).toList());
     }
 
     @PostMapping("/chat")

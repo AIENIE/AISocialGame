@@ -399,7 +399,7 @@ public class ProjectCreditService {
         if (tokens <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "兑换数量必须大于 0");
         }
-        String normalizedRequestId = normalizeRequestId(requestId, "exchange", userId);
+        String normalizedRequestId = requireRequestId(requestId);
         String projectKey = appProperties.getProjectKey();
         long publicBefore = safeGetPublicTokens(userId);
 
@@ -794,6 +794,13 @@ public class ProjectCreditService {
             return requestId.trim();
         }
         return appProperties.getProjectKey() + ":" + action + ":" + userId + ":" + UUID.randomUUID();
+    }
+
+    private String requireRequestId(String requestId) {
+        if (!StringUtils.hasText(requestId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "requestId 不能为空");
+        }
+        return requestId.trim();
     }
 
     private String truncate(String text, int maxLength) {

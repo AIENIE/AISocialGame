@@ -117,10 +117,10 @@ const WalletPanel = ({ initialBalance }: Props) => {
     }
   };
 
-  const onExchange = async (amount: number) => {
+  const onExchange = async (amount: number, requestId: string) => {
     setExchanging(true);
     try {
-      const result = await walletApi.exchangePublicToProject(amount);
+      const result = await walletApi.exchangePublicToProject(amount, requestId);
       applyBalance(result.balance);
       toast.success(`兑换成功，到账 ${result.exchangedTokens} 专属积分`);
       const [history] = await Promise.all([

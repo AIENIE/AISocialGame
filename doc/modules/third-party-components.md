@@ -25,7 +25,7 @@
 
 - 三服务 gRPC 默认走静态域名：
   - `static://userservice.seekerhut.com:10001`
-  - `static://payservice.seekerhut.com:20021`
+  - `static://payservice.seekerhut.com:10021`
   - `static://aiservice.seekerhut.com:10011`
 - SSO/HTTP 对外地址默认使用域名：
   - `userservice.seekerhut.com`

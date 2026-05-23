@@ -22,6 +22,7 @@ message UserBasic {
   bool active = 5;
   google.protobuf.Timestamp banned_until = 6;
   google.protobuf.Timestamp created_at = 7;
+  string phone = 8;
 }
 
 message GetUserBasicResponse {
@@ -91,6 +92,12 @@ enum EmailCodePurpose {
   EMAIL_CODE_PURPOSE_BIND_EMAIL = 4;
 }
 
+enum SmsCodePurpose {
+  SMS_CODE_PURPOSE_UNSPECIFIED = 0;
+  SMS_CODE_PURPOSE_REGISTER = 1;
+  SMS_CODE_PURPOSE_RESET_PASSWORD = 2;
+}
+
 message SendEmailCodeRequest {
   string request_id = 1;
   string email = 2;
@@ -117,6 +124,33 @@ message VerifyEmailCodeRequest {
 }
 
 message VerifyEmailCodeResponse {
+  bool valid = 1;
+  string error_message = 2;
+}
+
+message SendSmsCodeRequest {
+  string request_id = 1;
+  string phone = 2;
+  SmsCodePurpose purpose = 3;
+  string project_key = 4;
+  string ip_address = 5;
+  string browser_id = 6;
+  string cap_token = 7;
+}
+
+message SendSmsCodeResponse {
+  bool success = 1;
+  int32 cooldown_seconds = 2;
+  string error_message = 3;
+}
+
+message VerifySmsCodeRequest {
+  string phone = 1;
+  string code = 2;
+  SmsCodePurpose purpose = 3;
+}
+
+message VerifySmsCodeResponse {
   bool valid = 1;
   string error_message = 2;
 }
@@ -196,6 +230,11 @@ service EmailVerificationService {
   rpc VerifyEmailCode(VerifyEmailCodeRequest) returns (VerifyEmailCodeResponse);
 }
 
+service SmsVerificationService {
+  rpc SendSmsCode(SendSmsCodeRequest) returns (SendSmsCodeResponse);
+  rpc VerifySmsCode(VerifySmsCodeRequest) returns (VerifySmsCodeResponse);
+}
+
 // New: User Ban Service
 service UserBanService {
   // Ban a user (permanent or temporary)
@@ -236,6 +275,7 @@ message LoginUserRequest {
   string password = 3;
   string ip_address = 4;
   string user_agent = 5;
+  int32 keep_days = 6;
 }
 
 message LoginUserResponse {
@@ -244,6 +284,7 @@ message LoginUserResponse {
   UserBasic user = 3;
   string access_token = 4;
   string session_id = 5;
+  int64 expires_in_seconds = 6;
 }
 
 message ResetPasswordRequest {
@@ -271,7 +312,42 @@ message ValidateSessionResponse {
 
 service UserAuthService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc RegisterUserByPhone(RegisterUserByPhoneRequest) returns (RegisterUserByPhoneResponse);
   rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc ResetPasswordByPhone(ResetPasswordByPhoneRequest) returns (ResetPasswordByPhoneResponse);
   rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+}
+
+message RegisterUserByPhoneRequest {
+  string request_id = 1;
+  string username = 2;
+  string phone = 3;
+  string email = 4;
+  string password = 5;
+  string display_name = 6;
+  string avatar_url = 7;
+  string ip_address = 8;
+  string user_agent = 9;
+}
+
+message RegisterUserByPhoneResponse {
+  bool success = 1;
+  string error_message = 2;
+  UserBasic user = 3;
+  string access_token = 4;
+  string session_id = 5;
+}
+
+message ResetPasswordByPhoneRequest {
+  string request_id = 1;
+  string phone = 2;
+  string new_password = 3;
+  string ip_address = 4;
+  string user_agent = 5;
+}
+
+message ResetPasswordByPhoneResponse {
+  bool success = 1;
+  string error_message = 2;
 }

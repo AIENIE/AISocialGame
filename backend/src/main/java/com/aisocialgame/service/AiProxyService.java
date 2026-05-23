@@ -43,14 +43,16 @@ public class AiProxyService {
         this.aiSafetyService = aiSafetyService;
     }
 
-    public List<AiModelOptionDto> listModels() {
-        return aiGrpcClient.listModels();
+    public List<AiModelOptionDto> listModels(User user) {
+        return aiGrpcClient.listModels(requireExternalUserId(user));
+    }
+
+    public List<AiModelOptionDto> listModelsForSystem() {
+        return aiGrpcClient.listModels(requireSystemUserId());
     }
 
     public AiChatResult chat(AiChatRequest request, User user) {
-        long userId = user != null && user.getExternalUserId() != null && user.getExternalUserId() > 0
-                ? user.getExternalUserId()
-                : appProperties.getAi().getSystemUserId();
+        long userId = requireExternalUserId(user);
         String sessionId = user != null && StringUtils.hasText(user.getSessionId()) ? user.getSessionId() : "";
         AiSafetyContext context = AiSafetyContext.source(AiSafetyService.SOURCE_AI_CHAT_INPUT)
                 .user(String.valueOf(userId), user == null ? null : user.getId());
@@ -62,7 +64,7 @@ public class AiProxyService {
     }
 
     public AiChatResult chatByIdentity(AiChatRequest request, long userId, String sessionId, AiSafetyContext context) {
-        List<String> candidateModels = resolveChatModels(request.getModel());
+        List<String> candidateModels = resolveChatModels(request.getModel(), userId);
         boolean explicitModel = StringUtils.hasText(request.getModel());
         List<AiChatMessageDto> messages = request.getMessages().stream()
                 .map(message -> new AiChatMessageDto(message.getRole(), aiSafetyService.requireAllowedInput(
@@ -126,11 +128,9 @@ public class AiProxyService {
     }
 
     public AiEmbeddingsResult embeddings(AiEmbeddingsRequest request, User user) {
-        long userId = user != null && user.getExternalUserId() != null && user.getExternalUserId() > 0
-                ? user.getExternalUserId()
-                : appProperties.getAi().getSystemUserId();
+        long userId = requireExternalUserId(user);
         String sessionId = user != null && StringUtils.hasText(user.getSessionId()) ? user.getSessionId() : "";
-        String model = resolveModel(request.getModel());
+        String model = resolveModel(request.getModel(), userId);
         boolean normalize = request.getNormalize() == null || request.getNormalize();
         AiEmbeddingsResult result = aiGrpcClient.embeddings(
                 appProperties.getProjectKey(),
@@ -148,11 +148,9 @@ public class AiProxyService {
     }
 
     public AiOcrResult ocrParse(AiOcrRequest request, User user) {
-        long userId = user != null && user.getExternalUserId() != null && user.getExternalUserId() > 0
-                ? user.getExternalUserId()
-                : appProperties.getAi().getSystemUserId();
+        long userId = requireExternalUserId(user);
         String sessionId = user != null && StringUtils.hasText(user.getSessionId()) ? user.getSessionId() : "";
-        String model = resolveModel(request.getModel());
+        String model = resolveModel(request.getModel(), userId);
         return aiGrpcClient.ocrParse(
                 appProperties.getProjectKey(),
                 userId,
@@ -175,7 +173,7 @@ public class AiProxyService {
         projectCreditService.consumeProjectTokens(userId, billedTokens, source, metadata, null);
     }
 
-    private String resolveModel(String requestedModel) {
+    private String resolveModel(String requestedModel, long userId) {
         if (StringUtils.hasText(requestedModel)) {
             return requestedModel.trim();
         }
@@ -183,7 +181,7 @@ public class AiProxyService {
             return appProperties.getAi().getDefaultModel().trim();
         }
         try {
-            return aiGrpcClient.listModels().stream()
+            return aiGrpcClient.listModels(userId).stream()
                     .filter(model -> StringUtils.hasText(model.type()) && model.type().toUpperCase().contains("TEXT"))
                     .map(item -> StringUtils.hasText(item.displayName()) ? item.displayName().trim() : "")
                     .filter(StringUtils::hasText)
@@ -194,7 +192,7 @@ public class AiProxyService {
         }
     }
 
-    private List<String> resolveChatModels(String requestedModel) {
+    private List<String> resolveChatModels(String requestedModel, long userId) {
         if (StringUtils.hasText(requestedModel)) {
             return List.of(requestedModel.trim());
         }
@@ -203,7 +201,7 @@ public class AiProxyService {
             candidates.add(appProperties.getAi().getDefaultModel().trim());
         }
         try {
-            for (AiModelOptionDto model : aiGrpcClient.listModels()) {
+            for (AiModelOptionDto model : aiGrpcClient.listModels(userId)) {
                 String type = model.type() == null ? "" : model.type().toUpperCase();
                 if (!type.contains("TEXT")) {
                     continue;
@@ -219,7 +217,7 @@ public class AiProxyService {
             // Keep best-effort fallback candidates.
         }
         if (candidates.isEmpty()) {
-            String fallback = resolveModel(requestedModel);
+            String fallback = resolveModel(requestedModel, userId);
             if (StringUtils.hasText(fallback)) {
                 candidates.add(fallback);
             }
@@ -228,5 +226,20 @@ public class AiProxyService {
             candidates.add("");
         }
         return new ArrayList<>(candidates);
+    }
+
+    private long requireExternalUserId(User user) {
+        if (user == null || user.getExternalUserId() == null || user.getExternalUserId() <= 0) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        return user.getExternalUserId();
+    }
+
+    private long requireSystemUserId() {
+        long systemUserId = appProperties.getAi().getSystemUserId();
+        if (systemUserId <= 0) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "APP_AI_SYSTEM_USER_ID 未配置");
+        }
+        return systemUserId;
     }
 }

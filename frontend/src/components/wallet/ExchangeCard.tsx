@@ -5,19 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   exchanging: boolean;
-  onExchange: (amount: number) => Promise<void>;
+  onExchange: (amount: number, requestId: string) => Promise<void>;
 }
 
 const ExchangeCard = ({ exchanging, onExchange }: Props) => {
   const [amount, setAmount] = useState("");
+  const [pendingRequestId, setPendingRequestId] = useState("");
 
   const submit = async () => {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
     }
-    await onExchange(parsed);
+    const requestId = pendingRequestId || createRequestId();
+    setPendingRequestId(requestId);
+    await onExchange(parsed, requestId);
     setAmount("");
+    setPendingRequestId("");
+  };
+
+  const createRequestId = () => {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return `aisocialgame:exchange:${crypto.randomUUID()}`;
+    }
+    return `aisocialgame:exchange:${Date.now()}:${Math.random().toString(36).slice(2)}`;
   };
 
   return (
@@ -44,4 +55,3 @@ const ExchangeCard = ({ exchanging, onExchange }: Props) => {
 };
 
 export default ExchangeCard;
-

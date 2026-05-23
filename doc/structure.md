@@ -63,7 +63,7 @@ AISocialGame/
 
 - gRPC 地址默认走静态域名：
   - `USER_GRPC_ADDR=static://userservice.seekerhut.com:10001`
-  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:20021`
+  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:10021`
   - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:10011`
 - SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量通过未入库 `env.local`、系统环境或 CI/CD secret 注入，`env.txt` 只保留模板。

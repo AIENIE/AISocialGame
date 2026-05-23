@@ -16,9 +16,11 @@ message GetProjectBalanceRequest {
 }
 
 message ProjectBalance {
-  int64 temp_tokens = 1;
+  int64 temp_tokens = 1 [deprecated = true];
   google.protobuf.Timestamp temp_expires_at = 2;
-  int64 permanent_tokens = 3;
+  int64 permanent_tokens = 3 [deprecated = true];
+  int64 temp_credits = 11;
+  int64 permanent_credits = 12;
 }
 
 message GetProjectBalanceResponse {
@@ -30,7 +32,8 @@ message GetPublicBalanceRequest {
 }
 
 message GetPublicBalanceResponse {
-  int64 public_permanent_tokens = 1;
+  int64 public_permanent_tokens = 1 [deprecated = true];
+  int64 public_permanent_credits = 2;
 }
 
 // ==================== Conversion ====================
@@ -39,12 +42,14 @@ message ConvertPublicToProjectRequest {
   string request_id = 1;
   string project_key = 2;
   int64 user_id = 3;
-  int64 tokens = 4;
+  int64 tokens = 4 [deprecated = true];
+  int64 credits = 5;
 }
 
 message ConvertPublicToProjectResponse {
-  int64 public_permanent_tokens = 1;
+  int64 public_permanent_tokens = 1 [deprecated = true];
   ProjectBalance project_balance = 2;
+  int64 public_permanent_credits = 3;
 }
 
 // ==================== Grant ====================
@@ -54,20 +59,23 @@ message GrantPublicTokensRequest {
   // Project key for audit scope (operator is a project admin).
   string project_key = 2;
   int64 user_id = 3;
-  int64 tokens = 4;
+  int64 tokens = 4 [deprecated = true];
   string reason = 5;
+  int64 credits = 6;
 }
 
 message GrantPublicTokensResponse {
-  int64 public_permanent_tokens = 1;
+  int64 public_permanent_tokens = 1 [deprecated = true];
+  int64 public_permanent_credits = 2;
 }
 
 message GrantProjectPermanentTokensRequest {
   string request_id = 1;
   string project_key = 2;
   int64 user_id = 3;
-  int64 tokens = 4;
+  int64 tokens = 4 [deprecated = true];
   string reason = 5;
+  int64 credits = 6;
 }
 
 message GrantProjectPermanentTokensResponse {
@@ -82,20 +90,26 @@ message DeductUsageRequest {
   int64 user_id = 3;
   string model_key = 4;
 
-  int64 prompt_tokens = 5;
-  int64 completion_tokens = 6;
+  int64 prompt_tokens = 5 [deprecated = true];
+  int64 completion_tokens = 6 [deprecated = true];
 
   // Optional, for analytics and AI sticky routing.
   string session_id = 7;
   map<string, string> metadata = 8;
+  int64 input_credits = 9;
+  int64 output_credits = 10;
 }
 
 message DeductUsageResponse {
-  int64 billed_tokens = 1;
-  int64 deducted_tokens = 2;
-  int64 deducted_temp_tokens = 3;
-  int64 deducted_permanent_tokens = 4;
+  int64 billed_tokens = 1 [deprecated = true];
+  int64 deducted_tokens = 2 [deprecated = true];
+  int64 deducted_temp_tokens = 3 [deprecated = true];
+  int64 deducted_permanent_tokens = 4 [deprecated = true];
   ProjectBalance project_balance = 5;
+  int64 billed_credits = 6;
+  int64 deducted_credits = 7;
+  int64 deducted_temp_credits = 8;
+  int64 deducted_permanent_credits = 9;
 }
 
 message DeductPerCallRequest {
@@ -109,14 +123,19 @@ message DeductPerCallRequest {
 
   string session_id = 6;
   map<string, string> metadata = 7;
+  int64 credits_per_call = 8;
 }
 
 message DeductPerCallResponse {
-  int64 billed_tokens = 1;
-  int64 deducted_tokens = 2;
-  int64 deducted_temp_tokens = 3;
-  int64 deducted_permanent_tokens = 4;
+  int64 billed_tokens = 1 [deprecated = true];
+  int64 deducted_tokens = 2 [deprecated = true];
+  int64 deducted_temp_tokens = 3 [deprecated = true];
+  int64 deducted_permanent_tokens = 4 [deprecated = true];
   ProjectBalance project_balance = 5;
+  int64 billed_credits = 6;
+  int64 deducted_credits = 7;
+  int64 deducted_temp_credits = 8;
+  int64 deducted_permanent_credits = 9;
 }
 
 // ==================== Quota ====================
@@ -125,12 +144,14 @@ message CheckAndConsumeQuotaRequest {
   string request_id = 1;
   string project_key = 2;
   string model_key = 3;
-  int64 tokens = 4;
+  int64 tokens = 4 [deprecated = true];
+  int64 credits = 5;
 }
 
 message CheckAndConsumeQuotaResponse {
   bool allowed = 1;
-  int64 remaining_tokens = 2;
+  int64 remaining_tokens = 2 [deprecated = true];
+  int64 remaining_credits = 3;
 }
 
 // ==================== Checkin (New) ====================
@@ -143,10 +164,11 @@ message CheckinRequest {
 
 message CheckinResponse {
   bool success = 1;
-  int64 tokens_granted = 2;
+  int64 tokens_granted = 2 [deprecated = true];
   ProjectBalance project_balance = 3;
   bool already_checked_in = 4;
   string error_message = 5;
+  int64 credits_granted = 6;
 }
 
 message GetCheckinStatusRequest {
@@ -157,7 +179,8 @@ message GetCheckinStatusRequest {
 message GetCheckinStatusResponse {
   bool checked_in_today = 1;
   google.protobuf.Timestamp last_checkin_date = 2;
-  int64 tokens_granted_today = 3;
+  int64 tokens_granted_today = 3 [deprecated = true];
+  int64 credits_granted_today = 4;
 }
 
 // ==================== Redeem Code (New) ====================
@@ -178,11 +201,13 @@ message RedeemCodeRequest {
 
 message RedeemCodeResponse {
   bool success = 1;
-  int64 tokens_granted = 2;
+  int64 tokens_granted = 2 [deprecated = true];
   CreditType credit_type = 3;
   ProjectBalance project_balance = 4;
-  int64 public_permanent_tokens = 5;
+  int64 public_permanent_tokens = 5 [deprecated = true];
   string error_message = 6;
+  int64 credits_granted = 7;
+  int64 public_permanent_credits = 8;
 }
 
 message GetRedemptionHistoryRequest {
@@ -195,10 +220,11 @@ message GetRedemptionHistoryRequest {
 message RedemptionRecord {
   int64 id = 1;
   string code = 2;
-  int64 tokens_granted = 3;
+  int64 tokens_granted = 3 [deprecated = true];
   CreditType credit_type = 4;
   string project_key = 5;
   google.protobuf.Timestamp redeemed_at = 6;
+  int64 credits_granted = 7;
 }
 
 message GetRedemptionHistoryResponse {
@@ -269,10 +295,13 @@ message UsageRecord {
   string request_id = 2;
   string project_key = 3;
   string model_key = 4;
-  int64 prompt_tokens = 5;
-  int64 completion_tokens = 6;
-  int64 billed_tokens = 7;
+  int64 prompt_tokens = 5 [deprecated = true];
+  int64 completion_tokens = 6 [deprecated = true];
+  int64 billed_tokens = 7 [deprecated = true];
   google.protobuf.Timestamp created_at = 8;
+  int64 input_credits = 9;
+  int64 output_credits = 10;
+  int64 billed_credits = 11;
 }
 
 message ListUsageRecordsResponse {
@@ -292,15 +321,21 @@ message LedgerEntry {
   string request_id = 2;
   string project_key = 3;
   string type = 4; // EARN/SPEND/CONVERT/ADJUST/REFUND/RECHARGE/CHECKIN/REDEEM
-  int64 token_delta_temp = 5;
-  int64 token_delta_permanent = 6;
-  int64 token_delta_public = 7;
-  int64 balance_temp = 8;
-  int64 balance_permanent = 9;
-  int64 balance_public = 10;
+  int64 token_delta_temp = 5 [deprecated = true];
+  int64 token_delta_permanent = 6 [deprecated = true];
+  int64 token_delta_public = 7 [deprecated = true];
+  int64 balance_temp = 8 [deprecated = true];
+  int64 balance_permanent = 9 [deprecated = true];
+  int64 balance_public = 10 [deprecated = true];
   string source = 11; // Optional: CHAT/ADMIN/...
   google.protobuf.Timestamp created_at = 12;
   map<string, string> metadata = 13;
+  int64 credit_delta_temp = 14;
+  int64 credit_delta_permanent = 15;
+  int64 credit_delta_public = 16;
+  int64 balance_temp_credits = 17;
+  int64 balance_permanent_credits = 18;
+  int64 balance_public_credits = 19;
 }
 
 message ListLedgerEntriesResponse {
@@ -312,4 +347,3 @@ service BillingQueryService {
   rpc ListUsageRecords(ListUsageRecordsRequest) returns (ListUsageRecordsResponse);
   rpc ListLedgerEntries(ListLedgerEntriesRequest) returns (ListLedgerEntriesResponse);
 }
-

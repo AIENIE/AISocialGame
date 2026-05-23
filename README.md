@@ -52,7 +52,7 @@
 
 - MySQL / Redis / Qdrant：`base.seekerhut.com` 标准端口 `3306 / 6379 / 6333`
 - user-service gRPC：`static://userservice.seekerhut.com:10001`
-- pay-service gRPC：`static://payservice.seekerhut.com:20021`
+- pay-service gRPC：`static://payservice.seekerhut.com:10021`
 - ai-service gRPC：`static://aiservice.seekerhut.com:10011`
 - SSO 入口：`https://userservice.seekerhut.com`
 

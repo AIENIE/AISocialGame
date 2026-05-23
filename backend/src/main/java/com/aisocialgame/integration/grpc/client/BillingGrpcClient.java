@@ -66,8 +66,8 @@ public class BillingGrpcClient {
             var projectBalance = projectResponse.getBalance();
             return new BalanceSnapshot(
                     publicTokens,
-                    projectBalance.getTempTokens(),
-                    projectBalance.getPermanentTokens(),
+                    preferCredits(projectBalance.getTempCredits(), projectBalance.getTempTokens()),
+                    preferCredits(projectBalance.getPermanentCredits(), projectBalance.getPermanentTokens()),
                     GrpcTimeMapper.toInstant(projectBalance.getTempExpiresAt())
             );
         } catch (StatusRuntimeException ex) {
@@ -84,8 +84,8 @@ public class BillingGrpcClient {
             var projectBalance = projectResponse.getBalance();
             return new BalanceSnapshot(
                     0,
-                    projectBalance.getTempTokens(),
-                    projectBalance.getPermanentTokens(),
+                    preferCredits(projectBalance.getTempCredits(), projectBalance.getTempTokens()),
+                    preferCredits(projectBalance.getPermanentCredits(), projectBalance.getPermanentTokens()),
                     GrpcTimeMapper.toInstant(projectBalance.getTempExpiresAt())
             );
         } catch (StatusRuntimeException ex) {
@@ -98,7 +98,7 @@ public class BillingGrpcClient {
             var publicResponse = balanceStub.getPublicBalance(GetPublicBalanceRequest.newBuilder()
                     .setUserId(userId)
                     .build());
-            return publicResponse.getPublicPermanentTokens();
+            return preferCredits(publicResponse.getPublicPermanentCredits(), publicResponse.getPublicPermanentTokens());
         } catch (StatusRuntimeException ex) {
             throw toApiException(ex);
         }
@@ -115,7 +115,7 @@ public class BillingGrpcClient {
             BalanceSnapshot balance = toBalanceSnapshot(publicTokens, response.getProjectBalance());
             return new CheckinResult(
                     response.getSuccess(),
-                    response.getTokensGranted(),
+                    preferCredits(response.getCreditsGranted(), response.getTokensGranted()),
                     response.getAlreadyCheckedIn(),
                     response.getErrorMessage(),
                     balance
@@ -134,7 +134,7 @@ public class BillingGrpcClient {
             return new CheckinStatusResult(
                     response.getCheckedInToday(),
                     GrpcTimeMapper.toInstant(response.getLastCheckinDate()),
-                    response.getTokensGrantedToday()
+                    preferCredits(response.getCreditsGrantedToday(), response.getTokensGrantedToday())
             );
         } catch (StatusRuntimeException ex) {
             throw toApiException(ex);
@@ -155,9 +155,9 @@ public class BillingGrpcClient {
                             record.getRequestId(),
                             record.getProjectKey(),
                             record.getModelKey(),
-                            record.getPromptTokens(),
-                            record.getCompletionTokens(),
-                            record.getBilledTokens(),
+                            preferCredits(record.getInputCredits(), record.getPromptTokens()),
+                            preferCredits(record.getOutputCredits(), record.getCompletionTokens()),
+                            preferCredits(record.getBilledCredits(), record.getBilledTokens()),
                             GrpcTimeMapper.toInstant(record.getCreatedAt())
                     ))
                     .toList();
@@ -182,12 +182,12 @@ public class BillingGrpcClient {
                             entry.getRequestId(),
                             entry.getProjectKey(),
                             entry.getType(),
-                            entry.getTokenDeltaTemp(),
-                            entry.getTokenDeltaPermanent(),
-                            entry.getTokenDeltaPublic(),
-                            entry.getBalanceTemp(),
-                            entry.getBalancePermanent(),
-                            entry.getBalancePublic(),
+                            preferCredits(entry.getCreditDeltaTemp(), entry.getTokenDeltaTemp()),
+                            preferCredits(entry.getCreditDeltaPermanent(), entry.getTokenDeltaPermanent()),
+                            preferCredits(entry.getCreditDeltaPublic(), entry.getTokenDeltaPublic()),
+                            preferCredits(entry.getBalanceTempCredits(), entry.getBalanceTemp()),
+                            preferCredits(entry.getBalancePermanentCredits(), entry.getBalancePermanent()),
+                            preferCredits(entry.getBalancePublicCredits(), entry.getBalancePublic()),
                             entry.getSource(),
                             GrpcTimeMapper.toInstant(entry.getCreatedAt()),
                             entry.getMetadataMap()
@@ -205,15 +205,19 @@ public class BillingGrpcClient {
         return new PagedResult<>(snapshot.page(), snapshot.size(), snapshot.total(), snapshot.entries());
     }
 
-    public BalanceSnapshot convertPublicToProject(String requestId, String projectKey, long userId, long tokens) {
+    public BalanceSnapshot convertPublicToProject(String requestId, String projectKey, long userId, long credits) {
         try {
             var response = conversionStub.convertPublicToProject(ConvertPublicToProjectRequest.newBuilder()
                     .setRequestId(requestId == null ? "" : requestId)
                     .setProjectKey(projectKey == null ? "" : projectKey)
                     .setUserId(userId)
-                    .setTokens(tokens)
+                    .setCredits(credits)
+                    .setTokens(credits)
                     .build());
-            return toBalanceSnapshot(response.getPublicPermanentTokens(), response.getProjectBalance());
+            return toBalanceSnapshot(
+                    preferCredits(response.getPublicPermanentCredits(), response.getPublicPermanentTokens()),
+                    response.getProjectBalance()
+            );
         } catch (StatusRuntimeException ex) {
             throw toApiException(ex);
         }
@@ -242,10 +246,13 @@ public class BillingGrpcClient {
                     .setUserId(userId)
                     .setCode(code == null ? "" : code.trim())
                     .build());
-            BalanceSnapshot balance = toBalanceSnapshot(response.getPublicPermanentTokens(), response.getProjectBalance());
+            BalanceSnapshot balance = toBalanceSnapshot(
+                    preferCredits(response.getPublicPermanentCredits(), response.getPublicPermanentTokens()),
+                    response.getProjectBalance()
+            );
             return new RedeemResult(
                     response.getSuccess(),
-                    response.getTokensGranted(),
+                    preferCredits(response.getCreditsGranted(), response.getTokensGranted()),
                     response.getCreditType().name(),
                     response.getErrorMessage(),
                     balance
@@ -267,7 +274,7 @@ public class BillingGrpcClient {
                     .map(item -> new RedemptionRecordSnapshot(
                             item.getId(),
                             item.getCode(),
-                            item.getTokensGranted(),
+                            preferCredits(item.getCreditsGranted(), item.getTokensGranted()),
                             item.getCreditType().name(),
                             item.getProjectKey(),
                             GrpcTimeMapper.toInstant(item.getRedeemedAt())
@@ -313,9 +320,13 @@ public class BillingGrpcClient {
         }
         return new BalanceSnapshot(
                 publicPermanentTokens,
-                projectBalance.getTempTokens(),
-                projectBalance.getPermanentTokens(),
+                preferCredits(projectBalance.getTempCredits(), projectBalance.getTempTokens()),
+                preferCredits(projectBalance.getPermanentCredits(), projectBalance.getPermanentTokens()),
                 GrpcTimeMapper.toInstant(projectBalance.getTempExpiresAt())
         );
+    }
+
+    private long preferCredits(long credits, long tokensMirror) {
+        return credits != 0 ? credits : tokensMirror;
     }
 }

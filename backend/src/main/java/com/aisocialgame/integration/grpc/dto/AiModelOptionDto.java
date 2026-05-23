@@ -6,6 +6,7 @@ public record AiModelOptionDto(
         String provider,
         double inputRate,
         double outputRate,
-        String type
+        String type,
+        boolean supportsImageInput
 ) {
 }

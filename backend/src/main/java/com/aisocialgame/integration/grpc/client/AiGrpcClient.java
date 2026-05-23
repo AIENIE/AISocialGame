@@ -13,7 +13,6 @@ import fireflychat.ai.v1.ChatCompletionsRequest;
 import fireflychat.ai.v1.ChatMessage;
 import fireflychat.ai.v1.EmbeddingsRequest;
 import fireflychat.ai.v1.ListModelsRequest;
-import fireflychat.ai.v1.OcrOutputType;
 import fireflychat.ai.v1.OcrParseRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -31,9 +30,11 @@ public class AiGrpcClient {
     @GrpcClient(value = "ai", interceptors = AiGrpcHmacClientInterceptor.class)
     private AiGatewayServiceGrpc.AiGatewayServiceBlockingStub aiStub;
 
-    public List<AiModelOptionDto> listModels() {
+    public List<AiModelOptionDto> listModels(long userId) {
         try {
-            var response = aiStub.listModels(ListModelsRequest.newBuilder().build());
+            var response = aiStub.listModels(ListModelsRequest.newBuilder()
+                    .setUserId(userId)
+                    .build());
             return response.getModelsList().stream()
                     .map(model -> new AiModelOptionDto(
                             model.getId(),
@@ -41,7 +42,8 @@ public class AiGrpcClient {
                             model.getProvider(),
                             model.getInputRate(),
                             model.getOutputRate(),
-                            model.getType().name()
+                            model.getType().name(),
+                            model.getSupportsImageInput()
                     ))
                     .toList();
         } catch (StatusRuntimeException ex) {
@@ -101,8 +103,8 @@ public class AiGrpcClient {
                 }
             }
             var response = aiStub.embeddings(builder.build());
-            List<List<Float>> vectors = response.getVectorsList().stream()
-                    .map(vector -> vector.getValuesList().stream().toList())
+            List<List<Float>> vectors = response.getEmbeddingsList().stream()
+                    .map(embedding -> embedding.getVectorList().stream().toList())
                     .toList();
             return new AiEmbeddingsResult(
                     response.getModelKey(),
@@ -131,12 +133,12 @@ public class AiGrpcClient {
                     .setImageBase64(normalize(params.imageBase64()))
                     .setDocumentUrl(normalize(params.documentUrl()))
                     .setPages(normalize(params.pages()))
-                    .setOutputType(parseOutputType(params.outputType()));
+                    .setOutputType(normalizeOutputType(params.outputType()));
             var response = aiStub.ocrParse(builder.build());
             return new AiOcrResult(
                     response.getRequestId(),
                     response.getModelKey(),
-                    toOutputTypeText(response.getOutputType()),
+                    response.getOutputType(),
                     response.getContent(),
                     response.getRawJson()
             );
@@ -162,21 +164,13 @@ public class AiGrpcClient {
         return new ApiException(status, message);
     }
 
-    private OcrOutputType parseOutputType(String outputType) {
+    private String normalizeOutputType(String outputType) {
         if (!StringUtils.hasText(outputType)) {
-            return OcrOutputType.OCR_OUTPUT_TYPE_TEXT;
+            return "TEXT";
         }
         return switch (outputType.trim().toUpperCase()) {
-            case "JSON" -> OcrOutputType.OCR_OUTPUT_TYPE_JSON;
-            case "MARKDOWN" -> OcrOutputType.OCR_OUTPUT_TYPE_MARKDOWN;
-            default -> OcrOutputType.OCR_OUTPUT_TYPE_TEXT;
-        };
-    }
-
-    private String toOutputTypeText(OcrOutputType outputType) {
-        return switch (outputType) {
-            case OCR_OUTPUT_TYPE_JSON -> "JSON";
-            case OCR_OUTPUT_TYPE_MARKDOWN -> "MARKDOWN";
+            case "JSON" -> "JSON";
+            case "MARKDOWN" -> "MARKDOWN";
             default -> "TEXT";
         };
     }

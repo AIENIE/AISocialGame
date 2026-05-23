@@ -105,9 +105,9 @@ class AiProxyServiceTest {
     @Test
     void chatShouldFallbackToNextAvailableTextModelWhenDefaultModelUnavailable() {
         AiChatRequest request = buildChatRequest(null, "请回复ok");
-        when(aiGrpcClient.listModels()).thenReturn(List.of(
-                new AiModelOptionDto(2L, "Gemini 2.5 Flash", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT"),
-                new AiModelOptionDto(5L, "Gemini 2.5 Flash Image", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT")
+        when(aiGrpcClient.listModels(1001L)).thenReturn(List.of(
+                new AiModelOptionDto(2L, "Gemini 2.5 Flash", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT", false),
+                new AiModelOptionDto(5L, "Gemini 2.5 Flash Image", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT", true)
         ));
         when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("default-model"), anyList()))
                 .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "模型不可用"));
@@ -133,7 +133,7 @@ class AiProxyServiceTest {
 
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
 
-        verify(aiGrpcClient, never()).listModels();
+        verify(aiGrpcClient, never()).listModels(anyLong());
     }
 
     @Test

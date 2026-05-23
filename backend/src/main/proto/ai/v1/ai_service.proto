@@ -10,6 +10,8 @@ enum ModelType {
   MODEL_TYPE_UNSPECIFIED = 0;
   MODEL_TYPE_TEXT = 1;
   MODEL_TYPE_IMAGE = 2;
+  MODEL_TYPE_EMBEDDING = 3;
+  MODEL_TYPE_AUDIO = 4;
 }
 
 message ModelOption {
@@ -19,9 +21,12 @@ message ModelOption {
   double input_rate = 4;
   double output_rate = 5;
   ModelType type = 6;
+  bool supports_image_input = 7;
 }
 
-message ListModelsRequest {}
+message ListModelsRequest {
+  int64 user_id = 1;
+}
 
 message ListModelsResponse {
   repeated ModelOption models = 1;
@@ -42,6 +47,7 @@ message ChatCompletionsRequest {
   // Accepts model id (stringified) or model name.
   string model = 5;
   repeated ChatMessage messages = 6;
+  string img = 7;
 }
 
 message ChatCompletionsResponse {
@@ -58,25 +64,18 @@ message EmbeddingsRequest {
   string session_id = 4;
   string model = 5;
   repeated string input = 6;
-  bool normalize = 7;
+  optional bool normalize = 7;
+}
+
+message Embedding {
+  repeated float vector = 1;
 }
 
 message EmbeddingsResponse {
   string model_key = 1;
   int32 dimensions = 2;
-  repeated Embedding vectors = 3;
+  repeated Embedding embeddings = 3;
   int64 prompt_tokens = 4;
-}
-
-message Embedding {
-  repeated float values = 1;
-}
-
-enum OcrOutputType {
-  OCR_OUTPUT_TYPE_UNSPECIFIED = 0;
-  OCR_OUTPUT_TYPE_TEXT = 1;
-  OCR_OUTPUT_TYPE_MARKDOWN = 2;
-  OCR_OUTPUT_TYPE_JSON = 3;
 }
 
 message OcrParseRequest {
@@ -89,15 +88,33 @@ message OcrParseRequest {
   string image_base64 = 7;
   string document_url = 8;
   string pages = 9;
-  OcrOutputType output_type = 10;
+  string output_type = 10;
+  optional bool flatten = 11;
+  optional bool page_details = 12;
 }
 
 message OcrParseResponse {
   string request_id = 1;
   string model_key = 2;
-  OcrOutputType output_type = 3;
+  string output_type = 3;
   string content = 4;
   string raw_json = 5;
+}
+
+message GenerateImageRequest {
+  int64 user_id = 1;
+  string model = 2;
+  string prompt = 3;
+  string quality = 4;
+  string reference_image_url = 5;
+  string reference_image_base64 = 6;
+}
+
+message GenerateImageResponse {
+  string image_url = 1;
+  int64 prompt_tokens = 2;
+  int64 completion_tokens = 3;
+  int64 total_tokens = 4;
 }
 
 service AiGatewayService {
@@ -105,4 +122,5 @@ service AiGatewayService {
   rpc ChatCompletions(ChatCompletionsRequest) returns (ChatCompletionsResponse);
   rpc Embeddings(EmbeddingsRequest) returns (EmbeddingsResponse);
   rpc OcrParse(OcrParseRequest) returns (OcrParseResponse);
+  rpc GenerateImage(GenerateImageRequest) returns (GenerateImageResponse);
 }

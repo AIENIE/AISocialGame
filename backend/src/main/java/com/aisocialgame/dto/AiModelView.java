@@ -9,6 +9,7 @@ public class AiModelView {
     private double inputRate;
     private double outputRate;
     private String type;
+    private boolean supportsImageInput;
 
     public AiModelView(AiModelOptionDto option) {
         this.id = option.id();
@@ -17,6 +18,7 @@ public class AiModelView {
         this.inputRate = option.inputRate();
         this.outputRate = option.outputRate();
         this.type = option.type();
+        this.supportsImageInput = option.supportsImageInput();
     }
 
     public long getId() {
@@ -41,5 +43,9 @@ public class AiModelView {
 
     public String getType() {
         return type;
+    }
+
+    public boolean isSupportsImageInput() {
+        return supportsImageInput;
     }
 }

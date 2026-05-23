@@ -1,6 +1,6 @@
 # 模块文档索引
 
-> 更新时间：2026-05-19
+> 更新时间：2026-05-23
 
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
@@ -17,7 +17,7 @@
 | v2 社交留存与导航模块 | 覆盖快速匹配、好友、成就、回放、观战、新手引导与全局导航入口 | `doc/modules/v2-social-retention-module.md`、`frontend/src/components/social/*`、`frontend/src/pages/{Achievements,Replays,ReplayPlayer,Guide,SpectatorRoom}.tsx`、`frontend/src/services/v2Social.ts` |
 | 认证与钱包模块 | 管理 SSO 登录态、本地专属积分、签到、兑换码、通用转专属兑换、AI 成功调用后本地扣减 | `backend/src/main/java/com/aisocialgame/controller/AuthController.java`、`backend/src/main/java/com/aisocialgame/controller/WalletController.java`、`backend/src/main/java/com/aisocialgame/service/ProjectCreditService.java`、`frontend/src/components/wallet/*` |
 | 管理后台模块 | 管理管理员登录、用户封禁、积分流水检查、调账/冲正/迁移、兑换码创建、联通性诊断 | `backend/src/main/java/com/aisocialgame/controller/admin/*.java`、`frontend/src/pages/admin/*` |
-| gRPC 集成模块 | 管理 user/pay/ai 静态地址调用封装与严格鉴权拦截器 | `backend/src/main/java/com/aisocialgame/integration/*` |
+| gRPC 集成模块 | 管理 user/pay/ai 静态地址、当前 proto 契约、鉴权拦截器和本地项目钱包边界 | `backend/src/main/java/com/aisocialgame/integration/*`、`doc/modules/grpc-integration-module.md` |
 | 第三方组件对齐模块 | 记录 MySQL/Redis/Qdrant 外部依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.txt`、`build.sh` |
 | 安全加固模块 | 记录 v1.0 审计后的登录边界、房间权限、WS/CORS、AI 接口与运行配置加固 | `doc/modules/security-hardening-module.md`、`backend/src/main/java/com/aisocialgame/config/*` |
 | 可维护性整改模块 | 记录 v1.0 审计后的鉴权参数解析、房间页复用、账务账本拆分和 DTO 校验边界 | `doc/versions/v1.0/audit/maintainability-remediation.md`、`backend/src/main/java/com/aisocialgame/web/*` |
