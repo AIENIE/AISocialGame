@@ -4,7 +4,7 @@
 
 ## 技术栈
 
-- 后端：Java 21、Spring Boot、MySQL、Redis、gRPC
+- 后端：Java 25、Spring Boot、MySQL、Redis、gRPC
 - 前端：React 18、TypeScript、Vite、Tailwind、TanStack Query、shadcn/ui
 - 部署：Docker Compose（仅编排本项目的前后端）
 
@@ -13,7 +13,7 @@
 - `frontend/`：前端源码、构建配置、Playwright 工具配置
 - `backend/`：后端源码、SQL、proto、单测
 - `doc/`：接口、模块、测试与运维文档
-- `build.sh`：测试域名部署脚本（`aisocialgame.seekerhut.com`）
+- `build.sh`：本地域名部署脚本（`aisocialgame.localhut.com`）
 - `build_prod.sh`：正式域名部署脚本（`aisocialgame.aienie.com`）
 - `build_common.sh`：`build.sh/build_prod.sh` 共用部署逻辑
 - `build_local.sh`：Linux 宿主机本地直启后端
@@ -48,13 +48,13 @@
 - Qdrant
 - user-service / pay-service / ai-service
 
-测试服默认不再依赖 Consul：
+本地 localhut 部署默认不再依赖 Consul：
 
 - MySQL / Redis / Qdrant：`base.seekerhut.com` 标准端口 `3306 / 6379 / 6333`
-- user-service gRPC：`static://userservice.seekerhut.com:10001`
-- pay-service gRPC：`static://payservice.seekerhut.com:10021`
-- ai-service gRPC：`static://aiservice.seekerhut.com:10011`
-- SSO 入口：`https://userservice.seekerhut.com`
+- user-service gRPC：`static://userservice.localhut.com:10001`
+- pay-service gRPC：`static://payservice.localhut.com:10021`
+- ai-service gRPC：`static://aiservice.localhut.com:10011`
+- SSO 入口：`https://userservice.localhut.com`
 
 MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
 
@@ -83,7 +83,7 @@ mysql \
 每次测试/正式部署执行：
 
 ```bash
-./build.sh       # 测试环境：aisocialgame.seekerhut.com
+./build.sh       # 本地环境：aisocialgame.localhut.com
 ./build_prod.sh  # 正式环境：aisocialgame.aienie.com
 ```
 
@@ -93,7 +93,7 @@ mysql \
 
 ### Linux
 
-测试环境部署：
+本地环境部署：
 
 ```bash
 ./build.sh
@@ -139,7 +139,7 @@ mysql \
 
 ## 域名与端口
 
-- 测试域名：`aisocialgame.seekerhut.com`
+- 本地域名：`aisocialgame.localhut.com`
 - 正式域名：`aisocialgame.aienie.com`
 - 前端端口：`11030`
 - 后端端口：`11031`

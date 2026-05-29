@@ -134,7 +134,7 @@ test("SSO 回调、钱包操作、AI 流式聊天", async ({ page }) => {
   }, ssoState);
   await page.goto(`/sso/callback#access_token=remote-token&user_id=1001&username=tester&session_id=session-1&state=${ssoState}`);
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem("aisocialgame_token")))
+    .poll(() => page.evaluate(() => sessionStorage.getItem("aisocialgame_token")))
     .toBe("token-1");
   await page.goto("/");
 

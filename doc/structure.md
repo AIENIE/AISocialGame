@@ -34,7 +34,7 @@ AISocialGame/
 ├── docker-compose.yml                        # 仅编排本项目前后端容器
 ├── env.txt                                   # 无敏感值环境变量模板
 ├── env.local                                 # 本机真实环境变量（不入库）
-├── build.sh                                  # 测试域名部署（Linux）
+├── build.sh                                  # 本地域名部署（Linux）
 ├── build_prod.sh                             # 正式域名部署（Linux）
 ├── build_common.sh                           # build 脚本共用逻辑
 ├── build_local.sh                            # Linux 宿主机后端直启入口
@@ -54,7 +54,7 @@ AISocialGame/
 
 `build.sh` 与 `build_prod.sh` 当前保持同一实现，仅默认域名不同：
 
-- `build.sh` -> `aisocialgame.seekerhut.com`
+- `build.sh` -> `aisocialgame.localhut.com`
 - `build_prod.sh` -> `aisocialgame.aienie.com`
 
 两者共同调用 `build_common.sh`，并在运行期执行一致性校验。
@@ -62,9 +62,9 @@ AISocialGame/
 ## 关键配置约束
 
 - gRPC 地址默认走静态域名：
-  - `USER_GRPC_ADDR=static://userservice.seekerhut.com:10001`
-  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:10021`
-  - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:10011`
+  - `USER_GRPC_ADDR=static://userservice.localhut.com:10001`
+  - `BILLING_GRPC_ADDR=static://payservice.localhut.com:10021`
+  - `AI_GRPC_ADDR=static://aiservice.localhut.com:10011`
 - SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量通过未入库 `env.local`、系统环境或 CI/CD secret 注入，`env.txt` 只保留模板。
 - 非 test profile 会校验弱口令、MySQL TLS 和 gRPC 明文配置，详见 `doc/modules/security-hardening-module.md`。

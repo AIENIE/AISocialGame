@@ -24,13 +24,13 @@
 ## 服务发现与域名策略
 
 - 三服务 gRPC 默认走静态域名：
-  - `static://userservice.seekerhut.com:10001`
-  - `static://payservice.seekerhut.com:10021`
-  - `static://aiservice.seekerhut.com:10011`
+  - `static://userservice.localhut.com:10001`
+  - `static://payservice.localhut.com:10021`
+  - `static://aiservice.localhut.com:10011`
 - SSO/HTTP 对外地址默认使用域名：
-  - `userservice.seekerhut.com`
-  - `payservice.seekerhut.com`
-  - `aiservice.seekerhut.com`
+  - `userservice.localhut.com`
+  - `payservice.localhut.com`
+  - `aiservice.localhut.com`
 
 ## 部署脚本行为
 

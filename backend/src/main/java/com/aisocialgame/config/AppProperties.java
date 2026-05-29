@@ -103,8 +103,8 @@ public class AppProperties {
     }
 
     public static class Sso {
-        private String userServiceBaseUrl = "https://userservice.seekerhut.com";
-        private String callbackUrl = "https://aisocialgame.seekerhut.com/sso/callback";
+        private String userServiceBaseUrl = "https://userservice.localhut.com";
+        private String callbackUrl = "https://aisocialgame.localhut.com/sso/callback";
         private String loginPath = "/sso/login";
         private String registerPath = "/register";
 
@@ -277,9 +277,9 @@ public class AppProperties {
                 "http://127.0.0.1:11030",
                 "http://localhost",
                 "https://localhost",
-                "http://aisocialgame.seekerhut.com",
-                "http://aisocialgame.seekerhut.com:11030",
-                "https://aisocialgame.seekerhut.com",
+                "http://aisocialgame.localhut.com",
+                "http://aisocialgame.localhut.com:11030",
+                "https://aisocialgame.localhut.com",
                 "http://aisocialgame.aienie.com",
                 "http://aisocialgame.aienie.com:11030",
                 "https://aisocialgame.aienie.com"

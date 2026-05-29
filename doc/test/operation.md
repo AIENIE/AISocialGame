@@ -2,11 +2,11 @@
 
 ## 0. 入口与端口
 
-1. 测试域名入口：`https://aisocialgame.seekerhut.com`
+1. 本地域名入口：`https://aisocialgame.localhut.com`
 2. 前端直连入口：`http://127.0.0.1:11030`
 3. 后端直连入口：`http://127.0.0.1:11031/api`
 4. 健康检查：`http://127.0.0.1:11031/actuator/health`
-5. WebSocket：`wss://aisocialgame.seekerhut.com/ws`
+5. WebSocket：`wss://aisocialgame.localhut.com/ws`
 
 ## 1. 部署执行
 
@@ -45,14 +45,14 @@
 1. 首页点击“登录”。
 2. 期望请求 `GET /api/auth/sso/login?state=<一次性状态>` 并返回 `302`。
 3. 期望 `Location` 指向 user-service，且包含：
-   - `redirect=https://aisocialgame.seekerhut.com/sso/callback`
+   - `redirect=https://aisocialgame.localhut.com/sso/callback`
    - `state=<原始状态值>`
 4. 注册同理，通过 `GET /api/auth/sso/register?state=...`。
 5. `state` 非法时返回 `400`。
 
 ## 3. SSO 回调安全校验
 
-1. 打开 `https://aisocialgame.seekerhut.com/sso/callback` 并伪造 `state`。
+1. 打开 `https://aisocialgame.localhut.com/sso/callback` 并伪造 `state`。
 2. 期望前端提示 `SSO 状态校验失败，请重新登录`。
 3. 期望回到首页且不会建立本地登录态。
 

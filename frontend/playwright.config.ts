@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://aisocialgame.seekerhut.com",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://aisocialgame.localhut.com",
     headless: true,
     ignoreHTTPSErrors: process.env.PLAYWRIGHT_IGNORE_HTTPS_ERRORS !== "false",
     viewport: { width: 1440, height: 900 },

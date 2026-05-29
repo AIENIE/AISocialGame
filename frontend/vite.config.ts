@@ -6,7 +6,7 @@ import path from "path";
 export default defineConfig(() => {
   const backendPort = process.env.VITE_LOCAL_BACKEND_PORT || "11031";
   const backendTarget = `http://localhost:${backendPort}`;
-  const allowedHosts = ["localhost", "127.0.0.1", "aisocialgame.seekerhut.com", "aisocialgame.aienie.com"];
+  const allowedHosts = ["localhost", "127.0.0.1", "aisocialgame.localhut.com", "aisocialgame.aienie.com"];
 
   return {
     server: {

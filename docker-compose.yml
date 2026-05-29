@@ -1,6 +1,6 @@
 services:
   backend:
-    image: eclipse-temurin:21-jre
+    image: eclipse-temurin:25-jre
     container_name: aisocial-backend
     ports:
       - "11031:20030"
@@ -17,15 +17,15 @@ services:
       APP_AI_SYSTEM_USER_ID: ${APP_AI_SYSTEM_USER_ID:-1}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is required}
-      USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice.seekerhut.com:10001}
-      BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:10021}
-      AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:10011}
-      USER_GRPC_NEGOTIATION_TYPE: ${USER_GRPC_NEGOTIATION_TYPE:-TLS}
+      USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice.localhut.com:10001}
+      BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://payservice.localhut.com:10021}
+      AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}
+      USER_GRPC_NEGOTIATION_TYPE: ${USER_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
       BILLING_GRPC_NEGOTIATION_TYPE: ${BILLING_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
-      AI_GRPC_NEGOTIATION_TYPE: ${AI_GRPC_NEGOTIATION_TYPE:-TLS}
+      AI_GRPC_NEGOTIATION_TYPE: ${AI_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
       APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS: ${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}
       APP_SECURITY_ALLOW_PLAINTEXT_GRPC: ${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-true}
-      SSO_USER_SERVICE_BASE_URL: ${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}
+      SSO_USER_SERVICE_BASE_URL: ${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}
       QDRANT_HOST: ${QDRANT_HOST:-http://base.seekerhut.com}
       QDRANT_PORT: ${QDRANT_PORT:-6333}
       QDRANT_ENABLED: ${QDRANT_ENABLED:-true}
@@ -34,7 +34,7 @@ services:
       APP_EXTERNAL_PAYSERVICE_JWT: ${APP_EXTERNAL_PAYSERVICE_JWT:-}
       APP_EXTERNAL_AISERVICE_HMAC_CALLER: ${APP_EXTERNAL_AISERVICE_HMAC_CALLER:-}
       APP_EXTERNAL_AISERVICE_HMAC_SECRET: ${APP_EXTERNAL_AISERVICE_HMAC_SECRET:-}
-      SSO_CALLBACK_URL: ${SSO_CALLBACK_URL:-https://aisocialgame.seekerhut.com/sso/callback}
+      SSO_CALLBACK_URL: ${SSO_CALLBACK_URL:-https://aisocialgame.localhut.com/sso/callback}
       SSO_LOGIN_PATH: ${SSO_LOGIN_PATH:-/sso/login}
       SSO_REGISTER_PATH: ${SSO_REGISTER_PATH:-/register}
       SERVER_PORT: ${SERVER_PORT:-20030}
@@ -48,9 +48,9 @@ services:
       - ./backend/src/main/resources/prompt.yml:/app/config/prompt.yml:ro
     extra_hosts:
       - "base.seekerhut.com:192.168.5.208"
-      - "userservice.seekerhut.com:192.168.5.208"
-      - "payservice.seekerhut.com:192.168.5.208"
-      - "aiservice.seekerhut.com:192.168.5.208"
+      - "userservice.localhut.com:host-gateway"
+      - "payservice.localhut.com:host-gateway"
+      - "aiservice.localhut.com:host-gateway"
     networks:
       - aisocial
 

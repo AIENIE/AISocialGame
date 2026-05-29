@@ -3,7 +3,7 @@
 ## 1. 执行入口
 
 - 部署入口：`sudo ./build.sh`
-- 测试域名：`https://aisocialgame.seekerhut.com`
+- 本地域名：`https://aisocialgame.localhut.com`
 - 前端端口：`11030`
 - 后端端口：`11031`
 
@@ -109,11 +109,11 @@
 - Mock/UI 基线：
   - `cd frontend`
   - `pnpm test:e2e`
-- 真实测试服验收：
+- 真实本地验收：
   - `cd frontend`
-  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_BASE_URL=https://aisocialgame.seekerhut.com pnpm test:acceptance`
-- 如果当前机器 DNS 无法解析测试域名，可添加 Chromium host resolver：
-  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_HOST_RESOLVER_RULES="MAP aisocialgame.seekerhut.com 192.168.5.208" pnpm test:acceptance`
+  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_BASE_URL=https://aisocialgame.localhut.com pnpm test:acceptance`
+- 如果当前机器 DNS 无法解析本地域名，可添加 Chromium host resolver：
+  - `REAL_ACCEPTANCE=1 PLAYWRIGHT_HOST_RESOLVER_RULES="MAP aisocialgame.localhut.com 127.0.0.1" pnpm test:acceptance`
 - 验收覆盖：
   - 首页、社区、排行榜基础页面。
   - 谁是卧底：`1 真人 + AI`、`3 真人 + AI`。

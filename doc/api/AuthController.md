@@ -11,10 +11,10 @@
 
 ## 地址解析与回调策略
 
-- SSO 登录页基地址取 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）。
+- SSO 登录页基地址取 `app.sso.user-service-base-url`（默认 `https://userservice.localhut.com`）。
 - 当前版本不使用 Consul 服务发现；如果该配置缺失，后端会返回用户服务地址未配置。
-- 回调地址由 `app.sso.callback-url` 控制，测试环境默认：
-  - `https://aisocialgame.seekerhut.com/sso/callback`
+- 回调地址由 `app.sso.callback-url` 控制，本地环境默认：
+  - `https://aisocialgame.localhut.com/sso/callback`
 
 ## 接口列表
 
@@ -33,11 +33,11 @@
   - `state` (String, required, 16~128 位，`[A-Za-z0-9_-]`)
 - 返回
   - `302 Found`
-  - `Location: https://userservice.seekerhut.com/sso/login?redirect=<callback>&state=<state>`
+  - `Location: https://userservice.localhut.com/sso/login?redirect=<callback>&state=<state>`
 - 示例
 
 ```bash
-curl -k -i "https://aisocialgame.seekerhut.com/api/auth/sso/login?state=1234567890abcdef1234567890abcdef"
+curl -k -i "https://aisocialgame.localhut.com/api/auth/sso/login?state=1234567890abcdef1234567890abcdef"
 ```
 
 ### GET `/api/auth/sso/register`
@@ -46,11 +46,11 @@ curl -k -i "https://aisocialgame.seekerhut.com/api/auth/sso/login?state=12345678
   - `state` (String, required)
 - 返回
   - `302 Found`
-  - `Location: https://userservice.seekerhut.com/register?redirect=<callback>&state=<state>`
+  - `Location: https://userservice.localhut.com/register?redirect=<callback>&state=<state>`
 - 示例
 
 ```bash
-curl -k -i "https://aisocialgame.seekerhut.com/api/auth/sso/register?state=1234567890abcdef1234567890abcdef"
+curl -k -i "https://aisocialgame.localhut.com/api/auth/sso/register?state=1234567890abcdef1234567890abcdef"
 ```
 
 ### POST `/api/auth/sso-callback`
@@ -70,7 +70,7 @@ curl -k -i "https://aisocialgame.seekerhut.com/api/auth/sso/register?state=12345
 - 示例
 
 ```bash
-curl -k -X POST "https://aisocialgame.seekerhut.com/api/auth/sso-callback" \
+curl -k -X POST "https://aisocialgame.localhut.com/api/auth/sso-callback" \
   -H "Content-Type: application/json" \
   -d '{
     "accessToken": "remote-token",
@@ -89,7 +89,7 @@ curl -k -X POST "https://aisocialgame.seekerhut.com/api/auth/sso-callback" \
 - 示例
 
 ```bash
-curl -k "https://aisocialgame.seekerhut.com/api/auth/me" \
+curl -k "https://aisocialgame.localhut.com/api/auth/me" \
   -H "X-Auth-Token: <token>"
 ```
 

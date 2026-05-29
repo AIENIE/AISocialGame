@@ -32,7 +32,7 @@
 
 `AuthService` 的 user-service 地址解析顺序：
 
-1. 使用 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）
+1. 使用 `app.sso.user-service-base-url`（默认 `https://userservice.localhut.com`）
 2. 当前版本不使用 Consul 服务发现；如地址变化，应通过环境变量 `SSO_USER_SERVICE_BASE_URL` 调整。
 
 ## 首次登录初始化

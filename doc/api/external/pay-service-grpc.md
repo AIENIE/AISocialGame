@@ -4,7 +4,7 @@
 
 ## 服务地址与服务名
 
-- 当前地址：`BILLING_GRPC_ADDR=static://payservice.seekerhut.com:10021`
+- 当前地址：`BILLING_GRPC_ADDR=static://payservice.localhut.com:10021`
 - 默认传输：`BILLING_GRPC_NEGOTIATION_TYPE=PLAINTEXT`，与 aienie-doc 当前 pay-service 契约一致。
 - 当前发现方式：静态域名/端口，不使用 Consul。
 - gRPC 服务：

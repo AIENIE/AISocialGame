@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 const TEST_USERNAME = process.env.E2E_USERNAME || "goodboy95";
-const TEST_PASSWORD = process.env.E2E_PASSWORD || "superhs2cr1";
-const USER_SSO_LOGIN_URL = process.env.E2E_USER_SSO_LOGIN_URL || "https://userservice.seekerhut.com/sso/login";
-const SSO_CALLBACK_URL = process.env.E2E_SSO_CALLBACK_URL || "https://aisocialgame.seekerhut.com/sso/callback";
+const TEST_PASSWORD = process.env.E2E_PASSWORD || "";
+const USER_SSO_LOGIN_URL = process.env.E2E_USER_SSO_LOGIN_URL || "https://userservice.localhut.com/sso/login";
+const SSO_CALLBACK_URL = process.env.E2E_SSO_CALLBACK_URL || "https://aisocialgame.localhut.com/sso/callback";
 
 test("真实链路：登录、兑换、兑换记录展示", async ({ page }) => {
   test.setTimeout(120_000);
@@ -15,9 +15,11 @@ test("真实链路：登录、兑换、兑换记录展示", async ({ page }) => 
   const loginBtn = page.getByRole("button", { name: "登录" });
   if (await loginBtn.count()) {
     const ssoState = `pw-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    const csrf = await fetchSsoCsrfToken(page, ssoState);
 
     const ssoLoginRes = await page.request.post(USER_SSO_LOGIN_URL, {
       form: {
+        _csrf: csrf,
         redirect: SSO_CALLBACK_URL,
         state: ssoState,
         username: TEST_USERNAME,
@@ -46,7 +48,7 @@ test("真实链路：登录、兑换、兑换记录展示", async ({ page }) => 
     expect(callbackRes.status()).toBe(200);
     const callbackJson = await callbackRes.json();
     expect(callbackJson?.token).toBeTruthy();
-    await page.evaluate((token: string) => window.localStorage.setItem("aisocialgame_token", token), callbackJson.token);
+    await page.evaluate((token: string) => window.sessionStorage.setItem("aisocialgame_token", token), callbackJson.token);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
   }
@@ -63,3 +65,17 @@ test("真实链路：登录、兑换、兑换记录展示", async ({ page }) => 
   await expect(page.getByText("通用积分：", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("项目永久积分：", { exact: false }).first()).toBeVisible();
 });
+
+async function fetchSsoCsrfToken(page: import("@playwright/test").Page, state: string) {
+  const loginPageRes = await page.request.get(USER_SSO_LOGIN_URL, {
+    params: {
+      redirect: SSO_CALLBACK_URL,
+      state,
+    },
+  });
+  expect(loginPageRes.status()).toBe(200);
+  const html = await loginPageRes.text();
+  const csrf = html.match(/name="_csrf"[^>]*value="([^"]+)"/)?.[1];
+  expect(csrf, "userservice SSO login page must expose CSRF token").toBeTruthy();
+  return csrf!;
+}
