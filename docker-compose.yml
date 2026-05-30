@@ -1,13 +1,15 @@
 services:
   backend:
-    image: eclipse-temurin:25-jre
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: aisocial-backend
     ports:
       - "11031:20030"
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-aisocialgame}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
@@ -16,7 +18,7 @@ services:
       APP_PROJECT_KEY: ${APP_PROJECT_KEY:-aisocialgame}
       APP_AI_SYSTEM_USER_ID: ${APP_AI_SYSTEM_USER_ID:-1}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
-      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is required}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
       USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice.localhut.com:10001}
       BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://payservice.localhut.com:10021}
       AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}
@@ -40,12 +42,6 @@ services:
       SERVER_PORT: ${SERVER_PORT:-20030}
       JAVA_OPTS: ""
       SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
-    working_dir: /app
-    command: ["sh", "-c", "java $${JAVA_OPTS} -jar /app/app.jar"]
-    volumes:
-      - ./backend/target/ai-social-game-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
-      - ./backend/src/main/resources/application.yml:/app/config/application.yml:ro
-      - ./backend/src/main/resources/prompt.yml:/app/config/prompt.yml:ro
     extra_hosts:
       - "base.seekerhut.com:192.168.5.208"
       - "userservice.localhut.com:host-gateway"
@@ -55,15 +51,14 @@ services:
       - aisocial
 
   frontend:
-    image: nginx:1.27-alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: aisocial-frontend
     depends_on:
       - backend
     ports:
       - "11030:80"
-    volumes:
-      - ./frontend/dist:/usr/share/nginx/html:ro
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - aisocial
 

@@ -34,10 +34,7 @@ AISocialGame/
 ├── docker-compose.yml                        # 仅编排本项目前后端容器
 ├── env.txt                                   # 无敏感值环境变量模板
 ├── env.local                                 # 本机真实环境变量（不入库）
-├── build.sh                                  # 本地域名部署（Linux）
-├── build_prod.sh                             # 正式域名部署（Linux）
-├── build_common.sh                           # build 脚本共用逻辑
-├── build_local.sh                            # Linux 宿主机后端直启入口
+├── build.sh                                  # Docker Compose 构建与部署入口
 ├── README.md
 ├── AGENTS.md
 └── projectStructure.md
@@ -50,14 +47,9 @@ AISocialGame/
 - `result/` 为运行时产物目录（例如真人对局报告），由 `.gitignore` 忽略，不参与提交。
 - `backend/.vscode/launch.json` 与 `backend/.vscode/tasks.json` 允许入库，用于 Java F5 调试；其他 `.vscode` 内容仍保持忽略。
 
-## 部署脚本一致性
+## 部署脚本约束
 
-`build.sh` 与 `build_prod.sh` 当前保持同一实现，仅默认域名不同：
-
-- `build.sh` -> `aisocialgame.localhut.com`
-- `build_prod.sh` -> `aisocialgame.aienie.com`
-
-两者共同调用 `build_common.sh`，并在运行期执行一致性校验。
+仓库仅保留 `build.sh`。脚本职责限定为项目 Docker Compose 部署：存在 `env.txt` 时通过 Compose `--env-file` 加载，然后执行 `up -d --build --remove-orphans`。数据库迁移、证书、宿主机 nginx、健康检查、E2E、积分迁移和宿主机直启均由外部流程处理。
 
 ## 关键配置约束
 
@@ -69,9 +61,8 @@ AISocialGame/
 - 三服务 gRPC 鉴权变量通过未入库 `env.local`、系统环境或 CI/CD secret 注入，`env.txt` 只保留模板。
 - 非 test profile 会校验弱口令、MySQL TLS 和 gRPC 明文配置，详见 `doc/modules/security-hardening-module.md`。
 - 后端端口解析链路为 `SERVER_PORT -> BACKEND_PORT -> 20030`，宿主机直启默认复用 `env.txt` 中的 `BACKEND_PORT=11031`。
-- `build_common.sh` 当前职责是构建、部署、依赖检查与迁移，不自动执行 Playwright。
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
-- 本地开箱即用数据由 `DemoSeedService` 管理，`build_local.sh` 默认开启，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
+- 本地开箱即用数据由 `DemoSeedService` 管理，部署环境默认关闭；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
 - M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。
 - M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`GamePlayService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。
 - v1.0 性能稳定性整改新增 `AsyncExecutionConfig`、`RequestIdFilter`、房间 `seatCount/version`、AI SSE 线程池和房间分页接口；详见 `doc/modules/performance-stability-module.md`。

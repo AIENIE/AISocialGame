@@ -9,17 +9,15 @@
 
 ## 2. build.sh 标准链路
 
-`build.sh` / `build_prod.sh` 通过 `build_common.sh` 共用流程，仅默认域名不同。
+仓库仅保留 `build.sh`。
 
 标准链路包含：
 
-1. 后端 `mvn clean test package`
-2. 前端 `pnpm install --frozen-lockfile && pnpm build`
-3. Docker Compose 重建前后端
-4. 健康检查（前端首页、后端 `/actuator/health`）
-5. 自动执行全量积分迁移（`/api/admin/billing/migrate-all`）
+1. 存在 `env.txt` 时通过 Docker Compose `--env-file env.txt` 加载。
+2. 执行 `docker compose -f docker-compose.yml up -d --build --remove-orphans`。
+3. 后端和前端构建在各自 Dockerfile 内完成。
 
-说明：`build.sh` 不再自动执行 Playwright。
+说明：`build.sh` 不执行健康检查、Playwright、数据库迁移或全量积分迁移。
 
 ## 3. 真人验收（强制）
 
@@ -92,8 +90,8 @@
 
 ## 8. 本地开箱即用数据
 
-- 本地直启 `./build_local.sh` 默认导出 `APP_DEMO_SEED_ENABLED=true`。
-- 部署脚本与默认配置保持 `APP_DEMO_SEED_ENABLED=false`，避免测试服/正式服启动时自动写入演示数据。
+- 本地需要演示数据时显式设置 `APP_DEMO_SEED_ENABLED=true`。
+- 默认配置保持 `APP_DEMO_SEED_ENABLED=false`，避免测试服/正式服启动时自动写入演示数据。
 - 本地 seed 内容：
   - 社区演示帖：AI 质检、谁是卧底、狼人杀。
   - 等待房：`demo-undercover-room`、`demo-werewolf-room`。

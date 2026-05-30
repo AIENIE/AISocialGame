@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DOMAIN_DEFAULT="aisocialgame.localhut.com"
-APP_DOMAIN="${APP_DOMAIN:-$APP_DOMAIN_DEFAULT}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
 
-APP_DOMAIN="$APP_DOMAIN" APP_DOMAIN_DEFAULT="$APP_DOMAIN_DEFAULT" "$repo_root/build_common.sh"
+COMPOSE_ARGS=(-f "$ROOT_DIR/docker-compose.yml")
+if [[ -f "$ROOT_DIR/env.txt" ]]; then
+  COMPOSE_ARGS=(--env-file "$ROOT_DIR/env.txt" "${COMPOSE_ARGS[@]}")
+fi
+
+docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans

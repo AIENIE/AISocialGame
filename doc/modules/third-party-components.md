@@ -15,7 +15,7 @@
 - 默认配置已统一到：
   - `backend/src/main/resources/application.yml`
   - `env.txt`
-  - `build_common.sh`（`build.sh/build_prod.sh` 共用）
+  - `docker-compose.yml`
 - 默认连接：
   - MySQL：`base.seekerhut.com:3306`
   - Redis：`base.seekerhut.com:6379`
@@ -34,13 +34,14 @@
 
 ## 部署脚本行为
 
-- `build_common.sh` 会校验 `build.sh` 与 `build_prod.sh` 除默认域名外保持一致。
-- `build_common.sh` 不部署、不初始化、不预检 MySQL/Redis/Qdrant；外部依赖不可用时由后端启动或业务调用暴露错误。
+- 仓库仅保留 `build.sh`。
+- `build.sh` 只执行 Docker Compose 构建与部署；不部署、不初始化、不预检 MySQL/Redis/Qdrant。
+- 外部依赖不可用时由后端启动或业务调用暴露错误。
 
 ## Schema 稳定性
 
 - 测试/正式部署默认使用 `SPRING_JPA_HIBERNATE_DDL_AUTO=validate`。
-- 本地直启 `build_local.sh` 默认使用 `update`，仅用于开发调试。
+- 本地直启请使用后端原生命令并显式配置所需变量；仓库不再维护本地直启 shell 脚本。
 - 新增表结构必须同步更新：
   - `backend/sql/schema.sql`
   - 对应日期迁移脚本

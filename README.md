@@ -13,10 +13,7 @@
 - `frontend/`：前端源码、构建配置、Playwright 工具配置
 - `backend/`：后端源码、SQL、proto、单测
 - `doc/`：接口、模块、测试与运维文档
-- `build.sh`：本地域名部署脚本（`aisocialgame.localhut.com`）
-- `build_prod.sh`：正式域名部署脚本（`aisocialgame.aienie.com`）
-- `build_common.sh`：`build.sh/build_prod.sh` 共用部署逻辑
-- `build_local.sh`：Linux 宿主机本地直启后端
+- `build.sh`：Docker Compose 构建与部署入口
 - `env.txt`：部署配置（可被系统环境变量覆盖）
 
 ## 认证与积分
@@ -60,7 +57,7 @@ MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初
 
 ## 部署
 
-### 启动前脚本清单
+### 启动前准备
 
 测试/正式环境默认以 `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` 启动，后端不会在启动时自动改表。涉及表结构变更的 SQL 需要先在目标数据库执行，确认成功后再启动应用。
 
@@ -80,62 +77,30 @@ mysql \
 - 同一环境只需要执行一次 `backend/sql/20260519_performance_stability.sql`；如果已经成功执行，不要重复执行，避免重复加列或重复建索引失败。
 - 后续新增版本化 SQL 时，按文件日期顺序在测试/正式环境启动前执行。
 
-每次测试/正式部署执行：
-
-```bash
-./build.sh       # 本地环境：aisocialgame.localhut.com
-./build_prod.sh  # 正式环境：aisocialgame.aienie.com
-```
-
-持续或可重复执行：
-- `build.sh` / `build_prod.sh` 每次部署后会默认调用 `/api/admin/billing/migrate-all` 执行全量积分迁移；如需临时跳过，可设置 `RUN_FULL_MIGRATION=false`。
-- `build_local.sh` 仅用于宿主机开发直启，保留 `SPRING_JPA_HIBERNATE_DDL_AUTO=update` 默认值，不作为测试/正式环境启动入口。
-
-### Linux
-
-本地环境部署：
+每次部署执行：
 
 ```bash
 ./build.sh
 ```
 
-正式环境部署：
+`build.sh` 只负责在项目根目录执行 Docker Compose 部署：存在 `env.txt` 时通过 `docker compose --env-file env.txt` 加载环境变量，并执行 `up -d --build --remove-orphans`。数据库迁移、证书、宿主机 nginx、健康检查、E2E 和积分迁移都不由 `build.sh` 处理。
+
+### Linux
 
 ```bash
-./build_prod.sh
+./build.sh
 ```
 
-脚本流程包含：
-
-1. 后端 `mvn clean test package`
-2. 前端 `pnpm install --frozen-lockfile && pnpm build`
-3. Docker Compose 重建前后端
-4. 健康检查
-5. 自动执行“全量积分迁移”
-
 说明：
-- `build.sh` / `build_prod.sh` 仅默认域名不同，其他逻辑必须保持一致。
+- 后端与前端构建在各自 Dockerfile 内完成。
+- `env.txt` 为可选部署配置；不存在时使用当前 shell 环境与 Compose 默认值。
 - 真实验收测试（含 4 场完整游戏）采用 subagent + Playwright 手工流程，不由 `build.sh` 自动触发。
-
-### Linux（宿主机直启后端）
-
-```bash
-./build_local.sh
-```
-
-说明：
-- 脚本在仓库根目录读取 `env.txt`，仅为当前 shell 中未设置的变量补默认值。
-- 脚本会导出 `SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"`，因此可直接复用 `env.txt` 中的 `BACKEND_PORT=11031`。
-- 当 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 时，启动前会校验 4 个外部 gRPC 鉴权变量，缺失即快速失败。
-- 启动成功后，健康检查地址为 `http://127.0.0.1:11031/actuator/health`。
 
 ### VS Code F5（以 `backend/` 为工作区根）
 
 1. 在 VS Code 中直接打开 `backend/` 目录。
 2. 选择调试配置 `Backend: Launch AiSocialGameApplication` 并按 `F5`。
-3. 调试前会自动执行 `backend: compile`，用于生成 protobuf/gRPC 代码。
-4. 调试进程会读取 `../env.txt`，未显式提供 `SERVER_PORT` 时会回退到 `BACKEND_PORT`。
-5. 启动成功后，可访问 `http://127.0.0.1:11031/actuator/health` 验证服务状态。
+3. 调试进程会读取 `../env.txt`，未显式提供 `SERVER_PORT` 时会回退到 `BACKEND_PORT`。
 
 ## 域名与端口
 

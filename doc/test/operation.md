@@ -12,25 +12,12 @@
 
 1. 注入三服务 gRPC 鉴权环境变量（四项必须）。
 2. 确认 `APP_EXTERNAL_PAYSERVICE_JWT` 未过期（推荐每次部署前重新生成）。
-3. 执行 `sudo ./build.sh`。
-4. 期望输出包含：
-   - 后端测试通过
-   - 前端构建完成
-   - 容器重建完成
-   - `Run full credit migration` 且 `failed=0`
-5. `build.sh` 结束后仅代表部署完成，测试需执行第 7 节真人验收流程。
+3. 执行 `./build.sh`。
+4. `build.sh` 结束后仅代表 Docker Compose 已发起构建与部署，测试需执行第 7 节真人验收流程。
 
 ## 1.1 Linux 宿主机直启后端
 
-1. 在仓库根目录执行 `./build_local.sh`。
-2. 脚本会先读取根目录 `env.txt`，仅为当前 shell 未设置的变量补默认值。
-3. 当 `SERVER_PORT` 未设置时，后端会按 `BACKEND_PORT -> 20030` 回退；默认健康检查地址仍为 `http://127.0.0.1:11031/actuator/health`。
-4. 若 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 且以下变量任一缺失，脚本会直接失败：
-   - `APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN`
-   - `APP_EXTERNAL_PAYSERVICE_JWT`
-   - `APP_EXTERNAL_AISERVICE_HMAC_CALLER`
-   - `APP_EXTERNAL_AISERVICE_HMAC_SECRET`
-5. 本地直启默认设置 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`，仅用于开发调试。
+仓库不再维护宿主机直启 shell 脚本。如需直启后端，请使用 Spring Boot/Maven 原生命令，并在当前 shell 或 `env.txt` 中显式提供端口、数据库和三服务鉴权变量。
 
 ## 1.2 VS Code F5 调试（工作区根：`backend/`）
 
