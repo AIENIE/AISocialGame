@@ -47,7 +47,7 @@
 
 本地 localhut 部署默认不再依赖 Consul：
 
-- MySQL / Redis / Qdrant：`base.seekerhut.com` 标准端口 `3306 / 6379 / 6333`
+- MySQL / Redis / Qdrant：`base.seekerhut.com` 偏移端口 `23306 / 26379 / 26333`
 - user-service gRPC：`static://userservice.localhut.com:10001`
 - pay-service gRPC：`static://payservice.localhut.com:10021`
 - ai-service gRPC：`static://aiservice.localhut.com:10011`
@@ -66,7 +66,7 @@ MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初
 ```bash
 mysql \
   --host="${MYSQL_HOST:-base.seekerhut.com}" \
-  --port="${MYSQL_PORT:-3306}" \
+  --port="${MYSQL_PORT:-23306}" \
   --user="${SPRING_DATASOURCE_USERNAME:-aisocialgame}" \
   --password \
   aisocialgame < backend/sql/20260519_performance_stability.sql

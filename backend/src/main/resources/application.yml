@@ -4,7 +4,7 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:ai-social-game}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://base.seekerhut.com:23306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
     username: ${SPRING_DATASOURCE_USERNAME:aisocialgame}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,8 +16,8 @@ spring:
         format_sql: false
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:192.168.5.208}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:base.seekerhut.com}
+      port: ${SPRING_DATA_REDIS_PORT:26379}
 
 server:
   port: ${SERVER_PORT:${BACKEND_PORT:20030}}
@@ -63,8 +63,8 @@ app:
     aiservice-hmac-secret: ${APP_EXTERNAL_AISERVICE_HMAC_SECRET:}
 
 qdrant:
-  host: ${QDRANT_HOST:http://192.168.5.208}
-  http-port: ${QDRANT_PORT:6333}
+  host: ${QDRANT_HOST:http://base.seekerhut.com}
+  http-port: ${QDRANT_PORT:26333}
   enabled: ${QDRANT_ENABLED:true}
 
 connection:

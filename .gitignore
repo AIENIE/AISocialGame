@@ -15,3 +15,4 @@ testuser.txt
 .omx/
 env.local
 env.*.local
+env.txt

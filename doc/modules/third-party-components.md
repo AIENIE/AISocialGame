@@ -4,7 +4,7 @@
 
 ## 依赖清单
 
-当前项目依赖以下外部组件（默认统一对接 `192.168.5.208` 标准端口）：
+当前项目依赖以下外部组件（默认统一对接 `base.seekerhut.com` 的偏移端口）：
 
 - MySQL
 - Redis
@@ -17,9 +17,9 @@
   - `env.txt`
   - `docker-compose.yml`
 - 默认连接：
-  - MySQL：`base.seekerhut.com:3306`
-  - Redis：`base.seekerhut.com:6379`
-  - Qdrant：`http://base.seekerhut.com:6333`
+  - MySQL：`base.seekerhut.com:23306`
+  - Redis：`base.seekerhut.com:26379`
+  - Qdrant：`http://base.seekerhut.com:26333`
 
 ## 服务发现与域名策略
 
