@@ -22,6 +22,13 @@ spring:
 server:
   port: ${SERVER_PORT:${BACKEND_PORT:20030}}
 
+logging:
+  file:
+    name: ${LOGGING_FILE_NAME:${APP_LOG_DIR:./logs}/aisocialgame.log}
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.aisocialgame: ${LOGGING_LEVEL_APP:INFO}
+
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
   sso:

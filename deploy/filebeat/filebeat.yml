@@ -1,0 +1,39 @@
+filebeat.inputs:
+  - type: filestream
+    id: ${SERVICE_NAME:aisocialgame}-app-logs
+    paths:
+      - ${APP_LOG_DIR:/app/logs}/*.log
+    fields_under_root: true
+    fields:
+      service.name: ${SERVICE_NAME:aisocialgame}
+      service.environment: ${APP_ENV:local}
+      event.dataset: ${SERVICE_NAME:aisocialgame}.app
+
+  - type: filestream
+    id: ${SERVICE_NAME:aisocialgame}-records
+    paths:
+      - ${APP_RECORD_DIR:/app/records}/*.ndjson
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+          overwrite_keys: true
+    fields_under_root: true
+    fields:
+      service.name: ${SERVICE_NAME:aisocialgame}
+      service.environment: ${APP_ENV:local}
+      event.dataset: ${SERVICE_NAME:aisocialgame}.records
+
+processors:
+  - add_host_metadata: ~
+
+setup.ilm.enabled: false
+setup.template.name: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}"
+setup.template.pattern: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}-*"
+
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOSTS:https://es.localhut.com:9200}"]
+  username: "${ELASTICSEARCH_USERNAME:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD:}"
+  ssl.certificate_authorities: ["${ELASTICSEARCH_CA_CERT_PATH:/usr/share/filebeat/certs/http_ca.crt}"]
+  index: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}-%{+yyyy.MM.dd}"

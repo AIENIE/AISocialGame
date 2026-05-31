@@ -38,6 +38,9 @@ services:
       SSO_LOGIN_PATH: ${SSO_LOGIN_PATH:-/sso/login}
       SSO_REGISTER_PATH: ${SSO_REGISTER_PATH:-/register}
       SERVER_PORT: ${SERVER_PORT:-20030}
+      APP_LOG_DIR: ${APP_LOG_DIR:-/app/logs}
+      APP_RECORD_DIR: ${APP_RECORD_DIR:-/app/records}
+      LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:-/app/logs/aisocialgame.log}
       JAVA_OPTS: ""
       SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
     working_dir: /app
@@ -46,11 +49,40 @@ services:
       - ./backend/target/ai-social-game-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
       - ./backend/src/main/resources/application.yml:/app/config/application.yml:ro
       - ./backend/src/main/resources/prompt.yml:/app/config/prompt.yml:ro
+      - ${APP_LOG_DIR_HOST:-./logs/backend}:/app/logs
+      - ${APP_RECORD_DIR_HOST:-./logs/records}:/app/records
     extra_hosts:
       - "base.seekerhut.com:192.168.5.208"
       - "userservice.localhut.com:host-gateway"
       - "payservice.localhut.com:host-gateway"
       - "aiservice.localhut.com:host-gateway"
+    networks:
+      - aisocial
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.3
+    container_name: aisocial-filebeat
+    user: root
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    environment:
+      SERVICE_NAME: ${APP_SERVICE_NAME:-aisocialgame}
+      APP_ENV: ${APP_ENV:-local}
+      APP_LOG_DIR: /app/logs
+      APP_RECORD_DIR: /app/records
+      ELASTICSEARCH_HOSTS: ${ELASTICSEARCH_HOSTS:-https://es.localhut.com:9200}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
+      ELASTICSEARCH_CA_CERT_PATH: ${ELASTICSEARCH_CA_CERT_PATH:-/usr/share/filebeat/certs/http_ca.crt}
+      FILEBEAT_INDEX_PREFIX: ${FILEBEAT_INDEX_PREFIX:-aienie-local-aisocialgame}
+    volumes:
+      - ./deploy/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ${APP_LOG_DIR_HOST:-./logs/backend}:/app/logs:ro
+      - ${APP_RECORD_DIR_HOST:-./logs/records}:/app/records:ro
+      - ${FILEBEAT_DATA_DIR:-./logs/filebeat-data}:/usr/share/filebeat/data
+      - ${ELASTICSEARCH_CA_CERT_DIR:-./deploy/filebeat/certs}:/usr/share/filebeat/certs:ro
     networks:
       - aisocial
 
