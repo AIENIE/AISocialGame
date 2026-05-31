@@ -41,14 +41,42 @@ services:
       SSO_LOGIN_PATH: ${SSO_LOGIN_PATH:-/sso/login}
       SSO_REGISTER_PATH: ${SSO_REGISTER_PATH:-/register}
       SERVER_PORT: ${SERVER_PORT:-20030}
+      LOGGING_FILE_PATH: /app/logs
       JAVA_OPTS: ""
       SPRING_CONFIG_ADDITIONAL_LOCATION: optional:/app/config/
     extra_hosts:
       - "userservice.localhut.com:host-gateway"
       - "payservice.localhut.com:host-gateway"
       - "aiservice.localhut.com:host-gateway"
+    volumes:
+      - ${APP_LOG_DIR_HOST:-./logs/backend}:/app/logs
     networks:
       - aisocial
+      - aienie_userservice_net
+      - aienie_payservice_net
+      - aienie_aiservice_net
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.3
+    container_name: aisocial-filebeat
+    user: root
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    environment:
+      SERVICE_NAME: ${APP_SERVICE_NAME:-aisocialgame}
+      APP_ENV: ${APP_ENV:-local}
+      APP_LOG_DIR: /app/logs
+      ELASTICSEARCH_HOSTS: ${ELASTICSEARCH_HOSTS:-http://local-elasticsearch:9200}
+      FILEBEAT_INDEX_PREFIX: ${FILEBEAT_INDEX_PREFIX:-aienie-local-aisocialgame}
+    volumes:
+      - ./deploy/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ${APP_LOG_DIR_HOST:-./logs/backend}:/app/logs:ro
+      - ${FILEBEAT_DATA_DIR:-./logs/filebeat-data}:/usr/share/filebeat/data
+    networks:
+      - aisocial
+      - elasticsearch_default
 
   frontend:
     build:
@@ -65,3 +93,11 @@ services:
 networks:
   aisocial:
     driver: bridge
+  aienie_userservice_net:
+    external: true
+  aienie_payservice_net:
+    external: true
+  aienie_aiservice_net:
+    external: true
+  elasticsearch_default:
+    external: true

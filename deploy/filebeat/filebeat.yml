@@ -1,0 +1,24 @@
+filebeat.inputs:
+  - type: filestream
+    id: ${SERVICE_NAME:aisocialgame}-app-logs
+    paths:
+      - ${APP_LOG_DIR:/app/logs}/*.log
+    fields_under_root: true
+    fields:
+      service.name: ${SERVICE_NAME:aisocialgame}
+      service.environment: ${APP_ENV:local}
+      event.dataset: ${SERVICE_NAME:aisocialgame}.app
+
+processors:
+  - add_host_metadata: ~
+
+setup.ilm.enabled: false
+setup.template.name: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}"
+setup.template.pattern: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}-*"
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 0
+
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOSTS:http://local-elasticsearch:9200}"]
+  index: "${FILEBEAT_INDEX_PREFIX:aienie-local-aisocialgame}-%{+yyyy.MM.dd}"
