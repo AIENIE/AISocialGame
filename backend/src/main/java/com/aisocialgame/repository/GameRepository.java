@@ -6,14 +6,15 @@ import com.aisocialgame.model.GameStatus;
 import org.springframework.stereotype.Repository;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class GameRepository {
-    private final Map<String, Game> games = new ConcurrentHashMap<>();
+    private final Map<String, Game> games = Collections.synchronizedMap(new LinkedHashMap<>());
 
     public GameRepository() {
         seedGames();
@@ -208,6 +209,116 @@ public class GameRepository {
                 List.of("悬疑", "合作", "故事"),
                 1,
                 6,
+                GameStatus.ACTIVE,
+                0,
+                List.of(
+                        new GameConfigOption(
+                                "playerCount",
+                                "玩家人数",
+                                "select",
+                                2,
+                                List.of(
+                                        new GameConfigOption.Option("1人", 1),
+                                        new GameConfigOption.Option("2人", 2),
+                                        new GameConfigOption.Option("4人", 4),
+                                        new GameConfigOption.Option("6人", 6)
+                                ),
+                                null,
+                                null
+                        ),
+                        new GameConfigOption(
+                                "storyPack",
+                                "题库",
+                                "select",
+                                "classic",
+                                List.of(new GameConfigOption.Option("经典精选", "classic")),
+                                null,
+                                null
+                        ),
+                        new GameConfigOption(
+                                "difficulty",
+                                "难度",
+                                "select",
+                                "easy",
+                                List.of(
+                                        new GameConfigOption.Option("简单", "easy"),
+                                        new GameConfigOption.Option("中等", "medium")
+                                ),
+                                null,
+                                null
+                        ),
+                        new GameConfigOption(
+                                "questionLimit",
+                                "提问上限",
+                                "number",
+                                20,
+                                null,
+                                6,
+                                40
+                        )
+                )
+        );
+
+        Game mysteryCase = new Game(
+                "mystery_case",
+                "迷案共研",
+                "AI 主持发放线索，好友协作质询、推理并还原案件真相。",
+                "MysteryCase",
+                List.of("推理", "剧情", "主持"),
+                3,
+                8,
+                GameStatus.COMING_SOON,
+                0,
+                List.of()
+        );
+
+        Game secretSignal = new Game(
+                "secret_signal",
+                "暗号潜伏",
+                "围绕暗号和身份互相试探，在短局对话中找出潜伏者。",
+                "SecretSignal",
+                List.of("破冰", "潜伏", "短局"),
+                4,
+                8,
+                GameStatus.COMING_SOON,
+                0,
+                List.of()
+        );
+
+        Game mindMatch = new Game(
+                "mind_match",
+                "默契连线",
+                "根据关键词写下联想答案，比较队友默契并让 AI 做轻量裁判。",
+                "MindMatch",
+                List.of("休闲", "默契", "词语"),
+                2,
+                8,
+                GameStatus.COMING_SOON,
+                0,
+                List.of()
+        );
+
+        Game debateArena = new Game(
+                "debate_arena",
+                "立场辩局",
+                "AI 给出议题和隐藏立场，玩家辩论、互评并投票决出最有说服力的一方。",
+                "DebateArena",
+                List.of("表达", "辩论", "投票"),
+                3,
+                8,
+                GameStatus.COMING_SOON,
+                0,
+                List.of()
+        );
+
+        Game truthOrBluff = new Game(
+                "truth_or_bluff",
+                "真相二选一",
+                "玩家提出真假陈述，其他人通过追问判断事实与伪装。",
+                "TruthOrBluff",
+                List.of("轻推理", "追问", "真假"),
+                3,
+                8,
                 GameStatus.COMING_SOON,
                 0,
                 List.of()
@@ -216,5 +327,10 @@ public class GameRepository {
         games.put(werewolf.getId(), werewolf);
         games.put(undercover.getId(), undercover);
         games.put(turtleSoup.getId(), turtleSoup);
+        games.put(mysteryCase.getId(), mysteryCase);
+        games.put(secretSignal.getId(), secretSignal);
+        games.put(mindMatch.getId(), mindMatch);
+        games.put(debateArena.getId(), debateArena);
+        games.put(truthOrBluff.getId(), truthOrBluff);
     }
 }

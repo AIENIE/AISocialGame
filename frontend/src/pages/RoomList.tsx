@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
-import { gameApi, roomApi } from "@/services/api";
+import { gameApi, getApiErrorMessage, roomApi } from "@/services/api";
 import { Game, Room } from "@/types";
 import { quickMatchApi } from "@/services/v2Social";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,7 +17,7 @@ const RoomList = () => {
   const { displayName, user, redirectToSsoLogin } = useAuth();
   const { data: game } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
-    queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
+    queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined),
     enabled: !!gameId,
   });
 
@@ -29,10 +29,11 @@ const RoomList = () => {
   const rooms: Room[] = roomPage?.items || [];
 
   const templateOptions = game?.configSchema.find((f) => f.id === "template")?.options || [];
+  const isPlayable = !!game && (game.status ?? "").toString().toLowerCase() === "active" && game.engineBacked !== false;
 
   const buildTags = (room: Room) => {
     const tags: string[] = [];
-    const config = (room.config || {}) as Record<string, any>;
+    const config = (room.config || {}) as Record<string, unknown>;
 
     tags.push(room.isPrivate ? "私密房" : "公开房");
 
@@ -59,6 +60,10 @@ const RoomList = () => {
 
   const quickStart = async () => {
     if (!gameId) return;
+    if (!isPlayable) {
+      toast.error("该玩法暂未开放");
+      return;
+    }
     if (!user) {
       await redirectToSsoLogin();
       return;
@@ -66,8 +71,8 @@ const RoomList = () => {
     try {
       const result = await quickMatchApi.start(gameId, displayName);
       navigate(`/room/${gameId}/${result.roomId}`);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "快速匹配失败");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "快速匹配失败"));
     }
   };
 
@@ -80,17 +85,19 @@ const RoomList = () => {
             <ArrowLeft className="mr-2 h-4 w-4" /> 返回大厅
           </Button>
           <h1 className="text-3xl font-bold text-slate-900">{game.name}</h1>
-          <p className="text-slate-500 mt-1">选择一个房间加入，或者创建属于你的对局</p>
+          <p className="text-slate-500 mt-1">
+            {isPlayable ? "选择一个房间加入，或者创建属于你的对局" : "该玩法已进入内容矩阵规划，正式规则与房间引擎上线后开放"}
+          </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
             <Input placeholder="搜索房间号或名称..." className="pl-9 bg-slate-50 border-slate-200 focus:bg-white" />
           </div>
-          <Button onClick={() => navigate(`/create/${gameId}`)} className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200/50">
-            <Plus className="mr-2 h-4 w-4" /> 创建房间
+          <Button onClick={() => navigate(`/create/${gameId}`)} disabled={!isPlayable} className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200/50">
+            <Plus className="mr-2 h-4 w-4" /> {isPlayable ? "创建房间" : "暂未开放"}
           </Button>
-          <Button variant="outline" onClick={quickStart}>
+          <Button variant="outline" onClick={quickStart} disabled={!isPlayable}>
             一键开局
           </Button>
         </div>

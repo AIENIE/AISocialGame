@@ -21,22 +21,26 @@ import { gameApi, roomApi } from "@/services/api";
 import { Game, GameConfigOption } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 
+type FormValue = string | number | boolean | undefined;
+type RoomFormData = Record<string, FormValue>;
+
 const CreateRoom = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { user, redirectToSsoLogin } = useAuth();
   const { data: game } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
-    queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
+    queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined),
     enabled: !!gameId,
   });
   
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<RoomFormData>({});
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const isPlayable = !!game && (game.status ?? "").toString().toLowerCase() === "active" && game.engineBacked !== false;
 
   useEffect(() => {
     if (game) {
-      const defaults: Record<string, any> = {
+      const defaults: RoomFormData = {
         roomName: `[${game.name}] 玩家的房间`,
         isPrivate: false,
         commMode: "voice",
@@ -48,9 +52,7 @@ const CreateRoom = () => {
     }
   }, [game]);
 
-  if (!game) return <div className="p-8 text-center">游戏不存在</div>;
-
-  const handleInputChange = (id: string, value: any) => {
+  const handleInputChange = (id: string, value: FormValue) => {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
@@ -71,7 +73,13 @@ const CreateRoom = () => {
     onError: () => toast.error("创建失败，请稍后重试"),
   });
 
+  if (!game) return <div className="p-8 text-center">游戏不存在</div>;
+
   const handleCreate = () => {
+    if (!isPlayable) {
+      toast.error("该玩法暂未开放");
+      return;
+    }
     if (!user) {
       void redirectToSsoLogin();
       return;
@@ -93,6 +101,17 @@ const CreateRoom = () => {
       <Button variant="ghost" className="mb-4 md:mb-6 pl-0 hover:pl-2 transition-all" onClick={() => navigate(`/game/${gameId}`)}>
         <ArrowLeft className="mr-2 h-4 w-4" /> 返回房间列表
       </Button>
+
+      {!isPlayable && (
+        <Card className="mb-6 border-slate-200 bg-slate-50">
+          <CardHeader>
+            <CardTitle>{game.name} 暂未开放</CardTitle>
+            <CardDescription>
+              该玩法已进入内容矩阵规划，当前仅展示入口和定位，正式规则与房间引擎上线后才能创建对局。
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -116,7 +135,7 @@ const CreateRoom = () => {
                 <Label htmlFor="roomName">房间名称</Label>
                 <Input 
                   id="roomName" 
-                  value={formData.roomName || ''}
+                  value={String(formData.roomName || '')}
                   onChange={(e) => handleInputChange("roomName", e.target.value)}
                 />
               </div>
@@ -273,7 +292,7 @@ const CreateRoom = () => {
                         {field.type === "number" && (
                            <Input 
                              type="number"
-                             value={formData[field.id]}
+                             value={typeof formData[field.id] === "boolean" || formData[field.id] == null ? "" : formData[field.id]}
                              onChange={(e) => handleInputChange(field.id, Number(e.target.value))}
                              className="bg-white h-9"
                            />
@@ -299,7 +318,7 @@ const CreateRoom = () => {
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
               <span>{formData.commMode === 'voice' ? '语音' : '文字'}</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              <span>{formData.template === 'standard' ? '预女猎白' : formData.template}</span>
+              <span>{formData.template ? (formData.template === 'standard' ? '预女猎白' : formData.template) : game.name}</span>
             </div>
           </div>
           <div className="flex-1 md:flex-none flex gap-4 justify-end">
@@ -308,9 +327,9 @@ const CreateRoom = () => {
                 <span className="text-xl font-bold text-blue-600">50</span>
                 <span className="text-xs text-slate-400">金币</span>
              </div>
-             <Button size="lg" className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleCreate}>
+             <Button size="lg" className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleCreate} disabled={!isPlayable || createMutation.isPending}>
               <Zap className="mr-2 h-5 w-5 fill-current" />
-              创建并入座
+              {isPlayable ? "创建并入座" : "暂未开放"}
             </Button>
           </div>
         </div>

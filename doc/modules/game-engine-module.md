@@ -18,6 +18,7 @@ M3 将玩法规则从 `GamePlayService` 中拆出为可注册的 `GameEngine`。
 
 ## 当前边界
 
+- 游戏目录可展示规划中的 `COMING_SOON` 玩法，但只有 `ACTIVE` 且已注册 GameEngine 的玩法允许创建房间。
 - `GamePlayService` 现在只做玩法查找、开局校验和兼容方法转发。
 - 旧接口 `/speak`、`/vote`、`/night-action` 继续保留。
 - 新接口 `/action` 已可提交：
@@ -56,3 +57,11 @@ M3 将玩法规则从 `GamePlayService` 中拆出为可注册的 `GameEngine`。
 - 后端新增游戏常量类，engine 和 runtime 入口不再直接重复关键 phase/gameId 字符串。
 - 前端房间页公共能力已下沉到 `frontend/src/pages/games/shared/`，新增玩法应优先复用 `useRoomRuntime`、`GameRoomFrame`、`PlayerGrid`、`GameLogPanel` 和 `AiSeatControl`。
 - 统一 action DTO 增加基础校验，非法动作类型会在控制器层返回 400。
+
+## 海龟汤 MVP 与内容矩阵预留（2026-05-30）
+
+- 海龟汤已接入独立 `TurtleSoupGameEngine`，不再走 `GameRuntimeSupport` 的狼人杀/谁是卧底分支。
+- `turtle_soup` 目录状态为 `ACTIVE` 且 `engineBacked=true`，支持创建房间、添加 AI、开局、统一 action 和回放归档。
+- 海龟汤新增 action：`ASK_QUESTION`、`FINAL_GUESS`；状态通过 `GameState.extra` 返回汤面、问答历史、已确认线索、提问次数和结算汤底。
+- 海龟汤题库当前为后端内置精选题库；AI 主持回答先由规则判定兜底，再尝试 AI 润色，避免模型不可用时卡局。
+- 其他预留玩法仍保持 `COMING_SOON` 且 `engineBacked=false`，前端仅显示“敬请期待/暂未开放”。

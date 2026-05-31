@@ -64,6 +64,40 @@ class RoomServiceTest {
     }
 
     @Test
+    void createRoomShouldRejectComingSoonGames() {
+        var user = createLocalUser("coming-soon-host@example.com", "预告玩法房主");
+
+        Assertions.assertThrows(ApiException.class, () -> roomService.createRoom(
+                "mystery_case",
+                "迷案预告房",
+                false,
+                null,
+                "text",
+                Map.of("playerCount", 5),
+                user
+        ));
+    }
+
+    @Test
+    void createRoomShouldAllowActiveTurtleSoupGame() {
+        var user = createLocalUser("turtle-room-host@example.com", "海龟汤房主");
+
+        Room room = roomService.createRoom(
+                "turtle_soup",
+                "海龟汤测试房",
+                false,
+                null,
+                "text",
+                Map.of("playerCount", 2, "questionLimit", 12),
+                user
+        );
+
+        Assertions.assertNotNull(room.getId());
+        Assertions.assertEquals("turtle_soup", room.getGameId());
+        Assertions.assertEquals(2, room.getMaxPlayers());
+    }
+
+    @Test
     void joinRoomShouldAllowExistingAuthenticatedPlayerWhenRoomIsFull() {
         var host = createLocalUser("full-room-host@example.com", "满房房主");
         Room room = roomService.createRoom(

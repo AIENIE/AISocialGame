@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class PlayerAction {
     @NotBlank(message = "动作类型不能为空")
-    @Pattern(regexp = "(?i)^(SPEAK|VOTE|NIGHT_ACTION)$", message = "动作类型不支持")
+    @Pattern(regexp = "(?i)^(SPEAK|VOTE|NIGHT_ACTION|ASK_QUESTION|FINAL_GUESS)$", message = "动作类型不支持")
     private String type;
 
     @Size(max = 1000)

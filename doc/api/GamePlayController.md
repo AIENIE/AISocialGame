@@ -133,14 +133,14 @@ Headers：
 
 ### POST `/action` - 统一动作入口
 
-**用途**：为 GameEngine 插件化后的玩法提供统一动作协议。当前支持谁是卧底和狼人杀，并保留旧接口兼容。
+**用途**：为 GameEngine 插件化后的玩法提供统一动作协议。当前支持谁是卧底、狼人杀和海龟汤，并保留旧接口兼容。
 
 **请求体**
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 |---|---|---|---|---|
-| type | String | 是 | `SPEAK/VOTE/NIGHT_ACTION` | `SPEAK` |
-| content | String | 否 | 发言内容，`SPEAK` 使用 | `我描述一个线索` |
+| type | String | 是 | `SPEAK/VOTE/NIGHT_ACTION/ASK_QUESTION/FINAL_GUESS` | `SPEAK` |
+| content | String | 否 | 发言、海龟汤提问或最终解答内容 | `这个人以前去过荒岛吗？` |
 | targetPlayerId | String | 否 | 投票或夜晚行动目标 | `player-3` |
 | abstain | Boolean | 否 | 投票是否弃票，`VOTE` 使用 | `false` |
 | nightAction | String | 否 | 狼人杀夜晚行动类型 | `WOLF_KILL` |
@@ -154,4 +154,18 @@ Headers：
 - `SPEAK` 等价于旧 `/speak`。
 - `VOTE` 等价于旧 `/vote`。
 - `NIGHT_ACTION` 等价于旧 `/night-action`。
+- `ASK_QUESTION` 用于海龟汤提问阶段，服务端会返回 AI 主持判定并追加 `extra.qaHistory`。
+- `FINAL_GUESS` 用于海龟汤提交最终解答，结算后 `extra.solutionRevealed=true` 且返回 `extra.solution`。
 - 新玩法应优先接入 `/action`，旧接口仅服务现有页面和兼容测试。
+
+### 海龟汤状态字段
+
+海龟汤状态沿用 `GameStateResponse`，额外字段放在 `extra`：
+
+| 字段 | 说明 |
+|---|---|
+| soupTitle / soupPrompt | 当前题目的标题与汤面 |
+| qaHistory | 玩家提问、主持回答、回答类型和命中线索 |
+| confirmedClues | 主持已确认的公开线索 |
+| questionCount / questionLimit | 当前提问数与上限 |
+| solutionRevealed / solution | 仅结算阶段返回汤底 |

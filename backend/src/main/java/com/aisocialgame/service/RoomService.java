@@ -3,6 +3,7 @@ package com.aisocialgame.service;
 import com.aisocialgame.dto.JoinRoomResult;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.Game;
+import com.aisocialgame.model.GameStatus;
 import com.aisocialgame.model.Persona;
 import com.aisocialgame.model.Room;
 import com.aisocialgame.model.RoomSeat;
@@ -52,6 +53,9 @@ public class RoomService {
 
     public Room createRoom(String gameId, String name, boolean isPrivate, String password, String commMode, Map<String, Object> config, User creator) {
         Game game = gameService.findById(gameId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "游戏不存在"));
+        if (game.getStatus() != GameStatus.ACTIVE || !game.isEngineBacked()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "游戏暂未开放");
+        }
         int maxPlayers = normalizeMaxPlayers(gameId, resolveMaxPlayers(config, game.getMaxPlayers()), game.getMaxPlayers());
         String storedPassword = null;
         if (isPrivate) {
@@ -216,6 +220,9 @@ public class RoomService {
         }
         if ("werewolf".equals(gameId)) {
             return 6;
+        }
+        if ("turtle_soup".equals(gameId)) {
+            return 1;
         }
         return 2;
     }

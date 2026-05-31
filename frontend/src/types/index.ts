@@ -380,7 +380,7 @@ export interface RoleDefinition {
 }
 
 export interface PlayerAction {
-  type: "SPEAK" | "VOTE" | "NIGHT_ACTION";
+  type: "SPEAK" | "VOTE" | "NIGHT_ACTION" | "ASK_QUESTION" | "FINAL_GUESS";
   content?: string;
   targetPlayerId?: string;
   abstain?: boolean;

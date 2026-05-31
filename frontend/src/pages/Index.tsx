@@ -1,20 +1,25 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Gamepad2, Moon, Eye, BookOpen } from "lucide-react";
+import { ArrowRight, Gamepad2, Moon, Eye, BookOpen, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { gameApi } from "@/services/api";
+import { gameApi, getApiErrorMessage } from "@/services/api";
 import { Game } from "@/types";
 import { quickMatchApi } from "@/services/v2Social";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 // Helper to render dynamic icons based on string name
-const IconMap: Record<string, any> = {
+const IconMap: Record<string, LucideIcon> = {
   Moon: Moon,
   Spy: Eye,
   BookOpen: BookOpen,
+  MysteryCase: BookOpen,
+  SecretSignal: Eye,
+  MindMatch: Gamepad2,
+  DebateArena: Gamepad2,
+  TruthOrBluff: Eye,
 };
 
 const Index = () => {
@@ -33,8 +38,8 @@ const Index = () => {
     try {
       const result = await quickMatchApi.start(gameId, displayName);
       navigate(`/room/${gameId}/${result.roomId}`);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "快速匹配失败，请稍后重试");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "快速匹配失败，请稍后重试"));
     }
   };
 

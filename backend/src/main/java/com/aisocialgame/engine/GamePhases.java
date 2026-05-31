@@ -8,6 +8,8 @@ public final class GamePhases {
     public static final String NIGHT = "NIGHT";
     public static final String DAY_DISCUSS = "DAY_DISCUSS";
     public static final String DAY_VOTE = "DAY_VOTE";
+    public static final String QUESTIONING = "QUESTIONING";
+    public static final String SOLVING = "SOLVING";
     public static final String SETTLEMENT = "SETTLEMENT";
 
     private GamePhases() {
