@@ -42,7 +42,7 @@
 ### Schema 与部署
 
 - 默认 `spring.jpa.hibernate.ddl-auto=validate`，部署环境不再自动改表。
-- `build_local.sh` 为本地直启保留 `SPRING_JPA_HIBERNATE_DDL_AUTO=update` 默认，便于开发调试。
+- 如需本地临时调试自动改表，手动设置 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`；部署脚本默认仍保持 `validate`。
 - 本轮 SQL 迁移：`backend/sql/20260519_performance_stability.sql`。
 - 全量结构：`backend/sql/schema.sql`。
 

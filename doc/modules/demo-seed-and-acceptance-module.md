@@ -8,7 +8,7 @@
 
 - 入口：`DemoSeedService`
 - 开关：`app.demo-seed.enabled`
-- 本地默认：`build_local.sh` 导出 `APP_DEMO_SEED_ENABLED=true`
+- 仅在显式导出 `APP_DEMO_SEED_ENABLED=true` 时启用
 - 部署默认：`application.yml` 默认 `false`
 
 Seed 采用稳定 ID 和存在性检查，重复启动不会重复插入。内容包括：

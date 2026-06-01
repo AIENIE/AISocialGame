@@ -9,7 +9,7 @@
 
 ## 2. build.sh 标准链路
 
-`build.sh` / `build_prod.sh` 通过 `build_common.sh` 共用流程，仅默认域名不同。
+统一使用 `build.sh`，不再区分研发/生产脚本入口。
 
 标准链路包含：
 
@@ -92,7 +92,7 @@
 
 ## 8. 本地开箱即用数据
 
-- 本地直启 `./build_local.sh` 默认导出 `APP_DEMO_SEED_ENABLED=true`。
+- 只有显式导出 `APP_DEMO_SEED_ENABLED=true` 时才会写入本地演示数据。
 - 部署脚本与默认配置保持 `APP_DEMO_SEED_ENABLED=false`，避免测试服/正式服启动时自动写入演示数据。
 - 本地 seed 内容：
   - 社区演示帖：AI 质检、谁是卧底、狼人杀。

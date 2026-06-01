@@ -13,10 +13,7 @@
 - `frontend/`：前端源码、构建配置、Playwright 工具配置
 - `backend/`：后端源码、SQL、proto、单测
 - `doc/`：接口、模块、测试与运维文档
-- `build.sh`：本地域名部署脚本（`aisocialgame.localhut.com`）
-- `build_prod.sh`：正式域名部署脚本（`aisocialgame.aienie.com`）
-- `build_common.sh`：`build.sh/build_prod.sh` 共用部署逻辑
-- `build_local.sh`：Linux 宿主机本地直启后端
+- `build.sh`：唯一部署脚本；默认使用 `aisocialgame.localhut.com`，可通过 `APP_DOMAIN` 覆盖
 - `env.txt`：部署配置（可被系统环境变量覆盖）
 
 ## 认证与积分
@@ -57,7 +54,7 @@
 - SSO 入口：`https://userservice.localhut.com`
 
 MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
-如果本机 `env.local` 仍残留 `base.seekerhut.com:3306 / 6379 / 6333` 这组旧端口，`build.sh` / `build_prod.sh` 会在 Docker 部署前重写为 `23306 / 26379 / 26333`，避免容器因错误端口启动失败。
+如果本机 `env.local` 仍残留 `base.seekerhut.com:3306 / 6379 / 6333` 这组旧端口，`build.sh` 会在 Docker 部署前重写为 `23306 / 26379 / 26333`，避免容器因错误端口启动失败。
 
 ## 部署
 
@@ -81,30 +78,29 @@ mysql \
 - 同一环境只需要执行一次 `backend/sql/20260519_performance_stability.sql`；如果已经成功执行，不要重复执行，避免重复加列或重复建索引失败。
 - 后续新增版本化 SQL 时，按文件日期顺序在测试/正式环境启动前执行。
 
-每次测试/正式部署执行：
-
-```bash
-./build.sh       # 本地环境：aisocialgame.localhut.com
-./build_prod.sh  # 正式环境：aisocialgame.aienie.com
-```
-
-持续或可重复执行：
-- `build.sh` / `build_prod.sh` 每次部署后会默认调用 `/api/admin/billing/migrate-all` 执行全量积分迁移；如需临时跳过，可设置 `RUN_FULL_MIGRATION=false`。
-- 如果服务已经正常启动，但历史账本迁移返回 `Invalid token`，这属于业务数据迁移问题，不影响容器存活；可先用 `RUN_FULL_MIGRATION=false ./build.sh` 完成运行态部署，再单独处理迁移数据。
-- `build_local.sh` 仅用于宿主机开发直启，保留 `SPRING_JPA_HIBERNATE_DDL_AUTO=update` 默认值，不作为测试/正式环境启动入口。
-
-### Linux
-
-本地环境部署：
+每次部署执行：
 
 ```bash
 ./build.sh
 ```
 
-正式环境部署：
+如需切换域名，直接覆盖 `APP_DOMAIN`，不要再区分多套部署脚本：
 
 ```bash
-./build_prod.sh
+APP_DOMAIN=aisocialgame.aienie.com ./build.sh
+```
+
+持续或可重复执行：
+- `build.sh` 每次部署后会默认调用 `/api/admin/billing/migrate-all` 执行全量积分迁移；如需临时跳过，可设置 `RUN_FULL_MIGRATION=false`。
+- 如果服务已经正常启动，但历史账本迁移返回 `Invalid token`，这属于业务数据迁移问题，不影响容器存活；可先用 `RUN_FULL_MIGRATION=false ./build.sh` 完成运行态部署，再单独处理迁移数据。
+
+### Linux
+
+统一部署：
+
+```bash
+./build.sh
+APP_DOMAIN=aisocialgame.aienie.com ./build.sh
 ```
 
 脚本流程包含：
@@ -116,20 +112,8 @@ mysql \
 5. 自动执行“全量积分迁移”
 
 说明：
-- `build.sh` / `build_prod.sh` 仅默认域名不同，其他逻辑必须保持一致。
+- 只维护一个 `build.sh`，环境差异通过 `APP_DOMAIN` 与已有环境变量覆盖，不再维护研发/生产双入口。
 - 真实验收测试（含 4 场完整游戏）采用 subagent + Playwright 手工流程，不由 `build.sh` 自动触发。
-
-### Linux（宿主机直启后端）
-
-```bash
-./build_local.sh
-```
-
-说明：
-- 脚本在仓库根目录读取 `env.txt`，仅为当前 shell 中未设置的变量补默认值。
-- 脚本会导出 `SERVER_PORT="${SERVER_PORT:-${BACKEND_PORT:-11031}}"`，因此可直接复用 `env.txt` 中的 `BACKEND_PORT=11031`。
-- 当 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true` 时，启动前会校验 4 个外部 gRPC 鉴权变量，缺失即快速失败。
-- 启动成功后，健康检查地址为 `http://127.0.0.1:11031/actuator/health`。
 
 ### VS Code F5（以 `backend/` 为工作区根）
 
@@ -141,8 +125,8 @@ mysql \
 
 ## 域名与端口
 
-- 本地域名：`aisocialgame.localhut.com`
-- 正式域名：`aisocialgame.aienie.com`
+- 默认域名：`aisocialgame.localhut.com`
+- 可覆盖域名：`aisocialgame.aienie.com`
 - 前端端口：`11030`
 - 后端端口：`11031`
 
