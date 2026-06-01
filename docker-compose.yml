@@ -10,7 +10,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}
-      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-26379}
       APP_REDIS_TOKEN_KEY_PREFIX: ${APP_REDIS_TOKEN_KEY_PREFIX:-aisocialgame:auth:token:}
       APP_AUTH_TOKEN_TTL_HOURS: 168
       APP_PROJECT_KEY: ${APP_PROJECT_KEY:-aisocialgame}
@@ -27,7 +27,7 @@ services:
       APP_SECURITY_ALLOW_PLAINTEXT_GRPC: ${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-true}
       SSO_USER_SERVICE_BASE_URL: ${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}
       QDRANT_HOST: ${QDRANT_HOST:-http://base.seekerhut.com}
-      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_PORT: ${QDRANT_PORT:-26333}
       QDRANT_ENABLED: ${QDRANT_ENABLED:-true}
       APP_EXTERNAL_GRPC_AUTH_REQUIRED: ${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}
       APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN: ${APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN:-}
@@ -52,7 +52,6 @@ services:
       - ${APP_LOG_DIR_HOST:-./logs/backend}:/app/logs
       - ${APP_RECORD_DIR_HOST:-./logs/records}:/app/records
     extra_hosts:
-      - "base.seekerhut.com:192.168.5.208"
       - "userservice.localhut.com:host-gateway"
       - "payservice.localhut.com:host-gateway"
       - "aiservice.localhut.com:host-gateway"

@@ -50,13 +50,14 @@
 
 本地 localhut 部署默认不再依赖 Consul：
 
-- MySQL / Redis / Qdrant：`base.seekerhut.com` 标准端口 `3306 / 6379 / 6333`
+- MySQL / Redis / Qdrant：`base.seekerhut.com:23306 / 26379 / 26333`
 - user-service gRPC：`static://userservice.localhut.com:10001`
 - pay-service gRPC：`static://payservice.localhut.com:10021`
 - ai-service gRPC：`static://aiservice.localhut.com:10011`
 - SSO 入口：`https://userservice.localhut.com`
 
 MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
+如果本机 `env.local` 仍残留 `base.seekerhut.com:3306 / 6379 / 6333` 这组旧端口，`build.sh` / `build_prod.sh` 会在 Docker 部署前重写为 `23306 / 26379 / 26333`，避免容器因错误端口启动失败。
 
 ## 部署
 
@@ -89,6 +90,7 @@ mysql \
 
 持续或可重复执行：
 - `build.sh` / `build_prod.sh` 每次部署后会默认调用 `/api/admin/billing/migrate-all` 执行全量积分迁移；如需临时跳过，可设置 `RUN_FULL_MIGRATION=false`。
+- 如果服务已经正常启动，但历史账本迁移返回 `Invalid token`，这属于业务数据迁移问题，不影响容器存活；可先用 `RUN_FULL_MIGRATION=false ./build.sh` 完成运行态部署，再单独处理迁移数据。
 - `build_local.sh` 仅用于宿主机开发直启，保留 `SPRING_JPA_HIBERNATE_DDL_AUTO=update` 默认值，不作为测试/正式环境启动入口。
 
 ### Linux

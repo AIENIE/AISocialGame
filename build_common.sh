@@ -64,9 +64,7 @@ load_env_file() {
     if [[ ( "$value" == \"*\" && "$value" == *\" ) || ( "$value" == \'*\' && "$value" == *\' ) ]]; then
       value="${value:1:${#value}-2}"
     fi
-    if [[ -z "${!name:-}" ]]; then
-      export "$name=$value"
-    fi
+    export "$name=$value"
   done < "$env_file"
 }
 
@@ -77,7 +75,7 @@ ensure_build_wrapper_sync
 export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
 export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
-export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-6379}"
+export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-26379}"
 export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.localhut.com:10001}"
 export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.localhut.com:10021}"
 export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}"
@@ -85,7 +83,7 @@ export USER_GRPC_NEGOTIATION_TYPE="${USER_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
 export BILLING_GRPC_NEGOTIATION_TYPE="${BILLING_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
 export AI_GRPC_NEGOTIATION_TYPE="${AI_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
 export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
-export QDRANT_PORT="${QDRANT_PORT:-6333}"
+export QDRANT_PORT="${QDRANT_PORT:-26333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
 export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}"
 export SSO_CALLBACK_URL="${SSO_CALLBACK_URL:-https://${APP_DOMAIN}/sso/callback}"
@@ -97,6 +95,21 @@ export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.localhut.co
 export APP_EXTERNAL_GRPC_AUTH_REQUIRED="${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}"
 export APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS="${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}"
 export APP_SECURITY_ALLOW_PLAINTEXT_GRPC="${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-true}"
+
+if [[ "$SPRING_DATASOURCE_URL" == jdbc:mysql://base.seekerhut.com:3306/* ]]; then
+  export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL/:3306/:23306}"
+  echo "Rewrote SPRING_DATASOURCE_URL to use base.seekerhut.com:23306 for Docker deployment"
+fi
+
+if [[ "${SPRING_DATA_REDIS_HOST}" == "base.seekerhut.com" && "${SPRING_DATA_REDIS_PORT}" == "6379" ]]; then
+  export SPRING_DATA_REDIS_PORT="26379"
+  echo "Rewrote SPRING_DATA_REDIS_PORT to use base.seekerhut.com:26379 for Docker deployment"
+fi
+
+if [[ "${QDRANT_HOST}" == "http://base.seekerhut.com" && "${QDRANT_PORT}" == "6333" ]]; then
+  export QDRANT_PORT="26333"
+  echo "Rewrote QDRANT_PORT to use base.seekerhut.com:26333 for Docker deployment"
+fi
 
 require_env_vars() {
   local missing=()
