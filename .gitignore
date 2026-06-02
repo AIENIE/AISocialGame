@@ -8,6 +8,8 @@ backend/.vscode/*
 !backend/.vscode/tasks.json
 .idea/
 backend/target/
+/backend/logs/
+/logs/
 /artifacts
 /screenshot
 /result
