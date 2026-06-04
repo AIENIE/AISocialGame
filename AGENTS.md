@@ -2,7 +2,7 @@
 - 项目类型：业务项目
 - 前端技术栈: React 18 + TypeScript + Vite + React Router + TanStack Query + Tailwind CSS + shadcn/ui
 - 后端技术栈: Java Spring boot
-- 测试服域名: aisocialgame.seekerhut.com
+- 测试服域名: aisocialgame.localhut.com
 - 正式服域名: aisocialgame.aienie.com
 - 前端对外端口: 11030
 - 后端对外端口: 11031
