@@ -17,3 +17,9 @@ testuser.txt
 .omx/
 env.local
 env.*.local
+
+# Codex dev-test generated runtime files
+ai_artifacts/codex-test-report.json
+ai_artifacts/repair-summary.md
+ai_artifacts/generated-tests/
+.codex/dev-test/runs/

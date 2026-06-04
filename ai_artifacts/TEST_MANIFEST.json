@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "project": "AISocialGame",
+  "repo": "/home/duwei/aienie-projects/AISocialGame",
+  "generatedAt": "2026-06-04T03:30:51.557Z",
+  "acceptanceEnabled": false,
+  "models": {
+    "devModel": "auto",
+    "repairModel": "auto",
+    "testModel": "gpt-5.3-codex-spark",
+    "testFallbackModel": "gpt-5.4-mini"
+  },
+  "setupCommands": [
+    "corepack enable",
+    "cd frontend && pnpm install --frozen-lockfile"
+  ],
+  "testCommands": [
+    "cd backend && mvn test",
+    "cd frontend && pnpm build",
+    "cd frontend && pnpm lint"
+  ],
+  "optionalAcceptanceCommands": [],
+  "protectedPaths": [
+    "env.local",
+    "testuser.txt",
+    "backend/logs/",
+    "backend/target/",
+    "frontend/dist/",
+    "frontend/node_modules/",
+    "logs/"
+  ],
+  "allowedTestWritePaths": [
+    "ai_artifacts/",
+    ".codex/dev-test/runs/"
+  ],
+  "acceptanceNotes": [
+    "Real acceptance depends on auth tokens, admin password, localhut routing, Chromium, and upstream services.",
+    "build.sh is deployment and migration oriented; keep it out of the default test loop."
+  ]
+}
