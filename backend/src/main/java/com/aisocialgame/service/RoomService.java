@@ -217,6 +217,9 @@ public class RoomService {
         if ("werewolf".equals(gameId)) {
             return 6;
         }
+        if ("turtle_soup".equals(gameId)) {
+            return 1;
+        }
         return 2;
     }
 }

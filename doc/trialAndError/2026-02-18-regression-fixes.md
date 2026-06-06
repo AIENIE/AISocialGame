@@ -76,6 +76,8 @@
   - `artifacts/test/20260218-091910/playwright-console-partial.log`
   - `artifacts/test/20260218-091910/playwright-network-partial.log`
 
+后续状态（2026-06-06）：该条为历史遗留。后续 M4 安全治理已将社区发帖接入统一 safety gate，并补充中文访客名 URL 编码/后端解码；`CommunityServiceTest`、`frontend/tests/m4-safety.spec.ts` 和真实验收脚本中的社区发帖步骤覆盖该链路。
+
 ## 6. 本轮遗留：提前结束导致未执行的 UI 回归项
 
 - 按用户要求提前结束后，以下场景尚未在 `20260218-091910` 轮次执行完成：

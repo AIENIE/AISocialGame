@@ -1,12 +1,13 @@
 # 模块文档索引
 
-> 更新时间：2026-05-23
+> 更新时间：2026-06-06
 
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
 | 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/shared/*` |
 | 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
 | GameEngine 插件化模块 | 管理玩法 engine 注册、统一 action 和现有玩法插件化入口 | `backend/src/main/java/com/aisocialgame/engine/*.java`、`frontend/src/hooks/useGameEngine.ts`、`doc/modules/game-engine-module.md` |
+| 海龟汤玩法模块 | 管理海龟汤题库、规则主持、AI 玩家追问、汤底判定和回放归档 | `backend/src/main/java/com/aisocialgame/engine/TurtleSoupGameEngine.java`、`frontend/src/pages/games/TurtleSoupRoom.tsx`、`doc/modules/turtle-soup-module.md` |
 | AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与规则兜底 | `backend/src/main/java/com/aisocialgame/service/ai/*.java`、`backend/src/main/resources/prompt.yml`、`doc/modules/ai-decision-module.md` |
 | AI 拟人质量闭环模块 | 管理 AI 信念、局内短期记忆、Persona 跨局记忆、质量检测、决策 trace 与管理端质检 | `backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java`、`backend/src/main/java/com/aisocialgame/model/AiPersonaMemory.java`、`doc/modules/ai-quality-loop-module.md` |
 | AI 安全治理与 Admin 应急运营模块 | 管理内容审核、安全事件、临时控制、Admin 安全队列和玩家安全提示 | `backend/src/main/java/com/aisocialgame/service/safety/AiSafetyService.java`、`backend/src/main/java/com/aisocialgame/controller/admin/AdminSafetyController.java`、`frontend/src/pages/admin/SafetyAdmin.tsx`、`doc/modules/ai-safety-admin-ops-module.md` |
@@ -25,7 +26,7 @@
 ## 后续里程碑
 
 - 后续开发主线见 `doc/milestones.md`，里程碑阶段记录见 `doc/milestones/README.md`。
-- 当前默认优先级为 AI 质量闭环、结构化事件与回放底座、GameEngine 插件化、AI 安全治理与 Admin 应急运营，然后再推进海龟汤新增玩法。
+- 当前 M1-M5 已完成第一版工程闭环，后续主线为社交平台化与 AI 运营后台治理。
 
 ## 回归说明
 

@@ -29,6 +29,7 @@
 2. 谁是卧底：`3 用户 + 其余 AI`
 3. 狼人杀：`1 用户 + 其余 AI`
 4. 狼人杀：`3 用户 + 其余 AI`
+5. 海龟汤：`1 用户 + AI 玩家 + AI 主持`
 
 验收要求：
 
@@ -48,12 +49,13 @@
 
 ## 5. 报告产物（本地）
 
-每次真人验收输出 4 篇完整报告：
+每次真人验收输出完整报告：
 
 - `01-undercover-1user-plus-ai.md`
 - `02-undercover-3user-plus-ai.md`
 - `03-werewolf-1user-plus-ai.md`
 - `04-werewolf-3user-plus-ai.md`
+- `05-turtle-soup-1user-plus-ai.md`
 - `index.md`
 
 目录：`result/game-reports/<run-id>/`
@@ -118,7 +120,8 @@
   - 首页、社区、排行榜基础页面。
   - 谁是卧底：`1 真人 + AI`、`3 真人 + AI`。
   - 狼人杀：`1 真人 + AI`、`3 真人 + AI`。
-  - 统一 `/api/games/{gameId}/rooms/{roomId}/action` 可提交 `SPEAK`、`VOTE`、`NIGHT_ACTION`，旧接口继续兼容。
+  - 海龟汤：`1 真人 + AI 玩家 + AI 主持`，完成提问、线索解锁、正确解答、汤底揭示。
+  - 统一 `/api/games/{gameId}/rooms/{roomId}/action` 可提交 `SPEAK`、`VOTE`、`NIGHT_ACTION`、`ASK_QUESTION`、`SUBMIT_SOLUTION`，旧接口继续兼容。
   - 每场结算后生成服务端回放归档，事件 `seq` 递增，`PUBLIC` 视角不暴露身份、词语或夜晚私密动作。
   - `/replays` 与 `/replay/{archiveId}` 可打开服务端回放并执行播放/单步。
   - 管理端 `/admin/ai` 的模型、决策 trace 与 Persona 记忆可见性。

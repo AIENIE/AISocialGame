@@ -1,6 +1,6 @@
 # AISocialGame 后续开发里程碑
 
-> 更新时间：2026-05-19
+> 更新时间：2026-06-06
 
 ## 1. 总目标
 
@@ -10,7 +10,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 项目当前已经具备以下能力：
 
-- 已有玩法：狼人杀、谁是卧底；海龟汤在前端配置中处于 `coming_soon`。
+- 已有玩法：狼人杀、谁是卧底、海龟汤。
 - 房间与实时能力：创建房间、入座、AI 补位、WebSocket 状态推送、连接状态展示、断线托管。
 - AI 决策能力：`AiDecisionService` 已支持基于局面上下文生成发言、投票与狼人杀夜晚行动，并有规则兜底。
 - 社交留存雏形：快速匹配、好友、成就、回放、观战、新手引导已有前端入口或本地降级。
@@ -38,7 +38,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 | M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
 | M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md` |
 | M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；开发记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md` |
-| M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程 |
+| M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程；开发记录见 `doc/milestones/m5-turtle-soup/development.md` |
 | M6 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
 | M7 | P1 | AI 运营后台与策略治理 | Persona/Prompt/模型/成本/审计/灰度 |
 
@@ -265,6 +265,15 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 1 真人 + AI 玩家 + AI 主持可完整解出一局。
 - 多真人 + AI 玩家可共同提问，AI 提问不会大量重复或直接作弊。
 - 主持在常见诱导问题下不提前泄露汤底。
+
+### M5 实现记录（2026-06-06）
+
+- 新增 `turtle_soup` GameEngine，海龟汤从 `COMING_SOON` 切换为可创建、可开局、可结算的 active 玩法。
+- 第一版采用规则闭环 + AI 玩家追问辅助：本地题库负责汤面、汤底、线索命中、问题上限和正确解答判定。
+- 前端新增海龟汤房间页，支持题面、问答历史、已确认线索、提问、最终解答和结算汤底揭示。
+- 统一 `/action` 新增 `ASK_QUESTION` 与 `SUBMIT_SOLUTION`，并接入服务端事件流和回放归档。
+- 详细架构见 `doc/modules/turtle-soup-module.md`。
+- 分目录开发记录见 `doc/milestones/m5-turtle-soup/development.md`。
 
 ### 依赖
 

@@ -1,7 +1,7 @@
 # GamePlayController 接口说明
 
 ## 简介
-- 职责：管理狼人杀/谁是卧底的对局状态查询与动作提交。
+- 职责：管理狼人杀、谁是卧底、海龟汤的对局状态查询与动作提交。
 - 鉴权要求：全部接口均需要 `X-Auth-Token`，玩家身份由登录用户 ID 决定。
 - 基础路径：`/api/games/{gameId}/rooms/{roomId}`
 
@@ -14,7 +14,7 @@
 | POST | `/speak` | 提交发言并推进流程 |
 | POST | `/vote` | 提交投票 |
 | POST | `/night-action` | 狼人杀夜晚行动 |
-| POST | `/action` | 统一动作入口，兼容发言、投票和夜晚行动 |
+| POST | `/action` | 统一动作入口，兼容发言、投票、夜晚行动、海龟汤提问和最终解答 |
 
 ## 接口详情
 
@@ -28,7 +28,7 @@ Path params：
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 |---|---|---|---|---|
-| gameId | String | 是 | 游戏标识（`undercover`/`werewolf`） | `undercover` |
+| gameId | String | 是 | 游戏标识（`undercover`/`werewolf`/`turtle_soup`） | `undercover` |
 | roomId | String | 是 | 房间 ID | `room-123` |
 
 Headers：
@@ -41,11 +41,11 @@ Headers：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| phase | String | 当前阶段（WAITING/DESCRIPTION/VOTING/NIGHT/DAY_DISCUSS/DAY_VOTE/SETTLEMENT） |
+| phase | String | 当前阶段（WAITING/DESCRIPTION/VOTING/NIGHT/DAY_DISCUSS/DAY_VOTE/QUESTIONING/SETTLEMENT） |
 | phaseEndsAt | String | 阶段结束时间 |
 | players[].connectionStatus | String | 连接状态（ONLINE/DISCONNECTED/AI_TAKEOVER） |
 | myRole/myWord | String | 当前玩家私有身份信息（仅本人或结算时可见） |
-| pendingAction | Object | 狼人杀夜晚待办 |
+| pendingAction | Object | 狼人杀夜晚待办或海龟汤提问提示 |
 
 **说明**
 - 查询时会同步连接状态并处理超时自动推进（含断线托管逻辑）。
@@ -133,14 +133,14 @@ Headers：
 
 ### POST `/action` - 统一动作入口
 
-**用途**：为 GameEngine 插件化后的玩法提供统一动作协议。当前支持谁是卧底和狼人杀，并保留旧接口兼容。
+**用途**：为 GameEngine 插件化后的玩法提供统一动作协议。当前支持谁是卧底、狼人杀和海龟汤，并保留旧接口兼容。
 
 **请求体**
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 |---|---|---|---|---|
-| type | String | 是 | `SPEAK/VOTE/NIGHT_ACTION` | `SPEAK` |
-| content | String | 否 | 发言内容，`SPEAK` 使用 | `我描述一个线索` |
+| type | String | 是 | `SPEAK/VOTE/NIGHT_ACTION/ASK_QUESTION/SUBMIT_SOLUTION` | `ASK_QUESTION` |
+| content | String | 否 | 发言、海龟汤提问或最终解答内容 | `她上车前是否已经遇难？` |
 | targetPlayerId | String | 否 | 投票或夜晚行动目标 | `player-3` |
 | abstain | Boolean | 否 | 投票是否弃票，`VOTE` 使用 | `false` |
 | nightAction | String | 否 | 狼人杀夜晚行动类型 | `WOLF_KILL` |
@@ -154,4 +154,6 @@ Headers：
 - `SPEAK` 等价于旧 `/speak`。
 - `VOTE` 等价于旧 `/vote`。
 - `NIGHT_ACTION` 等价于旧 `/night-action`。
+- `ASK_QUESTION` 用于海龟汤提问，返回 `extra.qaHistory`、`extra.knownClues`、`extra.questionCount`。
+- `SUBMIT_SOLUTION` 用于海龟汤最终解答，正确时进入 `SETTLEMENT` 并返回 `extra.solution`。
 - 新玩法应优先接入 `/action`，旧接口仅服务现有页面和兼容测试。

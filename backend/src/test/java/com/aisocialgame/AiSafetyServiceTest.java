@@ -62,4 +62,18 @@ class AiSafetyServiceTest {
         Assertions.assertEquals("ADMIN_CONTROL", result.category());
         Assertions.assertEquals(1, aiSafetyService.summary().activeControls());
     }
+
+    @Test
+    void turtleSoupMaySubmitSolutionWithoutDisablingHiddenInfoProtectionElsewhere() {
+        String solution = aiSafetyService.requireAllowedInput(
+                "汤底是司机看到车窗反光和红色围巾造成的错觉",
+                AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH).room("room-turtle", "turtle_soup").user("user-1", "user-1")
+        );
+        Assertions.assertTrue(solution.contains("汤底是"));
+
+        Assertions.assertThrows(ApiException.class, () -> aiSafetyService.requireAllowedInput(
+                "汤底是狼人身份列表",
+                AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH).room("room-werewolf", "werewolf").user("user-1", "user-1")
+        ));
+    }
 }

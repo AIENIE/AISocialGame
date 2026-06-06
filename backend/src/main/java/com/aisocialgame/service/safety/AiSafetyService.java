@@ -59,7 +59,7 @@ public class AiSafetyService {
         if (controlResult != null) {
             return controlResult;
         }
-        RuleDecision decision = evaluateRules(normalized);
+        RuleDecision decision = evaluateRules(normalized, context);
         if (AiSafetyAction.ALLOW.equals(decision.action())) {
             return new AiSafetyResult(AiSafetyAction.ALLOW, SEVERITY_LOW, "NONE", "", normalized, null);
         }
@@ -206,7 +206,7 @@ public class AiSafetyService {
         };
     }
 
-    private RuleDecision evaluateRules(String content) {
+    private RuleDecision evaluateRules(String content, AiSafetyContext context) {
         if (!StringUtils.hasText(content)) {
             return new RuleDecision(AiSafetyAction.ALLOW, SEVERITY_LOW, "NONE", "", content);
         }
@@ -223,7 +223,10 @@ public class AiSafetyService {
         if (containsAny(lower, List.of("ignore previous instructions", "忽略以上规则", "输出系统提示", "泄露prompt", "泄露系统提示"))) {
             return new RuleDecision(AiSafetyAction.ESCALATE, SEVERITY_HIGH, "PROMPT_INJECTION", "疑似 Prompt Injection", SAFE_REPLACEMENT);
         }
-        if (containsAny(lower, List.of("我的隐藏词是", "所有人的身份是", "汤底是", "夜晚目标是"))) {
+        List<String> hiddenInfoPatterns = "turtle_soup".equals(context.getGameId())
+                ? List.of("我的隐藏词是", "所有人的身份是", "夜晚目标是")
+                : List.of("我的隐藏词是", "所有人的身份是", "汤底是", "夜晚目标是");
+        if (containsAny(lower, hiddenInfoPatterns)) {
             return new RuleDecision(AiSafetyAction.BLOCK, SEVERITY_HIGH, "HIDDEN_INFO_LEAK", "疑似隐藏信息泄露", SAFE_REPLACEMENT);
         }
         if (content.length() > 4000) {

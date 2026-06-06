@@ -208,9 +208,39 @@ public class GameRepository {
                 List.of("悬疑", "合作", "故事"),
                 1,
                 6,
-                GameStatus.COMING_SOON,
+                GameStatus.ACTIVE,
                 0,
-                List.of()
+                List.of(
+                        new GameConfigOption(
+                                "playerCount",
+                                "玩家人数",
+                                "select",
+                                2,
+                                List.of(
+                                        new GameConfigOption.Option("1人", 1),
+                                        new GameConfigOption.Option("2人", 2),
+                                        new GameConfigOption.Option("3人", 3),
+                                        new GameConfigOption.Option("4人", 4),
+                                        new GameConfigOption.Option("6人", 6)
+                                ),
+                                null,
+                                null
+                        ),
+                        new GameConfigOption(
+                                "caseId",
+                                "题目",
+                                "select",
+                                "midnight_train",
+                                List.of(
+                                        new GameConfigOption.Option("末班车的乘客", "midnight_train"),
+                                        new GameConfigOption.Option("雨夜的钥匙", "rainy_key")
+                                ),
+                                null,
+                                null
+                        ),
+                        new GameConfigOption("maxQuestions", "问题上限", "number", 12, null, 4, 30),
+                        new GameConfigOption("aiAssist", "AI 玩家追问", "boolean", true, null, null, null)
+                )
         );
 
         games.put(werewolf.getId(), werewolf);

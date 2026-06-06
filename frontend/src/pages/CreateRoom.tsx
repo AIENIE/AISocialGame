@@ -299,7 +299,7 @@ const CreateRoom = () => {
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
               <span>{formData.commMode === 'voice' ? '语音' : '文字'}</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              <span>{formData.template === 'standard' ? '预女猎白' : formData.template}</span>
+              <span>{formData.template === 'standard' ? '预女猎白' : formData.template || game.name}</span>
             </div>
           </div>
           <div className="flex-1 md:flex-none flex gap-4 justify-end">

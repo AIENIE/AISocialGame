@@ -1,6 +1,6 @@
 # 里程碑阶段记录
 
-> 更新时间：2026-05-20
+> 更新时间：2026-06-06
 
 本目录按里程碑保存阶段性记录。每个里程碑目录至少包含 `development.md`，用于记录本阶段实际完成的代码、文档、测试和后续风险；尚未进入开发的里程碑也可以先保存规划记录。
 
@@ -12,6 +12,7 @@
 | M2 | 已完成 | [m2-structured-replay/](m2-structured-replay/) | 结构化事件流、服务端回放归档、视角过滤和回放验收 |
 | M3 | 已完成 | [m3-game-engine-plugin-architecture/](m3-game-engine-plugin-architecture/) | GameEngine 注册表、统一 action、现有玩法插件化入口 |
 | M4 | 已完成 | [m4-ai-safety-admin-ops/](m4-ai-safety-admin-ops/) | AI 安全治理、风险事件、分级处置、Admin 应急运营 |
+| M5 | 已完成 | [m5-turtle-soup/](m5-turtle-soup/) | 海龟汤规则主持、AI 追问、问答线索、结算揭底和回放归档 |
 
 ## 后续规则
 

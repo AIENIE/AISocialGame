@@ -29,9 +29,9 @@ type GameState = {
 
 test.describe("真实验收：数据、AI 对局和管理端质检", () => {
   test.skip(process.env.REAL_ACCEPTANCE !== "1", "Set REAL_ACCEPTANCE=1 to run real acceptance.");
-  test.setTimeout(240_000);
+  test.setTimeout(900_000);
 
-  test("开箱功能与四场 AI 社交游戏闭环", async ({ page, request }) => {
+  test("开箱功能与五场 AI 社交游戏闭环", async ({ page, request }) => {
     await verifyPublicPages(page);
     test.skip(!USER_TOKENS.length, "Set E2E_AUTH_TOKEN or E2E_AUTH_TOKENS for authenticated game acceptance.");
     test.skip(!ADMIN_PASSWORD, "Set E2E_ADMIN_PASSWORD for admin acceptance.");
@@ -43,6 +43,7 @@ test.describe("真实验收：数据、AI 对局和管理端质检", () => {
     outcomes.push(await runGameScenario(request, "undercover", 3, 6));
     outcomes.push(await runGameScenario(request, "werewolf", 1, 6));
     outcomes.push(await runGameScenario(request, "werewolf", 3, 6));
+    outcomes.push(await runTurtleSoupScenario(request));
 
     const archiveIds: string[] = [];
     for (const outcome of outcomes) {
@@ -90,6 +91,33 @@ async function runGameScenario(request: APIRequestContext, gameId: "undercover" 
   return { gameId, roomId: room.id, viewerPlayerId: humans[0].playerId, viewerToken: humans[0].token, phase: state.phase, winner: state.winner };
 }
 
+async function runTurtleSoupScenario(request: APIRequestContext) {
+  const humans = buildHumans(1);
+  const room = await createTurtleSoupRoom(request, humans[0].token);
+  await joinHumans(request, room, humans);
+  await fillAiSeats(request, room, 2);
+
+  let state = await postState(request, "turtle_soup", room.id, "start", undefined, humans[0].token);
+  expect(state.phase).toBe("QUESTIONING");
+  expect(String(state.extra?.surface || "")).toContain("末班车");
+  expect(state.extra?.solution).toBeFalsy();
+
+  state = await postUnifiedAction(request, "turtle_soup", room.id, {
+    type: "ASK_QUESTION",
+    content: "司机是否看到了红色围巾？",
+  }, humans[0].token);
+  expect(String(state.extra?.knownClues || "")).toContain("红色围巾");
+
+  state = await postUnifiedAction(request, "turtle_soup", room.id, {
+    type: "SUBMIT_SOLUTION",
+    content: "汤底是乘客早已死亡，司机看到的是车窗反光和红色围巾，所以误以为她还在车上。",
+  }, humans[0].token);
+  expect(state.phase).toBe("SETTLEMENT");
+  expect(state.winner).toBe("SOLVED");
+  expect(String(state.extra?.solution || "")).toContain("车窗反光");
+  return { gameId: "turtle_soup", roomId: room.id, viewerPlayerId: humans[0].playerId, viewerToken: humans[0].token, phase: state.phase, winner: state.winner };
+}
+
 async function verifyUnifiedActionEndpoint(request: APIRequestContext) {
   const humans = buildHumans(1);
   const room = await createRoom(request, "undercover", 1, 4, humans[0].token);
@@ -132,6 +160,8 @@ async function verifyServerReplay(request: APIRequestContext, gameId: string, ro
     || event.eventType === "WOLF_KILL"
     || event.eventType === "SEER_CHECK"
     || event.eventType === "WITCH_POISON"
+    || event.eventType === "TURTLE_SOUP_QUESTION"
+    || event.eventType === "TURTLE_SOUP_SOLVED"
   )).toBeTruthy();
 
   const publicResponse = await request.get(`/api/replays/${archive.id}/events`, {
@@ -171,6 +201,25 @@ async function createRoom(request: APIRequestContext, gameId: "undercover" | "we
       isPrivate: false,
       commMode: "text",
       config,
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  return response.json();
+}
+
+async function createTurtleSoupRoom(request: APIRequestContext, token: string): Promise<Room> {
+  const response = await request.post("/api/games/turtle_soup/rooms", {
+    headers: authHeaders(token),
+    data: {
+      roomName: `${RUN_ID}-turtle-soup`,
+      isPrivate: false,
+      commMode: "text",
+      config: {
+        playerCount: 2,
+        caseId: "midnight_train",
+        maxQuestions: 8,
+        aiAssist: false,
+      },
     },
   });
   expect(response.ok()).toBeTruthy();

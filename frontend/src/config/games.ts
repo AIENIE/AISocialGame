@@ -158,8 +158,46 @@ export const GAMES: Game[] = [
     tags: ["悬疑", "合作", "故事"],
     minPlayers: 1,
     maxPlayers: 6,
-    status: "coming_soon",
+    status: "active",
     onlineCount: 0,
-    configSchema: [],
+    configSchema: [
+      {
+        id: "playerCount",
+        label: "玩家人数",
+        type: "select",
+        defaultValue: 2,
+        options: [
+          { label: "1人", value: 1 },
+          { label: "2人", value: 2 },
+          { label: "3人", value: 3 },
+          { label: "4人", value: 4 },
+          { label: "6人", value: 6 },
+        ],
+      },
+      {
+        id: "caseId",
+        label: "题目",
+        type: "select",
+        defaultValue: "midnight_train",
+        options: [
+          { label: "末班车的乘客", value: "midnight_train" },
+          { label: "雨夜的钥匙", value: "rainy_key" },
+        ],
+      },
+      {
+        id: "maxQuestions",
+        label: "问题上限",
+        type: "number",
+        defaultValue: 12,
+        min: 4,
+        max: 30,
+      },
+      {
+        id: "aiAssist",
+        label: "AI 玩家追问",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
   },
 ];
