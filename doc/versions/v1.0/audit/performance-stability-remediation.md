@@ -17,7 +17,7 @@
 | 房间列表无分页 | 返回 `PagedResponse<RoomResponse>`，支持 `page/size/status` | `RoomController`、前端 `roomApi` |
 | 管理员 session 内存 Map 不清理 | 非 test 使用 Redis TTL，内存路径定期清理 | `AdminAuthService` |
 | 聊天限流/连接状态 Map 不清理 | 增加定时清理任务 | `ChatRateLimiter`、`PlayerConnectionService` |
-| 默认 `ddl-auto:update` | 应用和 compose 默认改为 `validate`，本地直启保留 `update` | `application.yml`、`docker-compose.yml`、`build_local.sh` |
+| 默认 `ddl-auto:update` | 应用和 compose 默认改为 `validate`，本地直启保留 `update` | `application.yml`、`docker-compose.yml`、`build.sh` |
 | 错误定位缺 request id | 增加 `X-Request-Id` 过滤器、错误体和日志 MDC | `RequestIdFilter`、`GlobalExceptionHandler` |
 
 ## 接口变化

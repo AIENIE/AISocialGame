@@ -59,7 +59,7 @@ rg -n "APP_EXTERNAL_.*(TOKEN|JWT|SECRET)|eyJhbGci|admin123|aisocialgame_pwd" .
 验证：
 
 ```bash
-rg -n "admin123|aisocialgame_pwd|useSSL=false|allowPublicKeyRetrieval|PLAINTEXT" backend docker-compose.yml build_common.sh
+rg -n "admin123|aisocialgame_pwd|useSSL=false|allowPublicKeyRetrieval|PLAINTEXT" backend docker-compose.yml build.sh
 ```
 
 ### 3. 房间权限模型过宽
