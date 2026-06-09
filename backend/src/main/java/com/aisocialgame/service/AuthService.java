@@ -11,16 +11,28 @@ import com.aisocialgame.integration.grpc.dto.ExternalUserProfile;
 import com.aisocialgame.model.User;
 import com.aisocialgame.repository.UserRepository;
 import com.aisocialgame.service.token.TokenStore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 @Service
 @Transactional
@@ -35,6 +47,9 @@ public class AuthService {
     private final BalanceService balanceService;
     private final ProjectCreditService projectCreditService;
     private final AppProperties appProperties;
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
+    private final HttpClient localInsecureHttpClient;
 
     public AuthService(UserRepository userRepository,
                        TokenStore tokenStore,
@@ -42,7 +57,8 @@ public class AuthService {
                        BillingGrpcClient billingGrpcClient,
                        BalanceService balanceService,
                        ProjectCreditService projectCreditService,
-                       AppProperties appProperties) {
+                       AppProperties appProperties,
+                       ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.tokenStore = tokenStore;
         this.userGrpcClient = userGrpcClient;
@@ -50,6 +66,11 @@ public class AuthService {
         this.balanceService = balanceService;
         this.projectCreditService = projectCreditService;
         this.appProperties = appProperties;
+        this.objectMapper = objectMapper;
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        this.localInsecureHttpClient = buildLocalInsecureHttpClient();
     }
 
     public String buildSsoLoginRedirectUrl(String state) {
@@ -78,6 +99,11 @@ public class AuthService {
         throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "用户服务地址未配置");
     }
 
+    public AuthResponse ssoCallback(String code, String redirect) {
+        SsoTokenResponse session = exchangeSsoCode(code, redirect);
+        return ssoCallback(session.userId(), session.username(), session.sessionId(), session.accessToken());
+    }
+
     public AuthResponse ssoCallback(long userId, String username, String sessionId, String accessToken) {
         if (userId <= 0 || !StringUtils.hasText(sessionId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "SSO 回调参数不完整");
@@ -97,6 +123,99 @@ public class AuthService {
 
         String token = issueToken(localUser);
         return new AuthResponse(token, buildUserView(localUser));
+    }
+
+    private SsoTokenResponse exchangeSsoCode(String code, String redirect) {
+        if (!StringUtils.hasText(code) || !StringUtils.hasText(redirect)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "SSO 回调参数不完整");
+        }
+        URI endpoint = URI.create(trimTrailingSlash(resolveUserServiceBaseUrl()) + "/sso/token");
+        String formBody = "code=" + form(code.trim()) + "&redirect=" + form(redirect.trim());
+        HttpRequest request = HttpRequest.newBuilder(endpoint)
+                .timeout(Duration.ofSeconds(10))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(formBody))
+                .build();
+        try {
+            HttpResponse<String> response = send(request, endpoint);
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "SSO 授权码无效或已过期");
+            }
+            SsoTokenResponse payload = objectMapper.readValue(response.body(), SsoTokenResponse.class);
+            if (payload.userId() == null || payload.userId() <= 0 || !StringUtils.hasText(payload.sessionId()) || !StringUtils.hasText(payload.accessToken())) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "SSO 授权码响应无效");
+            }
+            return payload;
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "SSO 授权码交换失败");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "SSO 授权码交换中断");
+        }
+    }
+
+    private String form(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private HttpResponse<String> send(HttpRequest request, URI endpoint) throws IOException, InterruptedException {
+        try {
+            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException ex) {
+            if (!allowsLocalInsecureTls(endpoint)) {
+                throw ex;
+            }
+            return localInsecureHttpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        }
+    }
+
+    private boolean allowsLocalInsecureTls(URI endpoint) {
+        String scheme = endpoint.getScheme();
+        String host = endpoint.getHost();
+        return "https".equalsIgnoreCase(scheme)
+                && host != null
+                && ("localhost".equalsIgnoreCase(host)
+                || "127.0.0.1".equals(host)
+                || host.endsWith(".localhut.com"));
+    }
+
+    private HttpClient buildLocalInsecureHttpClient() {
+        try {
+            TrustManager[] trustAll = new TrustManager[] {
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+                    }
+            };
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, trustAll, new SecureRandom());
+            return HttpClient.newBuilder()
+                    .sslContext(context)
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to initialize local SSO TLS fallback", ex);
+        }
+    }
+
+    private record SsoTokenResponse(
+            String accessToken,
+            Long userId,
+            String username,
+            String sessionId,
+            Integer rememberDays,
+            Long expiresIn
+    ) {
     }
 
     public String issueToken(User user) {

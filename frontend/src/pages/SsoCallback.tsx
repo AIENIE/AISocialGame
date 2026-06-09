@@ -15,19 +15,8 @@ const SsoCallback = () => {
     }
     processedRef.current = true;
 
-    const parseParams = () => {
-      const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
-      if (hash) {
-        return new URLSearchParams(hash);
-      }
-      return new URLSearchParams(window.location.search);
-    };
-
-    const params = parseParams();
-    const accessToken = params.get("access_token");
-    const userId = params.get("user_id");
-    const username = params.get("username");
-    const sessionId = params.get("session_id");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
     const state = params.get("state");
     const hasToken = !!sessionStorage.getItem(LOCAL_TOKEN_KEY);
     const expectedState = sessionStorage.getItem(LOCAL_SSO_STATE_KEY);
@@ -36,7 +25,7 @@ const SsoCallback = () => {
     }
 
     // Ignore stale callback tabs if user already logged in and callback payload is incomplete.
-    if (hasToken && (!accessToken || !userId || !username || !sessionId || !state || !expectedState)) {
+    if (hasToken && (!code || !state || !expectedState)) {
       navigate("/", { replace: true });
       return;
     }
@@ -47,26 +36,22 @@ const SsoCallback = () => {
       return;
     }
 
-    if (!accessToken || !userId || !username || !sessionId) {
+    if (!code) {
       toast.error("SSO 回调参数不完整，请重新登录");
       navigate("/", { replace: true });
       return;
     }
 
-    const parsedUserId = Number(userId);
-    if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
-      toast.error("SSO 用户标识无效，请重新登录");
-      navigate("/", { replace: true });
-      return;
-    }
+    const redirectUrl = new URL(`${window.location.origin}${window.location.pathname}${window.location.search}`);
+    redirectUrl.searchParams.delete("code");
+    redirectUrl.searchParams.delete("state");
 
     ssoCallback({
-      accessToken,
-      userId: parsedUserId,
-      username,
-      sessionId,
+      code,
+      redirect: redirectUrl.toString(),
     })
       .then(() => {
+        window.history.replaceState(null, "", `${window.location.pathname}${redirectUrl.search}`);
         navigate("/", { replace: true });
       })
       .catch((error: any) => {

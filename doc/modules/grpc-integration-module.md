@@ -59,7 +59,7 @@
   - `iss=aienie-services`
   - `aud=aienie-payservice-grpc`
   - `role=SERVICE`
-  - `scopes` 至少包含 `billing.read`、`billing.write`
+  - `scopes` 至少包含 `billing.balance.read`、`billing.balance.convert`、`billing.onboarding.write`、`billing.checkin.read`、`billing.checkin.write`、`billing.redeem.write`、`billing.ledger.read`
 - 若该 JWT 过期，会在 SSO 回调阶段触发 pay-service onboarding 调用失败，外显为：
   - `POST /api/auth/sso-callback` 返回 `401`
   - 响应消息：`Invalid token`

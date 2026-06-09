@@ -25,7 +25,7 @@
     - 统一账本写入、账本查询、消耗记录查询和 metadata JSON 编解码。
 - 前端
   - `useAuth`：生成一次性 `state` 并跳转 SSO
-  - `SsoCallback`：校验 `state` 并调用后端回调
+  - `SsoCallback`：从 query 读取 `code/state`，校验 `state` 后调用后端回调
   - `Profile` + `WalletPanel`：余额、兑换、历史记录
 
 ## SSO 地址解析策略
@@ -37,7 +37,7 @@
 
 ## 首次登录初始化
 
-`POST /api/auth/sso-callback` 在首次登录时执行：
+user-service 回跳 `/sso/callback?code=...&state=...` 后，前端调用 `POST /api/auth/sso-callback`。后端先用 `code + redirect` 调 user-service `POST /sso/token` 换取 `accessToken/userId/username/sessionId`，再在首次登录时执行：
 
 - `billingGrpcClient.ensureUserInitialized(...)`
 - `projectCreditService.ensureAccountInitialized(...)`

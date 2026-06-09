@@ -22,10 +22,13 @@ ai-service 默认要求 HMAC metadata：
 - `x-aienie-caller`
 - `x-aienie-ts`
 - `x-aienie-nonce`
+- `x-aienie-body-sha256`
 - `x-aienie-signature`
 
 签名串规则：
 
-`caller + "\n" + "/" + fullMethodName + "\n" + ts + "\n" + nonce`
+`caller + "\n" + "/" + fullMethodName + "\n" + ts + "\n" + nonce + "\n" + bodySha256`
+
+其中 `bodySha256` 是本次 protobuf request bytes 的 SHA-256 小写十六进制摘要，且必须同时放入 `x-aienie-body-sha256`。
 
 本项目由 `AiGrpcHmacClientInterceptor` 自动计算并注入这些 headers。

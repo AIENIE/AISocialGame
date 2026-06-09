@@ -28,6 +28,7 @@ pay-service 业务 gRPC 请求需携带：
 - `authorization: Bearer <service_jwt>`
 
 该 token 必须满足 pay-service 的 `issuer/audience/role/scopes` 约束。
+AISocialGame 当前需要的细粒度 scopes 为：`billing.balance.read`、`billing.balance.convert`、`billing.onboarding.write`、`billing.checkin.read`、`billing.checkin.write`、`billing.redeem.write`、`billing.ledger.read`。
 本项目由 `BillingGrpcAuthClientInterceptor` 自动注入该 header。
 
 ## AISocialGame 使用边界

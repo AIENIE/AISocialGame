@@ -40,9 +40,9 @@
 
 ## 3. SSO 回调安全校验
 
-1. 打开 `https://aisocialgame.localhut.com/sso/callback` 并伪造 `state`。
+1. 打开 `https://aisocialgame.localhut.com/sso/callback?code=fake&state=bad` 并伪造 `state`。
 2. 期望前端提示 `SSO 状态校验失败，请重新登录`。
-3. 期望回到首页且不会建立本地登录态。
+3. 期望不会调用 `/api/auth/sso-callback` 换 token，回到首页且不会建立本地登录态。
 
 ## 4. 钱包与积分
 
@@ -94,10 +94,10 @@
 1. 现象：`/api/auth/sso-callback` 返回 `401 Invalid token`。
 2. 根因：`APP_EXTERNAL_PAYSERVICE_JWT` 过期，导致后端调用 pay-service gRPC 认证失败。
 3. 处理：
-   - 用 pay-service 的 `JWT_SECRET` 重新签发服务 JWT（`iss=aienie-services`，`aud=aienie-payservice-grpc`，`role=SERVICE`，`scopes=[billing.read,billing.write]`）。
+   - 用 pay-service 的 `JWT_SECRET` 重新签发服务 JWT（`iss=aienie-services`，`aud=aienie-payservice-grpc`，`role=SERVICE`，`scopes=[billing.balance.read,billing.balance.convert,billing.onboarding.write,billing.checkin.read,billing.checkin.write,billing.redeem.write,billing.ledger.read]`）。
    - 重新执行 `sudo ./build.sh` 部署。
 
-4. 现象：`sudo ./build.sh` 的 `migrate-all` 报错 `Missing scope: billing.read`。
+4. 现象：`sudo ./build.sh` 的 `migrate-all` 报错 `Missing scope: billing.balance.read` 或其他细粒度 scope。
 5. 根因：签发 JWT 时误用 `scope` claim；pay-service 鉴权读取 `scopes`。
 6. 处理：改为 `scopes` 数组并重新部署，确认 `migrate-all` 返回 `failed=0`。
 

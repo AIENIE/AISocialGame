@@ -88,10 +88,10 @@
 
 ### 9. 构建迁移阶段 JWT scope 字段不兼容
 
-- 现象：`sudo ./build.sh` 执行到 `migrate-all` 报 `Missing scope: billing.read`，迁移失败。
+- 现象：`sudo ./build.sh` 执行到 `migrate-all` 报 `Missing scope: billing.balance.read` 或其他细粒度 scope，迁移失败。
 - 根因：pay-service gRPC 鉴权读取 JWT `scopes` claim；错误使用了 `scope` 字段。
 - 修复：
-  - 重新签发 JWT，使用 `scopes: [\"billing.read\",\"billing.write\"]`。
+  - 重新签发 JWT，使用 `scopes: ["billing.balance.read","billing.balance.convert","billing.onboarding.write","billing.checkin.read","billing.checkin.write","billing.redeem.write","billing.ledger.read"]`。
 - 验证：
   - `sudo ./build.sh` 成功完成，`migrate-all` 返回 `failed=0`。
 

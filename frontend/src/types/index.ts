@@ -88,10 +88,8 @@ export interface AuthResponse {
 }
 
 export interface SsoCallbackData {
-  accessToken: string;
-  userId: number;
-  username: string;
-  sessionId: string;
+  code: string;
+  redirect: string;
 }
 
 export interface AiMessage {

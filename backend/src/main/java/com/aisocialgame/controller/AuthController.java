@@ -39,12 +39,7 @@ public class AuthController {
 
     @PostMapping("/sso-callback")
     public ResponseEntity<AuthResponse> ssoCallback(@Valid @RequestBody SsoCallbackRequest request) {
-        AuthResponse response = authService.ssoCallback(
-                request.getUserId(),
-                request.getUsername(),
-                request.getSessionId(),
-                request.getAccessToken()
-        );
+        AuthResponse response = authService.ssoCallback(request.getCode(), request.getRedirect());
         return ResponseEntity.ok(response);
     }
 

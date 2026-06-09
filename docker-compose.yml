@@ -17,7 +17,7 @@ services:
       APP_AI_SYSTEM_USER_ID: ${APP_AI_SYSTEM_USER_ID:-1}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is required}
-      USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice.localhut.com:10001}
+      USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice:10001}
       BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://payservice.localhut.com:10021}
       AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}
       USER_GRPC_NEGOTIATION_TYPE: ${USER_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
@@ -57,6 +57,7 @@ services:
       - "aiservice.localhut.com:host-gateway"
     networks:
       - aisocial
+      - aienie_userservice_net
 
   frontend:
     image: nginx:1.27-alpine
@@ -74,3 +75,5 @@ services:
 networks:
   aisocial:
     driver: bridge
+  aienie_userservice_net:
+    external: true

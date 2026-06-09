@@ -56,14 +56,12 @@ curl -k -i "https://aisocialgame.localhut.com/api/auth/sso/register?state=123456
 ### POST `/api/auth/sso-callback`
 
 - 用途
-  - 校验外部会话
+  - 使用 user-service `code` 兑换外部会话
   - 建立/更新本地用户
   - 首次登录时初始化 pay-service + 本地专属积分账户
 - Body
-  - `accessToken` (String, required)
-  - `userId` (Long, required)
-  - `username` (String, required)
-  - `sessionId` (String, required)
+  - `code` (String, required)：user-service 回跳的一次性授权码
+  - `redirect` (String, required)：发起 SSO 时传给 user-service 的原始 callback URL；前端只移除回跳追加的 `code/state`
 - 成功响应
   - `token` (String)
   - `user` (AuthUserView)
@@ -73,10 +71,8 @@ curl -k -i "https://aisocialgame.localhut.com/api/auth/sso/register?state=123456
 curl -k -X POST "https://aisocialgame.localhut.com/api/auth/sso-callback" \
   -H "Content-Type: application/json" \
   -d '{
-    "accessToken": "remote-token",
-    "userId": 1001,
-    "username": "demo_user",
-    "sessionId": "sess-001"
+    "code": "userservice-code",
+    "redirect": "https://aisocialgame.localhut.com/sso/callback"
   }'
 ```
 
