@@ -1,0 +1,40 @@
+project_name: "AISocialGame"
+languages:
+  - java
+  - typescript
+encoding: "utf-8"
+line_ending:
+language_backend: LSP
+ignore_all_files_in_gitignore: true
+ls_specific_settings:
+  java:
+    use_system_java_home: true
+    jdtls_xmx: "3G"
+    jdtls_xms: "100m"
+  typescript: {}
+additional_workspace_folders:
+  - frontend
+ignored_paths:
+  - ".codegraph"
+  - ".codegraph/**"
+  - ".serena/cache"
+  - ".serena/cache/**"
+  - ".serena/logs"
+  - ".serena/logs/**"
+  - ".serena/memories"
+  - ".serena/memories/**"
+  - "logs/**"
+  - "backend/logs/**"
+  - "backend/target/**"
+  - "frontend/node_modules/**"
+  - "frontend/dist/**"
+read_only: false
+excluded_tools: []
+included_optional_tools: []
+fixed_tools: []
+default_modes: []
+added_modes: []
+initial_prompt: "Aienie AISocialGame. Read AGENTS.md, doc/README.md, and .codex/codebase/README.md before work. For public service integration, use /home/duwei/aienie-services/aienie-doc/interfaces/{user-service,ai-service,pay-service}/ as the contract source."
+symbol_info_budget: 10
+read_only_memory_patterns: []
+ignored_memory_patterns: []

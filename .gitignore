@@ -23,3 +23,10 @@ ai_artifacts/codex-test-report.json
 ai_artifacts/repair-summary.md
 ai_artifacts/generated-tests/
 .codex/dev-test/runs/
+
+# Codex codebase intelligence local state
+.codegraph/
+.serena/cache/
+.serena/project.local.yml
+.serena/memories/
+.serena/logs/
