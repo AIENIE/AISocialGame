@@ -46,7 +46,7 @@
   - `frontend/src/services/api.ts`
     - 历史版本中 `roomApi.join` 在 `401/403` 时按未登录访客重试；v1.0 安全整改后已移除。
   - `frontend/vite.config.ts`
-    - 新增 `/ws` 代理，`ws: true`，目标 `http://localhost:20030`。
+    - 新增 `/ws` 代理，`ws: true`，目标 `http://localhost:11031`。
 - 验证：
   - 卧底/狼人房均可显示实时聊天消息，输入文本成功落地。
   - 证据：

@@ -50,7 +50,7 @@ Body：无
 **示例请求**
 
 ```bash
-curl -X GET "http://localhost:20030/api/ai/models"
+curl -X GET "http://localhost:11031/api/ai/models"
 ```
 
 **示例响应**
@@ -111,7 +111,7 @@ Body：
 **示例请求**
 
 ```bash
-curl -X POST "http://localhost:20030/api/ai/chat" \
+curl -X POST "http://localhost:11031/api/ai/chat" \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: <token>" \
   -d '{
@@ -165,7 +165,7 @@ Body：与 `/api/ai/chat` 一致
 **示例请求**
 
 ```bash
-curl -N -X POST "http://localhost:20030/api/ai/chat/stream" \
+curl -N -X POST "http://localhost:11031/api/ai/chat/stream" \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: <token>" \
   -d '{
@@ -222,7 +222,7 @@ Body：
 **示例请求**
 
 ```bash
-curl -X POST "http://localhost:20030/api/ai/embeddings" \
+curl -X POST "http://localhost:11031/api/ai/embeddings" \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: <token>" \
   -d '{
@@ -286,7 +286,7 @@ Body：
 **示例请求**
 
 ```bash
-curl -X POST "http://localhost:20030/api/ai/ocr" \
+curl -X POST "http://localhost:11031/api/ai/ocr" \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: <token>" \
   -d '{

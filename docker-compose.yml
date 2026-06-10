@@ -3,7 +3,7 @@ services:
     image: eclipse-temurin:25-jre
     container_name: aisocial-backend
     ports:
-      - "11031:20030"
+      - "11031:11031"
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-aisocialgame}
@@ -37,7 +37,7 @@ services:
       SSO_CALLBACK_URL: ${SSO_CALLBACK_URL:-https://aisocialgame.localhut.com/sso/callback}
       SSO_LOGIN_PATH: ${SSO_LOGIN_PATH:-/sso/login}
       SSO_REGISTER_PATH: ${SSO_REGISTER_PATH:-/register}
-      SERVER_PORT: ${SERVER_PORT:-20030}
+      SERVER_PORT: ${SERVER_PORT:-11031}
       APP_LOG_DIR: ${APP_LOG_DIR:-/app/logs}
       APP_RECORD_DIR: ${APP_RECORD_DIR:-/app/records}
       LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:-/app/logs/aisocialgame.log}
@@ -65,7 +65,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "11030:80"
+      - "11030:11030"
     volumes:
       - ./frontend/dist:/usr/share/nginx/html:ro
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro

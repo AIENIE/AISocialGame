@@ -281,7 +281,7 @@ useGameSocket({
 ```nginx
 # 在现有 nginx.conf 中添加 WebSocket 代理
 location /ws {
-    proxy_pass http://backend:20030/ws;
+    proxy_pass http://backend:11031/ws;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";

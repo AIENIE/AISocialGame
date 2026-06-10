@@ -22,7 +22,7 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
 
 server:
-  port: ${SERVER_PORT:${BACKEND_PORT:20030}}
+  port: ${SERVER_PORT:${BACKEND_PORT:11031}}
 
 logging:
   file:

@@ -12,5 +12,5 @@ FROM nginx:1.27-alpine
 WORKDIR /usr/share/nginx/html
 COPY --from=builder /app/dist ./
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+EXPOSE 11030
 CMD ["nginx","-g","daemon off;"]
