@@ -8,9 +8,9 @@ COPY . .
 RUN pnpm exec vite --version && pnpm build
 
 # runtime stage
-FROM nginx:1.27-alpine
-WORKDIR /usr/share/nginx/html
-COPY --from=builder /app/dist ./
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+RUN npm install -g serve@14 --no-audit --no-fund
 EXPOSE 11030
-CMD ["nginx","-g","daemon off;"]
+CMD ["serve", "-s", "dist", "-l", "tcp://0.0.0.0:11030"]
