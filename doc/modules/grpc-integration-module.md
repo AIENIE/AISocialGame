@@ -23,15 +23,15 @@
 ## 当前配置策略
 
 - 地址：
-  - `USER_GRPC_ADDR=static://userservice.localhut.com:10001`
-  - `BILLING_GRPC_ADDR=static://payservice.localhut.com:10021`
-  - `AI_GRPC_ADDR=static://aiservice.localhut.com:10011`
+  - `USER_GRPC_ADDR=static://userservice.seekerhut.com:443`
+  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:443`
+  - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:443`
 - SSO HTTP 入口：
-  - `SSO_USER_SERVICE_BASE_URL=https://userservice.localhut.com`
+  - `SSO_USER_SERVICE_BASE_URL=https://userservice.seekerhut.com`
 - 传输：
-  - 默认 `USER_GRPC_NEGOTIATION_TYPE=PLAINTEXT`
-  - 默认 `BILLING_GRPC_NEGOTIATION_TYPE=PLAINTEXT`，与 `aienie-doc/pay-service/01-完整对接.md` 的 `grpcurl -plaintext` 和 `10021` 对齐
-  - 默认 `AI_GRPC_NEGOTIATION_TYPE=PLAINTEXT`
+  - 默认 `USER_GRPC_NEGOTIATION_TYPE=TLS`
+  - 默认 `BILLING_GRPC_NEGOTIATION_TYPE=TLS`
+  - 默认 `AI_GRPC_NEGOTIATION_TYPE=TLS`
   - `RuntimeSecurityValidator` 仍保留明文拦截能力；当任一 gRPC 通道为 `PLAINTEXT` 时，必须允许 `APP_SECURITY_ALLOW_PLAINTEXT_GRPC=true`，否则启动期拒绝运行。
 
 ## aienie 三服务契约边界

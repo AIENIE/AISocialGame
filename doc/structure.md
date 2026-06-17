@@ -56,9 +56,10 @@ AISocialGame/
 ## 关键配置约束
 
 - gRPC 地址默认走静态域名：
-  - `USER_GRPC_ADDR=static://userservice.localhut.com:10001`
-  - `BILLING_GRPC_ADDR=static://payservice.localhut.com:10021`
-  - `AI_GRPC_ADDR=static://aiservice.localhut.com:10011`
+  - `USER_GRPC_ADDR=static://userservice.seekerhut.com:443`
+  - `BILLING_GRPC_ADDR=static://payservice.seekerhut.com:443`
+  - `AI_GRPC_ADDR=static://aiservice.seekerhut.com:443`
+  - `USER_GRPC_NEGOTIATION_TYPE=TLS`、`BILLING_GRPC_NEGOTIATION_TYPE=TLS`、`AI_GRPC_NEGOTIATION_TYPE=TLS`
 - SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量通过未入库 `env.local`、系统环境或 CI/CD secret 注入，`env.txt` 只保留模板。
 - 非 test profile 会校验弱口令、MySQL TLS 和 gRPC 明文配置，详见 `doc/modules/security-hardening-module.md`。

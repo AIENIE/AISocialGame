@@ -59,29 +59,29 @@ load_env_file() {
 load_env_file "$repo_root/env.txt"
 load_env_file "$repo_root/env.local"
 
-export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}"
+export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
 export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
 export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-26379}"
-export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice:10001}"
-export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.localhut.com:10021}"
-export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}"
-export USER_GRPC_NEGOTIATION_TYPE="${USER_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
-export BILLING_GRPC_NEGOTIATION_TYPE="${BILLING_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
-export AI_GRPC_NEGOTIATION_TYPE="${AI_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}"
+export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.seekerhut.com:443}"
+export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:443}"
+export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:443}"
+export USER_GRPC_NEGOTIATION_TYPE="${USER_GRPC_NEGOTIATION_TYPE:-TLS}"
+export BILLING_GRPC_NEGOTIATION_TYPE="${BILLING_GRPC_NEGOTIATION_TYPE:-TLS}"
+export AI_GRPC_NEGOTIATION_TYPE="${AI_GRPC_NEGOTIATION_TYPE:-TLS}"
 export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
 export QDRANT_PORT="${QDRANT_PORT:-26333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
-export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}"
+export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
 export SSO_CALLBACK_URL="${SSO_CALLBACK_URL:-https://${APP_DOMAIN}/sso/callback}"
 export SSO_LOGIN_PATH="${SSO_LOGIN_PATH:-/sso/login}"
 export SSO_REGISTER_PATH="${SSO_REGISTER_PATH:-/register}"
-export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.localhut.com}"
-export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.localhut.com}"
-export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.localhut.com}"
+export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
+export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.seekerhut.com}"
+export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.seekerhut.com}"
 export APP_EXTERNAL_GRPC_AUTH_REQUIRED="${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}"
 export APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS="${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}"
-export APP_SECURITY_ALLOW_PLAINTEXT_GRPC="${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-true}"
+export APP_SECURITY_ALLOW_PLAINTEXT_GRPC="${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-false}"
 
 if [[ "$SPRING_DATASOURCE_URL" == jdbc:mysql://base.seekerhut.com:3306/* ]]; then
   export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL/:3306/:23306}"
@@ -206,6 +206,9 @@ step "Backend: test & package"
       -u SPRING_DATASOURCE_USERNAME \
       -u SPRING_DATASOURCE_PASSWORD \
       -u SPRING_DATASOURCE_DRIVER_CLASS_NAME \
+      -u SPRING_CONFIG_ADDITIONAL_LOCATION \
+      -u SPRING_CONFIG_IMPORT \
+      -u SPRING_CONFIG_LOCATION \
       mvn clean test package
 )
 

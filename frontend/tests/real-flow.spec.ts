@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const TEST_USERNAME = process.env.E2E_USERNAME || "goodboy95";
 const TEST_PASSWORD = process.env.E2E_PASSWORD || "";
-const USER_SSO_LOGIN_URL = process.env.E2E_USER_SSO_LOGIN_URL || "https://userservice.localhut.com/sso/login";
+const USER_SSO_LOGIN_URL = process.env.E2E_USER_SSO_LOGIN_URL || "https://userservice.seekerhut.com/sso/login";
 const SSO_CALLBACK_URL = process.env.E2E_SSO_CALLBACK_URL || "https://aisocialgame.localhut.com/sso/callback";
 
 test("真实链路：登录、兑换、兑换记录展示", async ({ page }) => {

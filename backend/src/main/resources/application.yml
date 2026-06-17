@@ -4,7 +4,7 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:ai-social-game}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${SPRING_DATASOURCE_USERNAME:aisocialgame}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -34,7 +34,7 @@ logging:
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
   sso:
-    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://userservice.localhut.com}
+    user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://userservice.seekerhut.com}
     callback-url: ${SSO_CALLBACK_URL:https://aisocialgame.localhut.com/sso/callback}
     login-path: ${SSO_LOGIN_PATH:/sso/login}
     register-path: ${SSO_REGISTER_PATH:/register}
@@ -82,11 +82,11 @@ connection:
 grpc:
   client:
     user:
-      address: ${USER_GRPC_ADDR:static://userservice.localhut.com:10001}
-      negotiationType: ${USER_GRPC_NEGOTIATION_TYPE:PLAINTEXT}
+      address: ${USER_GRPC_ADDR:static://userservice.seekerhut.com:443}
+      negotiationType: ${USER_GRPC_NEGOTIATION_TYPE:TLS}
     billing:
-      address: ${BILLING_GRPC_ADDR:static://payservice.localhut.com:10021}
-      negotiationType: ${BILLING_GRPC_NEGOTIATION_TYPE:PLAINTEXT}
+      address: ${BILLING_GRPC_ADDR:static://payservice.seekerhut.com:443}
+      negotiationType: ${BILLING_GRPC_NEGOTIATION_TYPE:TLS}
     ai:
-      address: ${AI_GRPC_ADDR:static://aiservice.localhut.com:10011}
-      negotiationType: ${AI_GRPC_NEGOTIATION_TYPE:PLAINTEXT}
+      address: ${AI_GRPC_ADDR:static://aiservice.seekerhut.com:443}
+      negotiationType: ${AI_GRPC_NEGOTIATION_TYPE:TLS}

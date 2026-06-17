@@ -11,7 +11,7 @@
 
 ## 地址解析与回调策略
 
-- SSO 登录页基地址取 `app.sso.user-service-base-url`（默认 `https://userservice.localhut.com`）。
+- SSO 登录页基地址取 `app.sso.user-service-base-url`（默认 `https://userservice.seekerhut.com`）。
 - 当前版本不使用 Consul 服务发现；如果该配置缺失，后端会返回用户服务地址未配置。
 - 回调地址由 `app.sso.callback-url` 控制，本地环境默认：
   - `https://aisocialgame.localhut.com/sso/callback`
@@ -33,7 +33,7 @@
   - `state` (String, required, 16~128 位，`[A-Za-z0-9_-]`)
 - 返回
   - `302 Found`
-  - `Location: https://userservice.localhut.com/sso/login?redirect=<callback>&state=<state>`
+  - `Location: https://userservice.seekerhut.com/sso/login?redirect=<callback>&state=<state>`
 - 示例
 
 ```bash
@@ -46,7 +46,7 @@ curl -k -i "https://aisocialgame.localhut.com/api/auth/sso/login?state=123456789
   - `state` (String, required)
 - 返回
   - `302 Found`
-  - `Location: https://userservice.localhut.com/register?redirect=<callback>&state=<state>`
+  - `Location: https://userservice.seekerhut.com/register?redirect=<callback>&state=<state>`
 - 示例
 
 ```bash

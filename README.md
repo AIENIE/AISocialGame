@@ -48,10 +48,10 @@
 本地 localhut 部署默认不再依赖 Consul：
 
 - MySQL / Redis / Qdrant：`base.seekerhut.com:23306 / 26379 / 26333`
-- user-service gRPC：`static://userservice.localhut.com:10001`
-- pay-service gRPC：`static://payservice.localhut.com:10021`
-- ai-service gRPC：`static://aiservice.localhut.com:10011`
-- SSO 入口：`https://userservice.localhut.com`
+- user-service gRPC：`static://userservice.seekerhut.com:443`，TLS
+- pay-service gRPC：`static://payservice.seekerhut.com:443`，TLS
+- ai-service gRPC：`static://aiservice.seekerhut.com:443`，TLS
+- SSO 入口：`https://userservice.seekerhut.com`
 
 MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
 如果本机 `env.local` 仍残留 `base.seekerhut.com:3306 / 6379 / 6333` 这组旧端口，`build.sh` 会在 Docker 部署前重写为 `23306 / 26379 / 26333`，避免容器因错误端口启动失败。

@@ -4,7 +4,8 @@
 
 ## 服务地址与服务名
 
-- 当前地址：`AI_GRPC_ADDR=static://aiservice.localhut.com:10011`
+- 当前地址：`AI_GRPC_ADDR=static://aiservice.seekerhut.com:443`
+- 默认传输：`AI_GRPC_NEGOTIATION_TYPE=TLS`
 - 当前发现方式：静态域名/端口，不使用 Consul。
 - gRPC 服务：`fireflychat.ai.v1.AiGatewayService`
 
