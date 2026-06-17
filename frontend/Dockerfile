@@ -3,7 +3,7 @@ FROM node:20-bullseye AS builder
 WORKDIR /app
 ENV NODE_ENV=development
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile --prod=false
+RUN corepack enable && corepack prepare pnpm@10.30.0 --activate && pnpm install --frozen-lockfile --prod=false
 COPY . .
 RUN pnpm exec vite --version && pnpm build
 

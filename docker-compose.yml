@@ -4,61 +4,17 @@ services:
     container_name: aisocial-backend
     ports:
       - "11031:11031"
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=true&requireSSL=true&serverTimezone=UTC}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-aisocialgame}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
-      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}
-      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-26379}
-      APP_REDIS_TOKEN_KEY_PREFIX: ${APP_REDIS_TOKEN_KEY_PREFIX:-aisocialgame:auth:token:}
-      APP_AUTH_TOKEN_TTL_HOURS: 168
-      APP_PROJECT_KEY: ${APP_PROJECT_KEY:-aisocialgame}
-      APP_AI_SYSTEM_USER_ID: ${APP_AI_SYSTEM_USER_ID:-1}
-      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
-      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is required}
-      USER_GRPC_ADDR: ${USER_GRPC_ADDR:-static://userservice:10001}
-      BILLING_GRPC_ADDR: ${BILLING_GRPC_ADDR:-static://billingservice:10021}
-      AI_GRPC_ADDR: ${AI_GRPC_ADDR:-static://aiservice.localhut.com:10011}
-      USER_GRPC_NEGOTIATION_TYPE: ${USER_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
-      BILLING_GRPC_NEGOTIATION_TYPE: ${BILLING_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
-      AI_GRPC_NEGOTIATION_TYPE: ${AI_GRPC_NEGOTIATION_TYPE:-PLAINTEXT}
-      APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS: ${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}
-      APP_SECURITY_ALLOW_PLAINTEXT_GRPC: ${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-true}
-      SSO_USER_SERVICE_BASE_URL: ${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}
-      QDRANT_HOST: ${QDRANT_HOST:-http://base.seekerhut.com}
-      QDRANT_PORT: ${QDRANT_PORT:-26333}
-      QDRANT_ENABLED: ${QDRANT_ENABLED:-true}
-      APP_EXTERNAL_GRPC_AUTH_REQUIRED: ${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}
-      APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN: ${APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN:-}
-      APP_EXTERNAL_PAYSERVICE_JWT: ${APP_EXTERNAL_PAYSERVICE_JWT:-}
-      APP_EXTERNAL_AISERVICE_HMAC_CALLER: ${APP_EXTERNAL_AISERVICE_HMAC_CALLER:-}
-      APP_EXTERNAL_AISERVICE_HMAC_SECRET: ${APP_EXTERNAL_AISERVICE_HMAC_SECRET:-}
-      SSO_CALLBACK_URL: ${SSO_CALLBACK_URL:-https://aisocialgame.localhut.com/sso/callback}
-      SSO_LOGIN_PATH: ${SSO_LOGIN_PATH:-/sso/login}
-      SSO_REGISTER_PATH: ${SSO_REGISTER_PATH:-/register}
-      SERVER_PORT: ${SERVER_PORT:-11031}
-      APP_LOG_DIR: ${APP_LOG_DIR:-/app/logs}
-      APP_RECORD_DIR: ${APP_RECORD_DIR:-/app/records}
-      LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:-/app/logs/aisocialgame.log}
-      JAVA_OPTS: ""
-      SPRING_CONFIG_ADDITIONAL_LOCATION: /app/config/
     working_dir: /app
-    command: ["sh", "-c", "java $${JAVA_OPTS} -jar /app/app.jar"]
+    command: ["sh", "-c", ". /app/bin/load-env-file.sh; load_one_env_file /app/env.local && exec java $${JAVA_OPTS:-} -jar /app/app.jar"]
     volumes:
       - ./backend/target/ai-social-game-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
       - ./backend/src/main/resources/application.yml:/app/config/application.yml:ro
       - ./backend/src/main/resources/prompt.yml:/app/config/prompt.yml:ro
-      - ${APP_LOG_DIR_HOST:-/home/duwei/aienie-runtime/observability/data/aisocialgame/logs}:/app/logs
-      - ${APP_RECORD_DIR_HOST:-/home/duwei/aienie-runtime/observability/data/aisocialgame/records}:/app/records
-    extra_hosts:
-      - "userservice.localhut.com:host-gateway"
-      - "payservice.localhut.com:host-gateway"
-      - "aiservice.localhut.com:host-gateway"
-    networks:
-      - aisocial
-      - aienie_userservice_net
-      - aienie_payservice_net
+      - ./env.txt:/app/env.txt:ro
+      - ./env.local:/app/env.local:ro
+      - ./docker/load-env-file.sh:/app/bin/load-env-file.sh:ro
+      - /home/duwei/aienie-runtime/observability/data/aisocialgame/logs:/app/logs
+      - /home/duwei/aienie-runtime/observability/data/aisocialgame/records:/app/records
 
   frontend:
     build:
@@ -69,13 +25,4 @@ services:
       - backend
     ports:
       - "11030:11030"
-    networks:
-      - aisocial
 
-networks:
-  aisocial:
-    driver: bridge
-  aienie_userservice_net:
-    external: true
-  aienie_payservice_net:
-    external: true
