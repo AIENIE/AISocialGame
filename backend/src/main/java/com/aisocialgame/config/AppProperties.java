@@ -103,7 +103,7 @@ public class AppProperties {
     }
 
     public static class Sso {
-        private String userServiceBaseUrl = "https://userservice.seekerhut.com";
+        private String userServiceBaseUrl = "https://userservice.localhut.com";
         private String callbackUrl = "https://aisocialgame.localhut.com/sso/callback";
         private String loginPath = "/sso/login";
         private String registerPath = "/register";

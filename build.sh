@@ -59,43 +59,61 @@ load_env_file() {
 load_env_file "$repo_root/env.txt"
 load_env_file "$repo_root/env.local"
 
-export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://base.seekerhut.com:3306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
+export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:mysql://service.localhut.com:23306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
 export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-aisocialgame}"
-export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-base.seekerhut.com}"
+export SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST:-service.localhut.com}"
 export SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT:-26379}"
-export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.seekerhut.com:443}"
-export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.seekerhut.com:443}"
-export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.seekerhut.com:443}"
+export USER_GRPC_ADDR="${USER_GRPC_ADDR:-static://userservice.localhut.com:443}"
+export BILLING_GRPC_ADDR="${BILLING_GRPC_ADDR:-static://payservice.localhut.com:443}"
+export AI_GRPC_ADDR="${AI_GRPC_ADDR:-static://aiservice.localhut.com:443}"
 export USER_GRPC_NEGOTIATION_TYPE="${USER_GRPC_NEGOTIATION_TYPE:-TLS}"
 export BILLING_GRPC_NEGOTIATION_TYPE="${BILLING_GRPC_NEGOTIATION_TYPE:-TLS}"
 export AI_GRPC_NEGOTIATION_TYPE="${AI_GRPC_NEGOTIATION_TYPE:-TLS}"
-export QDRANT_HOST="${QDRANT_HOST:-http://base.seekerhut.com}"
+export QDRANT_HOST="${QDRANT_HOST:-http://service.localhut.com}"
 export QDRANT_PORT="${QDRANT_PORT:-26333}"
 export QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
-export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
+export SSO_USER_SERVICE_BASE_URL="${SSO_USER_SERVICE_BASE_URL:-https://userservice.localhut.com}"
 export SSO_CALLBACK_URL="${SSO_CALLBACK_URL:-https://${APP_DOMAIN}/sso/callback}"
 export SSO_LOGIN_PATH="${SSO_LOGIN_PATH:-/sso/login}"
 export SSO_REGISTER_PATH="${SSO_REGISTER_PATH:-/register}"
-export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.seekerhut.com}"
-export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.seekerhut.com}"
-export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.seekerhut.com}"
+export USER_SERVICE_BASE_URL="${USER_SERVICE_BASE_URL:-https://userservice.localhut.com}"
+export PAY_SERVICE_BASE_URL="${PAY_SERVICE_BASE_URL:-https://payservice.localhut.com}"
+export AI_SERVICE_BASE_URL="${AI_SERVICE_BASE_URL:-https://aiservice.localhut.com}"
 export APP_EXTERNAL_GRPC_AUTH_REQUIRED="${APP_EXTERNAL_GRPC_AUTH_REQUIRED:-true}"
 export APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS="${APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS:-false}"
 export APP_SECURITY_ALLOW_PLAINTEXT_GRPC="${APP_SECURITY_ALLOW_PLAINTEXT_GRPC:-false}"
 
 if [[ "$SPRING_DATASOURCE_URL" == jdbc:mysql://base.seekerhut.com:3306/* ]]; then
+  export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL/base.seekerhut.com/service.localhut.com}"
   export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL/:3306/:23306}"
-  echo "Rewrote SPRING_DATASOURCE_URL to use base.seekerhut.com:23306 for Docker deployment"
+  echo "Rewrote SPRING_DATASOURCE_URL to use service.localhut.com:23306 for Docker deployment"
+fi
+
+if [[ "$SPRING_DATASOURCE_URL" == jdbc:mysql://service.localhut.com:3306/* ]]; then
+  export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL/:3306/:23306}"
+  echo "Rewrote SPRING_DATASOURCE_URL to use service.localhut.com:23306 for Docker deployment"
 fi
 
 if [[ "${SPRING_DATA_REDIS_HOST}" == "base.seekerhut.com" && "${SPRING_DATA_REDIS_PORT}" == "6379" ]]; then
+  export SPRING_DATA_REDIS_HOST="service.localhut.com"
   export SPRING_DATA_REDIS_PORT="26379"
-  echo "Rewrote SPRING_DATA_REDIS_PORT to use base.seekerhut.com:26379 for Docker deployment"
+  echo "Rewrote SPRING_DATA_REDIS_HOST/PORT to use service.localhut.com:26379 for Docker deployment"
+fi
+
+if [[ "${SPRING_DATA_REDIS_HOST}" == "service.localhut.com" && "${SPRING_DATA_REDIS_PORT}" == "6379" ]]; then
+  export SPRING_DATA_REDIS_PORT="26379"
+  echo "Rewrote SPRING_DATA_REDIS_PORT to use service.localhut.com:26379 for Docker deployment"
 fi
 
 if [[ "${QDRANT_HOST}" == "http://base.seekerhut.com" && "${QDRANT_PORT}" == "6333" ]]; then
+  export QDRANT_HOST="http://service.localhut.com"
   export QDRANT_PORT="26333"
-  echo "Rewrote QDRANT_PORT to use base.seekerhut.com:26333 for Docker deployment"
+  echo "Rewrote QDRANT_HOST/PORT to use http://service.localhut.com:26333 for Docker deployment"
+fi
+
+if [[ "${QDRANT_HOST}" == "http://service.localhut.com" && "${QDRANT_PORT}" == "6333" ]]; then
+  export QDRANT_PORT="26333"
+  echo "Rewrote QDRANT_PORT to use http://service.localhut.com:26333 for Docker deployment"
 fi
 
 require_env_vars() {
