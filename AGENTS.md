@@ -1,5 +1,6 @@
 - 项目名: AISocialGame
-- 项目类型：业务项目
+- 项目归属：aienie
+- 项目类型：业务项目（projects）
 - 前端技术栈: React 18 + TypeScript + Vite + React Router + TanStack Query + Tailwind CSS + shadcn/ui
 - 后端技术栈: Java Spring boot
 - 本地测试域名: aisocialgame.localhut.com
