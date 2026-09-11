@@ -1,15 +1,23 @@
 # Windows 本机调试启动
 
-在仓库检出目录使用 PowerShell 7。仅保留两个前台调试脚本，直接在 Windows 上运行
-AISocialGame，不经过 Config Center、发布平面或监控状态写入器。
+在仓库检出目录使用 PowerShell 7。一键入口 `Start-Local.ps1` 把两个前台调试脚本
+托管为受管隐藏后台进程并等待健康检查，重复运行安全（已运行组件自动跳过、陈旧
+记录自动清理），启动成功后自动在默认浏览器打开本地域名主页（`-NoBrowser` 跳过）；
+它也兼容从 Windows PowerShell 5.1 直接运行（自动转投 pwsh）。仍保留两个前台调试
+脚本，直接在 Windows 上运行 AISocialGame，不经过 Config Center、发布平面或监控
+状态写入器。
 
 | 操作 | 命令 |
 | --- | --- |
-| 启动后端（127.0.0.1:11031） | `.\scripts\windows\Start-Backend.ps1` |
-| 启动前端（127.0.0.1:11030） | `.\scripts\windows\Start-Frontend.ps1` |
+| 启动（一键，含打开主页） | `.\scripts\windows\Start-Local.ps1` |
+| 停止受管后台实例 | `.\scripts\windows\Stop-Local.ps1` |
+| 前台启动后端（127.0.0.1:11031） | `.\scripts\windows\Start-Backend.ps1` |
+| 前台启动前端（127.0.0.1:11030） | `.\scripts\windows\Start-Frontend.ps1` |
 
-两个脚本都在前台运行：日志直接输出到当前控制台，Ctrl+C 停止，退出码透传给
-调用方，因此不再需要单独的 Stop/Status 入口或进程状态文件。
+前台脚本日志直接输出到当前控制台，Ctrl+C 停止，退出码透传给调用方；
+`Start-Local.ps1` 托管的实例日志位于
+`%LOCALAPPDATA%\Aienie\native-runs\aisocialgame\logs`，进程记录在同目录
+`processes.json`，由 `Stop-Local.ps1` 按进程身份停止。
 
 默认私有输入为 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env`（必须是普通
 非 reparse 文件，可用 `-EnvironmentFile` 覆盖）。不要求特殊 ACL、管理员所有权、

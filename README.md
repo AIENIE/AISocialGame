@@ -115,14 +115,21 @@ mysql \
 
 ### Windows 本机调试启动（localbase WSL）
 
-共享 MySQL、Redis、Qdrant 和 AI/User/Pay 公共服务由 `aienie-wsl` 提供；Windows 原生应用是另一套本地实例。准备好仓库外的 `%LOCALAPPDATA%\Aenie\secrets\aisocialgame.env` 后，在两个终端分别执行：
+共享 MySQL、Redis、Qdrant 和 AI/User/Pay 公共服务由 `aienie-wsl` 提供；Windows 原生应用是另一套本地实例。准备好仓库外的 `%LOCALAPPDATA%\Aenie\secrets\aisocialgame.env` 后，一键启动：
+
+```powershell
+.\scripts\windows\Start-Local.ps1    # 后端+前端一次拉起为受管后台进程，健康检查通过后自动在默认浏览器打开本地域名主页
+.\scripts\windows\Stop-Local.ps1     # 按进程身份记录停止
+```
+
+`Start-Local.ps1` 把下面两个前台调试脚本托管为隐藏后台进程并等待健康检查，重复运行安全（已运行的组件自动跳过；`-NoBrowser` 跳过打开浏览器，`-StartupTimeoutSeconds` 覆盖等待上限），并可从 Windows PowerShell 5.1 直接运行（自动转投 pwsh）。底层前台调试脚本仍然可用：
 
 ```powershell
 .\scripts\windows\Start-Backend.ps1    # 后端：mvn spring-boot:run，127.0.0.1:11031
 .\scripts\windows\Start-Frontend.ps1   # 前端：vite dev，127.0.0.1:11030
 ```
 
-两个脚本都在前台运行，日志直接输出到当前控制台，Ctrl+C 停止，因此不需要单独的停止/状态脚本。首次运行 `Start-Frontend.ps1` 时若 `frontend/node_modules` 缺失会自动执行 `pnpm install --frozen-lockfile`；`Start-Backend.ps1` 可用 `-EnvironmentFile` 覆盖默认密钥文件路径。
+前台脚本日志直接输出到当前控制台，Ctrl+C 停止。首次运行若 `frontend/node_modules` 缺失会自动执行 `pnpm install --frozen-lockfile`；`Start-Backend.ps1` 可用 `-EnvironmentFile` 覆盖默认密钥文件路径。
 
 调试入口不修改 hosts、ACL，不要求管理员权限或 UAC，也不访问 Config Center 或监控状态写入器。后端和前端分别限制在 `127.0.0.1:11031`、`127.0.0.1:11030`；跨服务只访问 `localbase.testhut.top` 和三个 `local*.testhut.top` TLS 服务。完整边界见 [`doc/operations/windows-native.md`](doc/operations/windows-native.md)。
 
