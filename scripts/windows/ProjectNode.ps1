@@ -6,7 +6,7 @@ function Get-ProjectNodeSpec {
     $root=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     $package=Get-Content (Join-Path $root 'frontend/package.json') -Raw | ConvertFrom-Json
     if($package.engines.node -notmatch '^\d+\.\d+\.\d+$' -or $package.packageManager -cne "pnpm@$($package.engines.pnpm)"){throw 'Exact consistent Node/pnpm versions are required.'}
-    $base=Join-Path $env:LOCALAPPDATA 'Aienie/tools/aisocialgame'
+    $base=Join-Path 'D:\project\aienie\aienie-runtime\windows\toolchains\localappdata' 'aisocialgame'
     [pscustomobject]@{Node=$package.engines.node;Pnpm=$package.engines.pnpm;Base=$base;Home=(Join-Path $base "node-v$($package.engines.node)-win-x64");Cache=(Join-Path $base 'corepack')}
 }
 function Invoke-WithProjectNode {

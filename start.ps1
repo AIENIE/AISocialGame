@@ -3,7 +3,7 @@ param(
     [ValidateSet('Start','Build','Test','Status','Stop')][string]$Action = 'Start',
     [ValidateSet('L1','L2','L3')][string]$Level = 'L2',
     [ValidateSet('All','Backend','Frontend')][string]$Component = 'All',
-    [string]$EnvironmentFile = (Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\secrets\aisocialgame.env'),
+    [string]$EnvironmentFile = (Join-Path 'D:\project\aienie\aienie-runtime\private\app-secrets' 'aisocialgame.env'),
     [switch]$NoBrowser,
     [switch]$EnableBackendDebug,
     [ValidateRange(30,900)][int]$StartupTimeoutSeconds = 240
@@ -40,7 +40,7 @@ switch ($Action) {
         $test.Level = if ($Level -eq 'L3') { 'L2' } else { $Level }
         Invoke-LocalScript (Join-Path $windows 'Test-Local.ps1') $test
         if ($Level -ne 'L3') { break }
-        $stateFile = Join-Path $env:LOCALAPPDATA 'Aienie/native-runs/aisocialgame/processes.json'
+        $stateFile = Join-Path 'D:\project\aienie\aienie-runtime\local-services\direct-runs\native-runs' 'aisocialgame/processes.json'
         $preservedIds = @(Get-LocalRecordedIds $stateFile) -join ','
         try {
             $runtime.NoBrowser = $true

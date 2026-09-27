@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$EnvironmentFile = (Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\secrets\aisocialgame.env'),
+    [string]$EnvironmentFile = (Join-Path 'D:\project\aienie\aienie-runtime\private\app-secrets' 'aisocialgame.env'),
     [switch]$EnableBackendDebug
 )
 

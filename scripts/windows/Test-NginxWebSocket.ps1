@@ -2,7 +2,7 @@
 Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'
 if ([Environment]::OSVersion.Platform -ne 'Win32NT' -or $PSVersionTable.PSVersion.Major -lt 7) { throw 'Requires PowerShell 7 on Windows.' }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$toolsRoot = Join-Path $env:LOCALAPPDATA 'Aienie/tools/aisocialgame/nginx'
+$toolsRoot = Join-Path 'D:\project\aienie\aienie-runtime\windows\toolchains\localappdata' 'aisocialgame/nginx'
 $version = '1.31.6'
 if (-not $NginxExe) {
     $zip = Join-Path $toolsRoot "nginx-$version.zip"
@@ -18,7 +18,7 @@ $node = (Get-Command node.exe -ErrorAction Stop).Source
 $runId = [guid]::NewGuid().ToString('N')
 $runs = Join-Path $toolsRoot 'runs'
 $runRoot = Join-Path $runs $runId
-if (-not $EvidenceDirectory) { $EvidenceDirectory = Join-Path $env:LOCALAPPDATA "Aienie/artifacts/aisocialgame/nginx-ws-$runId" }
+if (-not $EvidenceDirectory) { $EvidenceDirectory = Join-Path 'D:\project\aienie\aienie-runtime\evidence\product-artifacts' "aisocialgame/nginx-ws-$runId" }
 $evidence = [IO.Path]::GetFullPath($EvidenceDirectory)
 if ($evidence.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $evidence)) { throw 'Use a new evidence directory outside the checkout.' }
 New-Item -ItemType Directory -Path $evidence, (Join-Path $runRoot 'conf'), (Join-Path $runRoot 'logs'), (Join-Path $runRoot 'temp') -Force | Out-Null

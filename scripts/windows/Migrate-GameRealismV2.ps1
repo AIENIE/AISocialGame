@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$EnvironmentFile = (Join-Path $env:LOCALAPPDATA 'Aienie\secrets\aisocialgame.env'),
+    [string]$EnvironmentFile = (Join-Path 'D:\project\aienie\aienie-runtime\private\app-secrets' 'aisocialgame.env'),
     [ValidateSet("RulesV2", "Diagnostics", "Closure")]
     [string]$Migration = "RulesV2",
     [switch]$Apply

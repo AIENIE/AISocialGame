@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest; $ErrorActionPreference='Stop'
 if([Environment]::OSVersion.Platform -ne 'Win32NT' -or $PSVersionTable.PSVersion.Major -lt 7){throw 'Requires PowerShell 7 on Windows.'}
 . (Join-Path $PSScriptRoot 'LocalCommand.ps1')
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$toolsRoot=Join-Path $env:LOCALAPPDATA 'Aienie/tools/aisocialgame'
+$toolsRoot=Join-Path 'D:\project\aienie\aienie-runtime\windows\toolchains\localappdata' 'aisocialgame'
 $version=$ServerVersion; $package="mysql-$version-winx64"
 $zip=Join-Path $toolsRoot "$package.zip"; $mysqlHome=Join-Path $toolsRoot $package
 New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
@@ -24,7 +24,7 @@ if((& $mysqld --version) -notmatch "Ver $([regex]::Escape($version)) for Win64")
 $runId=[guid]::NewGuid().ToString('N')
 $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$Port)
 try{$listener.Start();$Port=([Net.IPEndPoint]$listener.LocalEndpoint).Port}finally{$listener.Stop()}
-if(-not $EvidenceDirectory){$EvidenceDirectory=Join-Path $env:LOCALAPPDATA "Aienie/artifacts/aisocialgame/mysql-$runId"}
+if(-not $EvidenceDirectory){$EvidenceDirectory=Join-Path 'D:\project\aienie\aienie-runtime\evidence\product-artifacts' "aisocialgame/mysql-$runId"}
 $evidence=[IO.Path]::GetFullPath($EvidenceDirectory)
 if($evidence.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $evidence)){throw 'Use a new evidence directory outside the checkout.'}
 New-Item -ItemType Directory -Path $evidence | Out-Null
