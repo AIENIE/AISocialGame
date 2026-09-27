@@ -17,40 +17,56 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.grpc.client.GrpcChannelBuilderCustomizer;
-import org.springframework.grpc.client.GrpcChannelFactory;
+import org.springframework.core.env.Profiles;
 
 import java.net.URI;
 import java.nio.file.Path;
 
-/** Spring Boot gRPC channels share each service's verified TLS settings and caller interceptor. */
+/** Build caller channels with the reviewed TLS trust source for each service. */
 @Configuration(proxyBeanMethods = false)
 public class GrpcClientConfiguration {
-    @Bean
-    GrpcChannelBuilderCustomizer<NettyChannelBuilder> canonicalGrpcTransport(Environment environment) {
-        return (name, builder) -> {
-            if (!name.equals("ai") && !name.equals("billing") && !name.equals("user")) {
-                return;
-            }
-            if (Boolean.TRUE.equals(environment.getProperty(
-                    "spring.grpc.client.channel." + name + ".ssl.enabled", Boolean.class))) {
-                builder.useTransportSecurity();
-            }
-            configureBillingRetry(name, builder);
-            String trust = environment.getProperty("app.grpc." + name + "-trust-cert-collection", "");
+    private ManagedChannel channel(String name, Environment environment,
+                                   ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+        boolean tls = Boolean.TRUE.equals(environment.getProperty(
+                "spring.grpc.client.channel." + name + ".ssl.enabled", Boolean.class));
+        boolean authorizedTest = environment.acceptsProfiles(Profiles.of("test"))
+                && testAuthorization.getIfAvailable() != null;
+        if (!tls && !authorizedTest) {
+            throw new IllegalStateException(name + " gRPC TLS must be enabled");
+        }
+        String target = environment.getProperty("spring.grpc.client.channel." + name + ".target", "");
+        URI uri = URI.create(target);
+        if (!"static".equals(uri.getScheme()) || uri.getHost() == null
+                || uri.getPort() <= 0 || uri.getPort() > 65535
+                || uri.getUserInfo() != null
+                || (uri.getRawPath() != null && !uri.getRawPath().isEmpty())
+                || uri.getRawQuery() != null || uri.getRawFragment() != null) {
+            throw new IllegalStateException("Invalid " + name + " gRPC target");
+        }
+        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(uri.getHost(), uri.getPort());
+        String trust = environment.getProperty("app.grpc." + name + "-trust-cert-collection", "");
+        if (!tls) {
             if (!trust.isBlank()) {
-                try {
-                    Path file = Path.of(URI.create(trust));
-                    builder.sslContext(GrpcSslContexts.forClient().trustManager(file.toFile()).build());
-                } catch (Exception exception) {
-                    throw new IllegalStateException("Invalid " + name + " gRPC trust certificate", exception);
-                }
+                throw new IllegalStateException(name + " gRPC plaintext test channel cannot set a trust certificate");
             }
-        };
+            builder.usePlaintext();
+        } else if (trust.isBlank()) {
+            builder.useTransportSecurity();
+        } else {
+            try {
+                Path file = Path.of(URI.create(trust));
+                builder.sslContext(GrpcSslContexts.forClient().trustManager(file.toFile()).build());
+            } catch (Exception exception) {
+                throw new IllegalStateException("Invalid " + name + " gRPC trust certificate", exception);
+            }
+        }
+        configureBillingRetry(name, builder);
+        return builder.build();
     }
 
     static void configureBillingRetry(String name, ManagedChannelBuilder<?> builder) {
@@ -59,19 +75,22 @@ public class GrpcClientConfiguration {
         }
     }
 
-    @Bean(value = "aiGrpcChannel", destroyMethod = "")
-    ManagedChannel aiGrpcChannel(GrpcChannelFactory factory) {
-        return factory.createChannel("ai");
+    @Bean(value = "aiGrpcChannel", destroyMethod = "shutdown")
+    ManagedChannel aiGrpcChannel(Environment environment,
+                                 ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+        return channel("ai", environment, testAuthorization);
     }
 
-    @Bean(value = "userGrpcChannel", destroyMethod = "")
-    ManagedChannel userGrpcChannel(GrpcChannelFactory factory) {
-        return factory.createChannel("user");
+    @Bean(value = "userGrpcChannel", destroyMethod = "shutdown")
+    ManagedChannel userGrpcChannel(Environment environment,
+                                   ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+        return channel("user", environment, testAuthorization);
     }
 
-    @Bean(value = "billingGrpcChannel", destroyMethod = "")
-    ManagedChannel billingGrpcChannel(GrpcChannelFactory factory) {
-        return factory.createChannel("billing");
+    @Bean(value = "billingGrpcChannel", destroyMethod = "shutdown")
+    ManagedChannel billingGrpcChannel(Environment environment,
+                                      ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+        return channel("billing", environment, testAuthorization);
     }
 
     @Bean
