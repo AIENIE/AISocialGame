@@ -4,7 +4,7 @@ import java.util.Map;
 
 /** Canonical environment-to-transport authority for ai-service gRPC. */
 final class AiServiceTransportPolicy {
-    static final String LOCAL_TARGET = "static://localaiservice.testhut.top:12011";
+    static final String LOCAL_TARGET = "static://localaiservice.testhut.top:22011";
     static final String TEST_TARGET = "static://aiservice.testhut.top:12011";
     static final String PRODUCTION_TARGET = "static://aiservice.seekerhut.com:12011";
     static final String STAGING_TRUST =
@@ -31,7 +31,9 @@ final class AiServiceTransportPolicy {
             throw new IllegalStateException("ai-service gRPC transport must remain TLS");
         }
         String trust = requirePresent(environment, "GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION");
-        if ("test".equals(runtimeEnvironment)) {
+        if ("local".equals(runtimeEnvironment)) {
+            LocalGrpcTrustPolicy.require(trust);
+        } else if ("test".equals(runtimeEnvironment)) {
             if (!STAGING_TRUST.equals(trust)) {
                 throw new IllegalStateException(
                         "test ai-service gRPC must use the target-policy trust bundle");

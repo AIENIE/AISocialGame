@@ -60,11 +60,11 @@ class AiProxyServiceTest {
         appProperties.getAi().setSystemUserId(1L);
         lenient().when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(aiSafetyService.safeOutput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        aiProxyService = new AiProxyService(aiGrpcClient, projectCreditService, appProperties, aiSafetyService);
+        aiProxyService = new AiProxyService(aiGrpcClient, appProperties);
     }
 
     @Test
-    void embeddingsShouldMapRequestWithDefaultNormalize() {
+    void embeddingsRejectsChargeBeforeAnyUpstreamCallWithoutBudget() {
         User user = new User();
         user.setExternalUserId(1001L);
         user.setSessionId("session-1001");
@@ -72,17 +72,13 @@ class AiProxyServiceTest {
         request.setInput(List.of("hello", "world"));
         request.setNormalize(null);
 
-        when(aiGrpcClient.embeddings(anyString(), anyLong(), anyString(), anyString(), eq(List.of("hello", "world")), anyBoolean()))
-                .thenReturn(new AiEmbeddingsResult("model-a", 3, List.of(List.of(0.1f, 0.2f, 0.3f)), 2));
-
-        aiProxyService.embeddings(request, user);
-
-        verify(aiGrpcClient).embeddings("aisocialgame", 1001L, "session-1001", "default-model", List.of("hello", "world"), true);
-        verify(projectCreditService).consumeProjectTokens(eq(1001L), eq(2L), eq("AI_EMBEDDINGS"), org.mockito.ArgumentMatchers.anyMap(), org.mockito.ArgumentMatchers.isNull());
+        ApiException error = assertThrows(ApiException.class, () -> aiProxyService.embeddings(request, user));
+        assertEquals("BUDGET_UNAVAILABLE", error.getCode());
+        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
     }
 
     @Test
-    void ocrShouldMapRequestParams() {
+    void ocrRejectsChargeBeforeAnyUpstreamCallWithoutBudget() {
         User user = new User();
         user.setExternalUserId(1002L);
         user.setSessionId("session-1002");
@@ -90,61 +86,31 @@ class AiProxyServiceTest {
         request.setImageUrl("https://example.com/a.png");
         request.setOutputType("JSON");
 
-        when(aiGrpcClient.ocrParse(anyString(), anyLong(), anyString(), anyString(), org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new AiOcrResult("req-1", "ocr-a", "JSON", "{}", "{}"));
-
-        aiProxyService.ocrParse(request, user);
-
-        ArgumentCaptor<com.aisocialgame.integration.grpc.dto.AiOcrParams> paramsCaptor =
-                ArgumentCaptor.forClass(com.aisocialgame.integration.grpc.dto.AiOcrParams.class);
-        verify(aiGrpcClient).ocrParse(eq("aisocialgame"), eq(1002L), eq("session-1002"), eq("default-model"), paramsCaptor.capture());
-        assertEquals("https://example.com/a.png", paramsCaptor.getValue().imageUrl());
-        assertEquals("JSON", paramsCaptor.getValue().outputType());
+        ApiException error = assertThrows(ApiException.class, () -> aiProxyService.ocrParse(request, user));
+        assertEquals("BUDGET_UNAVAILABLE", error.getCode());
+        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
     }
 
     @Test
-    void chatShouldFallbackToNextAvailableTextModelWhenDefaultModelUnavailable() {
-        AiChatRequest request = buildChatRequest(null, "请回复ok");
-        when(aiGrpcClient.listModels(1001L)).thenReturn(List.of(
-                new AiModelOptionDto(2L, "Gemini 2.5 Flash", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT", false),
-                new AiModelOptionDto(5L, "Gemini 2.5 Flash Image", "PackyAPI", 1, 1, "MODEL_TYPE_TEXT", true)
-        ));
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("default-model"), anyList()))
-                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "模型不可用"));
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("2"), anyList()))
-                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "AI 调用失败"));
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("Gemini 2.5 Flash"), anyList()))
-                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "模型不可用"));
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("5"), anyList()))
-                .thenReturn(new AiChatResult("ok", "gemini-2.5-flash-image", 4, 1));
-
-        AiChatResult result = aiProxyService.chatByIdentity(request, 1001L, "sess-1");
-
-        assertEquals("ok", result.content());
-        assertEquals("gemini-2.5-flash-image", result.modelKey());
-        verify(projectCreditService).consumeProjectTokens(eq(1001L), eq(5L), eq("AI_CHAT"), org.mockito.ArgumentMatchers.anyMap(), org.mockito.ArgumentMatchers.isNull());
+    void chatRejectsChargeBeforeAnyUpstreamCallWithoutBudget() {
+        AiChatRequest request = buildChatRequest(null, "hello");
+        ApiException error = assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "session"));
+        assertEquals("BUDGET_UNAVAILABLE", error.getCode());
+        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
     }
 
     @Test
-    void chatShouldFailFastWhenExplicitModelIsInvalid() {
+    void explicitModelStillRejectsBeforeAnyUpstreamCall() {
         AiChatRequest request = buildChatRequest("invalid-model", "请回复ok");
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), eq("invalid-model"), anyList()))
-                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "模型不可用"));
-
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
-
-        verify(aiGrpcClient, never()).listModels(anyLong());
+        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient);
     }
 
     @Test
-    void chatShouldNotCallAiWhenSafetyBlocksInput() {
+    void chatDoesNotRunSafetyOrProviderWhenBudgetIsUnavailable() {
         AiChatRequest request = buildChatRequest(null, "M4_TEST_BLOCK");
-        when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class)))
-                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "内容未通过安全检查，请调整后再试"));
-
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
-
-        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
+        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
     }
 
     private AiChatRequest buildChatRequest(String model, String content) {

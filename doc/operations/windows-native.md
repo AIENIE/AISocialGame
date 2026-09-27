@@ -1,5 +1,10 @@
 # Windows 本机调试启动
 
+2026-09-22：受管后端启动、验收账号准备、迁移与指标入口改为共用 `SharedMySqlTarget.ps1`。当前矩阵 13306 与旧环境文件 23306 冲突，入口会在连接前返回 UNKNOWN；需先取得实际映射及配置的一致证据，不能轮流试连。只读准备使用 `Test-ClosurePreflight.ps1`，结果及剩余条件见[只读预检报告](../test/readonly-preflight-20260922.md)。
+
+
+日常入口为仓库根 `start.ps1`（PowerShell 7）；支持 Start / Build / Test / Status / Stop。默认启动执行必要构建，测试使用 `-Action Test -Level L2`。VS Code 请打开仓库根目录。实际验收与已知阻塞见 [本地开发验收](local-development-verification.md)。下文保留底层脚本与环境配置说明。
+
 在仓库检出目录使用 PowerShell 7。一键入口 `Start-Local.ps1` 把两个前台调试脚本
 托管为受管隐藏后台进程并等待健康检查，重复运行安全（已运行组件自动跳过、陈旧
 记录自动清理），启动成功后自动在默认浏览器打开本地域名主页（`-NoBrowser` 跳过）；
@@ -38,3 +43,9 @@ Windows 产品实例与 `aienie-wsl` 依赖平面分离。MySQL、Redis、Qdrant
 `localbase.testhut.top`；公共服务 AI/User/Pay 调用三个 `local*.testhut.top`
 TLS 端点。Java 使用当前 JDK/JVM 信任库。脚本不会把公共服务重定向到 Windows
 回环端口，也不启用 trust-all 或明文回退。
+
+### 项目 Node 与隔离数据库验证
+
+先运行 `scripts/windows/Prepare-ProjectNode.ps1` 准备 package.json 指定的 Node/pnpm。工具安装于 `%LOCALAPPDATA%\Aienie\tools\aisocialgame`，官方 Node 包校验 SHA-256；标准构建、测试和前端启动仅对当前进程树切换工具链，版本缺失时失败而不静默下载，不改变系统 Node。构建包含 `tsc --noEmit`，L2 还包含工具链环境恢复回归。
+
+`scripts/windows/Test-ClosureMySql.ps1 -EvidenceDirectory <仓库外新目录>` 显式运行 MySQL 8.0.45 原生隔离测试，官方 ZIP 校验后以独立数据目录和回环端口启动。无系统服务、无共享数据源、无模型请求；结束时停止所属进程并清理测试数据/凭据，保存迁移、并发及事务证据。日常 L2 不启动该实例。结果和限制见 [环境门禁报告](../test/environment-gates-20260922.md)。

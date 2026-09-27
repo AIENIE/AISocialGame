@@ -1,0 +1,734 @@
+{
+  "undercover" : {
+    "roomId" : "sequence-undercover",
+    "gameId" : "undercover",
+    "phase" : "DESCRIPTION",
+    "roundNumber" : 1,
+    "currentSeat" : 1,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "UNDERCOVER",
+      "word" : "台灯",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "落地灯",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "落地灯",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "落地灯",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "ROUND_START",
+      "message" : "进入第1轮描述。",
+      "time" : [ 2026, 9, 22, 11, 21, 9, 814212700 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "DESCRIPTION",
+      "metadata" : {
+        "eventId" : "1db845c4-f499-418d-8bb3-8b684c1e737e"
+      }
+    }, {
+      "type" : "GAME_START",
+      "message" : "词语已发放：有词玩家只知道词语；白板存活到最后两人独赢。",
+      "time" : [ 2026, 9, 22, 11, 21, 9, 814212700 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "DESCRIPTION",
+      "metadata" : {
+        "eventId" : "bb5ed5ce-c565-4f3c-bb7f-4520cc454e6c"
+      }
+    } ],
+    "data" : {
+      "knowledgeVersion" : "undercover-words-v1",
+      "runoffCandidates" : [ ],
+      "challengedPlayers" : [ ],
+      "rules" : {
+        "speechTime" : 60,
+        "speakTime" : 60,
+        "playerCount" : 4,
+        "caseId" : "midnight_train"
+      },
+      "archiveId" : "archive-70d96547-65bc-4ad1-b8f2-32c4dc6260df",
+      "hasBlank" : false,
+      "noEliminationRounds" : 0,
+      "promptVersion" : "social-v2.7",
+      "speakers" : [ ],
+      "roundStartSeat" : 1,
+      "wordKnowledgeByPlayer" : {
+        "p1" : {
+          "forbiddenTerms" : [ "台灯" ],
+          "definition" : "放在桌面提供局部照明的灯具",
+          "scenes" : [ "深夜做笔记时只点亮桌边一小片" ],
+          "attributes" : [ "光照范围较集中", "靠近桌面", "可以辅助阅读" ],
+          "word" : "台灯"
+        },
+        "p3" : {
+          "forbiddenTerms" : [ "落地灯" ],
+          "definition" : "立在地面且灯头位置较高的灯具",
+          "scenes" : [ "傍晚坐在客厅角落打开柔和光源" ],
+          "attributes" : [ "有较长支架", "常放在房间角落", "可以营造氛围" ],
+          "word" : "落地灯"
+        },
+        "p2" : {
+          "forbiddenTerms" : [ "落地灯" ],
+          "definition" : "立在地面且灯头位置较高的灯具",
+          "scenes" : [ "傍晚坐在客厅角落打开柔和光源" ],
+          "attributes" : [ "有较长支架", "常放在房间角落", "可以营造氛围" ],
+          "word" : "落地灯"
+        },
+        "p4" : {
+          "forbiddenTerms" : [ "落地灯" ],
+          "definition" : "立在地面且灯头位置较高的灯具",
+          "scenes" : [ "傍晚坐在客厅角落打开柔和光源" ],
+          "attributes" : [ "有较长支架", "常放在房间角落", "可以营造氛围" ],
+          "word" : "落地灯"
+        }
+      },
+      "events" : [ {
+        "eventId" : "3d789ef8-d93c-468e-9c19-2b08ae03e8b1",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p1" ],
+        "data" : {
+          "blank" : false,
+          "word" : "台灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "cd17b907-9e1d-465c-91c9-15a17385e9f2",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "role" : "UNDERCOVER",
+          "word" : "台灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "e2f4c938-4bf6-4bc6-a5e7-10d044597ecb",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p3" ],
+        "data" : {
+          "blank" : false,
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "badfb97a-3020-447e-af13-17d12ce78459",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "role" : "CIVILIAN",
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "9e891316-655c-4be5-9369-3bde9cff9ec2",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p2" ],
+        "data" : {
+          "blank" : false,
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "80a451d6-1b50-400c-b159-952b7dd84ecf",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "role" : "CIVILIAN",
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "971f3afa-fac1-4514-8b92-685d1dcba1cb",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p4" ],
+        "data" : {
+          "blank" : false,
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "85619a54-6c33-4f40-b3f6-b33ab48d1276",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "role" : "CIVILIAN",
+          "word" : "落地灯"
+        },
+        "time" : "2026-09-22T11:21:09.812708500"
+      }, {
+        "eventId" : "1db845c4-f499-418d-8bb3-8b684c1e737e",
+        "type" : "ROUND_START",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "进入第1轮描述。",
+        "phase" : "DESCRIPTION",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "descriptionOrder" : [ "p2", "p3", "p4", "p1" ]
+        },
+        "time" : "2026-09-22T11:21:09.814212700"
+      }, {
+        "eventId" : "bb5ed5ce-c565-4f3c-bb7f-4520cc454e6c",
+        "type" : "GAME_START",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "词语已发放：有词玩家只知道词语；白板存活到最后两人独赢。",
+        "phase" : "DESCRIPTION",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "ruleVersion" : 2
+        },
+        "time" : "2026-09-22T11:21:09.814212700"
+      } ],
+      "descriptionOrder" : [ "p2", "p3", "p4", "p1" ],
+      "wordPack" : "daily",
+      "wordPairId" : "uc-daily-019",
+      "randomSeed" : -3622061556691219664,
+      "undercoverWord" : "台灯",
+      "ruleVersion" : 2,
+      "questionCursorSeat" : 1,
+      "descriptionIndex" : 0,
+      "questioners" : [ ],
+      "phaseSerial" : 1,
+      "votes" : { },
+      "civilianWord" : "落地灯",
+      "activeQuestion" : { }
+    },
+    "phaseEndsAt" : [ 2026, 9, 22, 12, 1 ],
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  },
+  "werewolf" : {
+    "roomId" : "sequence-werewolf",
+    "gameId" : "werewolf",
+    "phase" : "NIGHT",
+    "roundNumber" : 1,
+    "currentSeat" : null,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "WEREWOLF",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "WITCH",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "VILLAGER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "SEER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p5",
+      "displayName" : "玩家5",
+      "seatNumber" : 4,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "WEREWOLF",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p6",
+      "displayName" : "玩家6",
+      "seatNumber" : 5,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "VILLAGER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "GAME_STARTED",
+      "message" : "狼人杀开始，死亡身份将在结算时揭晓。",
+      "time" : [ 2026, 9, 22, 11, 21, 9, 846474200 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "WAITING",
+      "metadata" : {
+        "eventId" : "4ea773d8-b2fc-47e5-b1b9-f0a541a81411"
+      }
+    }, {
+      "type" : "NIGHT_STARTED",
+      "message" : "天黑了，第1夜开始。",
+      "time" : [ 2026, 9, 22, 11, 21, 9, 846474200 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "NIGHT",
+      "metadata" : {
+        "eventId" : "629576f4-a54a-48da-b2a0-e2ffef602088"
+      }
+    } ],
+    "data" : {
+      "randomSeed" : 1616699431994937073,
+      "knowledgeVersion" : "werewolf-r2.2026-09-12.1",
+      "werewolf" : {
+        "antidoteUsed" : false,
+        "poisonUsed" : false,
+        "seerChecks" : { },
+        "guardHistory" : { },
+        "guardLastTargets" : { },
+        "revealedIdiots" : [ ],
+        "hunterUsed" : [ ],
+        "wolfVotes" : { },
+        "wolfCouncil" : [ ],
+        "wolfTarget" : "",
+        "guardTarget" : "",
+        "saveTarget" : "",
+        "poisonTarget" : "",
+        "lastNightDeaths" : [ ],
+        "nightIndex" : 0,
+        "nightQueue" : [ "p1", "p5", "p4", "p2" ],
+        "nightActor" : "p1"
+      },
+      "ruleVersion" : 2,
+      "promptVersion" : "social-v2.7",
+      "rules" : {
+        "template" : "standard",
+        "playerCount" : 6,
+        "witchRule" : "first_night",
+        "winCondition" : "side",
+        "speechTime" : 60,
+        "hasLastWords" : "first_night",
+        "deathReveal" : "settlement",
+        "roleCounts" : {
+          "WEREWOLF" : 2,
+          "SEER" : 1,
+          "WITCH" : 1,
+          "VILLAGER" : 2
+        }
+      },
+      "phaseSerial" : 1,
+      "archiveId" : "archive-ddf9e447-a892-4730-a617-027a928a6529",
+      "events" : [ {
+        "eventId" : "4ea773d8-b2fc-47e5-b1b9-f0a541a81411",
+        "type" : "GAME_STARTED",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "狼人杀开始，死亡身份将在结算时揭晓。",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "ruleVersion" : 2
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "c731c68e-4b12-4c0f-98f2-b470bbf8c522",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "你的身份是狼人",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p1" ],
+        "data" : {
+          "role" : "WEREWOLF"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "e99f4420-a9c8-4b9e-b5b7-022e2927455b",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "你的身份是女巫",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p2" ],
+        "data" : {
+          "role" : "WITCH"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "e9504622-d703-42ca-afde-fac4de5f8589",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "你的身份是村民",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p3" ],
+        "data" : {
+          "role" : "VILLAGER"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "824061ff-7b18-4c0b-a2c7-efa4c190d6c0",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "你的身份是预言家",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p4" ],
+        "data" : {
+          "role" : "SEER"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "faf55a40-496a-46be-8648-a4fbe0fe415a",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p5",
+        "targetId" : null,
+        "message" : "你的身份是狼人",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p5" ],
+        "data" : {
+          "role" : "WEREWOLF"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "ebf514d0-d807-4b99-83df-0a77a782bcfb",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p6",
+        "targetId" : null,
+        "message" : "你的身份是村民",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p6" ],
+        "data" : {
+          "role" : "VILLAGER"
+        },
+        "time" : "2026-09-22T11:21:09.846474200"
+      }, {
+        "eventId" : "629576f4-a54a-48da-b2a0-e2ffef602088",
+        "type" : "NIGHT_STARTED",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "天黑了，第1夜开始。",
+        "phase" : "NIGHT",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : { },
+        "time" : "2026-09-22T11:21:09.846474200"
+      } ]
+    },
+    "phaseEndsAt" : [ 2026, 9, 22, 12, 0, 30 ],
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  },
+  "turtle_soup" : {
+    "roomId" : "sequence-turtle_soup",
+    "gameId" : "turtle_soup",
+    "phase" : "QUESTIONING",
+    "roundNumber" : 1,
+    "currentSeat" : null,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "TURTLE_SOUP_START",
+      "message" : "主持：末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+      "time" : [ 2026, 9, 22, 11, 21, 9, 866492900 ],
+      "actorId" : "$host",
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "QUESTIONING",
+      "metadata" : {
+        "eventId" : "bb8054bc-fbbc-4fbb-8ef9-139043dd3d83"
+      }
+    } ],
+    "data" : {
+      "hostTruth" : {
+        "solution" : "发车前，车停在贴有寻人海报的站台旁。海报上的女人围着红围巾，她其实在发车前已遇难。站台灯光使海报影像映在车窗上，司机又从后视镜看到这层反光，把影像误当成最后一排的乘客。车上从来没有这名女人，所以终点无人，也不需要有人中途下车。",
+        "facts" : [ {
+          "requiredForSolution" : true,
+          "text" : "海报上的女人在末班车发车前已经遇难。",
+          "id" : "death"
+        }, {
+          "requiredForSolution" : true,
+          "text" : "站台的寻人海报上有女人围着红围巾的照片。",
+          "id" : "poster"
+        }, {
+          "requiredForSolution" : true,
+          "text" : "停车时，站台灯光使海报影像映在车窗上，再被司机通过后视镜看到。",
+          "id" : "reflection"
+        }, {
+          "requiredForSolution" : true,
+          "text" : "女人从未登上这班车，司机把反光误认成了真人。",
+          "id" : "empty"
+        }, {
+          "requiredForSolution" : false,
+          "text" : "司机只在发车前看到了那个影像，没有持续看见她坐在车上。",
+          "id" : "before"
+        }, {
+          "requiredForSolution" : false,
+          "text" : "警方在始发站附近找到的遗物属于海报上的女人。",
+          "id" : "belongings"
+        } ],
+        "excludedFacts" : [ {
+          "id" : "ghost",
+          "text" : "没有鬼魂或超自然力量。"
+        }, {
+          "id" : "exit",
+          "text" : "没有女乘客在途中秘密下车。"
+        }, {
+          "id" : "dream",
+          "text" : "司机并没有做梦。"
+        } ],
+        "causalChain" : [ "女人遇难但站台仍贴着寻人海报", "海报中的红围巾照片映在车窗上", "司机从后视镜误认影像为乘客", "车上本就没有女人，因此终点空无一人" ],
+        "acceptedSolutions" : [ "女人早已遇难，并没上车。司机把站台寻人海报里红围巾女人映在车窗上的影像看成乘客。", "他看到的不是活人，而是站台上红围巾女人照片的车窗倒影；照片中的女子在发车前已遇难。" ]
+      },
+      "questionCount" : 0,
+      "knowledgeVersion" : "turtle-soup-cases-v1/midnight_train/v2",
+      "aiAssist" : true,
+      "rules" : {
+        "speechTime" : 60,
+        "speakTime" : 60,
+        "playerCount" : 4,
+        "caseId" : "midnight_train"
+      },
+      "caseHints" : [ "司机确实看见了一个形象，但还没证明那是车厢里的真人。", "发车前的站台、车窗反光和红围巾照片共同造成了误认。" ],
+      "knownClues" : [ ],
+      "archiveId" : "archive-42351b7f-b4fe-4493-9e80-64606fc92e55",
+      "caseVersion" : 2,
+      "aiCycle" : 0,
+      "aiUsedInCycle" : [ ],
+      "promptVersion" : "social-v2.7",
+      "caseId" : "midnight_train",
+      "qaHistory" : [ ],
+      "finalAnswerRemaining" : 1,
+      "events" : [ {
+        "eventId" : "bb8054bc-fbbc-4fbb-8ef9-139043dd3d83",
+        "type" : "TURTLE_SOUP_START",
+        "actorId" : "$host",
+        "targetId" : null,
+        "message" : "主持：末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+        "phase" : "QUESTIONING",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "surface" : "末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。"
+        },
+        "time" : "2026-09-22T11:21:09.866492900"
+      } ],
+      "aiQuestionBudget" : 4,
+      "hostRequestSerial" : 0,
+      "propositionHistory" : [ ],
+      "surface" : "末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+      "hintCount" : 0,
+      "aiCursor" : -1,
+      "maxQuestions" : 12,
+      "caseTitle" : "末班车的乘客",
+      "aiQuestionThisCycle" : false,
+      "randomSeed" : 8915704977711976004,
+      "difficulty" : "MEDIUM",
+      "aiContributions" : 0,
+      "ruleVersion" : 2,
+      "aiCycleActive" : false,
+      "discussionHistory" : [ ],
+      "phaseSerial" : 1,
+      "hostVerdict" : "",
+      "aiQuestionsUsed" : 0
+    },
+    "phaseEndsAt" : null,
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  }
+}

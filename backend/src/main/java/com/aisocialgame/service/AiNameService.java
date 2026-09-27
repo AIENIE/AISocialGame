@@ -15,6 +15,8 @@ import java.util.Random;
 public class AiNameService {
 
     private final Random random = new Random();
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.aisocialgame.service.safety.AiSafetyService safety;
     private final PromptProperties promptProperties;
     private final AiGrpcClient aiGrpcClient;
     private final AppProperties appProperties;
@@ -32,7 +34,7 @@ public class AiNameService {
         if (StringUtils.hasText(aiName)) {
             return aiName;
         }
-        return fallbackName(persona);
+        return localName(persona);
     }
 
     private String tryRemoteGeneration(Persona persona) {
@@ -49,7 +51,9 @@ public class AiNameService {
                     appProperties.getAi().getDefaultModel(),
                     List.of(new AiChatMessageDto("user", content))
             );
+            if(safety!=null)safety.requireCallAllowed(com.aisocialgame.service.safety.AiCallScope.context(appProperties.getAi().getSystemUserId(),appProperties.getAi().getDefaultModel()));
             String normalized = sanitize(response.content());
+            if(safety!=null)normalized=safety.requireAllowedInput(normalized,com.aisocialgame.service.safety.AiCallScope.context(appProperties.getAi().getSystemUserId(),appProperties.getAi().getDefaultModel()));
             if (StringUtils.hasText(normalized)) {
                 return normalized;
             }
@@ -59,7 +63,7 @@ public class AiNameService {
         return null;
     }
 
-    private String fallbackName(Persona persona) {
+    public String localName(Persona persona) {
         List<String> adjectives = promptProperties.getAiName().getAdjectives();
         List<String> suffixes = promptProperties.getAiName().getSuffixes();
         if (adjectives.isEmpty() || suffixes.isEmpty()) {

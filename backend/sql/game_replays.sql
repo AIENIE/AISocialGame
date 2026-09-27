@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `game_events` (
   `room_id` VARCHAR(64) NOT NULL,
   `game_id` VARCHAR(64) NOT NULL,
   `seq` INT NOT NULL,
+  `public_seq` BIGINT NULL,
   `event_type` VARCHAR(64) NOT NULL,
   `phase` VARCHAR(64) NULL,
   `round_number` INT NOT NULL DEFAULT 1,
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `game_events` (
   `created_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_game_events_archive_seq` (`archive_id`, `seq`),
+  UNIQUE KEY `uk_game_events_archive_public_seq` (`archive_id`, `public_seq`),
   KEY `idx_game_events_room` (`room_id`, `id`),
   KEY `idx_game_events_game` (`game_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -65,6 +65,12 @@ public class GameEventRecorder {
         event.setRoomId(state.getRoomId());
         event.setGameId(state.getGameId());
         event.setSeq(gameEventRepository.maxSeq(archiveId) + 1);
+        if (visibility == GameEventVisibility.PUBLIC) {
+            long last = dataCounter(state.getData().get("recordedPublicEventCount"));
+            if (last == 0) last = gameEventRepository.maxPublicSeq(archiveId, GameEventVisibility.PUBLIC);
+            event.setPublicSeq(last + 1);
+            state.getData().put("recordedPublicEventCount", last + 1);
+        }
         event.setEventType(eventType);
         event.setPhase(state.getPhase());
         event.setRoundNumber(state.getRoundNumber());
@@ -75,5 +81,9 @@ public class GameEventRecorder {
         event.setData(data == null ? new HashMap<>() : new HashMap<>(data));
         event.setOccurredAt(LocalDateTime.now());
         return gameEventRepository.save(event);
+    }
+
+    private static long dataCounter(Object value) {
+        return value instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
     }
 }

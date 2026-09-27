@@ -25,8 +25,10 @@ import java.util.Locale;
 public class RoomController {
 
     private final RoomService roomService;
+    private final com.aisocialgame.service.RoomAccessPolicy access;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, com.aisocialgame.service.RoomAccessPolicy access) {
+        this.access = access;
         this.roomService = roomService;
     }
 
@@ -54,7 +56,8 @@ public class RoomController {
     }
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> roomDetail(@PathVariable("roomId") String roomId) {
+    public ResponseEntity<RoomResponse> roomDetail(@PathVariable("roomId") String roomId, @CurrentUser User user) {
+        access.requireLobbyRead(roomId, user.getId());
         Room room = roomService.getRoom(roomId);
         return ResponseEntity.ok(new RoomResponse(room));
     }

@@ -5,13 +5,25 @@ import org.springframework.mock.env.MockEnvironment;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PayServiceJwtStartupGuardTest {
+    private static final String LOCAL_TRUST = localTrust();
     private static final String USER_SECRET = "aisocialgame-userservice-guard-secret-32-bytes";
     private static final String PAY_SECRET = "aisocialgame-payservice-guard-secret-32-bytes";
+
+    private static String localTrust() {
+        Path root = Path.of("").toAbsolutePath();
+        Path file = root.resolve("scripts/windows/local-trust/localcert-root-ca.crt");
+        if (!Files.isRegularFile(file)) {
+            file = root.resolve("../scripts/windows/local-trust/localcert-root-ca.crt");
+        }
+        return file.normalize().toUri().toString();
+    }
 
     @Test
     void acceptsCanonicalFinalBoundConfiguration() {
@@ -63,38 +75,38 @@ class PayServiceJwtStartupGuardTest {
                 .withProperty("app.external.payservice-jwt.ttl-seconds", "300")
                 .withProperty("app.external.payservice-jwt.scopes",
                         PayServiceJwtConfigurationValidator.REQUIRED_SCOPES_VALUE)
-                .withProperty("grpc.client.billing.address", "static://localpayservice.testhut.top:12021")
-                .withProperty("grpc.client.billing.negotiationType", "TLS")
+                .withProperty("spring.grpc.client.channel.billing.target", "static://localpayservice.testhut.top:22021")
+                .withProperty("spring.grpc.client.channel.billing.ssl.enabled", "true")
                 .withProperty("app.external.payservice-plaintext-enabled", "false")
-                .withProperty("grpc.client.billing.security.trust-cert-collection", "");
+                .withProperty("app.grpc.billing-trust-cert-collection", LOCAL_TRUST);
 
         assertDoesNotThrow(() -> PayServiceJwtStartupGuard.validateBeforeServerCreation(
                 environment, canonicalEnvironmentWithTransport()));
     }
 
     @Test
-    void rejectsFinalPayTransportOverrideAndAllowsSystemTrust() {
+    void rejectsFinalPayTransportOverrideAndRequiresLocalTrust() {
         MockEnvironment environment = new MockEnvironment()
-                .withProperty("grpc.client.billing.address", "static://localpayservice.testhut.top:12021")
-                .withProperty("grpc.client.billing.negotiationType", "TLS")
+                .withProperty("spring.grpc.client.channel.billing.target", "static://localpayservice.testhut.top:22021")
+                .withProperty("spring.grpc.client.channel.billing.ssl.enabled", "true")
                 .withProperty("app.external.payservice-plaintext-enabled", "false")
-                .withProperty("grpc.client.billing.security.trust-cert-collection", "");
+                .withProperty("app.grpc.billing-trust-cert-collection", LOCAL_TRUST);
         Map<String, String> raw = canonicalEnvironmentWithTransport();
         assertDoesNotThrow(() -> PayServiceJwtStartupGuard.validatePayTransport(environment, raw));
 
         environment.setProperty(
-                "grpc.client.billing.security.trust-cert-collection", "file:///attacker/ca.crt");
+                "app.grpc.billing-trust-cert-collection", "file:///attacker/ca.crt");
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validatePayTransport(environment, raw));
 
         environment.setProperty(
-                "grpc.client.billing.security.trust-cert-collection",
-                "");
-        environment.setProperty("grpc.client.billing.security.authority-override", "attacker.invalid");
+                "app.grpc.billing-trust-cert-collection",
+                LOCAL_TRUST);
+        environment.setProperty("spring.grpc.client.channel.billing.override-authority", "attacker.invalid");
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validatePayTransport(environment, raw));
 
-        environment.setProperty("grpc.client.billing.address", "static://attacker.invalid:12021");
+        environment.setProperty("spring.grpc.client.channel.billing.target", "static://attacker.invalid:12021");
         raw.put("BILLING_GRPC_ADDR", "static://attacker.invalid:12021");
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validatePayTransport(environment, raw));
@@ -103,10 +115,10 @@ class PayServiceJwtStartupGuardTest {
     @Test
     void acceptsCanonicalTestPublicTrustAndRejectsProductionWithoutSignedPreactivationAuthority() {
         MockEnvironment testEnvironment = new MockEnvironment()
-                .withProperty("grpc.client.billing.address", PayServiceTransportPolicy.TEST_TARGET)
-                .withProperty("grpc.client.billing.negotiationType", "TLS")
+                .withProperty("spring.grpc.client.channel.billing.target", PayServiceTransportPolicy.TEST_TARGET)
+                .withProperty("spring.grpc.client.channel.billing.ssl.enabled", "true")
                 .withProperty("app.external.payservice-plaintext-enabled", "false")
-                .withProperty("grpc.client.billing.security.trust-cert-collection",
+                .withProperty("app.grpc.billing-trust-cert-collection",
                         PayServiceTransportPolicy.STAGING_TRUST);
         Map<String, String> testRaw = canonicalEnvironmentWithTransport();
         testRaw.put("ENV", "test");
@@ -116,8 +128,8 @@ class PayServiceJwtStartupGuardTest {
         assertDoesNotThrow(() -> PayServiceJwtStartupGuard.validatePayTransport(testEnvironment, testRaw));
 
         MockEnvironment productionEnvironment = new MockEnvironment()
-                .withProperty("grpc.client.billing.address", PayServiceTransportPolicy.PRODUCTION_TARGET)
-                .withProperty("grpc.client.billing.negotiationType", "TLS")
+                .withProperty("spring.grpc.client.channel.billing.target", PayServiceTransportPolicy.PRODUCTION_TARGET)
+                .withProperty("spring.grpc.client.channel.billing.ssl.enabled", "true")
                 .withProperty("app.external.payservice-plaintext-enabled", "false");
         Map<String, String> productionRaw = new HashMap<>(testRaw);
         productionRaw.put("ENV", "production");
@@ -187,10 +199,10 @@ class PayServiceJwtStartupGuardTest {
 
     private static Map<String, String> canonicalEnvironmentWithTransport() {
         Map<String, String> values = canonicalEnvironment();
-        values.put("BILLING_GRPC_ADDR", "static://localpayservice.testhut.top:12021");
+        values.put("BILLING_GRPC_ADDR", "static://localpayservice.testhut.top:22021");
         values.put("BILLING_GRPC_NEGOTIATION_TYPE", "TLS");
         values.put("BILLING_GRPC_PLAINTEXT_ENABLED", "false");
-        values.put("GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION", "");
+        values.put("GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION", LOCAL_TRUST);
         values.put("ENV", "local");
         return values;
     }

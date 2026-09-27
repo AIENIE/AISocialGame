@@ -1,0 +1,2162 @@
+[
+  {
+    "path": "scripts/windows/Prepare-ProjectNode.ps1",
+    "sha256": "3d0b6c69d51c3a6b743f3ef7fdb89cb400e8dc6df828013c350395a8d60fdce2"
+  },
+  {
+    "path": "scripts/windows/Prepare-GameRealismV2Accounts.ps1",
+    "sha256": "aeaab7166072517a588602d2a27f25e6afafc3560b49f1201874b5bf7ecee8a7"
+  },
+  {
+    "path": "scripts/windows/Migrate-GameRealismV2.ps1",
+    "sha256": "bd2fc16d2c5b1dff71cc5a59c10b63735c9adf5232371caec982a84864309f73"
+  },
+  {
+    "path": "scripts/windows/Measure-MilestoneClosure.ps1",
+    "sha256": "e9cf442c74c8484a90fc770f479800b2df7653ce7a658469e0cc97884c554b7c"
+  },
+  {
+    "path": "scripts/windows/Measure-GameRealismV2.ps1",
+    "sha256": "22c33a44c1149b6c4b4ecff06b72f5b76008d5141d55997438234e5385ca6459"
+  },
+  {
+    "path": "scripts/windows/LocalGrpcTrust.ps1",
+    "sha256": "18e0c1ebc8801b5243bae4806ff8a391fe1ab2b2edb8f7915b361d540895ce34"
+  },
+  {
+    "path": "scripts/windows/LocalCommand.ps1",
+    "sha256": "c8c7b8810f8190fd9b68820d80a3b7f07a5e6fd01e5195cbfd743b303e0b6f91"
+  },
+  {
+    "path": "scripts/windows/Get-LocalStatus.ps1",
+    "sha256": "442ce746bb9320ccebd83bf32c532b95b5889d471ff9f98adb2a845ebba5aaaa"
+  },
+  {
+    "path": "scripts/windows/ClosureGrant.ps1",
+    "sha256": "009e0f44570b4b107cf32880285c3b7e04c1f696293dc32ee757a4828dba3e4a"
+  },
+  {
+    "path": "scripts/windows/Build-Local.ps1",
+    "sha256": "8422f40c76034e673a1867e3041377de878ab603d7ab97fc8b8c04bde6b9dd5c"
+  },
+  {
+    "path": "scripts/tests/admin-billing-migrate-all-test.sh",
+    "sha256": "4d25d9172ea21ce6020f07bf862a3643ba9aa8e5565466421955ef813102ca06"
+  },
+  {
+    "path": "scripts/docker/staging-load-env-file.sh",
+    "sha256": "be3032f31d43d7eb31b2ff3da5e9318840ef7aac5084a7dd94c71ad4554550f2"
+  },
+  {
+    "path": "scripts/docker/production-load-env-file.sh",
+    "sha256": "49d0d62b9a844912c5063478fd0492e8ebd26320f95f9747ea83a07e347f6616"
+  },
+  {
+    "path": "scripts/ci/write-production-sql-ledger.py",
+    "sha256": "e2d4b2bac6e0e488d1b999760c26a7197abe229491976847b2a2bb0d6cde5ddc"
+  },
+  {
+    "path": "scripts/ci/write-production-migration-artifacts.py",
+    "sha256": "cfd4d124f8cd48ec5395900276acea964b08cfd1354ad38fb3a5a280f2c79a4a"
+  },
+  {
+    "path": "scripts/ci/verify-staging-oci-role-contract.py",
+    "sha256": "23faf8a9b156efbb8bcac90e913ee3223c50b4dcaa4425de9af70f53fbaf5cdf"
+  },
+  {
+    "path": "scripts/ci/verify-production-runtime-contract.py",
+    "sha256": "4c43e3e752c576868244a6387642587b72acdf92af79e7a02e0a07fd16ade323"
+  },
+  {
+    "path": "scripts/ci/test_production_migration_executor.py",
+    "sha256": "61e6824f8be0aa9772f7561bff61679e7d8d053b5a6ee03d5762116280fffbc1"
+  },
+  {
+    "path": "scripts/ci/test-production-backup-contract.sh",
+    "sha256": "8992ed5882ca27626909e9a4418cf59c137fa18d85eb1dd87bd456a57f84d2ad"
+  },
+  {
+    "path": "scripts/ci/test-aienie-ci-contract.sh",
+    "sha256": "2c6a7e320ebe0101654c12875af54012bd5dd32ac670f825c9ec481bc359bd7d"
+  },
+  {
+    "path": "scripts/ci/staging-oci-role-contract.json",
+    "sha256": "c4301ae7c303f9e6c2a189bf15e43f7034ee0eb3064ed71148105085d638ea70"
+  },
+  {
+    "path": "scripts/ci/README.md",
+    "sha256": "47532d97e05b6123a7080a4e87462bea09fcd99b8e3a2487acf38daf65582a65"
+  },
+  {
+    "path": "scripts/ci/production-runtime-contract.json",
+    "sha256": "5f507fc7168b77b7c42ddbaa01c96964bc02b6658bd15bf188377441e94b8d7a"
+  },
+  {
+    "path": "scripts/ci/production-persistence-preflight.sh",
+    "sha256": "1f92cae72aee490dbe2b335c4a1a908b7d7a8506f772cecf0a55248c9132fa23"
+  },
+  {
+    "path": "scripts/ci/production-migration-executor",
+    "sha256": "1d9f521b3e7cc9b8f487476592ccd356c4546d63fc3896471ea4856115c256df"
+  },
+  {
+    "path": "scripts/ci/build-release.sh",
+    "sha256": "28c41cc2344c05db75b2c0644e74eee4e7ad0e5e4dc6ebff192746eb3016b5c4"
+  },
+  {
+    "path": "scripts/ci/assemble-aisocialgame-runtime.sh",
+    "sha256": "c9602a5f5c7e6a1ebcafb9d4a9f560ca2b6f5407cad2c4b90e26b54c8b2329ab"
+  },
+  {
+    "path": "scripts/ci/assemble-aisocialgame-production-runtime.sh",
+    "sha256": "9c3349c92dec865186439d92bb470643e71507ac7d478d85dee19d1fc563b6e9"
+  },
+  {
+    "path": "scripts/ci/aisocialgame-runtime-compose.yml",
+    "sha256": "c18dfd663a1823aafd55cce9e7fb5b2de7a85659779357bd943f5d9287fd5d3d"
+  },
+  {
+    "path": "scripts/ci/aisocialgame-production-runtime-compose.yml",
+    "sha256": "050aea92f176e9b1ae14e1f98f1df9e154f0878bc418ed96df3b31e4ae4b81e4"
+  },
+  {
+    "path": "scripts/ci/aienie-ci-phase.sh",
+    "sha256": "ac445832c0efee60ab4b8f1d7be6a547703067ad5114ec93d1fdb950a5f05a0f"
+  },
+  {
+    "path": "scripts/admin-billing-migrate-all.sh",
+    "sha256": "709061ec04fb5927f95111a0ddd8f8905747f1817457dcf2dabb4d08958b3037"
+  },
+  {
+    "path": "frontend/src/App.tsx",
+    "sha256": "e80d1c77821a9d88d282f26844f80cca087f0c07bd77b7950ce8d0b9a0cbef55"
+  },
+  {
+    "path": "frontend/src/App.css",
+    "sha256": "a0715e0a09edbd0fbde65816a75e0fa0fc8b314c5260c0768c19bf3aac22621a"
+  },
+  {
+    "path": "frontend/src/vite-env.d.ts",
+    "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+  },
+  {
+    "path": "backend/sql/users.sql",
+    "sha256": "f238d7585e3071b7e14b8e0473437c26dce3524fbb2617e43b1bce0f407807b1"
+  },
+  {
+    "path": "backend/sql/schema.sql",
+    "sha256": "161f7e5c4025ce1bf1dbe6c64406c48d96382bec147332c473efcb2a8a4292d2"
+  },
+  {
+    "path": "backend/sql/rooms.sql",
+    "sha256": "aababa53c1a77836c5a6229e418a459cb30b08e957f4a3a711fdc506d02bfdfe"
+  },
+  {
+    "path": "backend/sql/player_stats.sql",
+    "sha256": "07cd2872e169d36da9f006cb0e31845bc28e118ebe2c2911328f8e4c5ec7a3c5"
+  },
+  {
+    "path": "backend/sql/game_states.sql",
+    "sha256": "7a4ebc1ac53ed82ca82c4e0183d3af0cf2a3fb630c2392045f7ed844f09b2771"
+  },
+  {
+    "path": "backend/sql/game_replays.sql",
+    "sha256": "7a1a7ad66804119517b496a45aa1ca2c895e406c00fe28ba4531e971803df9a0"
+  },
+  {
+    "path": "backend/sql/community_posts.sql",
+    "sha256": "83ff91e859d21b86e2ee3064796d9d1b3755ba32331a302f7b29fb69ee671c83"
+  },
+  {
+    "path": "backend/sql/ai_turn_jobs.sql",
+    "sha256": "6d88464a0a9b9103fbc0f45bcb50d6b0d6ac4e71799a14fc65f9843e931431d6"
+  },
+  {
+    "path": "backend/sql/ai_quality.sql",
+    "sha256": "1c609e329fe9e2e350a8a2897e570fc773cbcf9422680c44298bc7ae9c8e59eb"
+  },
+  {
+    "path": "backend/sql/20260922_milestone_closure.sql",
+    "sha256": "ef7023975e5bc005152c40bcecb53b2141068e29f990d499c4b86cae231ddfbd"
+  },
+  {
+    "path": "backend/sql/20260919_ai_turn_diagnostics.sql",
+    "sha256": "9acd39b7804f8cf1ace7ef59a0fe718dd96e0786a4726b1f7bf2b3b9525706c0"
+  },
+  {
+    "path": "backend/sql/20260912_game_realism_v2.sql",
+    "sha256": "1bdd285bd7acdeafa0812e72834a3068bd2a02572b839f5acb75d81bcb63cb63"
+  },
+  {
+    "path": "backend/sql/20260810_admin_totp_auth.sql",
+    "sha256": "d5a859bad1b21773fd5e4c8c765a0d8661a05092ad0a1fd5f64dd1ba8cffe874"
+  },
+  {
+    "path": "backend/sql/20260519_performance_stability.sql",
+    "sha256": "3b531ac73526d720f66bc11a5b574c1a77f289fab5ca48c2049e5b0eef6f7d2f"
+  },
+  {
+    "path": "frontend/src/utils/toast.ts",
+    "sha256": "328f94e9c711410b23188484a0a2f38886d7732d5c375cefcba442ab6195783f"
+  },
+  {
+    "path": "frontend/src/utils/playerStorage.ts",
+    "sha256": "3c2dba2561e5aa152413d63df59ee4557683761b9f07c609989659c080ea8369"
+  },
+  {
+    "path": "frontend/src/UserApp.tsx",
+    "sha256": "4af831183cb7e5355d15a0f3493addda6d54dfc53b376783b8a6e2ee5252a934"
+  },
+  {
+    "path": "backend/src/main/resources/prompt.yml",
+    "sha256": "aae4ecf7171b378d6127d3e92e52086975d5cafb5121a20e645080f3b8fb0b93"
+  },
+  {
+    "path": "frontend/src/types/index.ts",
+    "sha256": "fc77f75c3f8575ea82a075ffec77f6cb109cdaf46fc6d4f89cf184573f6ad5a2"
+  },
+  {
+    "path": "frontend/src/components/wallet/WalletPanel.tsx",
+    "sha256": "6c3d6ab7d1be65a5339a783d2e0285ba384850e891a1867d5b4573336a807edb"
+  },
+  {
+    "path": "frontend/src/components/wallet/UsageRecordList.tsx",
+    "sha256": "6ca5a234c327daa145ed52ad70ab845c3811a15060470ee3039d80d26f67232b"
+  },
+  {
+    "path": "frontend/src/components/wallet/RedeemCard.tsx",
+    "sha256": "291454081a418c6e0dfb7baa1f973867efdde2bc7109d15c3a7963e774434ce7"
+  },
+  {
+    "path": "frontend/src/components/wallet/LedgerEntryList.tsx",
+    "sha256": "1e560a2adef85d06c7548fb5dd65fedc726aa70ec0c662c7fd09cc2e58d3dfcf"
+  },
+  {
+    "path": "frontend/src/components/wallet/ExchangeCard.tsx",
+    "sha256": "49febd37ae4acb832cef73ce197c1a8ba2c3c94ffcceb0abd00f54672fa1b200"
+  },
+  {
+    "path": "frontend/src/components/wallet/CheckinCard.tsx",
+    "sha256": "dd602fa3ce277bea3c22972393e65bc4d6a2d32c88d8871e17b4a28297d66792"
+  },
+  {
+    "path": "frontend/src/components/wallet/BalanceOverview.tsx",
+    "sha256": "242ab35123721d2a5d8571a91f6a77acabff2cb6d29eb17cad3d1ef8205ad34e"
+  },
+  {
+    "path": "frontend/src/lib/utils.ts",
+    "sha256": "d1f1e0d62cb8d8d1e04c26e14de842d8a151f75812d81b046c65b5d1fe8e4b27"
+  },
+  {
+    "path": "frontend/src/lib/client-error-reporting.ts",
+    "sha256": "54d3510ba3af80f4ad9dd213caee2ed0442df361bef0bf5bde08ebe8780b3fa8"
+  },
+  {
+    "path": "frontend/src/services/v2Social.ts",
+    "sha256": "c939c144b21ecb5b75d65755d03f2517c7dbe5f1c1a9d60e5f3790054388c0e3"
+  },
+  {
+    "path": "frontend/src/services/apiError.ts",
+    "sha256": "014b184076f5f5cbc6f39801691fb4a5f0323d4049841408e2401698f8fb4730"
+  },
+  {
+    "path": "frontend/src/services/api.ts",
+    "sha256": "3b581a5379bed4d904a881af913c9f9743f40c15ea69536b92a0deda2afc7c4a"
+  },
+  {
+    "path": "backend/src/main/resources/game-knowledge/werewolf.json",
+    "sha256": "b501fec584e277f08ba83a579c1627ed99063e6b6f2b214df18b09adaf10dde5"
+  },
+  {
+    "path": "backend/src/main/resources/game-knowledge/undercover-words.json",
+    "sha256": "d55a709874e0151dc80df6bda07415358a5c8323ad288bbb1e66566cdfbcdb65"
+  },
+  {
+    "path": "backend/src/main/resources/game-knowledge/turtle-soup-cases.json",
+    "sha256": "3a0899c59a4e00d49ed6dd0670ea9dba676b0f15d9cecc95cbb3b1bdcb4d3043"
+  },
+  {
+    "path": "backend/src/main/resources/game-knowledge/turtle-host-system.txt",
+    "sha256": "ecce498a8f5f2fb80f876f7f77d188a71d9b379c1bafb112b950a4946dcf9e4f"
+  },
+  {
+    "path": "backend/src/main/resources/game-knowledge/social-player-system.txt",
+    "sha256": "d94b33f4f7d901a977426428f8c78db5e1cbcc0e36550c1c1869d29fbd8c34e0"
+  },
+  {
+    "path": "backend/src/main/resources/application.yml",
+    "sha256": "573c320e83c6624c58eb4d7ef219077c0c776e4b1dd0480d96010f1641da533f"
+  },
+  {
+    "path": "frontend/src/pages/CreateRoom.tsx",
+    "sha256": "41cb0ac4cab50c3e83c4f5756400725c46f04f08ea8d21ed6f4da9ebdcbf6aae"
+  },
+  {
+    "path": "frontend/src/i18n/config.ts",
+    "sha256": "61c9b5bd65d0a834ab1e6b6cfab3dbb021629c8703d1e98b8f6ca19218fd3c16"
+  },
+  {
+    "path": "scripts/windows/Test-GameRealismV2Comparison.ps1",
+    "sha256": "da270d6b7e3b3c1f776f5aedddc3faf4014f8dba83444a783466b7b53c3ecb4e"
+  },
+  {
+    "path": "frontend/src/i18n/LanguageSelector.tsx",
+    "sha256": "de78bddf61fd2f9656c02abd630cef4a13ee902cba6c11fa13edbc177468f5d9"
+  },
+  {
+    "path": "scripts/windows/Test-ClosureMySql.ps1",
+    "sha256": "c66c34d09824b8658560dbc884dfe64cf92e995127f42df2996a282085810548"
+  },
+  {
+    "path": "frontend/src/i18n/__tests__/i18nMapping.test.ts",
+    "sha256": "93ba97ab3ff3ce46a70794668e48278e65ae16db1d70ab7fec3d589b219107bc"
+  },
+  {
+    "path": "frontend/src/pages/Community.tsx",
+    "sha256": "e0cf31531d5413e346c6114e7ee547d3e6c032c3ecdb5bb0ebd2057c4db43e03"
+  },
+  {
+    "path": "frontend/src/pages/AiChat.tsx",
+    "sha256": "4b90f990855a2c9cccd01595b27e8413d53685c98b711b65e18c60132c805308"
+  },
+  {
+    "path": "backend/src/main/proto/user/v1/user_service.proto",
+    "sha256": "5869cd4b3c5321ceac9cc39c6356c65ce3bf9c82cc88b1b2fe1377ecea9c9a04"
+  },
+  {
+    "path": "frontend/src/i18n/closureTexts.ts",
+    "sha256": "11f38eadd3e08a485fcd147370946e8930a8b13a3eeff31f4a92c17a0434fbe7"
+  },
+  {
+    "path": "scripts/windows/Test-ClosurePreflight.ps1",
+    "sha256": "7f248c9feaebfaff871025eb9c091a0f8c6ea16c204e70fc99dd6d015e4fb6a2"
+  },
+  {
+    "path": "scripts/windows/Test-Local.ps1",
+    "sha256": "7ccf6ea0101bf8ba696cf96c36e3836858e5d74130bd5d0e5977984e8ded9dc0"
+  },
+  {
+    "path": "scripts/windows/Test-GameRealismV2Live.ps1",
+    "sha256": "480db52af23d11aabc54e2b52a8d0c57d3cb3e06b5663408f77bdf048f042324"
+  },
+  {
+    "path": "scripts/windows/Test-MilestoneClosure.ps1",
+    "sha256": "003c7b54584a7853c0f4ca12b6af47f0462d823eedc334d89dc586f97f6ff4e6"
+  },
+  {
+    "path": "frontend/src/components/ui/carousel.tsx",
+    "sha256": "668007dd3c85202cd10bdd5f54882c9d69f5037a1e0d9fe67d03be7a2bd3a387"
+  },
+  {
+    "path": "frontend/src/components/ui/card.tsx",
+    "sha256": "53d0983fd47917355ab26c73690c27657f76ed990d421c776e1c758822e016f2"
+  },
+  {
+    "path": "frontend/src/components/ui/calendar.tsx",
+    "sha256": "487ec5021cb7cfa4dfd65a068a5e79e5681e1f6e3f4761e81451539e97eb8940"
+  },
+  {
+    "path": "frontend/src/components/ui/button.tsx",
+    "sha256": "f06a8f0a27cd6d0cb59d55c8adc82bb27061bc1efb520a47d74c51db5854aef0"
+  },
+  {
+    "path": "frontend/src/components/ui/breadcrumb.tsx",
+    "sha256": "ab1107eca1e4a95589f67b96ac5c58ed72f4e90789bdd796da4789e05756cadc"
+  },
+  {
+    "path": "frontend/src/components/ui/badge.tsx",
+    "sha256": "108023710ad568bd6275889eee268c096e77e74ace173cfec1b5f231b792df06"
+  },
+  {
+    "path": "frontend/src/components/ui/avatar.tsx",
+    "sha256": "3f1e0c4584f57768a80e3d37bc45046f8773bb87bb8cecd5994007bbe6dfdc8b"
+  },
+  {
+    "path": "frontend/src/components/ui/aspect-ratio.tsx",
+    "sha256": "d72c73d629e37995a0a71647d851d68d6fdcd7ec120797f36ab83a8ee89f2cab"
+  },
+  {
+    "path": "frontend/src/components/ui/alert.tsx",
+    "sha256": "050c08a3ec850a8fae8579b2bdbb4c9b8aa64744b580f07e2b26f7e6fc17dac0"
+  },
+  {
+    "path": "frontend/src/components/ui/alert-dialog.tsx",
+    "sha256": "6f5d2b743e097cc0f38a8201fc9472bbcffa7ef80653eb09ac1733f470dd675c"
+  },
+  {
+    "path": "frontend/src/components/ui/accordion.tsx",
+    "sha256": "b728b30af5d9f770a34d5b4ae85ea720c90664fa55d83ad3d9835f48f20f5846"
+  },
+  {
+    "path": "frontend/src/pages/SsoCallback.tsx",
+    "sha256": "a95439be95eb1857f3b316ce1f9aca8f33c8bd9dc6135e616d54909f04eee9c9"
+  },
+  {
+    "path": "frontend/src/pages/SpectatorRoom.tsx",
+    "sha256": "1f681ae1cbe862a84bd1ea04812bbf8f64918a413c1d806291f2afe2476816e8"
+  },
+  {
+    "path": "frontend/src/pages/RoomList.tsx",
+    "sha256": "3a90040e780c1dfabd206649e8f91e70640c745d09923aa52ce55b31ca1a4839"
+  },
+  {
+    "path": "frontend/src/i18n/gameTexts.ts",
+    "sha256": "3b85ddb3a3b51802c595f35f8e9b6461dd083801ce8a0afec0761f53038f22bd"
+  },
+  {
+    "path": "frontend/src/pages/Replays.tsx",
+    "sha256": "4b0f7f28b727ccec955f79a41b8274a9b10b21ee6c72934d4f0828cab9c50bdc"
+  },
+  {
+    "path": "frontend/src/i18n/errors.ts",
+    "sha256": "479184393f342981fee341ca1f5367e5271c5c5333c51091343275d22bc90bdf"
+  },
+  {
+    "path": "frontend/src/pages/ReplayPlayer.tsx",
+    "sha256": "718a1834e8e8a60c2f730c47038de923bdfeb3e04552505585616415deb2055b"
+  },
+  {
+    "path": "frontend/src/pages/ReplayAccess.test.tsx",
+    "sha256": "f429f3510b7d8e78a0ea9c3eb2ba2803f7d50117a08c61cba9fb6e489ff32e85"
+  },
+  {
+    "path": "frontend/src/pages/Rankings.tsx",
+    "sha256": "e2940a35a63725779746637a55a2f5698567f4be6626105c106a0b50f1295c9d"
+  },
+  {
+    "path": "frontend/src/i18n/resources.ts",
+    "sha256": "712628b95ee9ee21b0b95e1cae18dd0cf3fe864461d9b0d0823567f02b57484d"
+  },
+  {
+    "path": "frontend/src/pages/Profile.tsx",
+    "sha256": "d65c83af773301c27e71f3727910f5fba85abbe4c11ad40d559b41fb6754f4b7"
+  },
+  {
+    "path": "frontend/src/i18n/personaResources.ts",
+    "sha256": "c0a689152959ef33e8b973241ffc4ea59669d62bc397222dab2faf935b12f928"
+  },
+  {
+    "path": "frontend/src/pages/NotFound.tsx",
+    "sha256": "7a9317a8d7846b079cbdf3269b1c271746aec7948db9847eaa959a196f4ac665"
+  },
+  {
+    "path": "frontend/src/i18n/__tests__/i18n.test.ts",
+    "sha256": "ff4d6a0fb9b9e0258ae8762f311fce539cd14839c77eadfa0e962121f9c10f3c"
+  },
+  {
+    "path": "frontend/src/pages/Lobby.tsx",
+    "sha256": "733c85642651dac4274a46527a899c521102665b393b0699e687af56f024d08d"
+  },
+  {
+    "path": "frontend/src/pages/Index.tsx",
+    "sha256": "ccb009604ef9972a7a70f675edc3783bb76b7e0d54da58af50ac5f2abe760b34"
+  },
+  {
+    "path": "frontend/src/main.tsx",
+    "sha256": "a3ff360e4d2392812ce01c2718a084cb7f8090b9a2de5fec7c0fff17035bc1de"
+  },
+  {
+    "path": "frontend/src/pages/Guide.tsx",
+    "sha256": "0b2c3d34df248660cd0b506105bfb7e07d1dc16a5dbf69045b38169f1cc7c27b"
+  },
+  {
+    "path": "frontend/src/pages/Achievements.tsx",
+    "sha256": "868dd5233cd2955ea0360272c752c9450b3f52eb421108024150416e09e06f70"
+  },
+  {
+    "path": "scripts/windows/Test-AiConversation.ps1",
+    "sha256": "8dbcb55ef268af95a8659b350266137ea423d6feb8a8b25247939544be4107fd"
+  },
+  {
+    "path": "scripts/windows/Start-Backend.ps1",
+    "sha256": "22dd5e9ac7b8ce28ec6c6fabd49bd9fbf64a1ea4df90723e5625a766bc5c67d7"
+  },
+  {
+    "path": "scripts/windows/SharedMySqlTarget.ps1",
+    "sha256": "05e059da46d4f4a4aa10207109e74de10d9b972a654786c9def3c732d8a29451"
+  },
+  {
+    "path": "scripts/windows/ProjectNode.ps1",
+    "sha256": "cee1886b9bb688e6671f57ff89c11cbfdbee0653928c7a808b1dfc0b6fc0a3dc"
+  },
+  {
+    "path": "scripts/windows/Start-Local.ps1",
+    "sha256": "128bc99e87fed47ca451575a191d45004a0359c7db126ddf02a98b9544191f1c"
+  },
+  {
+    "path": "scripts/windows/Start-Frontend.ps1",
+    "sha256": "02cfbd4d5e6f42718cfa9533622d433ac3b29f7ff4a54b06153f6884231d4a83"
+  },
+  {
+    "path": "scripts/windows/Stop-Local.ps1",
+    "sha256": "2bcfeaf8246af00b10f4735f19fccdb96a5c9c8157198f4368e2879b589bb2f8"
+  },
+  {
+    "path": "frontend/src/pages/games/WerewolfRoom.tsx",
+    "sha256": "51964508b68d92f1737613cd2b90b8ea79248b5276025b4fad29b6107038961d"
+  },
+  {
+    "path": "frontend/src/pages/games/UndercoverRoom.tsx",
+    "sha256": "1a45edca01c2c1ae7c9203f9c732bfa8d600291d94c7cad061d8b600f0eb72e2"
+  },
+  {
+    "path": "frontend/src/pages/games/TurtleSoupRoom.tsx",
+    "sha256": "4f2d72de04cef2e2e836dd2e6f19624ac5622a3061cda69ed0a10629d9614f10"
+  },
+  {
+    "path": "frontend/src/components/ui/use-toast.ts",
+    "sha256": "d48c4c490e5101aa42ceed9b8ca49642d66152ba11daf7ee6c29bee0f5172c37"
+  },
+  {
+    "path": "frontend/src/components/ui/tooltip.tsx",
+    "sha256": "bd9361649477cf9496f4b48415a2eafb9ae1ebca81af58a29b61b1516adc88c1"
+  },
+  {
+    "path": "frontend/src/components/ui/toggle.tsx",
+    "sha256": "62aa0dc621e296e3904cbc025d596b6d95321ffeac6c7aec244eba6598860445"
+  },
+  {
+    "path": "frontend/src/components/ui/toggle-group.tsx",
+    "sha256": "33d4f795fd736c599fcdb18acd29a7c954520e2e1773d5e3daf298dad5906aaa"
+  },
+  {
+    "path": "frontend/src/components/ui/toaster.tsx",
+    "sha256": "a6df21d77b586ca1468e38052bd58e44c056721a40a48c8a0cc8fb5edbd39f65"
+  },
+  {
+    "path": "frontend/src/components/ui/toast.tsx",
+    "sha256": "020edff7e045a127e6f2f5cc18fb27fd08bbbf4d5d7958aa5825a601f80463b0"
+  },
+  {
+    "path": "frontend/src/components/ui/textarea.tsx",
+    "sha256": "72b701364edd38d06c0a2655d6c6011c8ef0e6319dc286382df3ac51e2d608bc"
+  },
+  {
+    "path": "frontend/src/components/ui/tabs.tsx",
+    "sha256": "b73b137c819c8f11bc38f09182a9ac275af88145d03eb84738d866e50d2ca2e9"
+  },
+  {
+    "path": "frontend/src/components/ui/table.tsx",
+    "sha256": "f45be6aaffb5c73ad55d7e80e65167028a1ceedf9cafd181ad57f135180edbc2"
+  },
+  {
+    "path": "frontend/src/components/ui/switch.tsx",
+    "sha256": "45f67ad2d40d1c43f78d96589b08336a05fa1f1a7f0f36b80d7d5c42d922f567"
+  },
+  {
+    "path": "frontend/src/components/ui/sonner.tsx",
+    "sha256": "dd6d83b7a084015b0f673ff9fc4b63071a40ef62bffd56bc261bdf5f58654d89"
+  },
+  {
+    "path": "frontend/src/components/ui/slider.tsx",
+    "sha256": "b93ed37b5a78b2d7628abe8e738521a8ed1d19d2a670eb674e11a03069cf4766"
+  },
+  {
+    "path": "frontend/src/components/ui/skeleton.tsx",
+    "sha256": "8913724bc2d578e429c2adf993f24bd132696e2c561d80d352706a947bc551d2"
+  },
+  {
+    "path": "frontend/src/components/ui/sidebar.tsx",
+    "sha256": "0e3ba43b0359700f247903ab9c455aa0c2792abbd81e7447066d32530c4abfbe"
+  },
+  {
+    "path": "frontend/src/components/ui/sheet.tsx",
+    "sha256": "42293ffdb0d5160a11332d763002f83cce49b67a4ff61704b147f9b01aeca65c"
+  },
+  {
+    "path": "frontend/src/components/ui/separator.tsx",
+    "sha256": "687c8b7e2f53672eb3aca4389916a03bbe2c95441719e6c46e7c5143713fc41d"
+  },
+  {
+    "path": "frontend/src/components/ui/select.tsx",
+    "sha256": "456e9bd42dc4460fbccce37cf22b999e20a7afbc76ac233f1abd7abbae882712"
+  },
+  {
+    "path": "frontend/src/components/ui/scroll-area.tsx",
+    "sha256": "55190fb3d0243c6108ff57b5235c29e86ffb1a0879a74c872a91d568ee441671"
+  },
+  {
+    "path": "frontend/src/components/ui/resizable.tsx",
+    "sha256": "18f6398bf83de5bd5d109abd7fa5e02d68f4daec30d9f8772be75f5aa7aa189b"
+  },
+  {
+    "path": "frontend/src/components/ui/radio-group.tsx",
+    "sha256": "d8a176b5ef21def2ab06a7724445f58ee17350b2178eea6b302bc3079a009c5c"
+  },
+  {
+    "path": "frontend/src/components/ui/progress.tsx",
+    "sha256": "d1eed76fb201e43490fc7809f8ce64016a80954c20491f941a10751873d933d5"
+  },
+  {
+    "path": "frontend/src/components/ui/popover.tsx",
+    "sha256": "ee5f78ece57c9e8eb5f9b4186e2bb9ebe46b69b52f03f1edd9a601883bc64772"
+  },
+  {
+    "path": "frontend/src/components/ui/pagination.tsx",
+    "sha256": "aefb79477d56ec4f36a3b5503d11766503dd5148b365bb93d972f1c869df9868"
+  },
+  {
+    "path": "frontend/src/components/ui/navigation-menu.tsx",
+    "sha256": "b3f93b46642320fcaefbf70a478e3441229a3bd2c364d4e2e4c8352d497faf3c"
+  },
+  {
+    "path": "frontend/src/components/ui/menubar.tsx",
+    "sha256": "7d9931a721eae883364ff5892f3e9bbdb686f04a11d72dc22abf635ed47e00bd"
+  },
+  {
+    "path": "frontend/src/components/ui/label.tsx",
+    "sha256": "4d790d260bf73221b05e3918a7fe5f86cb36b10d70955df7fdfcea23a2f10a44"
+  },
+  {
+    "path": "frontend/src/components/ui/input.tsx",
+    "sha256": "aacef8933fe99ab553e12a82c874a23c97e2b5602eb6f00018454fa0a8d4f7f2"
+  },
+  {
+    "path": "frontend/src/components/ui/input-otp.tsx",
+    "sha256": "2afd0fb58ed8ca796dbaaa4a7f2a4c50602df01e5f74e0ace3a3201ff09adc91"
+  },
+  {
+    "path": "frontend/src/components/ui/hover-card.tsx",
+    "sha256": "8d606e166ef5f9bc4fc3efb1f6ce2f4bb376177a2c6fef16f67f87ad2d13d005"
+  },
+  {
+    "path": "frontend/src/components/ui/form.tsx",
+    "sha256": "349eada8b53e7444ae6d6cd19b4edff45f4f87fc7489572ac97844cbd9fd0616"
+  },
+  {
+    "path": "frontend/src/components/ui/dropdown-menu.tsx",
+    "sha256": "74db29dbb246dd23d22f9b93c36f49e14ff41f5e1616ebb761033590139c99e6"
+  },
+  {
+    "path": "frontend/src/components/ui/drawer.tsx",
+    "sha256": "4aa0c46d31a16691240ff23b412219b7834bd95ccc8ffa918d9a00f36847b3fc"
+  },
+  {
+    "path": "frontend/src/components/ui/dialog.tsx",
+    "sha256": "8644fc7b6b073ff879e5243a2c68ef7b76ada387cdd643708b1abfc111dbbfeb"
+  },
+  {
+    "path": "frontend/src/components/ui/context-menu.tsx",
+    "sha256": "3f4ebfd3c4b9529ef88edc6ae95de3b247f9f7d7ce5b3e9878dc6b313cadc7f1"
+  },
+  {
+    "path": "frontend/src/components/ui/command.tsx",
+    "sha256": "b814e47a1544dc997f25e8417505492f8cea039fb30517503a62794528b4d0de"
+  },
+  {
+    "path": "frontend/src/components/ui/collapsible.tsx",
+    "sha256": "fbe07841b794e0d7d08e87ddaaafadf1dc0c63ecc8389cd2c5b4a0a3f5500df1"
+  },
+  {
+    "path": "frontend/src/components/ui/checkbox.tsx",
+    "sha256": "2b80d1d1f7871c1321a58d8846675f4183cd499ccb7b45d343c83362c0ca6551"
+  },
+  {
+    "path": "frontend/src/components/ui/chart.tsx",
+    "sha256": "c1a545f9616ac3127a9877a9b6709e2c9ca756785d2cd2e138d2e77947877512"
+  },
+  {
+    "path": "backend/src/main/proto/ai/v1/ai_service.proto",
+    "sha256": "180dc30ea9b4cee398438758ce6b68bd43ac80fd3b11cf342e7b41a8a9513e7c"
+  },
+  {
+    "path": "frontend/src/components/GameIcons.tsx",
+    "sha256": "db681382ac40de5d71998c6a5da86a20377b01e7c71a9d79785188df417a581d"
+  },
+  {
+    "path": "frontend/src/components/SafeErrorBoundary.tsx",
+    "sha256": "25f81de403b740d04859f4eb47a702c0498d7ec10d8195e947b6db306633b096"
+  },
+  {
+    "path": "frontend/src/components/made-with-dyad.tsx",
+    "sha256": "b8d3ed0643f99b45851f98668e6ca4163004a878967abd283373393753c26666"
+  },
+  {
+    "path": "frontend/src/components/tutorial/TutorialOverlay.tsx",
+    "sha256": "cca9afa1cad2b10119e2a66345fa4eb581fd263279491f48397b20d25ad15930"
+  },
+  {
+    "path": "frontend/src/globals.css",
+    "sha256": "1b01d60f8d277f4fba11a915ebb2c0300ecfc58730fd688d31da489c572ea475"
+  },
+  {
+    "path": "frontend/src/hooks/use-mobile.tsx",
+    "sha256": "738d8e4520edeca7caa2ca56a4923839e30be14a00fc32b5a770f5d5b451a63e"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/AiSeatControl.tsx",
+    "sha256": "b6068713f077acc78ad4e931ca08b0e15c350000eba541872d447d89c01748cd"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/aiPresentation.ts",
+    "sha256": "87f62e986c66c9508d333bfc73880e5a204cf8cecae07187d62ba8792ad36178"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/aiPresentation.test.ts",
+    "sha256": "6320ed76e85c7817b9ffe1e2eb25b7e0fc3c6beb979ee24d197c5a25006f8346"
+  },
+  {
+    "path": "frontend/src/pages/games/registry.tsx",
+    "sha256": "aa956cbf70a2faf4a5a888c86e83db5e8a4ab6dd3e3735f23ce4ab5cbe9a7725"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/GameRoomFrame.tsx",
+    "sha256": "319876eae56069ad5a755a4ebb33c7f7569da1adecc404411edddcaac79828f6"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/GameLogPanel.tsx",
+    "sha256": "3b8cd53defd51cccf3796f56006c0de08c9150e79d3135fd8f04653dfc9f79fe"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/PersonaPicker.test.tsx",
+    "sha256": "91f0bdf27019ee699edc97afdf92284752f6f0459892b9eae028c16185799e2d"
+  },
+  {
+    "path": "frontend/src/config/games.ts",
+    "sha256": "e45a3a6fd472b6f2f76ab9b2f28e13edbed8746856e07b85e9f4a7dad7523ddb"
+  },
+  {
+    "path": "frontend/src/hooks/use-toast.ts",
+    "sha256": "4b70ac2ad6f1c640249bb43667f86d8447985c49be8bd0335897ad0ae7c70694"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/PlayerGrid.tsx",
+    "sha256": "9d1ce4bbd9ec9eeefc6422314251b8f3f01ed31616971b09f8d1461df015e410"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/PersonaPicker.tsx",
+    "sha256": "d4aed892d021b6e925c351e39d6ef42bb87faf6714828313adec6de66a99e788"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/useRoomRuntime.test.tsx",
+    "sha256": "2764e5a52037ba7be0b64c6835aa43fd58a9200dfcf9eab9c47cb077955a6a04"
+  },
+  {
+    "path": "frontend/src/components/social/QuickMatchDialog.tsx",
+    "sha256": "b016056af785560b5c0435ccf52322021f323fe1966773f168abd02041894603"
+  },
+  {
+    "path": "frontend/src/components/social/FriendPanel.tsx",
+    "sha256": "2a6ebf32dcad8b0c1a54188c5ff72e43588e1171a8eadd7e679ccf37c9214b6c"
+  },
+  {
+    "path": "frontend/src/hooks/useAdminAuth.tsx",
+    "sha256": "814129612906dff18d02e45ab505f0238f1b3ac59c4a39050ea60af3f8827dd2"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/V2ActionPanel.test.tsx",
+    "sha256": "103d5f082cbd1fc531e36991777fa1bbc36ba7da87fffa0673244457b48decff"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/useRoomRuntime.ts",
+    "sha256": "189d2c5542982bc90b66fcd58c4a30bab91c9510b47d0b39a100482d9a85d9c3"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/V2ActionPanel.tsx",
+    "sha256": "f81f797c2f3c6d6d2e606e7280c0d0a965a548b07cabb1a2dd9a609a76c3a4ad"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/werewolfSetup.ts",
+    "sha256": "8f8c3f95740dbf79b658d29fe5861eaf7e59385d62d0d3f52968914e607114be"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/v2Actions.ts",
+    "sha256": "4897ef8a01f6f02090caa3815fdf9d607d1e212848261735e66eb3c774f180c2"
+  },
+  {
+    "path": "frontend/src/pages/games/shared/v2Actions.test.ts",
+    "sha256": "f05fb1aa93c903b993648701c633159623884f97953482d357e319b4b43f4ef0"
+  },
+  {
+    "path": "frontend/src/hooks/useAuth.tsx",
+    "sha256": "a4b9896a114bf5965f90f9659223e8647add1bd308553b5fb7fb2e133e9abea2"
+  },
+  {
+    "path": "frontend/src/hooks/useGameEngine.test.tsx",
+    "sha256": "8e4ed847ad646c1c646d0f71cde2a5cd43c738b3ed6b7fd53469e611e3018c28"
+  },
+  {
+    "path": "frontend/src/hooks/useGameSocket.ts",
+    "sha256": "8e422ba6346164d09392751542170989e69a4c3b2be441762aaa62fa1e0eb09e"
+  },
+  {
+    "path": "frontend/src/hooks/useGameEngine.ts",
+    "sha256": "ef53cb4ee4cc70734e1f78be22ed0746a70a5759875a4459515ff7fb3dc7e115"
+  },
+  {
+    "path": "frontend/src/components/game/ChatPanel.tsx",
+    "sha256": "da3d5acf83d61784c3f443bf9a69f99178a2c1cd651a1e66064c1797952a57fd"
+  },
+  {
+    "path": "frontend/src/components/game/ConnectionStatusBar.tsx",
+    "sha256": "7d05f225fff59b2465f01f578812933c2c41209e3ffedebb22132a93226fc6ac"
+  },
+  {
+    "path": "frontend/src/components/game/SettlementPanel.tsx",
+    "sha256": "01fefec60ae2133cbf6edeeb29469ec967845928152f7dc6c9c5052b7fa277c0"
+  },
+  {
+    "path": "frontend/src/components/game/PhaseTransition.tsx",
+    "sha256": "14b0b1c26f4b4a173a7fd3c34bb6c1d99261a9c9a9afc9490ba63fb81d7b6dd2"
+  },
+  {
+    "path": "frontend/src/components/game/CountdownTimer.tsx",
+    "sha256": "5edcd7f953374e8e8a98af1cd9c2e73d88ba17245e0dbc403a029e844cfe573f"
+  },
+  {
+    "path": "scripts/windows/support/closure_identity.py",
+    "sha256": "cac55188ae0094769efb74c066ad985ec9b671bdb6ad71300b6f390c0aff3383"
+  },
+  {
+    "path": "scripts/windows/support/ClosurePreflightDataTest.java",
+    "sha256": "75f0a1ff0ee014490cdefd32434dce95c363ca8682233258ea8cb6799d4d7513"
+  },
+  {
+    "path": "scripts/windows/support/ClosurePreflightData.java",
+    "sha256": "28d54d5870dfe72ca115d6ffca23de434f3bee831d34ada78d3765f61b992a7c"
+  },
+  {
+    "path": "scripts/windows/support/closure_metrics.py",
+    "sha256": "1c0ee98b9645803100acab4306b5c4c66425e29d020cba104a6b16e07cdbd940"
+  },
+  {
+    "path": "scripts/windows/support/closure_preflight.py",
+    "sha256": "49924aa04cadef7a7d39311411e35c9420a252c13bf83c48c3006a901a70fd3a"
+  },
+  {
+    "path": "frontend/src/components/layout/MainLayout.tsx",
+    "sha256": "29d6b395e792007da9b873c6c0f5f88ae13bb26056caec9c6eb7afb321f16458"
+  },
+  {
+    "path": "frontend/src/components/layout/AdminLayout.tsx",
+    "sha256": "4e6729f30ef932c6fe058bde112d49e21a337438b2186aefb5ca9d5ea7f281c6"
+  },
+  {
+    "path": "frontend/src/pages/admin/AdminLogin.tsx",
+    "sha256": "df0dc30afbff8531cb4017aaf866d7df410a7e76bb9e415a1e9e9af3ca298d94"
+  },
+  {
+    "path": "backend/src/main/proto/billing/v1/billing_service.proto",
+    "sha256": "d57d6c8a7398db5f577ceef41ff8eae36a743b81c4dd2342e433f68e31f79c7c"
+  },
+  {
+    "path": "backend/src/main/proto/billing/v1/billing_onboarding.proto",
+    "sha256": "90d1dab6b88998329a801df2ce4e88b1de88394690e299545a2f7c5b265a40bf"
+  },
+  {
+    "path": "scripts/windows/support/test_conversation_validation.py",
+    "sha256": "5d5ab48884307a6f7c9a7a7bd70c50da0df720cae196809921a6b85e178a2288"
+  },
+  {
+    "path": "scripts/windows/support/test_closure_preflight.py",
+    "sha256": "79a3bdc4dd3d5d72ea451b8436dcb22f5de3aaaa525c472fca1e11d0b679f3f6"
+  },
+  {
+    "path": "scripts/windows/support/test_closure_metrics.py",
+    "sha256": "0a1445d5ac6f2791c5c0e10d061a7cf146ce34cf0d4bd973b104637155e01225"
+  },
+  {
+    "path": "scripts/windows/support/test_closure_identity.py",
+    "sha256": "615fd8f1024157b676456fa4aa9c679f61c0aa2e43bebbc278355ad8532449ee"
+  },
+  {
+    "path": "scripts/windows/support/shared_target.py",
+    "sha256": "38e8d11d89ebe3409c734e136a7bb22ea7a450970ccdfff171d2bcbc8eab365e"
+  },
+  {
+    "path": "frontend/src/pages/admin/AdminNotFound.tsx",
+    "sha256": "03c3a37c8e2b74f66349e37855cbd9b2a628fda9a22b61e821b56417e42c3cb4"
+  },
+  {
+    "path": "scripts/windows/support/GameRealismLocalData.java",
+    "sha256": "0c5f154ffcbaf7099b0b3ff80e9dec05d2ce7379605097c8b5b6de3076c65b19"
+  },
+  {
+    "path": "scripts/windows/support/conversation_validation.py",
+    "sha256": "b30b7e49be8275431f59452783641a6f9f2fafe5f2ae33297ff717ce05114e74"
+  },
+  {
+    "path": "scripts/windows/support/GameRealismMetrics.java",
+    "sha256": "25e5c424649175d2e53b8415dc1340a86887d87c23910eee342f78d17f5d5231"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/AiSocialGameApplication.java",
+    "sha256": "c49e26139720d977e5d59555148c88618c2625d7c0a764d88f522b498d3491ed"
+  },
+  {
+    "path": "scripts/windows/support/GameRealismMetricsTest.java",
+    "sha256": "0578e389c00189652546bf44099359c3a0dff44381529e9fad885e0ee1a6ae6e"
+  },
+  {
+    "path": "frontend/src/pages/admin/UserAdmin.tsx",
+    "sha256": "370a49147440d5ed622f4229ec12a82bfa161f52a5636e595d82c561eb1d777a"
+  },
+  {
+    "path": "frontend/src/pages/admin/SafetyAdmin.tsx",
+    "sha256": "57e7edb10ba75607fe1f0687fd62c7e6d6b6a30e457c68c54498a7761dc4d8d9"
+  },
+  {
+    "path": "frontend/src/pages/admin/IntegrationAdmin.tsx",
+    "sha256": "0bcad6810d1498d85cab75d2f87d128824dea1a4160106c452ab5f8f58a69ee5"
+  },
+  {
+    "path": "frontend/src/pages/admin/Dashboard.tsx",
+    "sha256": "5ca3cf0848e1ead00eefffe5a96cfaa17cdc9ba5fe2ea7ce2d7e8c9da5625ec9"
+  },
+  {
+    "path": "frontend/src/pages/admin/BillingAdmin.tsx",
+    "sha256": "e92e5f389c5583ba50d89dd9f065f1647a00eaf636831e0f48e0a6c611d62e13"
+  },
+  {
+    "path": "frontend/src/pages/admin/AiAdmin.tsx",
+    "sha256": "c28ce1e8bcc784fbc3e1fe14f7dcb0fe6e55cd0d6a348e2a59c2f867b4c31752"
+  },
+  {
+    "path": "frontend/src/pages/admin/AdminReplayEvidence.tsx",
+    "sha256": "00e19dde0c4777c6872abd91343c3afc7526df5fbbacb79d6aac9ca459891dfc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/adminauth/AdminTotp.java",
+    "sha256": "367522d5e88adb3ad5e8b1d08fc18140e3468b7df36e5413c1ad7f5b271e727d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/adminauth/AdminRateLimiter.java",
+    "sha256": "c63975dd9696208dc94a7bbf757ff8cb81fa180508aec47ba737780a8ef9657e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/adminauth/AdminAuthStore.java",
+    "sha256": "d171cce15baa0c22af9a0e36dba2c93ee171770451879774e2308e5a08640b2a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/adminauth/AdminAuthPolicy.java",
+    "sha256": "83c3f438d2c78435375b15f28cf35eb00b7e1b2fde4e22b2335eaa96ccad9f89"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/adminauth/AdminAuthCrypto.java",
+    "sha256": "57473d6b1e3ee83b3e6bfb34b107ef35ff6f9062abdb065ddb67af1732b5c708"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/WebSocketEventListener.java",
+    "sha256": "d9acab1c4ccee9c274a1bd425a3859304d3e3bec89337aaf78abecddf3e0ca13"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/WebSocketAuthChannelInterceptor.java",
+    "sha256": "a5e77f087dca50427b489ffc292300501ac0bb55859b94e5618ab3544216dd8b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/StompPrincipal.java",
+    "sha256": "15bd8bb7e29dd3d3009a6770abf6adff517c0dda164129b66938cde0842b6653"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/PlayerConnectionService.java",
+    "sha256": "101b44a7481f98eee720c52ed36b0987f6ecdd83a77e42d6191171b0c783d95d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/GamePushService.java",
+    "sha256": "9377a795e690d2c3c6ce91809af4a91c9d6dd45d374eab5cfda2a881598d202e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/websocket/ChatRateLimiter.java",
+    "sha256": "79d9fea9394c044a313776cc94c81447e36827fcfa6a2acf825fd7c41044bae0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/migration/ProductionSocialMigrationMain.java",
+    "sha256": "0bde97f37589817affeeadaceffbbdf49e8b09f03ad0c5561760019cc331d159"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/CurrentUserArgumentResolver.java",
+    "sha256": "9b0f57f8669912627f9ccfbdaa11ddba844964aa3e5f6f8b3b77d00f5b9c6e7a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/CurrentUser.java",
+    "sha256": "bac3cde3799c6c60683284fa1e13ae5ac80c19e89c530f9aae6cf960bf22a23f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/CurrentAdminArgumentResolver.java",
+    "sha256": "8666c0e771d237f37475ad8f765b8d6675470e3b276e7e294ba0f45d805489cf"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/CurrentAdmin.java",
+    "sha256": "60b632416c84c8bf220f2c1e3a6c26fc5e9597c55ff288efc36e105511671c5f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/AdminProofTargetFilter.java",
+    "sha256": "7091b6ea0e7999ed80304079e122078128cc314aea11355183239a1938d8486e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/web/AdminAuthInterceptor.java",
+    "sha256": "dd1744ba1429311f7ad861d889a2305d95af972e5d9ddb8465a235c8a6d6c716"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/logging/SafeLogValue.java",
+    "sha256": "486d46f01d107ac7a732615d88fd8bd4ba9e70f37eab92008faeb29f4bfa40e4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/logging/SafeLogThrowable.java",
+    "sha256": "7bc0d842b37dc34041a00397cdedf7aaad0e96e514fc9744b661053117e7c479"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/logging/MdcTaskDecorator.java",
+    "sha256": "811636d33fada8ed01f0f124f01650b307934a175c3ad880972d9b5bb01acbe2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/WalletService.java",
+    "sha256": "c85930b6b036779e172800c86cc9499879457713cd52a4890636a490ead83364"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/UserRepository.java",
+    "sha256": "15ac4effe3016466b97d9c289cb3528acd40b998918a9e3cba5900430812cab0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/UndercoverWordRepository.java",
+    "sha256": "d3d4e2782c9def1d7a7b40a628fa630362e672a88c2e678765a5e3974bd23feb"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/RoomRepository.java",
+    "sha256": "5e9c54282fa10d0df7cf33c8573a479b84deeb9b01d6e2198a07a01073b120db"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/PlayerStatsRepository.java",
+    "sha256": "8841c98e4dcd39c87c7109daeb1d3182aae0c80c8a96a3753a19b6bffd026771"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/PersonaRepository.java",
+    "sha256": "3a9d6a09cd993840d6546b2734e98da93415d515dc82fe280b90dbdecef28865"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/GameStateRepository.java",
+    "sha256": "b42a49bc799399d663f3652b82f04470eb9feec60f4169400b730109869ce6f3"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/GameRepository.java",
+    "sha256": "7375a1dd54af127d861fdb226c19fbb21027b3fcee3ab4a534273b0907427edd"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/GameEventRepository.java",
+    "sha256": "52fc947c84b5ab567362578681160f3270394a2bfaae6973cf693ab6401f5a0f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/GameArchiveRepository.java",
+    "sha256": "b603ae9cbfd09af5cff4618a6377205e4a66c04bd1cf0c6b13a8bd00b496ab54"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/v2/V2GameService.java",
+    "sha256": "92cf0dfe4e23d53a4ec6e79d551fa035a5ea2a7eb3c198c604c59396b9cec8b9"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/v2/GameMetadataV2.java",
+    "sha256": "647411a50fa849c167d61916b735e1d48ed1e875b12af13f4e22fef0073d35bf"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/v2/AiTurnCoordinator.java",
+    "sha256": "1298ef5518f5d87b064d96db833df6c996ad445516da24ba9594ad77d0884de1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/token/TokenStore.java",
+    "sha256": "f53d9ee5555e12c585b5da29d1e36f0e192e3e9d7799622cfde41b20a4e0005f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/token/RedisTokenStore.java",
+    "sha256": "e5113eb5dc7f115d8334afeb7c5e7b3c7096d26ec44f530a6db5d993b727c413"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/token/InMemoryTokenStore.java",
+    "sha256": "b952899b3d1daa2c46985cc069bed0572024aa162ec6baf53198264b5ea2a91d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/StatsService.java",
+    "sha256": "c63dda1cf00120430123d2987703473dfa0a5d25d3ca94011f1b78209f35cc75"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditRedemptionRecordRepository.java",
+    "sha256": "7008ea15a033908fa50f6a3018299b3c7880910cd3b6e0b27f57d16b0736c42d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditRedeemCodeRepository.java",
+    "sha256": "6df120a20058a41175db6745f48ea98101700a1bc6ce75eea8c8f95dec6b4bd7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditLedgerEntryRepository.java",
+    "sha256": "da98621b8362c7f0de8ebf0ccd3572b38d37578709a5fbceed46c05b4e32ed9b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditExchangeTransactionRepository.java",
+    "sha256": "e580273150520d4ab2acb4164258382e7a9878598622b8113388b43e3314f089"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditCheckinRecordRepository.java",
+    "sha256": "29560cab97d566bb4df832860fa0aeda20b6591c8af6e02bbc8d5d0ef80c7b40"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/credit/CreditAccountRepository.java",
+    "sha256": "57a48d0b096d939394108c66d77861f4bb8184a99713f758b294dffc78ee8691"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/CommunityPostRepository.java",
+    "sha256": "49ffc2214742432747dcca7d166eef7aa15444b4321ca6bedbaafa1eb8ace9b6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiTurnJobRepository.java",
+    "sha256": "030c0af6ef3447ddde1371f9805263b2299a1407869368066a9d96d859241869"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiSafetyEventRepository.java",
+    "sha256": "a5b0a4b60c01e8c4d4269e586eccba09ae3791fe233546a540de2fc30898c3f7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiSafetyControlRepository.java",
+    "sha256": "1978025d41690895fc95ca7fee315a7fcc356d0a86e98ad99a27e9b50a3e3983"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiPersonaMemoryRepository.java",
+    "sha256": "130203697d4c263d1ded9b882c71aa994cdcf9a7548d9291d48e30dab219b9f4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiDecisionTraceRepository.java",
+    "sha256": "99ba4eb99c67ff1ff478028cad64fd9aa1d223833a7a91968116167d6c827714"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiCallUsageRepository.java",
+    "sha256": "1f2c647f1ace10eb4d073840c4b7b3f583aa9f90ed20f2d30da0b4edadf3bf04"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/repository/AiCallBudgetRepository.java",
+    "sha256": "48868b559ba9b0450c7c2464ed4c2018e7e9ad2973ecc1194b1496355f61f280"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/SafetyAuditWriter.java",
+    "sha256": "6f47157bfb705b04c4741a373a6815aeb9a4ae9c9c2c3bc9b0844ba3ceaa12c2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiSafetyService.java",
+    "sha256": "0709d1b1ac14a199f86dc265a25f578faa01ecc92d27e60691a7c4af5a38b5e8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiSafetyResult.java",
+    "sha256": "c4db184f27e5dbe285959332cb0c407c1b0a0bb915d46381bb8cfe47b332691e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiSafetyContext.java",
+    "sha256": "6e58a5fa31edabfa1789ed40bce585ea784a930bc2f440a40e6d1a8d38bae925"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiSafetyAction.java",
+    "sha256": "1051991d7a38422b8db0570c24b614dd855318a7cb24b7e11c80797988844f58"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiCallScope.java",
+    "sha256": "49cdef40ba5c90bc9c81d12d3fa59fa02b872d98adc0a7de271985b768d862af"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiCallBlockedException.java",
+    "sha256": "8c4d5842e2f9c244efea46ca0b54438a224fa6ef454931b6bfb75ffe3dab0003"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/safety/AiCallAdmission.java",
+    "sha256": "7adfbbedf1718d331a5c1d7a829f75446f5671f067a696eb28ac2d07a81eb680"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/RoomService.java",
+    "sha256": "e0d8b3da0e57e446cb631d3abc3836e4ce162539ed0188267485aea93ef0e59d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ReplayArchiveService.java",
+    "sha256": "0cf7a159d8a9788bb4172a7f571ba1029370f7a52b3a1b25bf3f71ea9eda8f75"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ProjectCreditService.java",
+    "sha256": "ef907a289b9fb9f973f7e6826832339d2b09288f01923797eaec001832998a22"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/PersonaService.java",
+    "sha256": "b7a0a6551bcc206c6ac80fa3805f1f9f6c473a0ade7bf9bf458915f375ee8ab6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/GameService.java",
+    "sha256": "7f734a408d477faef632952f789843de8076e43585ba694a4c1c3c06f656fdb1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/GamePlayService.java",
+    "sha256": "5f01f796d25a3fdd71fe08a80b0d2310e04360049d47a56c68ecd5914f70423d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/GameEventRecorder.java",
+    "sha256": "a54aaa33d3fb29fbcb24dac98510cd5cc33284589100298579686cb590a9e3ca"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/DemoSeedService.java",
+    "sha256": "6ebdfa5a2549df0bd228ef3e4dcd2c4777cdbe0c0c9ce5c7d378201d3e772481"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/CreditExchangeResult.java",
+    "sha256": "dc5187d277fbab42b2ffc54104da3f0cb165818f8b55f67b292801dbf9979325"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/UsageRecordSnapshot.java",
+    "sha256": "a295da02cf5142ae9110639206d70f875f830edba92ffcea2e6f6beae7a5f6e1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/RedemptionRecordSnapshot.java",
+    "sha256": "2a3c1a717484aa9755941c0e4a000bb30ee7a059a42b121cf1ba667ac36e833e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/RedeemResult.java",
+    "sha256": "dfb12dddd4938d476d6fdbd3c8e57ef138066a61a3c5776709edd73c10175626"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/PagedResult.java",
+    "sha256": "eb1511556f35016708b8239503c40ea7c3a7e221e6cc0d7a7e2a83c9b230454e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/PagedLedgerSnapshot.java",
+    "sha256": "034e66149f674300af58355f255b7183a0c569b1df9e4c1eab814d264c2395e6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/LedgerEntrySnapshot.java",
+    "sha256": "1b66c4485215ee3a02c80c213994e76414243fef16917ac25db0d5c61f2d5523"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/ExternalUserProfile.java",
+    "sha256": "11e8eb800932347969cad3fb27ce8848ca0a5f83823fa9e853bd05ef9028085e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/ExchangeHistorySnapshot.java",
+    "sha256": "ac249b50d4758fddbf5cde497a067521f857b8a7a9435282d3c4a25444e2fe62"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/CheckinStatusResult.java",
+    "sha256": "7e3350aa1976e490c6a7edf9ed43b9bb250e9ae656562eb7c9693fc0e07ba424"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/CheckinResult.java",
+    "sha256": "95bc5f936e42fa76ce2e8a2872e6d4158dc525b44ad8b894173ad4ddfaa17f1c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/BanStatusSnapshot.java",
+    "sha256": "89156d5fbed190644de764412ec0e8332e772bbe018c2bec08f4bc5278c11a70"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/BalanceSnapshot.java",
+    "sha256": "632f3053d6e85f0b4c0e42794629a574b096dd7e47914f4110831f7c6aaa3b3b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiOcrResult.java",
+    "sha256": "a66335982cad0758e2238d459fb395f4f7431bbb201e8bcbd77cf6e080b68eeb"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiOcrParams.java",
+    "sha256": "f07876c18492f56af3659bba726a2e50aaaedda7def3ab8f4a525bc2383b8a9f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiModelOptionDto.java",
+    "sha256": "ad65954f70cbc03b26482b47d51bf11950f1ce236f5a9aa8e9bc1479ad3fd61b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiEmbeddingsResult.java",
+    "sha256": "e5571e1cfa9ad9f78a2b92a13333522240d482a23f9b18864aaa9e98a34d45e9"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiChatResult.java",
+    "sha256": "0bd3543ad3b76c9ab1407a5dd2b1a6f8738468eff93247fdfb84624b7c22480f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/dto/AiChatMessageDto.java",
+    "sha256": "5373bdd0ea8c91ce0ceb12eeb1e4ea1f8655d795a7207e7f034676e44719b312"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/credit/CreditLedgerService.java",
+    "sha256": "9041a7c8c3cd727f5ab460d6d4e54371e72539e4e03010c80b301327bf547984"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/CommunityService.java",
+    "sha256": "5f1b077f1e9beb3ca4e33716fd74ee01bb1a1ad1cf03a039b2d110628774bd9c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/BalanceService.java",
+    "sha256": "321a54bcf8d9dece27a539baba63511466cb5ab72a7208289109dc5cf6124587"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AuthService.java",
+    "sha256": "a71fe2b1cef7667253b68b5619f3904e0b486b397da3b528497c7514c8ad44a7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AiStreamConcurrencyLimiter.java",
+    "sha256": "a00e2c009ab95d8662ede934d7b7ef34e25a39cba205fe779624b35aa4781009"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AiProxyService.java",
+    "sha256": "0353aa509bc3463d61c5e9c49ddfb5d2fd730068fc89dda9401114780b4d1467"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AiNameService.java",
+    "sha256": "d6672c1e8e3a233a40e7f1cec5c34ff57ec1838378b8051e2a972ff6e75adcc6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AiGameSpeechService.java",
+    "sha256": "f461e3def36feca271f7368708d874b32bd427a2383accfae36a43dd295a3f4f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/client/UserGrpcClient.java",
+    "sha256": "66129192a179031983b3dc08043ef4f3a4d28004fef84b8b0c7d6ddf50f345fe"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/client/GrpcTimeMapper.java",
+    "sha256": "7be237776c96a66985a94ccb463a50f872d2f6f70cdd1ca7be5379713288b979"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java",
+    "sha256": "eb050e1f4f1e27cfe43ef59de8d794fc24750e1eecae0c8bc3761a38c7f06fc8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/client/AiGrpcClient.java",
+    "sha256": "221ac32a37e46d3828b0d617ff96800a320be5a8e588ab7ebbe640dde0d4cee9"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/auth/UserServiceCallerJwtProvider.java",
+    "sha256": "3333b11358ae38a1b4e6b626b58d52ebcdbc923e7e30a063a6597d737096cfa8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/auth/UserGrpcAuthClientInterceptor.java",
+    "sha256": "44713a5ca64b6a6903431970eb1d44f4300c2930dc787aa81193c42b801069a0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/auth/PayServiceCallerJwtProvider.java",
+    "sha256": "540eeda7d0fbe21de77ce6de46a3a683ecabf0714ff0b82556c099644467b841"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/auth/BillingGrpcAuthClientInterceptor.java",
+    "sha256": "6cff61ff46bc892343b6e31cb3b90f45c67b925d982002a7363d2663d50d6f10"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/integration/grpc/auth/AiGrpcHmacClientInterceptor.java",
+    "sha256": "0b919122c893683ed5c69f65798134d27f7a1d62798a2fc8c55fc014b061f1ec"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/User.java",
+    "sha256": "8f93e3548331669564eab870b9c412761574416d4012043d2ba42aaecc519b77"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/UndercoverWordPair.java",
+    "sha256": "fda004aa4814f19ad5dcbb77915984bfbc333638d76c72e4d60fcaa2cbadb390"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/RoomStatus.java",
+    "sha256": "c5bbfa716b70b3ffe3f56d35ab1520106cf1aecb5951846588fdb286c142ffa8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/RoomSeat.java",
+    "sha256": "8efdcc2ba2b5890fd1d447bb8ac9fa7ba54d2052f2901084261de4e177bcc724"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/Room.java",
+    "sha256": "18ddd25f0a9a974f7dc32fbdcf9c5c88a80388710c4cb5d12b58c8714504af2a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/PlayerStats.java",
+    "sha256": "b24438d1a725b38d4de8968e0ed5282a94662c59f473a911f54b2c02788861a7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/PersonaPresets.java",
+    "sha256": "a9d7e7982170ec56cf5c172629c6faf0add3fc0582e84dc38498b51c09d5bec0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/Persona.java",
+    "sha256": "8fc203324549ee2561f136bc59b5451adb50f4115ea7494e19f5139a3ffa426b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameStatus.java",
+    "sha256": "8f73024024a7108fae39d787b3afe4ed945fd11a306d65e46c6e48146a5b9866"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameState.java",
+    "sha256": "914e070078311285e4c71b4063f49e4aec31f44c52c996666247977d8f11b724"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GamePlayerState.java",
+    "sha256": "7cc569859598c9af6c407f3b90851109b3e34dab2cff861658d7bbd7e9dd79da"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameLogEntry.java",
+    "sha256": "7fb86cc5762a4d2e7157c210e58e9523ea426e2aa75dc69a5e028ebd6cd3b559"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameEventVisibility.java",
+    "sha256": "35c7e362524b4521ca1edd685f79a1ba09eefaf3ad005cf70b77b6665a406abe"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameEvent.java",
+    "sha256": "654895494b3be686a3a55939bc0a7905bc9590606128f3fa2a2f8f1e36c0052f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameConfigOption.java",
+    "sha256": "45124992dae04919f8798a24744e8d9de94539a9702e9c135c64fc5df1f93048"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/GameArchive.java",
+    "sha256": "027985d54794cf19d98b0780733aa3ef74330d5f87f87f42e1c7b965d19f14f2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/Game.java",
+    "sha256": "96c11a4b40051c5db813f77fb8850e9ec8875bea9680328f12be96dc170fb9be"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/VisibleObservation.java",
+    "sha256": "8868ae641167bd63b4cd8eb204d5fc0fc5f5a14ad86b85f2f3f41c14fa80c03b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/ObservationFactory.java",
+    "sha256": "812ec1554c26d605ce8e9857779d48f1f5f0b5363182d025beaf216cffa0f814"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/GameAiAdapter.java",
+    "sha256": "af115f510b2ba7ef8b04b2014334d4376c61ad9ea50c2f921d930d4815362fee"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiTurnGenerator.java",
+    "sha256": "17a0364ad425b2e2a8d129a6aed399e366aa5aeba83e5294b21201cd611570d5"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiTurnDecision.java",
+    "sha256": "81ed4f78669a8d5b0862b7c48dddc3549701d5b5fabec29d4ad55d28385a38da"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiSpeechEvents.java",
+    "sha256": "3f115ba7297fbaef392c20595409bd79a40624b2ab8d10500e6cd818166ff996"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiRoundReflection.java",
+    "sha256": "e0bf2f477b3318316021cfd710138ccdd62bdba502627e9d79b805672d194b8d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java",
+    "sha256": "84608dd8c94f2f45fe47441d5a0eb48d6cf028d31fa96e74319f2a85db95d9ee"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiMemoryServiceV2.java",
+    "sha256": "aedfac018784d31d8e0875fc3dcad2520d25a5f20ccb60e877c31abc12c28225"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiMemoryEntries.java",
+    "sha256": "5fd9e4432c586869fde2eafbbd3e1ae2a71e3e306ea5b8096f5eb819a245e732"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiJobDiagnostics.java",
+    "sha256": "c36e34124c1915222269539ec42c757a5a14cf08d8b873d157e4796fa3f41563"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiInformationSources.java",
+    "sha256": "c8e2dbd150b473befc239911469cfeb80871ef74136086b0b61277af85c81149"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiGrounding.java",
+    "sha256": "0c6e3a6ce9087d2bdf181536b895c85e73dabfe84515aa39c8c9ebcf5cdea885"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiConversationContext.java",
+    "sha256": "df9bc0cbeffbc6f7bb6c4d3021a764281d923040a8c80fc04ce5aa2406de29c0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiCommitments.java",
+    "sha256": "4cb9fa31f1033f8364749c4e53cff5a389ea387c03ae0fafc86bde6c225a3558"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiCallBudgetService.java",
+    "sha256": "d5019ef7fd07bb974e315d4f48e998896cb7187b2b3587d41826205639d09216"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/v2/AiBuildIdentity.java",
+    "sha256": "0fe45d811e087dd810c8680f6a835c7b325d588bf3abd289e6a2545b2ce9cce8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiReflectionService.java",
+    "sha256": "fcb8d3a2caba17dc88b39d0ef860568487ca8b94970d5c7b63b6f873a4b31b30"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiQualityService.java",
+    "sha256": "e928b8a89208ff2a36687bce5b1a6cc88007f08888adcade17f23f3679c8ed6d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiPlayerInfo.java",
+    "sha256": "a014305dc324f4002f51114ff51eab162f093a9a959e86d098353a041c5ee1c6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiGameContext.java",
+    "sha256": "4f1698baac60d91c2e3ed563e22b7f15fa5f85fbd3aa9539f482b2787ebbeb73"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiDecisionTraceService.java",
+    "sha256": "9a6cc35d00329144acee9c3233f88c8a4f9c9c28d615b2f35688921b9c39a87c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiDecisionService.java",
+    "sha256": "d3f0c021b898b4a969d2fd8ccb11b0c1ff04861a3f3644f219121c3607a3216b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiDecisionResult.java",
+    "sha256": "3173a8f560413c75f7c8c4b0a10a992a4bff4a8c8e6b36bd33d706b7ded4ea72"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/ai/AiBeliefService.java",
+    "sha256": "32cd1574be7a88bf7635b9ca419a14dac98d63fedae9d43413e029d5d5a9c936"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AdminOpsService.java",
+    "sha256": "7076b12def7aa3d04547429e18807d30460d552613d95f49aea5e920597bc275"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/service/AdminAuthService.java",
+    "sha256": "35aef65456eabfed058b2f26a1f9061beee9edb756983798eff037fa6d9286b8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiSafetyControl.java",
+    "sha256": "df19153c24a00cf0c684e2c73bf0a5c8783054805219d0719c53955f5c76f9b2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiPersonaMemory.java",
+    "sha256": "f47f04c9ff82e6ed255b9af4d2c14589a996633d7f8332cc5382d68fc2dce391"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java",
+    "sha256": "ed269107ac986c872e5a567028b78b790236f37c3a5ca83fca1d93424a1cd105"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiCallUsage.java",
+    "sha256": "740158a3136f232f82310ec25f71c05dd0c740903edec7a0015975832f9f5afc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiCallBudget.java",
+    "sha256": "2a53862b4b084d8620d54dc67af810555347b1b2a50e9c3b0e0771fc47fdfeb3"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiTurnJob.java",
+    "sha256": "f2e6a22a07f7f1f30516ccb4d2ec6200d7e5f77f72dac3d38748d1d26a9b6153"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/AiSafetyEvent.java",
+    "sha256": "cfdbaf69c5909da71ae8b9ff874bdb29e0492d4fd89d865d6df34527aa27ce9d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/CommunityPost.java",
+    "sha256": "b7f8a6ce152d6581f26499b64b961002964f6bfd038d4d5108d86d6b88534d9d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/health/StrictHttpHealthProbe.java",
+    "sha256": "832f6d00c0f277d9701c30f906fd88d9c6e0f835cb9dff2f297aac07bd24b38e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/exception/GlobalExceptionHandler.java",
+    "sha256": "ae8d211beadc1b589866bf0c0b4f2f1053fa61264ed6c676db8b1ee324c8c255"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/exception/ApiException.java",
+    "sha256": "b2785493a08ba96a3c7ec085080babb8af7b285560d902533c027546a5d0a58a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/converter/StringListConverter.java",
+    "sha256": "e31f42507b84070df732b75278e5b9e45acaa9d69cd55f95a0047bf0a1d6dc3a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/converter/RoomSeatListConverter.java",
+    "sha256": "87ff89f69f16603643a3bdc96a0bbeedf7a0d83d97a7c441849ac2ba3f0d19a7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/converter/MapToJsonConverter.java",
+    "sha256": "0fae485d8426c52215e32fdfa19c265da06228515712626aeac9af103b0341dc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/converter/GamePlayerStateListConverter.java",
+    "sha256": "f4930c598bdd06afa49655ec0a442046cbafb4d8dcca422477b83f7042562b9d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/converter/GameLogEntryListConverter.java",
+    "sha256": "4058520f8074b56acaf15bda113c5e1fb4b1cfea618b669eb970ad5422362591"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/WalletController.java",
+    "sha256": "fbd44dbd0d5e725c102a923202d359512cafa3eda454922a20efbf18776130aa"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/RoomController.java",
+    "sha256": "dd7a5b751367c0b6d4b59680cac5838a71415f371b2d41f99ce01fbd31f4a2f2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/RoomChatController.java",
+    "sha256": "26b9330ef97f7598b544e5212e984a08f692eb652f560228a03be22d855bd7f8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/ReplayController.java",
+    "sha256": "2ff10f64fbaaefac2ad5ac0ccdb1a306ef050578d9f880c78788333dd9e83368"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/RankingController.java",
+    "sha256": "0bf47ba210a9464b6d28f625f20853a213fb4e7de91f3886762646f83398ec06"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/PersonaController.java",
+    "sha256": "0aad277bac46cc85beac9545b4344fcd71e31bb42500f12572bdb34b4170f813"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/GamePlayController.java",
+    "sha256": "4c21ddfa8477961b4abb386a9a8dcefa7b8dcfed8e6d6b7e8e52cff07386ee7f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/GameController.java",
+    "sha256": "6f0d5e27a2a8f5bc3246545a614ddd021aafd8d8efee4602b54cea44eb3572c6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/CommunityController.java",
+    "sha256": "afec6c6ded2fe3c510d9d618ebd0a2fdc477dd047d949cf168f15a429c5072a5"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/AuthController.java",
+    "sha256": "1b765c7e8715437a551785c3c2436b456f9601d683407ba2e19a3ea53865e78d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/AiValidationController.java",
+    "sha256": "23f9cd1834141e93f1e276d24cac543de135695cae89a2215faefed9b8afdeb1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/AiController.java",
+    "sha256": "f110272638f08d6496d2ab51d56a537d680e3743101352bf374dedeffbc2024f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/WerewolfGameEngine.java",
+    "sha256": "d5b85e66c17dd8992241fd2fcb7f1b8ab8c4e6358359656b86090cf6bfc39d64"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/ValidationResult.java",
+    "sha256": "c1e331c5bc2e42b248d44003bde6d7a74923c38543bdb0fbd7e673501f2ded96"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminUserController.java",
+    "sha256": "6edbd331a115491033faea46162db4014c1df171112d0f2e9db9aafe3ad05c33"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminSafetyController.java",
+    "sha256": "d27548a12ff65f0f86da6153d19c9a071e2c395716c224571a0378dbf8edf567"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminReplayController.java",
+    "sha256": "446a75f868c5004ede53a64dde230e30e2faa03fabaa6b2bd7f14d80ba9020bb"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminIntegrationController.java",
+    "sha256": "117978aa89429d023f00db346c7cd2b246a15431b099acb0df698040a01999b6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminDashboardController.java",
+    "sha256": "af1517bf8369999b9939082d0967ad8a7a69595ce2fd0da9119f7157748016c3"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminBillingController.java",
+    "sha256": "b84f17c1427641e2cafefe4fdc7db87f280acbea8c7b06b414bb33bd79da90c2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminAuthController.java",
+    "sha256": "9882d66b82a5642a1074a2fcb27a12146e62ebbdf96201d9214639ed930e83f1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/controller/admin/AdminAiController.java",
+    "sha256": "029e56e8b28fc4a85dfbf183301f8c4c8b0f2fc6a5d50a0f36b2bb207d572be0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditRedemptionRecord.java",
+    "sha256": "1cb3625b226f6f43aec84f28c1eb98d2e6a91982aba0820745eaebaae095a141"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditRedeemCode.java",
+    "sha256": "90eb07ed3ffcdfc1f67826e0b38c16784b80f9a8e8717c00532f346880c39062"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditLedgerEntry.java",
+    "sha256": "bd53e4e1d11a1f3d4f96290b6199237fccdd89344ce8d5eefb0949b8302cb097"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditExchangeTransaction.java",
+    "sha256": "d554f0bcecbc0b9c0ea6eb6cf2ab9bdf2b1bba76de8d62dfafcd3832e726765a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditCheckinRecord.java",
+    "sha256": "d7cb7fce8e56907822e26039ed845e9532e0685d1c6c349626f5478fe3720361"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/model/credit/CreditAccount.java",
+    "sha256": "04c5568f2574b386c349a1bb456246da0c2762e6aace642b7c254618d3258de1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/PlayerConnectionStatuses.java",
+    "sha256": "3c546d07168b332b824a496f614572a0421f14215631285de7af5ca594a4b333"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/PhaseDefinition.java",
+    "sha256": "d6354259c5fc29183299b96288895848b3d960fd927e2a0a7d859438b8b942bf"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/GameRuntimeSupport.java",
+    "sha256": "06087a680aa049b4e07f5fea40b724779b8b13b671a6b1bf670d2d7045a211d7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/GamePhases.java",
+    "sha256": "94188abf3f1df7a12e9f7095cdb83f2a71f0d7018eadccde0b8bf1a9a948e236"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/GameIds.java",
+    "sha256": "aace88920c57593acbb5660aeecf45233ab017d474b476cb19378bffaee42be3"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/GameEngineRegistry.java",
+    "sha256": "a2bba4233484565befb40fde2bda5c204f520e4ebcea513dec2edcab878c60b1"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/GameEngine.java",
+    "sha256": "c6bd140f08060423ab0258de80fadbc4c6ea08f5ab9461eecf2e45cabfa5aae4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/werewolf/WerewolfRuleSet.java",
+    "sha256": "22658ccdb9093540462f8c62d718fd52f28a5c7fc2697803cb3164b73439fcd0"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/werewolf/WerewolfDefinition.java",
+    "sha256": "c5d5d2f138a9b2f6ffb8febd2f0720e4a00148d9516df69852cf6dcc93049f79"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/undercover/UndercoverWordCatalog.java",
+    "sha256": "46bd404467e05130c1562eb6a686e8f93db410196fd169cfde2b8957de518494"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/undercover/UndercoverRuleSet.java",
+    "sha256": "351a28fa14a2866dfe23e39a13f041a6d3fc6cfb5b31536c5b0a95e38bc35c37"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/undercover/UndercoverDefinition.java",
+    "sha256": "680d2a89558392991ab3ef4c83d0177b11925d82ae6fad2f365ee001a799302c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/WebSocketConfig.java",
+    "sha256": "94bc83583ca9492374d0b999c6f47d404d91ee88b99d54fd6d8b4ee1470d7145"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/WebConfig.java",
+    "sha256": "18793c1a951c49d1c4df9e279987f6c8cfe095bc1b9d78675a9f06769a8851f6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/UserServiceJwtConfigurationValidator.java",
+    "sha256": "64f7e05122e27d331050afaf13fd55b0f514d6f369d97ccbbf8fb3796f37fd5e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/TokenStoreConfig.java",
+    "sha256": "90469556ff7e808fb7f6498f2b891a119409427783a484ab0f2e97bf77e7ecc7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/StagingTrustPolicy.java",
+    "sha256": "7453a408e4e355c6cabdf54890b0a8a7333550fb2f90ec44d5b01f4bf346b34f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/RuntimeSecurityValidator.java",
+    "sha256": "42432a6fce9fc3de202cf63a61cacb9fe1e2455f1d7cacc1c2a93823d07c66b5"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/RuntimeProfileTestAuthorization.java",
+    "sha256": "56218ef11fca6f453dcf3d4a9a18c3518cf3a6ed8f56e0e4676fb4ccbf5abadb"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/RuntimeConfigurationStartupGuard.java",
+    "sha256": "f233bb7171cd4cccb736ca767805a03718c975ec8e7a591db32baf921147ec7a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/RequestIdFilter.java",
+    "sha256": "a5f1718dff8c8f37b03b8c7547a29a1613ec831175f9f180cfe662df71ee5a24"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/PromptProperties.java",
+    "sha256": "3899fac1cd13925a297a55b921666aea43924439ccda52ebe6dd8f36aec5679d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/ProjectIdentityPolicy.java",
+    "sha256": "1ed5b54f4425c3ec4a7660aafebefb1f9795735ad80d4db24bfad268c941c7ce"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/ProductionPreactivationAuthority.java",
+    "sha256": "fe7d922e7c48f6791bb2d7ed8ffa439c2463d588f44818b09cfada1e6603c81b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/PayServiceTransportPolicy.java",
+    "sha256": "08209235bfc8dd2010b3672ec936cdf505edbf38ea035d5e4309fee11e6916c2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/PayServiceJwtStartupGuard.java",
+    "sha256": "fd4a01cb2ddf3ca0de9bbed65fa7b9ee4b1ce3b3bec2e7871c0e4d15fdb08c55"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/PayServiceJwtConfigurationValidator.java",
+    "sha256": "e632da248eff33ae108434de8ef709a8d5ae564073c46ea5a733c6000a04d414"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/LocalGrpcTrustPolicy.java",
+    "sha256": "fb13465b3c8bf2a005fb469cc0730279ba50fc46f2f5aeb85ac9242d6afcd6b6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/ExternalGrpcAuthValidator.java",
+    "sha256": "c2185cc74ff9961cf37e1f37065d75e96b737fa456edafa2e92f5accba37a720"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/BillingGrpcChannelConfiguration.java",
+    "sha256": "81170da16bd9d0c3638e8fad6ca9f96fdfcc73916dcc14ae3dbf92e45af21e9a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/AsyncExecutionConfig.java",
+    "sha256": "60396473384e0b02201fe0367604798414c2f7673977c090a0ea5047e34f681f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/AppProperties.java",
+    "sha256": "3d788d45c5ef0189db4536af09d31cf28330b86e847b764207a6bf6818024813"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/AiServiceTransportStartupGuard.java",
+    "sha256": "505aac2e102bdd3df9483d4e07fb33de098cd51819ba2ff89b6bb44d4019a1de"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/config/AiServiceTransportPolicy.java",
+    "sha256": "5e9c9e1f8229e9a98417b79176328d5f8467998d0285db52ac892ed12cb1472d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiEmbeddingsRequest.java",
+    "sha256": "0a584288210e65812da9391a753dbbaf217431228b996cf06b1b933afbc1b785"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiChatStreamEvent.java",
+    "sha256": "4374570fdc50df284bc41ab080170cc6c8693827b2bb7f8dad654e432ebb6bdc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiChatResponse.java",
+    "sha256": "0bdc0ec68274ca5f5cbbff51dda95ccd280c9731fe30a7063deb66c3d8c19f90"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiChatRequest.java",
+    "sha256": "4affc60b85f84a14c95779c3352f8262508f7ee7a787c912fc7de3cf5e22837f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/turtlesoup/TurtleSoupRuleSet.java",
+    "sha256": "6b5dd44e4a9a4b373bc690a771b01d39a3b3983e09dd1ab3c85fb44dd064fbaa"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/turtlesoup/TurtleSoupDefinition.java",
+    "sha256": "680f9f8587a5d345418405bf1dfb210f9efcf450f758c360dac89881b61a694e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/turtlesoup/TurtleSoupCaseCatalog.java",
+    "sha256": "24a179bd9a38f834bbf72c066b0b51fd3980314e2dd210ee7f07d706a0958ac9"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/TurnRequest.java",
+    "sha256": "63b3154a3fad4c312475a5c1c9fea457d410c89d8711f593f9d19c5ff801fd98"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/RuleSupport.java",
+    "sha256": "9a81e13093cf5cb37a0115f67480ba96d424407decfba47ac248ce4adf18834f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/LegalAction.java",
+    "sha256": "5963a49d7a3e57c3f6761dfc2d2e9bac01aa029356aad5c81c1dd252e5f257bd"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/GameRuleSet.java",
+    "sha256": "3c65c9f5519cc76ec26c095f6ccdaedf1ee5574736eef5f7438c50a1e5538ce6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/GameConfiguration.java",
+    "sha256": "b9e66018438c65f7fd9b887291146d6de1b36f75d6654a8c1b892decabfebeea"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/v2/CommitmentRules.java",
+    "sha256": "24732343596802fcf0e5e450d8cc2613d5d6209b1e86e8d87b8c3d9090fe1cc5"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/UndercoverGameEngine.java",
+    "sha256": "0623da337831ae6f80104a3face817d312a6679fd2a2b22a581d107e1545425f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/TurtleSoupGameEngine.java",
+    "sha256": "93da7cbfc2725786634a0b00b48d102b7d721e2532d1666eb8af63c5cc102fee"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/engine/RoleDefinition.java",
+    "sha256": "4f7120f263aff5d72ac8ad832aadc692326bfe9025e36b5b04f938e9321431ed"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AddAiRequest.java",
+    "sha256": "1f42b00494adfb5e5d0398cbd8ef0567d557f769cf616a0073b1de1018028756"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AuthResponse.java",
+    "sha256": "0bd29bd202af0c58245c078e3a3b1a1f0c4f2d739e322ceae4707ee339decf52"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiOcrResponse.java",
+    "sha256": "d15025dd31e9c66a2545a29d83f244e4fac06a2dcb9f3716b5b7a5b020676c3a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiOcrRequest.java",
+    "sha256": "faa944af07b6225fc2914ebbadfd7c74e40bd30b2051d22429ad60815e11210f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiModelView.java",
+    "sha256": "8b4e58fc4de36befa3de7e293c5a96a1745ea5761f866e29cb39e72c0e21c9ff"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiMessageRequest.java",
+    "sha256": "c664b5fdc10aa67f9e3eb1381dfb27f002f8d31504f41f2915b6196bb8056b07"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AiEmbeddingsResponse.java",
+    "sha256": "49758e92825cda5536dcaf7fd24d8f813e338cb1d42063c255411505f78e2c1b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/CheckinResponse.java",
+    "sha256": "ca26cce1dd72a872f365b80f3ef501d75a7db28944ac9758e1d3d7edaed813b6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/BalanceView.java",
+    "sha256": "e5bb7b9a508ba1c32f9ed0c41e5d05695e363457ea3cb3bd23543f1e3f8a856e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/AuthUserView.java",
+    "sha256": "a5739a1cf032bb17294bd3250cc3bd9e6f720c293ec9b7e5201dffdffeb15a29"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/CommunityPostRequest.java",
+    "sha256": "97702979a38a8459474f69cc28f1021e0a166fc95ca3c3810f93e8e1cc8dac1a"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/CheckinStatusResponse.java",
+    "sha256": "b93da062f6d7f581bb5aeeef06efb52f7c9446465517f5b43123e1e6d50a4dcd"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/CreateRoomRequest.java",
+    "sha256": "56cde99bd05185d40556befb3aa8c7aae1f194d25f927ad925729434bc3d6922"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ExchangeHistoryView.java",
+    "sha256": "8b5be945802ad712e4de2630ec03889df987bc62df1623d40e31916073c3609d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminUserView.java",
+    "sha256": "8420f5a04e4961b5249df56481f08e2697d5546c6ac8c7641f7a5bdbb7e324ad"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminUnbanRequest.java",
+    "sha256": "75702a4da9b8262f0b621687b6cb2d747cf301f5cf99fb6d03c3dd756667e712"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminSafetySummaryResponse.java",
+    "sha256": "e280adae763804b1663ccf2e1c0ba8091d430f57006aee4c8497929591a13bd8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminSafetyEventView.java",
+    "sha256": "761b1c1f3e76bf23d0c7886af55481b97577e80708aeb6fea58d43bc4ed91224"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminSafetyControlView.java",
+    "sha256": "a5576cf0c1041d2671dd4ed04d7a7983ef7412e64738ec9ca898cb92a0fe867e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminSafetyControlRequest.java",
+    "sha256": "a6289959b9f5cab471e39c5e677f5abe7122098c071ced5c480930215db76c88"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminSafetyCloseRequest.java",
+    "sha256": "a7fa924694e1e68f9c844bcd295ce5a0298d6b48305af6a2ce85c925cc3701cf"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminReverseBalanceRequest.java",
+    "sha256": "f5c511cc62ccf3d94dc15e3d2803115ae8ce9cfd315f4c5c3773c9265081811d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminRedeemCodeResponse.java",
+    "sha256": "56cc8e236d09809e74afdf65f891ff0c9c6ccd007638e80344b76ccb9945c6ba"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminMigrateBalanceRequest.java",
+    "sha256": "db79c58f86b17acad250af561ed182ae0a1f3ea4f7704dd860c99fea9510ae7f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminMigrateAllBalanceResponse.java",
+    "sha256": "bd18492615b7ab4758e497b15a878a1b53087c891a154f4dfde4f99c077b4e9b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminMigrateAllBalanceRequest.java",
+    "sha256": "b2c86360ad4029a0584899214c4fa28c79c18bde39fcfb6a25d79b85a7b95d9e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminMemoryReviewRequest.java",
+    "sha256": "5de8f1f691a2b1246f267261a4a788841e325b1604d1bc27eb1c4ed954c1d9c4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminLedgerPageResponse.java",
+    "sha256": "530946c6980b42fa17d8862ee11985dbf6704f2add66f707c416aab58909696c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminIntegrationStatusResponse.java",
+    "sha256": "84f06fdd5f902c19557e2a50073b92b8e4c84eed2819d6a19f0c9fb5661d8052"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminDashboardSummaryResponse.java",
+    "sha256": "f4a85c94fe54125be66e8df075cb5d8b861cf32cf7c1c71fb74ec93df070ec91"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminCreateRedeemCodeRequest.java",
+    "sha256": "42f7d60801de2da549b7b870113d53a833ea901199bd7a7f1d3686cf5e60aad6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminBanRequest.java",
+    "sha256": "86b0ff54a2aeb25404f05543dc65580157db37c40d1bd0b3b7532d9e436533dc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminAiTestChatRequest.java",
+    "sha256": "9e822818db84e0d1244b117fdb752cd84a5e3074c7c7d27b639c6f5f4b16b4da"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminAiPersonaMemoryView.java",
+    "sha256": "44d6cce3b1cb20e623ca1e7d8c9cc989ccf876cd326b3bdb34814f3a9f0c8fc2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminAiDecisionTraceView.java",
+    "sha256": "f1bfb0cbcd0d6d8d2000cbbb0b22a6e0cfa52fafcadf37f8a8d4649bf44723f2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/admin/AdminAdjustBalanceRequest.java",
+    "sha256": "8d0d858f24be8c4aa63234f3da5ff5e0a93b0f26e9fc95ade71bf36697c2c883"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/PlayerAction.java",
+    "sha256": "f60381b9a280deb2769503593f8e0c9dc646f24e88919742a417a6798d0a7f8e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/PendingAction.java",
+    "sha256": "a24fba1d519b104e4f1fdbc6037c21ef3b0ff5079b6a3ecd04e51db2a55808d6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/PagedResponse.java",
+    "sha256": "7f82d353d37fd330c7121987c7a600c2e0767a0be923b448e0541dbd172dbb7b"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/NightActionRequest.java",
+    "sha256": "5f71a60c128b6cb1703203f1825afd306b2a330f0ed542c7f6b0db461d7c4666"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/LedgerEntryView.java",
+    "sha256": "9690bd30636f6fa521191271290a7599cf8058fc6c3114f33c674818172e958d"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/JoinRoomResult.java",
+    "sha256": "7854ff83a9d5b4b2ea6a3a1f4447ff8d17db15090310f04297dac8abf0bf7fcf"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/JoinRoomRequest.java",
+    "sha256": "23750f006d6b8dd40e862062503341c8d4f785c40c82386f328469420d7d574f"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/GameStateResponse.java",
+    "sha256": "e722d4ba323746a0a3356388c681e850b2da4f34a9c0fd01eab2996b295871f6"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/GamePlayerView.java",
+    "sha256": "d0440da4c1ff047f008dd6c463b7cf3f50341c4168a0b40524d6412a4fcab7e2"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ExchangeResponse.java",
+    "sha256": "a15bdde2cfd30c6727af1179e2ca3f994d6c909084f9b9275bc0ccdcb3bf3b0e"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ExchangeRequest.java",
+    "sha256": "b6c90ddfe9223cd5b3d83382c9527f923c3331f07ae5d40c83f14fc24cad0100"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ReplayEventView.java",
+    "sha256": "d51300a1bb5fb08cbd09b11d62dba60af6dd980fc20e2350cb072491e33e00a4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ReplayDetailResponse.java",
+    "sha256": "ca57eefd91b90785086c33da28cb9354a1bc7b4226eac1265bec34aa5050eae7"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ReplayArchiveView.java",
+    "sha256": "ef517ee7a2a3277e6f019851ae9a391c5701de13140b6fdafba08d997f589fe8"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/RedemptionView.java",
+    "sha256": "a0b1486e35ef65547135dfc8b0e8dc4647c6f1e9a0cb23b31a1b6b5faaa4fe76"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/RedeemResponse.java",
+    "sha256": "06fe08d0446941e7d86e2a99159e4863163207a2c1e2864d3b5cbf97aacc2fca"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/RedeemRequest.java",
+    "sha256": "1be76eb162b041c6af3067ba3be58a894fd6bc5cced40b9aac670bb49c6263de"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/SsoCallbackRequest.java",
+    "sha256": "7775ca8ca2b41cfa1d27c88804d41bc9d946317f2e9966b67a6b7544bebc8105"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/SpeakRequest.java",
+    "sha256": "928dcb191443a3a5e1e043ae1e66738a20b9002580a8f072e9e5fb146aab91ef"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/RoomResponse.java",
+    "sha256": "2ba8831fee421bb8475e9bc68bdbb5dbd3c2a7e616214c167cb8f209fd10251c"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/UsageRecordView.java",
+    "sha256": "c38aa0311fb8f2f7bbe72876b1fc9e4341a5965c4d8e5b62a990d816c4ec96dc"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/VoteRequest.java",
+    "sha256": "4977395e56e3f04a09c46353c0fb7fa1817313bd9d70a8d1921a9431b7c5f683"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ws/SeatEvent.java",
+    "sha256": "99c71a4a833ba02db0dcf82aafaedf6bf18c609f58d485a4d21ee62ee4469742"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ws/PrivateEvent.java",
+    "sha256": "714c9f04ccc35dfca1ebe0cbf5b0e5037c73aedb09cf65106ace1391032920f4"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ws/GameStateEvent.java",
+    "sha256": "fbb238890d617e3b550777f1519a9b042eaa0c19fd0c23d5e1030fdffdf70a56"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ws/ChatMessageRequest.java",
+    "sha256": "f2ad72fd1623e32dcde14ad6750062767ed54bb48b0144346c1cea0534744046"
+  },
+  {
+    "path": "backend/src/main/java/com/aisocialgame/dto/ws/ChatMessage.java",
+    "sha256": "036d17fa3413d6c066d4052d33cd390824eb84a115ead2ce982b27e3d64b9886"
+  },
+  {
+    "path": "scripts/windows/tests/Test-RootEntry.ps1",
+    "sha256": "332c4f7106c3303a214a8346867ea89d05b98cbee9e4d14e0d9d3ee6ba4d523e"
+  },
+  {
+    "path": "scripts/windows/tests/Test-ProjectNode.ps1",
+    "sha256": "46354b739a9511d27ca90cfe68eacc17ca53c355fbc569d6e4e565503568e1ec"
+  },
+  {
+    "path": "scripts/windows/tests/Test-LocalEndpoint.ps1",
+    "sha256": "824c9b63faab12ffc0b9b80cc4e5e88ec262da5ae3354041c0df4d0f22deb0ab"
+  },
+  {
+    "path": "scripts/windows/tests/Test-ClosurePreflight.ps1",
+    "sha256": "f701cfd11c34442a21a93946b024979d5fd9b0e72bee533ca1147af4da08d4fc"
+  },
+  {
+    "path": "scripts/windows/tests/Test-ClosureMySqlLifecycle.ps1",
+    "sha256": "90b6bc66072cfd740d5112c8f6af2ff9c652f2d427e4663d6d840dadccc6081f"
+  },
+  {
+    "path": "scripts/windows/tests/Test-AiConversation.ps1",
+    "sha256": "a4973b3a874b47be2addc75e323ac456a93a7035cc299ac20d0d8825f9167348"
+  }
+]

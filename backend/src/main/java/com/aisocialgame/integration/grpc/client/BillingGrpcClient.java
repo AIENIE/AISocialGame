@@ -30,7 +30,7 @@ import fireflychat.billing.v1.ListUsageRecordsRequest;
 import fireflychat.billing.v1.RedeemCodeRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -39,28 +39,29 @@ import java.util.List;
 @Component
 public class BillingGrpcClient {
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingBalanceServiceGrpc.BillingBalanceServiceBlockingStub balanceStub;
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingQueryServiceGrpc.BillingQueryServiceBlockingStub queryStub;
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingCheckinServiceGrpc.BillingCheckinServiceBlockingStub checkinStub;
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingRedeemCodeServiceGrpc.BillingRedeemCodeServiceBlockingStub redeemCodeStub;
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingConversionServiceGrpc.BillingConversionServiceBlockingStub conversionStub;
 
-    @GrpcClient(value = "billing", interceptors = BillingGrpcAuthClientInterceptor.class)
+    @Autowired
     private BillingOnboardingServiceGrpc.BillingOnboardingServiceBlockingStub onboardingStub;
 
     public BalanceSnapshot getBalance(String projectKey, long userId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
             long publicTokens = getPublicPermanentTokens(userId);
-            var projectResponse = balanceStub.getProjectBalance(GetProjectBalanceRequest.newBuilder()
+            var projectResponse = balanceStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getProjectBalance(GetProjectBalanceRequest.newBuilder()
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
                     .build());
@@ -77,8 +78,9 @@ public class BillingGrpcClient {
     }
 
     public BalanceSnapshot getProjectBalance(String projectKey, long userId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var projectResponse = balanceStub.getProjectBalance(GetProjectBalanceRequest.newBuilder()
+            var projectResponse = balanceStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getProjectBalance(GetProjectBalanceRequest.newBuilder()
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
                     .build());
@@ -96,7 +98,7 @@ public class BillingGrpcClient {
 
     public long getPublicPermanentTokens(long userId) {
         try {
-            var publicResponse = balanceStub.getPublicBalance(GetPublicBalanceRequest.newBuilder()
+            var publicResponse = balanceStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getPublicBalance(GetPublicBalanceRequest.newBuilder()
                     .setUserId(userId)
                     .build());
             return preferCredits(publicResponse.getPublicPermanentCredits(), publicResponse.getPublicPermanentTokens());
@@ -106,8 +108,9 @@ public class BillingGrpcClient {
     }
 
     public CheckinResult checkin(String requestId, String projectKey, long userId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = checkinStub.checkin(CheckinRequest.newBuilder()
+            var response = checkinStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).checkin(CheckinRequest.newBuilder()
                     .setRequestId(requestId == null ? "" : requestId)
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
@@ -127,8 +130,9 @@ public class BillingGrpcClient {
     }
 
     public CheckinStatusResult getCheckinStatus(String projectKey, long userId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = checkinStub.getCheckinStatus(GetCheckinStatusRequest.newBuilder()
+            var response = checkinStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getCheckinStatus(GetCheckinStatusRequest.newBuilder()
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
                     .build());
@@ -143,8 +147,9 @@ public class BillingGrpcClient {
     }
 
     public PagedResult<UsageRecordSnapshot> listUsageRecords(String projectKey, long userId, int page, int size) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = queryStub.listUsageRecords(ListUsageRecordsRequest.newBuilder()
+            var response = queryStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).listUsageRecords(ListUsageRecordsRequest.newBuilder()
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
                     .setPage(page)
@@ -170,8 +175,9 @@ public class BillingGrpcClient {
     }
 
     public PagedLedgerSnapshot listLedgerEntries(long userId, String projectKey, int page, int size) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = queryStub.listLedgerEntries(ListLedgerEntriesRequest.newBuilder()
+            var response = queryStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).listLedgerEntries(ListLedgerEntriesRequest.newBuilder()
                     .setUserId(userId)
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setPage(page)
@@ -202,13 +208,15 @@ public class BillingGrpcClient {
     }
 
     public PagedResult<LedgerEntrySnapshot> listLedgerEntriesForWallet(long userId, String projectKey, int page, int size) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         PagedLedgerSnapshot snapshot = listLedgerEntries(userId, projectKey, page, size);
         return new PagedResult<>(snapshot.page(), snapshot.size(), snapshot.total(), snapshot.entries());
     }
 
     public BalanceSnapshot convertPublicToProject(String requestId, String projectKey, long userId, long credits) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = conversionStub.convertPublicToProject(ConvertPublicToProjectRequest.newBuilder()
+            var response = conversionStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).convertPublicToProject(ConvertPublicToProjectRequest.newBuilder()
                     .setRequestId(requestId == null ? "" : requestId)
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
@@ -225,8 +233,9 @@ public class BillingGrpcClient {
     }
 
     public void ensureUserInitialized(String requestId, String projectKey, long userId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = onboardingStub.ensureUserInitialized(EnsureUserInitializedRequest.newBuilder()
+            var response = onboardingStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).ensureUserInitialized(EnsureUserInitializedRequest.newBuilder()
                     .setRequestId(requestId == null ? "" : requestId)
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
@@ -240,8 +249,9 @@ public class BillingGrpcClient {
     }
 
     public RedeemResult redeemCode(String requestId, String projectKey, long userId, String code) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = redeemCodeStub.redeemCode(RedeemCodeRequest.newBuilder()
+            var response = redeemCodeStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).redeemCode(RedeemCodeRequest.newBuilder()
                     .setRequestId(requestId == null ? "" : requestId)
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
@@ -264,8 +274,9 @@ public class BillingGrpcClient {
     }
 
     public PagedResult<RedemptionRecordSnapshot> getRedemptionHistory(String projectKey, long userId, int page, int size) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
         try {
-            var response = redeemCodeStub.getRedemptionHistory(GetRedemptionHistoryRequest.newBuilder()
+            var response = redeemCodeStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getRedemptionHistory(GetRedemptionHistoryRequest.newBuilder()
                     .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
                     .setUserId(userId)
                     .setPage(page)

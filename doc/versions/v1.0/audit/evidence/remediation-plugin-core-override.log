@@ -1,0 +1,30 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: windows
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 10.0
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 0
+[INFO] os.detected.classifier: windows-x86_64
+[INFO] 
+[INFO] ------------------< com.aisocialgame:ai-social-game >-------------------
+[INFO] Building AI Social Game Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\java
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile-custom (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\grpc-java
+[INFO] 
+[INFO] --- dependency:3.11.0:resolve-plugins (default-cli) @ ai-social-game ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.278 s
+[INFO] Finished at: 2026-09-27T09:25:57+08:00
+[INFO] ------------------------------------------------------------------------

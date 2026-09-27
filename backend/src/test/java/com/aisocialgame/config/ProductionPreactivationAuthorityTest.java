@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -18,15 +19,23 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Set;
+import java.nio.file.FileSystem;
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 class ProductionPreactivationAuthorityTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    @TempDir
-    Path temporary;
+    private final FileSystem testFileSystem = Jimfs.newFileSystem(Configuration.unix().toBuilder()
+            .setAttributeViews("basic", "owner", "posix", "unix")
+            .build());
+    private final Path temporary = testFileSystem.getPath("/tmp");
+
+    ProductionPreactivationAuthorityTest() throws Exception {
+        Files.createDirectories(temporary);
+    }
 
     @Test
     void acceptsExactCanonicalDoubleSignedAuthority() throws Exception {
@@ -238,16 +247,22 @@ class ProductionPreactivationAuthorityTest {
     }
 
     private static void makeWritable(Path path) throws Exception {
-        Files.setPosixFilePermissions(path, Set.of(
+        setPermissions(path, Set.of(
                 PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
                 PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ));
     }
 
     private static void makeReadOnly(Path path) throws Exception {
-        Files.setPosixFilePermissions(path, Set.of(
+        setPermissions(path, Set.of(
                 PosixFilePermission.OWNER_READ,
                 PosixFilePermission.GROUP_READ,
                 PosixFilePermission.OTHERS_READ));
+    }
+
+    private static void setPermissions(Path path, Set<PosixFilePermission> permissions) throws Exception {
+        PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
+        if (view == null) throw new UnsupportedOperationException("POSIX permissions are unavailable for test filesystem");
+        view.setPermissions(permissions);
     }
 
     private record Fixture(Path root) {

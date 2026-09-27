@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pause, Play, Shield, SkipForward } from "lucide-react";
 import { ReplayViewMode } from "@/types";
+import { isAxiosError } from "axios";
 
 const ReplayPlayer = () => {
   const { t } = useTranslation();
@@ -18,15 +19,16 @@ const ReplayPlayer = () => {
   const userKey = useMemo(() => user?.id || `guest:${displayName}`, [user?.id, displayName]);
   const [viewMode, setViewMode] = useState<ReplayViewMode>("PUBLIC");
   const serverReplay = useQuery({
-    queryKey: ["server-replay", archiveId, viewMode],
+    queryKey: ["server-replay", archiveId, viewMode, user?.id],
     queryFn: () => serverReplayApi.events(archiveId || "", viewMode),
     enabled: !!archiveId,
     retry: 1,
   });
-  const localArchive = archiveId ? replayApi.get(userKey, archiveId) : undefined;
-  const serverArchive = serverReplay.data?.archive;
+  const denied = isAxiosError(serverReplay.error) && [401, 403].includes(serverReplay.error.response?.status || 0);
+  const localArchive = archiveId && serverReplay.isError && !denied ? replayApi.get(userKey, archiveId) : undefined;
+  const serverArchive = denied ? undefined : serverReplay.data?.archive;
   const serverEvents = serverReplay.data?.events || [];
-  const usingServer = !!serverArchive && serverEvents.length > 0;
+  const usingServer = !!serverArchive;
   const archive = usingServer
     ? {
         id: serverArchive.id,
@@ -104,7 +106,7 @@ const ReplayPlayer = () => {
                 <Shield className="h-4 w-4" />
                 {t("replay.view")}
               </span>
-              {(["PUBLIC", "PLAYER", "GOD"] as ReplayViewMode[]).map((mode) => (
+              {(serverReplay.data?.availableViews || ["PUBLIC"] as ReplayViewMode[]).map((mode) => (
                 <Button key={mode} size="sm" variant={viewMode === mode ? "default" : "outline"} onClick={() => setViewMode(mode)}>
                   {t(`replay.view.${mode}`)}
                 </Button>
@@ -112,6 +114,11 @@ const ReplayPlayer = () => {
             </div>
           )}
           <div className="rounded-lg border bg-slate-50 p-4">
+            <div className="mb-3 flex flex-wrap gap-2">
+              {archive.events.map((event, eventIndex) => ({ event, eventIndex }))
+                .filter(({ event, eventIndex }) => eventIndex === 0 || event.phase !== archive.events[eventIndex - 1].phase)
+                .map(({ event, eventIndex }) => <Button key={eventIndex} size="sm" variant="outline" onClick={() => { setIndex(eventIndex); setPlaying(false); }}>{event.phase || event.type} #{event.seq || eventIndex + 1}</Button>)}
+            </div>
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>{currentEvent?.timestamp ? new Date(currentEvent.timestamp).toLocaleTimeString() : "--:--:--"}</span>
               {currentEvent?.seq && <Badge variant="outline">#{currentEvent.seq}</Badge>}
@@ -164,7 +171,7 @@ const ReplayPlayer = () => {
           <CardTitle className="text-base">{t("replay.timeline")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {archive.events.map((event, eventIndex) => (
+          {archive.events.slice(0, index + 1).map((event, eventIndex) => (
             <div
               key={event.id}
               className={`rounded-md border px-3 py-2 text-sm ${eventIndex === index ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"}`}

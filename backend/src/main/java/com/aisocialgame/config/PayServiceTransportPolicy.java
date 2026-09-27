@@ -4,7 +4,7 @@ import java.util.Map;
 
 /** Canonical environment-to-transport authority for PayService gRPC. */
 final class PayServiceTransportPolicy {
-    static final String LOCAL_TARGET = "static://localpayservice.testhut.top:12021";
+    static final String LOCAL_TARGET = "static://localpayservice.testhut.top:22021";
     static final String TEST_TARGET = "static://payservice.testhut.top:12021";
     static final String PRODUCTION_TARGET = "static://payservice.seekerhut.com:12021";
     static final String STAGING_TRUST =
@@ -28,7 +28,9 @@ final class PayServiceTransportPolicy {
         requireExact(environment, "BILLING_GRPC_NEGOTIATION_TYPE", "TLS");
         requireExact(environment, "BILLING_GRPC_PLAINTEXT_ENABLED", "false");
         String trust = requirePresent(environment, "GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION");
-        if ("test".equals(runtimeEnvironment)) {
+        if ("local".equals(runtimeEnvironment)) {
+            LocalGrpcTrustPolicy.require(trust);
+        } else if ("test".equals(runtimeEnvironment)) {
             if (!STAGING_TRUST.equals(trust)) {
                 throw new IllegalStateException(
                         "test PayService gRPC must use the target-policy trust bundle");

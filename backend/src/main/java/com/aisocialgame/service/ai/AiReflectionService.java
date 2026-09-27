@@ -79,6 +79,8 @@ public class AiReflectionService {
             memory.setMistakeNotes("");
             memory.setSpeechPatterns("");
             memory.setGamesPlayed(0);
+            memory.setApprovedSummary("");
+            memory.setReviewStatus("PENDING");
             personaMemoryRepository.save(memory);
         });
     }

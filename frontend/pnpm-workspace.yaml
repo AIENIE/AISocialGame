@@ -4,3 +4,7 @@ packages:
 allowBuilds:
   '@swc/core': true
   esbuild: true
+
+# Pin the optional YAML peer so lockfile updates cannot retain the vulnerable release.
+overrides:
+  yaml@>=2.0.0 <2.8.3: ^2.8.3

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <!-- Owner: AISocialGame backend maintainers. Review by 2026-12-31. Exact JAR hash and CVE only. -->
+    <suppress until="2026-12-31Z">
+        <notes>Owner: AISocialGame backend maintainers. JNA 5.17.0 is Java Native Access, not Oracle/Sun Java SE. ODC inferred the Java SE product CPE from the JAR name/version. Applies only while this SHA-1 is the resolved build-plugin JAR.</notes>
+        <sha1>33d12735bef894440780fce64f9758d420c7bae2</sha1>
+        <cve>CVE-2009-2689</cve>
+        <cve>CVE-2009-2475</cve>
+        <cve>CVE-2009-2476</cve>
+        <cve>CVE-2009-2716</cve>
+        <cve>CVE-2009-2676</cve>
+        <cve>CVE-2009-2717</cve>
+        <cve>CVE-2009-2690</cve>
+        <cve>CVE-2009-2719</cve>
+        <cve>CVE-2009-2720</cve>
+    </suppress>
+    <!-- Owner: AISocialGame backend maintainers. Review by 2026-12-31. XZ for Java is a pure-Java project; these findings affect XZ Utils native/xzgrep. -->
+    <suppress until="2026-12-31Z">
+        <notes>Owner: AISocialGame backend maintainers. org.tukaani:xz:1.9 is XZ for Java; the mapped CVEs affect the separate XZ Utils C library or xzgrep shell script.</notes>
+        <sha1>1ea4bec1a921180164852c65006d928617bd2caf</sha1>
+        <cve>CVE-2015-4035</cve>
+        <cve>CVE-2022-1271</cve>
+        <cve>CVE-2026-34743</cve>
+    </suppress>
+    <suppress until="2026-12-31Z">
+        <notes>Owner: AISocialGame backend maintainers. org.tukaani:xz:1.11 is XZ for Java, not XZ Utils native/xzgrep. Review by 2026-12-31.</notes>
+        <sha1>bdfd1774efb216f506f4f3c5b08c205b308c50aa</sha1>
+        <cve>CVE-2015-4035</cve>
+        <cve>CVE-2022-1271</cve>
+        <cve>CVE-2026-34743</cve>
+    </suppress>
+    <suppress until="2026-12-31Z">
+        <notes>Owner: AISocialGame backend maintainers. org.tukaani:xz:1.12 is XZ for Java, not XZ Utils native/xzgrep. Review by 2026-12-31.</notes>
+        <sha1>bb9703ba3753ab8665f65e6a25b3ddc7b09b1caf</sha1>
+        <cve>CVE-2015-4035</cve>
+        <cve>CVE-2022-1271</cve>
+        <cve>CVE-2026-34743</cve>
+    </suppress>
+</suppressions>

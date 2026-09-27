@@ -18,6 +18,7 @@ import com.aisocialgame.websocket.PlayerConnectionService;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 
@@ -39,19 +40,39 @@ public class RoomChatController {
     private final GamePushService gamePushService;
     private final PlayerConnectionService playerConnectionService;
     private final AiSafetyService aiSafetyService;
+    private final com.aisocialgame.service.RoomAccessPolicy roomAccessPolicy;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.aisocialgame.service.v2.V2GameService v2;
 
     public RoomChatController(RoomService roomService,
                               GameStateRepository gameStateRepository,
                               ChatRateLimiter chatRateLimiter,
                               GamePushService gamePushService,
                               PlayerConnectionService playerConnectionService,
-                              AiSafetyService aiSafetyService) {
+                              AiSafetyService aiSafetyService,
+                              com.aisocialgame.service.RoomAccessPolicy roomAccessPolicy) {
         this.roomService = roomService;
         this.gameStateRepository = gameStateRepository;
         this.chatRateLimiter = chatRateLimiter;
         this.gamePushService = gamePushService;
         this.playerConnectionService = playerConnectionService;
         this.aiSafetyService = aiSafetyService;
+        this.roomAccessPolicy = roomAccessPolicy;
+    }
+
+    /** A same-session barrier after ordered SUBSCRIBE frames; the client refreshes HTTP state on this ack. */
+    @MessageMapping("/room/{roomId}/sync")
+    @SendToUser(value = "/queue/private", broadcast = false)
+    public PrivateEvent acknowledgeSubscriptions(@DestinationVariable String roomId,
+                                                   @Payload Map<String, String> request,
+                                                   Principal principal) {
+        if (principal == null) throw new IllegalArgumentException("WebSocket requires authentication");
+        roomAccessPolicy.requireStateSubscription(roomId, principal.getName());
+        String nonce = request == null ? null : request.get("nonce");
+        if (nonce == null || !nonce.matches("[A-Za-z0-9-]{1,96}")) {
+            throw new IllegalArgumentException("Invalid synchronization nonce");
+        }
+        return new PrivateEvent("SYNC_READY", Map.of("roomId", roomId, "nonce", nonce));
     }
 
     @MessageMapping("/room/{roomId}/chat")
@@ -66,6 +87,9 @@ public class RoomChatController {
         Optional<RoomSeat> maybeSeat = room.getSeats().stream()
                 .filter(seat -> principal.getName().equals(seat.getPlayerId()))
                 .findFirst();
+        if (maybeSeat.isEmpty() && principal.getName().equals(room.getHostUserId())) {
+            maybeSeat = Optional.of(new RoomSeat(-1, principal.getName(), "主持人", false, null, "", true, true));
+        }
         if (maybeSeat.isEmpty()) {
             return;
         }
@@ -96,6 +120,17 @@ public class RoomChatController {
             if (safety.redacted()) {
                 content = safety.safeContent();
                 pushSafetyNotice(seat.getPlayerId(), safety);
+            }
+        }
+        if (v2 != null) {
+            try {
+                if (!v2.acceptSideChat(roomId, seat.getPlayerId(), type, content)) {
+                    gamePushService.pushPrivate(seat.getPlayerId(), new PrivateEvent("SAFETY_NOTICE", Map.of("message", "请使用当前的发言或互动面板", "action", "BLOCK")));
+                    return;
+                }
+            } catch (com.aisocialgame.exception.ApiException ex) {
+                gamePushService.pushPrivate(seat.getPlayerId(), new PrivateEvent("SAFETY_NOTICE", Map.of("message", ex.getMessage(), "action", "BLOCK")));
+                return;
             }
         }
         ChatMessage message = new ChatMessage(

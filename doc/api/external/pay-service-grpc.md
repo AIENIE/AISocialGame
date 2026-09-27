@@ -4,7 +4,7 @@
 
 ## 服务地址与服务名
 
-- 本地默认地址：`BILLING_GRPC_ADDR=static://localpayservice.testhut.top:443`
+- 本地默认地址：`BILLING_GRPC_ADDR=static://localpayservice.testhut.top:22021`
 - 默认传输：`BILLING_GRPC_NEGOTIATION_TYPE=TLS`
 - 当前发现方式：静态域名/端口，不使用 Consul。
 - gRPC 服务：

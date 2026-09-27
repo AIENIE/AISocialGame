@@ -1,0 +1,10 @@
+
+catalog_id              : aienie-system-matrix
+schema_version          : 2
+component_count         : 37
+component_ids           : {ai-novel, ai-service, ai-social-game, alertmanager…}
+product_component_count : 6
+product_hosts           : {localainovel.testhut.top, localfireflychat.testhut.top, localmetaverse.testhut.top, localpdfconverter.testhut.top…}
+generated_views_checked : True
+mermaid_views_checked   : True
+

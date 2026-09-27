@@ -106,6 +106,7 @@ public class GameRuntimeSupport {
         }
 
         GameState state = optionalState.get();
+        if (syncSafetyPause(state)) { gameStateRepository.save(state); return buildResponse(gameId, room, state, viewerId); }
         boolean changed = false;
         if (StringUtils.hasText(viewerId)) {
             playerConnectionService.markActive(viewerId, roomId);
@@ -164,6 +165,8 @@ public class GameRuntimeSupport {
         Room room = roomService.getRoom(roomId);
         String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
+        if (roomSafety(state).stream().anyMatch(a -> List.of("PAUSE_ROOM", "BLOCK").contains(a))) throw new ApiException(HttpStatus.CONFLICT, "房间已暂停");
+        syncSafetyPause(state);
         if (gameId.equals("undercover")) {
             speakUndercover(state, room, actorId, request.getContent());
         } else if (gameId.equals("werewolf")) {
@@ -173,6 +176,7 @@ public class GameRuntimeSupport {
         }
         playerConnectionService.markActive(actorId, roomId);
         markPlayerOnline(state, actorId);
+        syncSafetyPause(state);
         state = gameStateRepository.save(state);
         pushStateEvent(roomId, "SPEAK", state);
         return buildResponse(gameId, room, state, actorId);
@@ -182,6 +186,8 @@ public class GameRuntimeSupport {
         Room room = roomService.getRoom(roomId);
         String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
+        if (roomSafety(state).stream().anyMatch(a -> List.of("PAUSE_ROOM", "BLOCK").contains(a))) throw new ApiException(HttpStatus.CONFLICT, "房间已暂停");
+        syncSafetyPause(state);
         if (gameId.equals("undercover")) {
             voteUndercover(state, room, actorId, request);
         } else if (gameId.equals("werewolf")) {
@@ -191,6 +197,7 @@ public class GameRuntimeSupport {
         }
         playerConnectionService.markActive(actorId, roomId);
         markPlayerOnline(state, actorId);
+        syncSafetyPause(state);
         state = gameStateRepository.save(state);
         pushStateEvent(roomId, "VOTE", state);
         return buildResponse(gameId, room, state, actorId);
@@ -203,6 +210,8 @@ public class GameRuntimeSupport {
         Room room = roomService.getRoom(roomId);
         String actorId = requirePlayer(user);
         GameState state = gameStateRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "游戏尚未开始"));
+        if (roomSafety(state).stream().anyMatch(a -> List.of("PAUSE_ROOM", "BLOCK").contains(a))) throw new ApiException(HttpStatus.CONFLICT, "房间已暂停");
+        syncSafetyPause(state);
 
         // 如果仍停留在白天环节（讨论/投票），先强制推进到夜晚，避免玩家因未投票而被卡住
         boolean progressed = fastForwardToNight(state, room);
@@ -214,12 +223,13 @@ public class GameRuntimeSupport {
             if (PHASE_SETTLEMENT.equals(state.getPhase())) {
                 return buildResponse(gameId, room, state, actorId);
             }
-            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作", "INVALID_ACTION", Map.of());
         }
 
         setNightAction(state, room, actorId, request);
         playerConnectionService.markActive(actorId, roomId);
         markPlayerOnline(state, actorId);
+        syncSafetyPause(state);
         state = gameStateRepository.save(state);
         pushStateEvent(roomId, "PHASE_CHANGE", state);
         return buildResponse(gameId, room, state, actorId);
@@ -291,6 +301,7 @@ public class GameRuntimeSupport {
         });
         roomService.updateStatus(room.getId(), RoomStatus.PLAYING);
         autoAdvanceUndercover(state, room);
+        com.aisocialgame.service.RoomAccessPolicy.snapshot(state, room);
         return gameStateRepository.save(state);
     }
 
@@ -339,6 +350,7 @@ public class GameRuntimeSupport {
         roomService.updateStatus(room.getId(), RoomStatus.PLAYING);
         autoFillNightActions(state, room);
         resolveNight(state, room, false);
+        com.aisocialgame.service.RoomAccessPolicy.snapshot(state, room);
         return gameStateRepository.save(state);
     }
 
@@ -346,7 +358,7 @@ public class GameRuntimeSupport {
         ensurePhase(state, PHASE_DESCRIPTION);
         GamePlayerState current = currentSpeaker(state);
         if (current == null || !current.getPlayerId().equals(actorId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言", "NOT_YOUR_TURN", Map.of());
         }
         String safeContent = aiSafetyService.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH)
                 .room(state.getRoomId(), state.getGameId())
@@ -369,7 +381,7 @@ public class GameRuntimeSupport {
         }
         Map<String, String> votes = voteMap(state);
         if (votes.containsKey(actorId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "已完成投票");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "已完成投票", "ALREADY_ACTED", Map.of());
         }
         if (!request.isAbstain()) {
             GamePlayerState target = playerById(state, request.getTargetPlayerId());
@@ -394,7 +406,7 @@ public class GameRuntimeSupport {
         ensurePhase(state, PHASE_DAY_DISCUSS);
         GamePlayerState current = currentSpeaker(state);
         if (current == null || !current.getPlayerId().equals(actorId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "当前不需要你发言", "NOT_YOUR_TURN", Map.of());
         }
         String safeContent = aiSafetyService.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH)
                 .room(state.getRoomId(), state.getGameId())
@@ -417,7 +429,7 @@ public class GameRuntimeSupport {
         }
         Map<String, String> votes = voteMap(state);
         if (votes.containsKey(actorId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "已完成投票");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "已完成投票", "ALREADY_ACTED", Map.of());
         }
         if (!request.isAbstain()) {
             GamePlayerState target = playerById(state, request.getTargetPlayerId());
@@ -657,6 +669,7 @@ public class GameRuntimeSupport {
     }
 
     private boolean autoAdvanceUndercover(GameState state, Room room) {
+        if (syncSafetyPause(state)) return false;
         boolean changed = false;
 
         if (PHASE_DESCRIPTION.equals(state.getPhase())) {
@@ -699,6 +712,7 @@ public class GameRuntimeSupport {
     }
 
     private boolean autoAdvanceWerewolfDay(GameState state, Room room) {
+        if (syncSafetyPause(state)) return false;
         boolean changed = true;
         boolean anyChange = false;
         while (changed) {
@@ -855,11 +869,31 @@ public class GameRuntimeSupport {
                 .anyMatch(p -> p.isAlive() && !p.isAi() && p.getRole() != null && p.getRole().startsWith("WEREWOLF") && !isPlayerDisconnected(p));
     }
 
+    private List<String> roomSafety(GameState state) {
+        return aiSafetyService.controls(AiSafetyContext.source("LEGACY_GAME").room(state.getRoomId(),state.getGameId()));
+    }
+    /** Compatibility path only; preserves old phase timing while a control is active. */
+    private boolean syncSafetyPause(GameState state) {
+        boolean paused=roomSafety(state).stream().anyMatch(a -> List.of("PAUSE_ROOM","FORCE_OBSERVE","BLOCK").contains(a));
+        String token=state.getPhase()+":"+state.getRoundNumber()+":"+state.getCurrentSeat();
+        Map<String,Object> saved=com.aisocialgame.engine.v2.RuleSupport.map(state.getData().get("legacySafetyClock"));
+        if (paused && (saved.isEmpty() || !token.equals(saved.get("phase")))) {
+            saved=new HashMap<>();saved.put("phase",token);
+            if(state.getPhaseEndsAt()!=null)saved.put("remainingMs",Math.max(0,Duration.between(LocalDateTime.now(),state.getPhaseEndsAt()).toMillis()));
+            state.getData().put("legacySafetyClock",saved);state.setPhaseEndsAt(null);
+        } else if(!paused && !saved.isEmpty()) {
+            if(token.equals(saved.get("phase")) && saved.get("remainingMs") instanceof Number n)state.setPhaseEndsAt(LocalDateTime.now().plusNanos(n.longValue()*1_000_000));
+            state.getData().remove("legacySafetyClock");
+        }
+        return paused;
+    }
+
     private boolean isPhaseTimeout(LocalDateTime phaseEndsAt) {
         return phaseEndsAt != null && LocalDateTime.now().isAfter(phaseEndsAt);
     }
 
     private boolean fillAiVotes(GameState state) {
+        if (syncSafetyPause(state)) return false;
         Map<String, String> votes = voteMap(state);
         List<GamePlayerState> alivePlayers = state.getPlayers().stream().filter(GamePlayerState::isAlive).toList();
         boolean changed = false;
@@ -940,6 +974,7 @@ public class GameRuntimeSupport {
     }
 
     private void autoFillNightActions(GameState state, Room room) {
+        if (syncSafetyPause(state)) return;
         Map<String, Object> data = state.getData();
         if (data.get("wolfTarget") == null && !hasConnectedHumanWolf(state)) {
             List<GamePlayerState> wolves = state.getPlayers().stream().filter(p -> p.isAlive() && p.isAi() && p.getRole().startsWith("WEREWOLF")).toList();
@@ -994,6 +1029,7 @@ public class GameRuntimeSupport {
             }
         }
         state.getData().put("winner", winner);
+        state.getData().put("winnerIds", new ArrayList<>(winnerIds));
         String winnerText = switch (winner) {
             case "WEREWOLF" -> "狼人阵营";
             case "UNDERCOVER" -> "卧底阵营";
@@ -1007,7 +1043,7 @@ public class GameRuntimeSupport {
         ));
         state.setPhaseEndsAt(null);
         if (!Boolean.TRUE.equals(state.getData().get("statsRecorded"))) {
-            statsService.recordResult(room.getGameId(), state.getPlayers(), winnerIds);
+            statsService.recordResult(gameEventRecorder.ensureArchiveId(state), room.getGameId(), state.getPlayers(), winnerIds);
             state.getData().put("statsRecorded", true);
         }
         replayArchiveService.archiveFinishedGame(state, room);
@@ -1018,7 +1054,6 @@ public class GameRuntimeSupport {
     private Set<String> determineUndercoverWinners(GameState state) {
         boolean undercoverWin = determineWinnerFlag(state);
         return state.getPlayers().stream()
-                .filter(p -> p.isAlive() || PHASE_SETTLEMENT.equals(state.getPhase()))
                 .filter(p -> undercoverWin ? "UNDERCOVER".equals(p.getRole()) : !"UNDERCOVER".equals(p.getRole()))
                 .map(GamePlayerState::getPlayerId)
                 .collect(Collectors.toSet());
@@ -1137,7 +1172,7 @@ public class GameRuntimeSupport {
 
     private void ensurePhase(GameState state, String phase) {
         if (!phase.equals(state.getPhase())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作", "INVALID_ACTION", Map.of());
         }
     }
 
@@ -1356,10 +1391,13 @@ public class GameRuntimeSupport {
         String currentSpeaker = state.getCurrentSeat() == null ? null : players.stream().filter(p -> p.isAlive() && p.getSeatNumber() == state.getCurrentSeat()).map(GamePlayerView::getDisplayName).findFirst().orElse(null);
 
         Map<String, Object> extra = new HashMap<>();
+        com.aisocialgame.service.SettlementView.add(extra, state, viewerId);
         extra.put("civilianWord", PHASE_SETTLEMENT.equals(state.getPhase()) ? state.getData().get("civilianWord") : null);
         extra.put("undercoverWord", PHASE_SETTLEMENT.equals(state.getPhase()) ? state.getData().get("undercoverWord") : null);
         if ("werewolf".equals(gameId)) {
-            extra.put("seerResults", seerResultMap(state));
+            Map<String, String> checks = seerResultMap(state);
+            extra.put("seerResults", me != null && "SEER".equals(me.getRole()) && checks.containsKey(me.getPlayerId())
+                    ? Map.of(me.getPlayerId(), checks.get(me.getPlayerId())) : Map.of());
             extra.put("lastNightDeaths", state.getLogs().stream()
                     .filter(log -> "night".equals(log.getType()) && log.getMessage().contains("死亡"))
                     .map(GameLogEntry::getMessage)

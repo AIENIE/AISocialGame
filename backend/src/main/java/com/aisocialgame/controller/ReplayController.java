@@ -21,27 +21,35 @@ public class ReplayController {
     }
 
     @GetMapping
-    public ResponseEntity<PagedResponse<ReplayArchiveView>> list(@RequestParam(required = false) String gameId,
+    public ResponseEntity<PagedResponse<ReplayArchiveView>> list(@com.aisocialgame.web.CurrentUser com.aisocialgame.model.User user, @RequestParam(required = false) String gameId,
+                                                                 @RequestParam(required = false) String playerId,
+                                                                 @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime from,
+                                                                 @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime to,
                                                                  @RequestParam(defaultValue = "0") int page,
                                                                  @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(replayArchiveService.list(gameId, page, size));
+        return ResponseEntity.ok(replayArchiveService.search(gameId, playerId, from, to, page, size, user.getId()));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<PagedResponse<ReplayArchiveView>> my(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<PagedResponse<ReplayArchiveView>> my(@com.aisocialgame.web.CurrentUser com.aisocialgame.model.User user,
+                                                               @RequestParam(required = false) String gameId,
+                                                               @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime from,
+                                                               @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime to,
+                                                               @RequestParam(defaultValue = "0") int page,
                                                                @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(replayArchiveService.list(null, page, size));
+        return ResponseEntity.ok(replayArchiveService.search(gameId, user.getId(), from, to, page, size, user.getId()));
     }
 
     @GetMapping("/{archiveId}")
-    public ResponseEntity<ReplayArchiveView> detail(@PathVariable String archiveId) {
-        return ResponseEntity.ok(replayArchiveService.detail(archiveId));
+    public ResponseEntity<ReplayArchiveView> detail(@PathVariable String archiveId, @com.aisocialgame.web.CurrentUser com.aisocialgame.model.User user) {
+        return ResponseEntity.ok(replayArchiveService.detail(archiveId, user.getId()));
     }
 
     @GetMapping("/{archiveId}/events")
     public ResponseEntity<ReplayDetailResponse> events(@PathVariable String archiveId,
                                                        @RequestParam(defaultValue = "PUBLIC") String viewMode,
-                                                       @RequestParam(required = false) String viewerPlayerId) {
-        return ResponseEntity.ok(replayArchiveService.events(archiveId, viewMode, viewerPlayerId));
+                                                       @RequestParam(required = false) String viewerPlayerId,
+                                                       @com.aisocialgame.web.CurrentUser(required = false) com.aisocialgame.model.User user) {
+        return ResponseEntity.ok(replayArchiveService.authorizedEvents(archiveId, viewMode, viewerPlayerId, user == null ? null : user.getId()));
     }
 }

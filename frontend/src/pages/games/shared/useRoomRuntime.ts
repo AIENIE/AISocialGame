@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useGameEngine } from "@/hooks/useGameEngine";
 import { useGameSocket } from "@/hooks/useGameSocket";
-import { getApiErrorMessage, personaApi, roomApi } from "@/services/api";
+import { getApiErrorMessage, getApiErrorCode, isRecoverableGameError, personaApi, roomApi, serverReplayApi } from "@/services/api";
 import { localizeErrorMessage } from "@/i18n/errors";
 import { achievementApi, replayApi } from "@/services/v2Social";
-import { ChatMessage } from "@/types";
+import { ChatMessage, GameStateEvent, PrivateEvent } from "@/types";
 
 const DEFAULT_RECOVERABLE_MESSAGES = ["已完成投票", "当前不需要你发言", "房间已满", "当前阶段不支持该操作"];
 
@@ -30,13 +30,17 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const [showTransition, setShowTransition] = useState(false);
   const prevPhaseRef = useRef<string | undefined>();
   const settlementSnapshotRef = useRef<string | null>(null);
+  const replayCacheAttemptRef = useRef<string | null>(null);
   const joinAttemptedRoomRef = useRef<string | null>(null);
+  const lastSocketVersionRef = useRef<string | null>(null);
   const userKey = user?.id || `guest:${displayName}`;
 
-  const { data: personas = [] } = useQuery({
+  const personaQuery = useQuery({
     queryKey: ["personas"],
     queryFn: personaApi.list,
   });
+
+  const personas = personaQuery.data ?? [];
 
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
@@ -45,10 +49,20 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   });
 
   const { stateQuery, startMutation, actionMutation } = useGameEngine(effectiveGameId, user ? roomId : undefined);
+  const { refetch: refetchState } = stateQuery;
 
   const invalidateRuntime = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["game-state", roomId] });
   }, [queryClient, roomId]);
+
+  const invalidateSocketVersion = useCallback((event: GameStateEvent | PrivateEvent) => {
+    const version = event?.payload?.viewVersion;
+    if (typeof version === "string" && version) {
+      if (lastSocketVersionRef.current === `${roomId}:${version}`) return;
+      lastSocketVersionRef.current = `${roomId}:${version}`;
+    }
+    invalidateRuntime();
+  }, [invalidateRuntime, roomId]);
 
   const invalidateRoom = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["room", roomId] });
@@ -59,27 +73,28 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     roomId,
     playerId,
     token,
-    onStateChange: invalidateRuntime,
+    onConnected: invalidateRoom,
+    onStateChange: invalidateSocketVersion,
     onSeatChange: invalidateRoom,
     onPrivate: (event) => {
       if (event.type === "SAFETY_NOTICE") {
         const message = typeof event.payload?.message === "string" ? event.payload.message : "";
         toast.warning(localizeErrorMessage(message, "errors.contentBlocked"));
       }
-      invalidateRuntime();
+      invalidateSocketVersion(event);
     },
     onChat: (msg) => setChatMessages((prev) => [...prev.slice(-99), msg]),
   });
 
   useEffect(() => {
     if (playerId && roomId) {
-      stateQuery.refetch();
+      refetchState();
     }
-  }, [playerId, roomId, stateQuery]);
+  }, [playerId, roomId, refetchState]);
 
   useEffect(() => {
-    if (personas.length > 0 && !selectedAiId) {
-      setSelectedAiId(personas[0].id);
+    if (!personas.some(p => p.id === selectedAiId)) {
+      setSelectedAiId(personas[0]?.id ?? "");
     }
   }, [personas, selectedAiId]);
 
@@ -104,9 +119,9 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const handleActionError = useCallback(
     (error: unknown, fallbackKey: string) => {
       const raw = getApiErrorMessage(error, "");
-      // 可恢复判断始终基于后端 raw 消息（含历史中文模式），不随界面语言变化
-      const recoverable = allRecoverableMessages.some((item) => raw.includes(item));
-      const message = localizeErrorMessage(raw, fallbackKey);
+      const code = getApiErrorCode(error);
+      const recoverable = code ? isRecoverableGameError(code) : allRecoverableMessages.some((item) => raw.includes(item));
+      const message = localizeErrorMessage(raw, fallbackKey, code);
       if (recoverable) {
         toast.info(message);
       } else {
@@ -127,7 +142,7 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
         invalidateRuntime();
       }
     },
-    onError: (error: unknown) => toast.error(localizeErrorMessage(getApiErrorMessage(error, ""), "lobby.joinFailed")),
+    onError: (error: unknown) => toast.error(localizeErrorMessage(getApiErrorMessage(error, ""), "lobby.joinFailed", getApiErrorCode(error))),
   });
 
   useEffect(() => {
@@ -141,13 +156,15 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     if (room.seats?.some((seat) => seat.playerId === user.id)) {
       return;
     }
+    if (room.hostUserId === user.id && room.config?.hostMode === "AUTHOR") return;
     joinAttemptedRoomRef.current = room.id;
     joinMutation.mutate();
   }, [room, loading, token, playerId, user, redirectToSsoLogin, joinMutation]);
 
   const addAiMutation = useMutation({
     mutationFn: (personaId: string) => roomApi.addAi(effectiveGameId, roomId || "", personaId),
-    onSuccess: () => {
+    onSuccess: (updatedRoom) => {
+      queryClient.setQueryData(["room", roomId], updatedRoom);
       toast.success(t("lobby.aiSeated"));
       invalidateRoom();
     },
@@ -159,28 +176,36 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const alivePlayers = useMemo(() => players.filter((p) => p.alive), [players]);
   const currentSpeaker = players.find((p) => p.seatNumber === state?.currentSeat);
   const phase = state?.phase || "WAITING";
-  const canAddAi = !!selectedAiId && (room?.seats?.length ?? 0) < (room?.maxPlayers ?? Number.MAX_SAFE_INTEGER);
+  const isHost = room?.hostUserId === playerId || !!room?.seats?.some((seat) => seat.playerId === playerId && seat.host);
+  const canAddAi = isHost && room?.status === "WAITING" && !personaQuery.isPending && !personaQuery.isError
+    && !addAiMutation.isPending && personas.some(p => p.id === selectedAiId) && (room?.seats?.length ?? 0) < (room?.maxPlayers ?? 0);
 
   useEffect(() => {
     if (!roomId || !state || phase !== "SETTLEMENT") {
       return;
     }
-    const settlementId = `${roomId}-${state.round}-${state.logs?.length || 0}`;
-    if (settlementSnapshotRef.current === settlementId) {
-      return;
+    const settlementId = state.extra?.archiveId;
+    const result = state.extra?.mySettlement;
+    if (typeof settlementId !== "string" || result?.eligible !== true || typeof result?.didWin !== "boolean") return;
+    if (settlementSnapshotRef.current === settlementId) return;
+    let active = true;
+    void achievementApi.applySettlement(userKey, settlementId, result.didWin).then(({ saved, unlocked }) => {
+      if (!active) return;
+      if (saved) settlementSnapshotRef.current = settlementId;
+      unlocked.forEach((item) => {
+        const def = achievementApi.listDefinitions().find((d) => d.code === item.code);
+        toast.success(t("v2.achievement.unlocked", { name: def?.name || item.code }));
+      });
+    }).catch(() => { /* Local achievements cannot interrupt the room. */ });
+    // The live state intentionally carries only the latest public logs. Cache a
+    // completed server replay so the local fallback never silently loses history.
+    if (replayCacheAttemptRef.current !== settlementId) {
+      replayCacheAttemptRef.current = settlementId;
+      void serverReplayApi.events(settlementId, "PUBLIC")
+        .then(detail => replayApi.save(userKey, replayApi.fromServerDetail(detail)))
+        .catch(() => { /* The server archive remains authoritative. */ });
     }
-    settlementSnapshotRef.current = settlementId;
-
-    const me = state.players.find((p) => p.playerId === state.myPlayerId);
-    const didWin = !!state.winner && !!me?.alive;
-    const unlocked = achievementApi.applySettlement(userKey, didWin);
-    unlocked.forEach((item) => {
-      const def = achievementApi.listDefinitions().find((d) => d.code === item.code);
-      toast.success(t("v2.achievement.unlocked", { name: def?.name || item.code }));
-    });
-
-    const archive = replayApi.fromState(effectiveGameId, room, state);
-    replayApi.save(userKey, archive);
+    return () => { active = false; };
   }, [phase, state, userKey, roomId, effectiveGameId, room, t]);
 
   const startGame = useCallback(() => {
@@ -197,9 +222,11 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     currentSpeaker,
     phase,
     personas,
+    personaQuery,
     selectedAiId,
     setSelectedAiId,
     canAddAi,
+    isHost,
     chatMessages,
     socket,
     showTransition,

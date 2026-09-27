@@ -24,18 +24,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 @Service
-@Transactional
 public class AuthService {
     private static final String EXTERNAL_PASSWORD_MARKER = "{external}";
     private static final Pattern SSO_STATE_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{16,128}$");
@@ -49,7 +43,7 @@ public class AuthService {
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
-    private final HttpClient localInsecureHttpClient;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     public AuthService(UserRepository userRepository,
                        TokenStore tokenStore,
@@ -58,7 +52,8 @@ public class AuthService {
                        BalanceService balanceService,
                        ProjectCreditService projectCreditService,
                        AppProperties appProperties,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper, org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
         this.userRepository = userRepository;
         this.tokenStore = tokenStore;
         this.userGrpcClient = userGrpcClient;
@@ -70,7 +65,6 @@ public class AuthService {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
-        this.localInsecureHttpClient = buildLocalInsecureHttpClient();
     }
 
     public String buildSsoLoginRedirectUrl(String state) {
@@ -109,7 +103,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "SSO 回调参数不完整");
         }
         ExternalUserProfile profile = userGrpcClient.validateSession(userId, sessionId);
-        if (profile == null) {
+        if (profile == null || profile.userId() != userId) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "SSO 会话无效或已过期");
         }
         String initRequestId = appProperties.getProjectKey() + ":auth-init:" + userId;
@@ -117,10 +111,9 @@ public class AuthService {
         projectCreditService.ensureAccountInitialized(userId);
 
         User localUser = upsertLocalUser(profile, username);
-        localUser.setSessionId(sessionId.trim());
-        localUser.setAccessToken(StringUtils.hasText(accessToken) ? accessToken.trim() : "");
         localUser = userRepository.save(localUser);
 
+        localUser = sessionUser(localUser, sessionId.trim());
         String token = issueToken(localUser);
         return new AuthResponse(token, buildUserView(localUser));
     }
@@ -132,12 +125,12 @@ public class AuthService {
         URI endpoint = URI.create(trimTrailingSlash(resolveUserServiceBaseUrl()) + "/sso/token");
         String formBody = "code=" + form(code.trim()) + "&redirect=" + form(redirect.trim());
         HttpRequest request = HttpRequest.newBuilder(endpoint)
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(5))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(formBody))
                 .build();
         try {
-            HttpResponse<String> response = send(request, endpoint);
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "SSO 授权码无效或已过期");
             }
@@ -158,55 +151,6 @@ public class AuthService {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    private HttpResponse<String> send(HttpRequest request, URI endpoint) throws IOException, InterruptedException {
-        try {
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException ex) {
-            if (!allowsLocalInsecureTls(endpoint)) {
-                throw ex;
-            }
-            return localInsecureHttpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        }
-    }
-
-    private boolean allowsLocalInsecureTls(URI endpoint) {
-        String scheme = endpoint.getScheme();
-        String host = endpoint.getHost();
-        return "https".equalsIgnoreCase(scheme)
-                && host != null
-                && ("localhost".equalsIgnoreCase(host)
-                || "127.0.0.1".equals(host));
-    }
-
-    private HttpClient buildLocalInsecureHttpClient() {
-        try {
-            TrustManager[] trustAll = new TrustManager[] {
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                        }
-
-                        @Override
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-                    }
-            };
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, trustAll, new SecureRandom());
-            return HttpClient.newBuilder()
-                    .sslContext(context)
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build();
-        } catch (Exception ex) {
-            throw new IllegalStateException("Failed to initialize local SSO TLS fallback", ex);
-        }
-    }
-
     private record SsoTokenResponse(
             String accessToken,
             Long userId,
@@ -218,8 +162,8 @@ public class AuthService {
     }
 
     public String issueToken(User user) {
-        String token = UUID.randomUUID().toString();
-        tokenStore.store(token, user.getId());
+        String token = "v2." + UUID.randomUUID();
+        tokenStore.store(token, user.getId(), user.getExternalUserId(), user.getSessionId());
         return token;
     }
 
@@ -227,21 +171,40 @@ public class AuthService {
         if (!StringUtils.hasText(token)) {
             return null;
         }
-        String localUserId = tokenStore.getUserId(token);
-        if (!StringUtils.hasText(localUserId)) {
+        var session = tokenStore.getSession(token);
+        if (session == null) return null;
+        User localUser = userRepository.findById(session.userId()).orElse(null);
+        if (localUser == null || !java.util.Objects.equals(localUser.getExternalUserId(), session.externalUserId())) return null;
+        ExternalUserProfile profile = userGrpcClient.validateSession(session.externalUserId(), session.sessionId());
+        if (profile == null || profile.userId() != session.externalUserId()) {
+            logout(token);
             return null;
         }
-        User localUser = userRepository.findById(localUserId).orElse(null);
-        if (localUser == null || localUser.getExternalUserId() == null || !StringUtils.hasText(localUser.getSessionId())) {
-            return null;
-        }
-        ExternalUserProfile profile = userGrpcClient.validateSession(localUser.getExternalUserId(), localUser.getSessionId());
-        if (profile == null) {
-            tokenStore.revoke(token);
-            return null;
-        }
-        mergeExternalProfile(localUser, profile, localUser.getNickname());
-        return userRepository.save(localUser);
+        if (!session.equals(tokenStore.getSession(token))) return null;
+        // Authentication returns a detached request view. Never write its SSO session back to users.
+        User authenticated = sessionUser(localUser, session.sessionId());
+        mergeExternalProfile(authenticated, profile, localUser.getNickname());
+        return authenticated;
+    }
+
+    public boolean isSessionActive(String token) {
+        return tokenStore.getSession(token) != null;
+    }
+
+    public void logout(String token) {
+        if (!StringUtils.hasText(token)) return;
+        tokenStore.revoke(token);
+        events.publishEvent(new SessionRevoked(token));
+    }
+
+    public record SessionRevoked(String token) { }
+
+    private User sessionUser(User stored, String sessionId) {
+        User requestUser = new User();
+        org.springframework.beans.BeanUtils.copyProperties(stored, requestUser);
+        requestUser.setSessionId(sessionId);
+        requestUser.setAccessToken(null);
+        return requestUser;
     }
 
     public AuthUserView currentUserView(String token) {

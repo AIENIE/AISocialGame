@@ -18,6 +18,7 @@ put "$repo/scripts/ci/aisocialgame-production-runtime-compose.yml" "$out/docker-
 put "$repo/scripts/ci/production-runtime-contract.json" "$out/release/production-runtime-contract.json" 0444
 put "$repo/scripts/ci/production-persistence-preflight.sh" "$out/release/production-persistence-preflight.sh" 0555
 put "$repo/scripts/ci/production-migration-executor" "$out/release/production-migration-executor" 0555
+put "$repo/scripts/ci/production_migration_manifest.py" "$out/release/production_migration_manifest.py" 0444
 python3 "$repo/scripts/ci/write-production-sql-ledger.py" "$repo" "$out/release/migrations";chmod -R a-w "$out/release/migrations"
 python3 "$repo/scripts/ci/verify-production-runtime-contract.py" "$out/release/production-runtime-contract.json" "$out/docker-compose.yml" ai-social-game "$out/backend/start-production-backend.sh" "$out/release/production-migration-executor" "$out/backend/production-migration-entrypoint.sh" "$out/release/migrations/sql-ledger.json" "$out/release/migrations/production-plan.json"
 python3 "$repo/scripts/ci/write-production-migration-artifacts.py" "$out" "$out/release/production-migration-artifacts.json"

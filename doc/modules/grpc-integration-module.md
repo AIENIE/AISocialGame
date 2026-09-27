@@ -21,9 +21,9 @@
 ## 当前配置策略
 
 - 地址：
-  - `USER_GRPC_ADDR=static://localuserservice.testhut.top:12001`
-  - `BILLING_GRPC_ADDR=static://localpayservice.testhut.top:443`
-  - `AI_GRPC_ADDR=static://localaiservice.testhut.top:443`
+  - `USER_GRPC_ADDR=static://localuserservice.testhut.top:22001`
+  - `BILLING_GRPC_ADDR=static://localpayservice.testhut.top:22021`
+  - `AI_GRPC_ADDR=static://localaiservice.testhut.top:22011`
 - SSO HTTP 入口：
   - `SSO_USER_SERVICE_BASE_URL=https://localuserservice.testhut.top`
 - 传输：

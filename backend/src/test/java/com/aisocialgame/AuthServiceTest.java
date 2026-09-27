@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -35,16 +35,16 @@ class AuthServiceTest {
     @Autowired
     private AppProperties appProperties;
 
-    @MockBean
+    @MockitoBean
     private UserGrpcClient userGrpcClient;
 
-    @MockBean
+    @MockitoBean
     private BalanceService balanceService;
 
-    @MockBean
+    @MockitoBean
     private BillingGrpcClient billingGrpcClient;
 
-    @MockBean
+    @MockitoBean
     private ProjectCreditService projectCreditService;
 
     @BeforeEach
@@ -125,17 +125,56 @@ class AuthServiceTest {
     }
 
     @Test
-    void insecureTlsFallbackShouldBeRestrictedToLoopback() throws Exception {
-        Method method = AuthService.class.getDeclaredMethod("allowsLocalInsecureTls", URI.class);
-        method.setAccessible(true);
+    void independentSessionsAndLogoutStayBoundToOriginalSso() {
+        var profile = new ExternalUserProfile(2002L, "sessions", "sessions@example.invalid", "", true, null, Instant.now());
+        Mockito.when(userGrpcClient.validateSession(Mockito.eq(2002L), Mockito.anyString())).thenReturn(profile);
+        Mockito.when(balanceService.getUserBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
+        String first = authService.ssoCallback(2002L, "sessions", "device-first", "access").getToken();
+        String second = authService.ssoCallback(2002L, "sessions", "device-second", "access").getToken();
+        Assertions.assertEquals("device-first", authService.authenticate(first).getSessionId());
+        Assertions.assertEquals("device-second", authService.authenticate(second).getSessionId());
+        authService.logout(first);
+        authService.logout(first);
+        Assertions.assertNull(authService.authenticate(first));
+        Assertions.assertNotNull(authService.authenticate(second));
+        Assertions.assertNull(authService.authenticate(java.util.UUID.randomUUID().toString()));
+    }
 
-        Assertions.assertFalse((Boolean) method.invoke(authService,
-                URI.create("https://localuserservice.testhut.top/sso/token")));
-        Assertions.assertTrue((Boolean) method.invoke(authService,
-                URI.create("https://localhost/sso/token")));
-        Assertions.assertFalse((Boolean) method.invoke(authService,
-                URI.create("https://userservice.example.com/sso/token")));
-        Assertions.assertFalse((Boolean) method.invoke(authService,
-                URI.create("http://localuserservice.testhut.top/sso/token")));
+    @Test
+    void revocationDuringUpstreamValidationRejectsAuthentication() {
+        var profile = new ExternalUserProfile(2003L, "racing", "racing@example.invalid", "", true, null, Instant.now());
+        Mockito.when(userGrpcClient.validateSession(Mockito.eq(2003L), Mockito.anyString())).thenReturn(profile);
+        Mockito.when(balanceService.getUserBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
+        String token = authService.ssoCallback(2003L, "racing", "race-session", "access").getToken();
+        Mockito.when(userGrpcClient.validateSession(2003L, "race-session")).thenAnswer(ignored -> { authService.logout(token); return profile; });
+        Assertions.assertNull(authService.authenticate(token));
+    }
+
+    @Test
+    void untrustedLoopbackCertificateIsRejectedBeforeSendingSsoCode(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory) throws Exception {
+        var keyStoreFile = directory.resolve("server.p12");
+        String executable = System.getProperty("os.name").startsWith("Windows") ? "keytool.exe" : "keytool";
+        var keytool = new ProcessBuilder(java.nio.file.Path.of(System.getProperty("java.home"), "bin", executable).toString(),
+                "-genkeypair", "-alias", "test", "-keyalg", "RSA", "-storetype", "PKCS12", "-keystore", keyStoreFile.toString(),
+                "-storepass", "test-only-password", "-keypass", "test-only-password", "-dname", "CN=localhost", "-ext", "SAN=dns:localhost", "-validity", "1")
+                .redirectErrorStream(true).redirectOutput(directory.resolve("keytool.log").toFile()).start();
+        Assertions.assertTrue(keytool.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
+        Assertions.assertEquals(0, keytool.exitValue());
+        var keyStore = java.security.KeyStore.getInstance("PKCS12");
+        try (var input = java.nio.file.Files.newInputStream(keyStoreFile)) { keyStore.load(input, "test-only-password".toCharArray()); }
+        var keys = javax.net.ssl.KeyManagerFactory.getInstance(javax.net.ssl.KeyManagerFactory.getDefaultAlgorithm());
+        keys.init(keyStore, "test-only-password".toCharArray());
+        var tls = javax.net.ssl.SSLContext.getInstance("TLS"); tls.init(keys.getKeyManagers(), null, null);
+        var server = com.sun.net.httpserver.HttpsServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.setHttpsConfigurator(new com.sun.net.httpserver.HttpsConfigurator(tls));
+        var received = new java.util.concurrent.atomic.AtomicInteger();
+        server.createContext("/sso/token", exchange -> { received.incrementAndGet(); exchange.sendResponseHeaders(401, -1); exchange.close(); });
+        server.start();
+        try {
+            appProperties.getSso().setUserServiceBaseUrl("https://localhost:" + server.getAddress().getPort());
+            ApiException error = Assertions.assertThrows(ApiException.class, () -> authService.ssoCallback("sensitive-code", "http://localhost/callback"));
+            Assertions.assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
+            Assertions.assertEquals(0, received.get(), "SSO authorization code must never reach an untrusted TLS peer");
+        } finally { server.stop(0); }
     }
 }

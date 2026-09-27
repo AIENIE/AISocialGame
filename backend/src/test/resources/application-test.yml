@@ -12,8 +12,25 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+  grpc:
+    client:
+      channel:
+        user:
+          target: static://127.0.0.1:19001
+          ssl:
+            enabled: false
+        billing:
+          target: static://127.0.0.1:19002
+          ssl:
+            enabled: false
+        ai:
+          target: static://127.0.0.1:19003
+          ssl:
+            enabled: false
 app:
+  game:
+    scheduler-enabled: false
   project-key: aisocialgame
   auth:
     token-ttl-hours: 24
@@ -26,15 +43,3 @@ app:
     session-minutes: 60
   external:
     grpc-auth-required: false
-
-grpc:
-  client:
-    user:
-      address: static://127.0.0.1:19001
-      negotiationType: PLAINTEXT
-    billing:
-      address: static://127.0.0.1:19002
-      negotiationType: PLAINTEXT
-    ai:
-      address: static://127.0.0.1:19003
-      negotiationType: PLAINTEXT

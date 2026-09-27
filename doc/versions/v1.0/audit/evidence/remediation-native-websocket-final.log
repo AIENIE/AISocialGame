@@ -1,0 +1,215 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: windows
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 10.0
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 0
+[INFO] os.detected.classifier: windows-x86_64
+[INFO] 
+[INFO] ------------------< com.aisocialgame:ai-social-game >-------------------
+[INFO] Building AI Social Game Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\java
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile-custom (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\grpc-java
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 7 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from target\generated-resources\closure to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed source code.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 533 source files with javac [debug release 25] to target\classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: ĳЩ�����ļ�ʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\main\java\com\aisocialgame\service\ai\v2\AiPromptProjection.javaʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 8 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed dependency.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 107 source files with javac [debug release 25] to target\test-classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\test\java\com\aisocialgame\service\ai\v2\AiPromptProjectionTest.javaʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: ĳЩ�����ļ�ʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ ai-social-game ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.aisocialgame.NativeWebSocketIntegrationTest
+09:37:02.190 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.aisocialgame.NativeWebSocketIntegrationTest]: NativeWebSocketIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+09:37:02.300 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.aisocialgame.AiSocialGameApplication for test class com.aisocialgame.NativeWebSocketIntegrationTest
+09:37:02.337 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.aisocialgame.NativeWebSocketIntegrationTest]: NativeWebSocketIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+09:37:02.339 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.aisocialgame.AiSocialGameApplication for test class com.aisocialgame.NativeWebSocketIntegrationTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-09-27T09:37:02.569+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] c.a.NativeWebSocketIntegrationTest       : Starting NativeWebSocketIntegrationTest using Java 25.0.3 with PID 34420 (started by duwei in D:\project\aienie\aienie-projects\AISocialGame\backend)
+2026-09-27T09:37:02.575+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] c.a.NativeWebSocketIntegrationTest       : The following 1 profile is active: "test"
+2026-09-27T09:37:03.196+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-27T09:37:03.197+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-27T09:37:03.315+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 112 ms. Found 22 JPA repository interfaces.
+2026-09-27T09:37:03.880+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 0 (http)
+2026-09-27T09:37:03.890+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-27T09:37:03.891+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.26]
+2026-09-27T09:37:03.927+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1341 ms
+2026-09-27T09:37:04.087+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-27T09:37:04.111+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-09-27T09:37:04.236+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-27T09:37:04.249+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-27T09:37:04.335+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:aisocial user=SA
+2026-09-27T09:37:04.336+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-27T09:37:04.345+08:00 requestId=none  WARN 34420 --- [ai-social-game] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-27T09:37:04.355+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:aisocial]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: AISOCIAL/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-27T09:37:04.955+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-27T09:37:04.995+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-27T09:37:05.110+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-27T09:37:06.356+08:00 requestId=none  WARN 34420 --- [ai-social-game] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-09-27T09:37:06.589+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-09-27T09:37:06.620+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-09-27T09:37:06.621+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@7467b8ee]]
+2026-09-27T09:37:06.623+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-09-27T09:37:06.629+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 52211 (http) with context path '/'
+2026-09-27T09:37:06.636+08:00 requestId=none  INFO 34420 --- [ai-social-game] [           main] c.a.NativeWebSocketIntegrationTest       : Started NativeWebSocketIntegrationTest in 4.272 seconds (process running for 4.88)
+2026-09-27T09:37:06.867+08:00 requestId=none  INFO 34420 --- [ai-social-game] [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-27T09:37:06.868+08:00 requestId=none  INFO 34420 --- [ai-social-game] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-27T09:37:06.869+08:00 requestId=none  INFO 34420 --- [ai-social-game] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-09-27T09:37:06.977+08:00 requestId=none ERROR 34420 --- [ai-social-game] [o-auto-1-exec-6] o.s.w.s.m.StompSubProtocolHandler        : Failed to send GenericMessage [payload=byte[0], headers={simpMessageType=SUBSCRIBE, stompCommand=SUBSCRIBE, nativeHeaders={id=[denied], destination=[/topic/room/26591308-1c06-4f47-a112-e2f47862fdfd/state]}, simpSessionAttributes={org.springframework.messaging.simp.SimpAttributes.COMPLETED=true}, simpHeartbeat=[J@648255c3, simpSubscriptionId=denied, simpNextMessageTask=org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator$PostHandleTask@5b2a6f73, simpUser=com.aisocialgame.websocket.StompPrincipal@79d98f5e, simpSessionId=191b1eac-8819-4187-bd57-df556ddf5b76, simpDestination=/topic/room/26591308-1c06-4f47-a112-e2f47862fdfd/state}]
+
+org.springframework.messaging.MessageDeliveryException: Failed to send message to ExecutorSubscribableChannel[clientInboundChannel], failedMessage=GenericMessage [payload=byte[0], headers={simpMessageType=SUBSCRIBE, stompCommand=SUBSCRIBE, nativeHeaders={id=[denied], destination=[/topic/room/26591308-1c06-4f47-a112-e2f47862fdfd/state]}, simpSessionAttributes={org.springframework.messaging.simp.SimpAttributes.COMPLETED=true}, simpHeartbeat=[J@648255c3, simpSubscriptionId=denied, simpNextMessageTask=org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator$PostHandleTask@5b2a6f73, simpUser=com.aisocialgame.websocket.StompPrincipal@79d98f5e, simpSessionId=191b1eac-8819-4187-bd57-df556ddf5b76, simpDestination=/topic/room/26591308-1c06-4f47-a112-e2f47862fdfd/state}]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:149) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:125) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.sendNextMessage(OrderedMessageChannelDecorator.java:97) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.trySend(OrderedMessageChannelDecorator.java:87) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.send(OrderedMessageChannelDecorator.java:76) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.send(OrderedMessageChannelDecorator.java:70) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.messaging.StompSubProtocolHandler.handleMessageFromClient(StompSubProtocolHandler.java:338) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.messaging.SubProtocolWebSocketHandler.handleMessage(SubProtocolWebSocketHandler.java:354) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.WebSocketHandlerDecorator.handleMessage(WebSocketHandlerDecorator.java:75) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.WebSocketHandlerDecorator.handleMessage(WebSocketHandlerDecorator.java:75) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.LoggingWebSocketHandlerDecorator.handleMessage(LoggingWebSocketHandlerDecorator.java:56) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator.handleMessage(ExceptionWebSocketHandlerDecorator.java:58) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter.handleTextMessage(StandardWebSocketHandlerAdapter.java:113) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter$3.onMessage(StandardWebSocketHandlerAdapter.java:84) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter$3.onMessage(StandardWebSocketHandlerAdapter.java:81) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.apache.tomcat.websocket.WsFrameBase.sendMessageText(WsFrameBase.java:434) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.sendMessageText(WsFrameServer.java:142) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processDataText(WsFrameBase.java:528) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processData(WsFrameBase.java:313) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processInputBuffer(WsFrameBase.java:146) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.onDataAvailable(WsFrameServer.java:97) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.doOnDataAvailable(WsFrameServer.java:196) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.notifyDataAvailable(WsFrameServer.java:176) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsHttpUpgradeHandler.upgradeDispatch(WsHttpUpgradeHandler.java:181) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.coyote.http11.upgrade.UpgradeProcessorInternal.dispatch(UpgradeProcessorInternal.java:73) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:1307) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:2201) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:74) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:949) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:483) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:74) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: com.aisocialgame.exception.ApiException: ��Ȩ����˽�ܷ���
+	at com.aisocialgame.service.RoomAccessPolicy.requireRead(RoomAccessPolicy.java:50) ~[classes/:na]
+	at com.aisocialgame.service.RoomAccessPolicy.requireLobbyRead(RoomAccessPolicy.java:28) ~[classes/:na]
+	at com.aisocialgame.service.RoomAccessPolicy.requireStateSubscription(RoomAccessPolicy.java:35) ~[classes/:na]
+	at com.aisocialgame.websocket.WebSocketAuthChannelInterceptor.preSend(WebSocketAuthChannelInterceptor.java:53) ~[classes/:na]
+	at org.springframework.messaging.support.AbstractMessageChannel$ChannelInterceptorChain.applyPreSend(AbstractMessageChannel.java:180) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:135) ~[spring-messaging-7.0.9.jar:7.0.9]
+	... 32 common frames omitted
+
+2026-09-27T09:37:06.995+08:00 requestId=none ERROR 34420 --- [ai-social-game] [-auto-1-exec-10] o.s.w.s.m.StompSubProtocolHandler        : Failed to send GenericMessage [payload=byte[15], headers={simpMessageType=MESSAGE, stompCommand=SEND, nativeHeaders={destination=[/topic/room/f89efaba-fab3-45ec-895c-7917edd0ca0f/state]}, simpSessionAttributes={org.springframework.messaging.simp.SimpAttributes.COMPLETED=true}, simpHeartbeat=[J@57be6633, simpNextMessageTask=org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator$PostHandleTask@6b4da2a5, simpUser=com.aisocialgame.websocket.StompPrincipal@662370e8, simpSessionId=76d95561-64ba-4e26-8511-44b800622b32, simpDestination=/topic/room/f89efaba-fab3-45ec-895c-7917edd0ca0f/state}]
+
+org.springframework.messaging.MessageDeliveryException: Failed to send message to ExecutorSubscribableChannel[clientInboundChannel], failedMessage=GenericMessage [payload=byte[15], headers={simpMessageType=MESSAGE, stompCommand=SEND, nativeHeaders={destination=[/topic/room/f89efaba-fab3-45ec-895c-7917edd0ca0f/state]}, simpSessionAttributes={org.springframework.messaging.simp.SimpAttributes.COMPLETED=true}, simpHeartbeat=[J@57be6633, simpNextMessageTask=org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator$PostHandleTask@6b4da2a5, simpUser=com.aisocialgame.websocket.StompPrincipal@662370e8, simpSessionId=76d95561-64ba-4e26-8511-44b800622b32, simpDestination=/topic/room/f89efaba-fab3-45ec-895c-7917edd0ca0f/state}]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:149) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:125) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.sendNextMessage(OrderedMessageChannelDecorator.java:97) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.trySend(OrderedMessageChannelDecorator.java:87) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.send(OrderedMessageChannelDecorator.java:76) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.simp.broker.OrderedMessageChannelDecorator.send(OrderedMessageChannelDecorator.java:70) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.messaging.StompSubProtocolHandler.handleMessageFromClient(StompSubProtocolHandler.java:338) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.messaging.SubProtocolWebSocketHandler.handleMessage(SubProtocolWebSocketHandler.java:354) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.WebSocketHandlerDecorator.handleMessage(WebSocketHandlerDecorator.java:75) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.WebSocketHandlerDecorator.handleMessage(WebSocketHandlerDecorator.java:75) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.LoggingWebSocketHandlerDecorator.handleMessage(LoggingWebSocketHandlerDecorator.java:56) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator.handleMessage(ExceptionWebSocketHandlerDecorator.java:58) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter.handleTextMessage(StandardWebSocketHandlerAdapter.java:113) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter$3.onMessage(StandardWebSocketHandlerAdapter.java:84) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter$3.onMessage(StandardWebSocketHandlerAdapter.java:81) ~[spring-websocket-7.0.9.jar:7.0.9]
+	at org.apache.tomcat.websocket.WsFrameBase.sendMessageText(WsFrameBase.java:434) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.sendMessageText(WsFrameServer.java:142) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processDataText(WsFrameBase.java:528) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processData(WsFrameBase.java:313) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.WsFrameBase.processInputBuffer(WsFrameBase.java:146) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.onDataAvailable(WsFrameServer.java:97) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.doOnDataAvailable(WsFrameServer.java:196) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsFrameServer.notifyDataAvailable(WsFrameServer.java:176) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.websocket.server.WsHttpUpgradeHandler.upgradeDispatch(WsHttpUpgradeHandler.java:181) ~[tomcat-embed-websocket-11.0.26.jar:11.0.26]
+	at org.apache.coyote.http11.upgrade.UpgradeProcessorInternal.dispatch(UpgradeProcessorInternal.java:73) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:1307) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:2201) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:74) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:949) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:483) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:74) ~[tomcat-embed-core-11.0.26.jar:11.0.26]
+	at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.lang.IllegalArgumentException: Client destination denied
+	at com.aisocialgame.websocket.WebSocketAuthChannelInterceptor.preSend(WebSocketAuthChannelInterceptor.java:46) ~[classes/:na]
+	at org.springframework.messaging.support.AbstractMessageChannel$ChannelInterceptorChain.applyPreSend(AbstractMessageChannel.java:180) ~[spring-messaging-7.0.9.jar:7.0.9]
+	at org.springframework.messaging.support.AbstractMessageChannel.send(AbstractMessageChannel.java:135) ~[spring-messaging-7.0.9.jar:7.0.9]
+	... 32 common frames omitted
+
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.890 s -- in com.aisocialgame.NativeWebSocketIntegrationTest
+[INFO] Running com.aisocialgame.WebSocketSessionSecurityTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s -- in com.aisocialgame.WebSocketSessionSecurityTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17.420 s
+[INFO] Finished at: 2026-09-27T09:37:07+08:00
+[INFO] ------------------------------------------------------------------------

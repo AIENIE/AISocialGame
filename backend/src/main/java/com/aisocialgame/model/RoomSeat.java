@@ -86,4 +86,19 @@ public class RoomSeat {
     public void setHost(boolean host) {
         this.host = host;
     }
+    // JSON-converted list values need structural equality for Hibernate dirty checking.
+    @Override public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof RoomSeat value)) return false;
+        return java.util.Objects.equals(seatNumber, value.seatNumber)
+                && java.util.Objects.equals(playerId, value.playerId)
+                && java.util.Objects.equals(displayName, value.displayName)
+                && java.util.Objects.equals(ai, value.ai)
+                && java.util.Objects.equals(personaId, value.personaId)
+                && java.util.Objects.equals(avatar, value.avatar)
+                && java.util.Objects.equals(ready, value.ready)
+                && java.util.Objects.equals(host, value.host);
+    }
+    @Override public int hashCode() { return java.util.Objects.hash(seatNumber, playerId, displayName, ai, personaId, avatar, ready, host); }
+
 }

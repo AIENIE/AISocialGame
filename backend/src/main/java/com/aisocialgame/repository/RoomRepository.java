@@ -22,9 +22,16 @@ public interface RoomRepository extends JpaRepository<Room, String> {
 
     Page<Room> findByGameIdOrderByCreatedAtDesc(String gameId, Pageable pageable);
 
+    interface JoinSnapshot { String getId(); String getPassword(); boolean getPrivateRoom(); }
+    @Query("select r.id as id, r.password as password, r.isPrivate as privateRoom from Room r where r.id=:roomId")
+    Optional<JoinSnapshot> findJoinSnapshot(@Param("roomId") String roomId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Room r where r.id = :roomId")
     Optional<Room> findByIdForUpdate(@Param("roomId") String roomId);
+
+    @Query(value = "SELECT * FROM rooms WHERE id=:roomId FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    Optional<Room> findByIdForUpdateSkipLocked(@Param("roomId") String roomId);
 
     @Query("select coalesce(sum(r.seatCount), 0) from Room r where r.gameId = :gameId")
     long sumSeatCountByGameId(@Param("gameId") String gameId);

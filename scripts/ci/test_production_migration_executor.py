@@ -8,6 +8,7 @@ import os
 import pathlib
 import shutil
 import stat
+import sys
 import subprocess
 import tempfile
 import unittest
@@ -35,90 +36,26 @@ class ProductionMigrationExecutorTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.temporary.name)
-        for directory in ("backend", "release/migrations/sql", ".aienie-platform"):
+        for directory in ("backend", "release", ".aienie-platform"):
             (self.root / directory).mkdir(parents=True, exist_ok=True)
         files = {
             "backend/app.jar": b"signed-social-backend\n",
             "backend/production-migration-entrypoint.sh": b"#!/bin/sh\nexit 0\n",
-            "release/migrations/sql/schema.sql": b"CREATE TABLE example(id INT PRIMARY KEY);\n",
-            "release/migrations/sql/20260519_performance_stability.sql": b"SELECT 1;\n",
-            "release/migrations/sql/20260810_admin_totp_auth.sql": b"SELECT 2;\n",
         }
         for relative, raw in files.items():
-            path = self.root / relative
-            path.write_bytes(raw)
-            os.chmod(path, 0o555 if relative.endswith(".sh") else 0o444)
+            (self.root / relative).write_bytes(raw)
         shutil.copyfile(EXECUTOR, self.root / "release/production-migration-executor")
-        os.chmod(self.root / "release/production-migration-executor", 0o555)
-
-        entries = []
-        for ordinal, (name, kind) in enumerate((
-            ("schema.sql", "baseline"),
-            ("20260519_performance_stability.sql", "upgrade"),
-            ("20260810_admin_totp_auth.sql", "upgrade"),
-        ), 1):
-            relative = f"release/migrations/sql/{name}"
-            entries.append({
-                "kind": kind,
-                "ordinal": ordinal,
-                "path": relative,
-                "sha256": executor.digest_file(self.root / relative),
-            })
-        ledger = {
-            "authorization": {
-                "minimum_release_manifest_version": 4,
-                "outer_signature_required": True,
-                "restore_point_required_before_execute": True,
-            },
-            "canonical_component_id": "ai-social-game",
-            "entries": entries,
-            "execution_plans": [
-                {"id": "existing-legacy-schema", "ordinals": [2, 3]},
-                {"id": "fresh-empty-schema", "ordinals": [1]},
-            ],
-            "plan_selection": "sealed-candidate-file-no-auto-detection",
-            "schema_version": "aienie-production-sql-ledger-v2",
-        }
-        ledger_raw = self.write_canonical("release/migrations/sql-ledger.json", ledger, 0o444)
-        plan = {
-            "authorization": "signed-v4-outer-manifest-and-target-helper",
-            "canonical_component_id": "ai-social-game",
-            "ledger_sha256": executor.digest_bytes(ledger_raw),
-            "schema_version": "aienie-production-sql-plan-v1",
-            "selected_execution_plan": "fresh-empty-schema",
-            "selected_ordinals": [1],
-        }
-        self.plan_raw = self.write_canonical("release/migrations/production-plan.json", plan, 0o444)
-
-        artifact_paths = {
-            "backend/app.jar",
-            "backend/production-migration-entrypoint.sh",
-            "release/migrations/production-plan.json",
-            "release/migrations/sql-ledger.json",
-            "release/migrations/sql/20260519_performance_stability.sql",
-            "release/migrations/sql/20260810_admin_totp_auth.sql",
-            "release/migrations/sql/schema.sql",
-            "release/production-migration-executor",
-        }
-        artifacts = []
-        for relative in sorted(artifact_paths):
-            path = self.root / relative
-            info = path.lstat()
-            artifacts.append({
-                "mode": f"{stat.S_IMODE(info.st_mode):04o}",
-                "path": relative,
-                "sha256": executor.digest_file(path),
-                "size": info.st_size,
-            })
-        self.write_canonical(
-            "release/production-migration-artifacts.json",
-            {
-                "artifacts": artifacts,
-                "canonical_component_id": "ai-social-game",
-                "schema_version": "aienie-production-migration-artifacts-v1",
-            },
-            0o444,
-        )
+        shutil.copyfile(ROOT / "scripts/ci/production_migration_manifest.py",
+                        self.root / "release/production_migration_manifest.py")
+        subprocess.run([sys.executable, str(ROOT / "scripts/ci/write-production-sql-ledger.py"),
+                        str(ROOT), str(self.root / "release/migrations")], check=True)
+        for path in self.root.rglob("*"):
+            if path.is_file():
+                os.chmod(path, 0o555 if path.name.endswith(".sh") or path.name == EXECUTOR.name else 0o444)
+        subprocess.run([sys.executable, str(ROOT / "scripts/ci/write-production-migration-artifacts.py"),
+                        str(self.root), str(self.root / "release/production-migration-artifacts.json")], check=True)
+        self.plan_raw = (self.root / "release/migrations/production-plan.json").read_bytes()
+        os.chmod(self.root / "release/production-migration-artifacts.json", 0o444)
 
         self.artifact_sha = "sha256:" + "a" * 64
         self.image_bindings = [
@@ -240,7 +177,7 @@ class ProductionMigrationExecutorTests(unittest.TestCase):
             self.image_bindings[0]["reference"], observed["AISOCIALGAME_BACKEND_IMAGE"]
         )
         self.assertTrue(manifest_sha.startswith("sha256:"))
-        self.assertEqual(3, entries)
+        self.assertEqual(len(json.loads((ROOT / "backend/sql/migrations.json").read_text())["entries"]), entries)
 
     def test_platform_sql_or_plan_authority_tamper_fails_closed(self) -> None:
         outer = self.root / ".aienie-platform/production-release-manifest-v4.json"

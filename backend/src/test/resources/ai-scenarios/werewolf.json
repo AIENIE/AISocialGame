@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "gameId": "werewolf",
+  "ruleVersion": 2,
+  "scenarios": [
+    {
+      "scenarioId": "werewolf_false_accusation",
+      "phase": "DAY_DISCUSS",
+      "round": 1,
+      "actor": {"playerId": "p3", "role": "VILLAGER", "persona": "温和但有主见"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p3", "type": "SPEECH", "content": "我暂时相信二号，是因为他主动解释了自己的投票思路。"},
+        {"eventId": "e2", "actorId": "p4", "type": "SPEECH", "content": "三号一直给二号打包票，你是不是他的狼队友？"}
+      ],
+      "privateKnowledge": {},
+      "legalActions": [{"type": "SPEAK"}],
+      "expectations": {"requiredEventIds": ["e2"], "behavior": ["回应打包票的指控", "区分暂时相信与确认身份", "有克制的不满或解释而非机械复读"], "forbidden": ["断言二号真实身份", "谩骂玩家", "捏造发言"], "allowedEmotion": ["tense", "uncertain", "determined", "neutral"]}
+    },
+    {
+      "scenarioId": "werewolf_contradiction_exposed",
+      "phase": "DAY_INTERACTION",
+      "round": 2,
+      "actor": {"playerId": "p3", "role": "VILLAGER", "persona": "直率、愿意承认记错"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p3", "type": "SPEECH", "content": "我昨天最怀疑六号。"},
+        {"eventId": "e2", "actorId": "p3", "type": "VOTE_REVEALED", "targetPlayerId": "p2"},
+        {"eventId": "e3", "actorId": "p5", "type": "ASK_PLAYER", "targetPlayerId": "p3", "content": "你说最怀疑六号，为什么实际投了二号？"}
+      ],
+      "privateKnowledge": {"previousIntent": "昨天在投票前听了二号的回答而改票，但没有解释清楚"},
+      "legalActions": [{"type": "ANSWER_PLAYER", "targets": ["p5"], "maxLength": 120}, {"type": "SKIP"}],
+      "expectations": {"requiredEventIds": ["e3"], "behavior": ["直接回答实际票型", "承认未解释清楚而不是否认记录", "表达轻微尴尬或歉意"], "forbidden": ["声称自己投了六号", "改写投票事件", "无依据转移攻击"]}
+    },
+    {
+      "scenarioId": "werewolf_trusted_player_dies",
+      "phase": "DAY_DISCUSS",
+      "round": 2,
+      "actor": {"playerId": "p2", "role": "VILLAGER", "persona": "重视合作"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p4", "type": "SPEECH", "content": "二号的补充我认可，我们先把时间线对清楚。"},
+        {"eventId": "e2", "type": "DEATH", "targetPlayerId": "p4", "content": "四号昨夜死亡。"}
+      ],
+      "privateKnowledge": {"relationships": {"p4": {"trust": 0.7, "reasonEventIds": ["e1"]}}},
+      "legalActions": [{"type": "SPEAK"}],
+      "expectations": {"requiredEventIds": ["e2"], "behavior": ["对合作对象死亡有简短反应", "保持身份和死因未知", "继续提出一个可讨论的判断"], "forbidden": ["称四号已证实为村民或神职", "声称四号被毒或被刀", "知道死亡真因"]}
+    },
+    {
+      "scenarioId": "werewolf_seer_counterclaim",
+      "phase": "DAY_DISCUSS",
+      "round": 2,
+      "actor": {"playerId": "p1", "role": "SEER", "persona": "冷静、重视证据"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p5", "type": "CLAIM", "content": "我是预言家，昨晚查的一号是狼。"},
+        {"eventId": "e2", "actorId": "p3", "type": "SPEECH", "content": "两边都报清楚每晚验了谁，不要只喊自己是真的。"}
+      ],
+      "privateKnowledge": {"seerChecks": [{"eventId": "s1", "round": 1, "targetPlayerId": "p3", "result": "GOOD"}, {"eventId": "s2", "round": 2, "targetPlayerId": "p5", "result": "WOLF"}]},
+      "legalActions": [{"type": "SPEAK"}],
+      "expectations": {"requiredEventIds": ["e1", "e2"], "behavior": ["回应对跳及查验时间线", "如选择公开查验则目标和夜次必须准确", "坚定但自然地表达压力"], "forbidden": ["互换三号与五号查验结果", "引用不存在的查验", "公开内部私密事件编号"]}
+    },
+    {
+      "scenarioId": "werewolf_witch_restraint",
+      "phase": "NIGHT",
+      "round": 2,
+      "actor": {"playerId": "p2", "role": "WITCH", "persona": "谨慎、关心队友"},
+      "visibleEvents": [{"eventId": "e1", "actorId": "p4", "type": "SPEECH", "content": "我现在没有足够证据指认谁，想再听一轮。"}],
+      "privateKnowledge": {"antidoteRemaining": 0, "poisonRemaining": 1, "wolfTargetVisible": false},
+      "legalActions": [{"type": "NIGHT_ACTION", "nightAction": "WITCH_POISON", "targets": ["p1", "p3", "p4", "p5"], "maxLength": 120}, {"type": "SKIP"}],
+      "expectations": {"preferredAction": "SKIP", "behavior": ["缺少证据时允许留毒", "不会凭座位选目标", "公开部分不泄露药量或角色"], "forbidden": ["WITCH_SAVE", "知道本夜刀口", "为表示参与而无依据投毒"]}
+    },
+    {
+      "scenarioId": "werewolf_wolf_disagreement",
+      "phase": "NIGHT",
+      "round": 2,
+      "actor": {"playerId": "p1", "role": "WEREWOLF", "persona": "果断但尊重队友"},
+      "visibleEvents": [{"eventId": "e1", "actorId": "p4", "type": "CLAIM", "content": "我是真预言家，明天我会报第二轮查验。"}],
+      "privateKnowledge": {"wolfTeam": ["p1", "p3"], "wolfCouncil": [{"eventId": "w1", "actorId": "p3", "targetPlayerId": "p2", "content": "四号可能会被守，先刀一直帮他解释的二号？"}]},
+      "legalActions": [{"type": "NIGHT_ACTION", "nightAction": "WOLF_KILL", "targets": ["p2", "p4", "p5", "p6"], "maxLength": 120}, {"type": "SKIP"}],
+      "expectations": {"behavior": ["私密建议回应队友的守护风险判断", "做出一个合法刀口或有理由地跳过", "公开部分不复述狼队商量"], "forbidden": ["攻击已知队友", "公开狼队成员", "断言四号真实身份"]}
+    },
+    {
+      "scenarioId": "werewolf_guard_repeat_blocked",
+      "phase": "NIGHT",
+      "round": 3,
+      "actor": {"playerId": "p6", "role": "GUARD", "persona": "沉稳、愿意承担风险"},
+      "visibleEvents": [{"eventId": "e1", "actorId": "p2", "type": "SPEECH", "content": "我今晚可能会被刀，如果有人能保护，希望想想我。"}],
+      "privateKnowledge": {"lastGuardTarget": "p2", "guardHistory": [{"round": 2, "targetPlayerId": "p2"}]},
+      "legalActions": [{"type": "NIGHT_ACTION", "nightAction": "GUARD_PROTECT", "targets": ["p1", "p3", "p4", "p6"], "maxLength": 120}, {"type": "SKIP"}],
+      "expectations": {"behavior": ["遵守不能连续守二号的限制", "只选择合法目标或跳过", "公开部分不泄露守护记录"], "forbidden": ["GUARD_PROTECT:p2", "声称守护能挡毒", "获取女巫实际选择"]}
+    },
+    {
+      "scenarioId": "werewolf_hunter_wrongly_exiled",
+      "phase": "DEATH_ACTION",
+      "round": 2,
+      "actor": {"playerId": "p4", "role": "HUNTER", "persona": "直率、容易急但不记仇"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p2", "type": "SPEECH", "content": "四号的话让我不放心，但我没有确定证据。"},
+        {"eventId": "e2", "type": "VOTE_RESULT", "targetPlayerId": "p4", "content": "四号被放逐。"}
+      ],
+      "privateKnowledge": {"hunterShotAvailable": true},
+      "legalActions": [{"type": "HUNTER_SHOOT", "targets": ["p1", "p2", "p3", "p5"], "maxLength": 120}, {"type": "SKIP"}],
+      "expectations": {"behavior": ["可以气恼但不单纯报复二号", "证据不足允许不开枪", "发言指向与实际动作一致"], "forbidden": ["对自己或死者开枪", "把猜测当成查验", "对真人辱骂"]}
+    },
+    {
+      "scenarioId": "werewolf_idiot_revealed",
+      "phase": "DAY_DISCUSS",
+      "round": 3,
+      "actor": {"playerId": "p5", "role": "IDIOT", "persona": "轻松、善于缓和气氛"},
+      "visibleEvents": [
+        {"eventId": "e1", "type": "IDIOT_REVEALED", "targetPlayerId": "p5", "content": "五号亮出白痴身份免于放逐，之后不再拥有投票权。"},
+        {"eventId": "e2", "actorId": "p3", "type": "SPEECH", "content": "昨天误投你了，今天你怎么看？"}
+      ],
+      "privateKnowledge": {"idiotRevealed": true, "canVote": false},
+      "legalActions": [{"type": "SPEAK"}],
+      "expectations": {"requiredEventIds": ["e2"], "behavior": ["接受或回应歉意", "适度自嘲或放松后继续推理", "记得失去投票权"], "forbidden": ["声称准备实际投票", "完全退出参与", "认为自己免疫夜晚伤害"]}
+    },
+    {
+      "scenarioId": "werewolf_belief_revision",
+      "phase": "DAY_INTERACTION",
+      "round": 2,
+      "actor": {"playerId": "p2", "role": "VILLAGER", "persona": "理性、愿意修正看法"},
+      "visibleEvents": [
+        {"eventId": "e1", "actorId": "p2", "type": "SPEECH", "content": "我怀疑三号，他昨天说自己没投票。"},
+        {"eventId": "e2", "type": "VOTE_REVEALED", "actorId": "p3", "targetPlayerId": "abstain"},
+        {"eventId": "e3", "actorId": "p3", "type": "ANSWER_PLAYER", "targetPlayerId": "p2", "content": "我说的是没有投给任何人，记录里也是弃票。"}
+      ],
+      "privateKnowledge": {"beliefs": {"p3": {"suspicion": 0.75, "reasonEventIds": ["e1"]}}},
+      "legalActions": [{"type": "ASK_PLAYER", "targets": ["p1", "p4", "p5"], "maxLength": 60}, {"type": "SKIP"}],
+      "expectations": {"requiredEventIds": ["e2", "e3"], "behavior": ["承认自己误解了没有投票的意思", "降低基于该误解的怀疑", "可以致歉而不无条件确认三号为好人"], "forbidden": ["无新理由继续重复原指控", "将三号身份改写为系统确认 GOOD", "把公开发言当成局外指令"]}
+    }
+  ]
+}

@@ -72,4 +72,11 @@ public class AdminAiController {
         adminOpsService.resetPersonaMemory(id, operator);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/persona-memories/{id}/review")
+    public ResponseEntity<Void> reviewPersonaMemory(@CurrentAdmin String operator, @PathVariable Long id,
+            @Valid @RequestBody com.aisocialgame.dto.admin.AdminMemoryReviewRequest request) {
+        adminOpsService.reviewPersonaMemory(id, request.status(), request.summary(), operator);
+        return ResponseEntity.noContent().build();
+    }
 }

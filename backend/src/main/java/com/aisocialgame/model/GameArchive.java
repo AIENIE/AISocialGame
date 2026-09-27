@@ -31,6 +31,11 @@ public class GameArchive {
     @Column(length = 64)
     private String winner;
 
+    // Null means historical visibility is unknown: only known participants/admin evidence access.
+    private Boolean publicReplay;
+    @Column(length = 36)
+    private String hostUserId;
+
     private int playerCount;
     private int totalRounds;
     private long durationSeconds;
@@ -61,6 +66,10 @@ public class GameArchive {
     public String getGameId() { return gameId; }
     public String getRoomName() { return roomName; }
     public String getWinner() { return winner; }
+    public Boolean getPublicReplay() { return publicReplay; }
+    public String getHostUserId() { return hostUserId; }
+    public void setPublicReplay(Boolean value) { publicReplay = value; }
+    public void setHostUserId(String value) { hostUserId = value; }
     public int getPlayerCount() { return playerCount; }
     public int getTotalRounds() { return totalRounds; }
     public long getDurationSeconds() { return durationSeconds; }

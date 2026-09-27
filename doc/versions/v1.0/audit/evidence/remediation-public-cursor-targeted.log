@@ -1,0 +1,177 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: windows
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 10.0
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 0
+[INFO] os.detected.classifier: windows-x86_64
+[INFO] 
+[INFO] ------------------< com.aisocialgame:ai-social-game >-------------------
+[INFO] Building AI Social Game Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\java
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile-custom (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\grpc-java
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 7 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from target\generated-resources\closure to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed source code.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 535 source files with javac [debug release 25] to target\classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: ĳЩ�����ļ�ʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\main\java\com\aisocialgame\service\ai\v2\AiPromptProjection.javaʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 8 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed dependency.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 108 source files with javac [debug release 25] to target\test-classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\test\java\com\aisocialgame\service\ai\v2\AiPromptProjectionTest.javaʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: ĳЩ�����ļ�ʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ ai-social-game ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.aisocialgame.GameLogQueryServiceTest
+09:51:39.964 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.aisocialgame.GameLogQueryServiceTest]: GameLogQueryServiceTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+09:51:40.070 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.aisocialgame.AiSocialGameApplication for test class com.aisocialgame.GameLogQueryServiceTest
+09:51:40.108 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.aisocialgame.GameLogQueryServiceTest]: GameLogQueryServiceTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+09:51:40.110 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.aisocialgame.AiSocialGameApplication for test class com.aisocialgame.GameLogQueryServiceTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-09-27T09:51:40.346+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.GameLogQueryServiceTest   : Starting GameLogQueryServiceTest using Java 25.0.3 with PID 31500 (started by duwei in D:\project\aienie\aienie-projects\AISocialGame\backend)
+2026-09-27T09:51:40.352+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.GameLogQueryServiceTest   : The following 1 profile is active: "test"
+2026-09-27T09:51:41.026+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-27T09:51:41.398+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-27T09:51:41.515+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 111 ms. Found 22 JPA repository interfaces.
+2026-09-27T09:51:41.871+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-27T09:51:41.901+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-09-27T09:51:42.102+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-27T09:51:42.123+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-27T09:51:42.212+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:aisocial user=SA
+2026-09-27T09:51:42.213+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-27T09:51:42.224+08:00 requestId=none  WARN 31500 --- [ai-social-game] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-27T09:51:42.243+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:aisocial]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: AISOCIAL/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-27T09:51:42.959+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-27T09:51:43.001+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-27T09:51:43.115+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-27T09:51:44.696+08:00 requestId=none  WARN 31500 --- [ai-social-game] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-09-27T09:51:45.047+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-09-27T09:51:45.084+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-09-27T09:51:45.085+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@265be652]]
+2026-09-27T09:51:45.086+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-09-27T09:51:45.092+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.GameLogQueryServiceTest   : Started GameLogQueryServiceTest in 4.952 seconds (process running for 5.567)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.494 s -- in com.aisocialgame.GameLogQueryServiceTest
+[INFO] Running com.aisocialgame.V2GameServiceIntegrationTest
+2026-09-27T09:51:45.393+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Stopping...
+2026-09-27T09:51:45.394+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@265be652]]
+2026-09-27T09:51:45.396+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Stopped.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-09-27T09:51:45.422+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.a.V2GameServiceIntegrationTest         : Starting V2GameServiceIntegrationTest using Java 25.0.3 with PID 31500 (started by duwei in D:\project\aienie\aienie-projects\AISocialGame\backend)
+2026-09-27T09:51:45.423+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.a.V2GameServiceIntegrationTest         : The following 1 profile is active: "test"
+2026-09-27T09:51:45.704+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-27T09:51:45.705+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-27T09:51:45.738+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 30 ms. Found 22 JPA repository interfaces.
+2026-09-27T09:51:45.849+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-27T09:51:45.861+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-27T09:51:45.863+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-09-27T09:51:45.864+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:aisocial user=SA
+2026-09-27T09:51:45.866+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-09-27T09:51:45.866+08:00 requestId=none  WARN 31500 --- [ai-social-game] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-27T09:51:45.867+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:aisocial]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: AISOCIAL/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-27T09:51:45.974+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-27T09:51:45.995+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-27T09:51:46.209+08:00 requestId=none  WARN 31500 --- [ai-social-game] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-09-27T09:51:46.273+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-09-27T09:51:46.283+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-09-27T09:51:46.283+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@37babe0e]]
+2026-09-27T09:51:46.284+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-09-27T09:51:46.289+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.a.V2GameServiceIntegrationTest         : Started V2GameServiceIntegrationTest in 0.892 seconds (process running for 6.764)
+2026-09-27T09:51:46.510+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=e5cffccb36f8ce2a37602c0e629e3675642ddfe331e428e7122d6f1d57e88f78 status=FAILED reason=SUBMISSION_EXCEPTION endToEndAfterCommitMs=115
+2026-09-27T09:51:46.671+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=890f7bedfbb35ada05e25b0ca98693e3a45e753826a483b18cb4ecbf9920ea9a status=SUCCEEDED reason=MODEL_ACTION_APPLIED endToEndAfterCommitMs=113
+2026-09-27T09:51:46.815+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=678297f826415862b8141bf2bfd1f3a9226c4c3ea9b7dd70a9d10c37d195632f status=DISCARDED reason=ADMIN_CONTROL endToEndAfterCommitMs=48
+2026-09-27T09:51:47.000+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=5016d8de476433afdbf09e567a3e5526a6370b34edf245c1a47f3e7add679b4f status=SUCCEEDED reason=FALLBACK_APPLIED endToEndAfterCommitMs=26
+2026-09-27T09:51:47.021+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=babf6f0c749954e6b55f98d0d3f65fca97a5e09c79b3feebbc4982a5f16015dc status=SUCCEEDED reason=FALLBACK_APPLIED endToEndAfterCommitMs=24
+2026-09-27T09:51:47.041+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=7088a6e9f78d7e932df4758351e8eb3150f08c22f23c42f91205609e5355046a status=SUCCEEDED reason=FALLBACK_APPLIED endToEndAfterCommitMs=23
+2026-09-27T09:51:47.065+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=cc4807d46e72d5183a5dc226c99d9a1a95bd5d597683026b2a6afcc32c46083c status=SUCCEEDED reason=FALLBACK_APPLIED endToEndAfterCommitMs=26
+2026-09-27T09:51:47.089+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=33862436f4af2465b857e8ac1efaa2b433aea1bb50ad77fedd9ee398ab46295c status=FAILED reason=NO_ACTION_BUDGET endToEndAfterCommitMs=27
+2026-09-27T09:51:47.216+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=d14540199e5fb7f1df4ac294afd4195287705bd74663edf11679af0bab881d43 status=SUCCEEDED reason=MODEL_ACTION_APPLIED endToEndAfterCommitMs=59
+2026-09-27T09:51:47.310+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=c83d04ff23c81b2dea472f11e55b4f9a8ac3fffcdbf08b63a781fcb8b321f153 status=DISCARDED reason=INSTANCE_UNAVAILABLE endToEndAfterCommitMs=25
+2026-09-27T09:51:47.493+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=2d21e4042ca9933c2a94b33b8c27c04f1a6e73a53f2203eb11bc93c0ee7803f4 status=SUCCEEDED reason=MODEL_ACTION_APPLIED endToEndAfterCommitMs=17
+2026-09-27T09:51:47.623+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=6856e2696ddd2eef852bff24a31ef1bec757f8b55b90f47d2f0d3e14b4f11989 status=DISCARDED reason=TURN_EXPIRED endToEndAfterCommitMs=19
+2026-09-27T09:51:47.664+08:00 requestId=none  INFO 31500 --- [ai-social-game] [           main] c.aisocialgame.service.v2.V2GameService  : AI task committed jobId=2f18498832695c0a5b25b1a6ef08dc65ec34ec7fb81bb8fba528978ff3048cdd status=SUCCEEDED reason=MODEL_ACTION_APPLIED endToEndAfterCommitMs=24
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.305 s -- in com.aisocialgame.V2GameServiceIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.009 s
+[INFO] Finished at: 2026-09-27T09:51:48+08:00
+[INFO] ------------------------------------------------------------------------

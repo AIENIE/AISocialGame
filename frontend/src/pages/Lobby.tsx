@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { gameRoomComponents } from "./games/registry";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { personaApi, roomApi } from "@/services/api";
+import { PersonaBadge, PersonaPicker } from "./games/shared/PersonaPicker";
 import { RoomSeat } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -21,10 +22,16 @@ const GenericLobby = () => {
   const { roomId, gameId } = useParams();
   const { displayName, user, redirectToSsoLogin } = useAuth();
 
-  const { data: personas = [] } = useQuery({
+  const personaQuery = useQuery({
     queryKey: ["personas"],
     queryFn: personaApi.list,
   });
+
+  const personas = personaQuery.data ?? [];
+  const [selectedAiId, setSelectedAiId] = useState("");
+  useEffect(() => {
+    if (!personas.some(p => p.id === selectedAiId)) setSelectedAiId(personas[0]?.id ?? "");
+  }, [personas, selectedAiId]);
 
   const { data: room, refetch } = useQuery({
     queryKey: ["room", roomId],
@@ -79,9 +86,8 @@ const GenericLobby = () => {
     return filled;
   }, [room, seats]);
 
-  const addAi = (personaId: string) => {
-    aiMutation.mutate(personaId);
-  };
+  const isHost = !!user && (room?.hostUserId === user.id || !!seats.some(s => s.playerId === user.id && s.host));
+  const full = seats.length >= (room?.maxPlayers ?? 0);
 
   const PlayerCard = ({ player, index, compact = false }: { player: (RoomSeat & { trait?: string }) | null, index: number, compact?: boolean }) => (
     <Card className={`relative flex flex-col items-center justify-center border-2 border-dashed transition-all
@@ -103,7 +109,7 @@ const GenericLobby = () => {
           </div>
           <div className={`mt-2 text-center ${compact ? 'px-1' : 'mt-4'}`}>
             <div className={`font-bold truncate ${compact ? 'text-xs max-w-[80px]' : 'max-w-[120px]'}`}>{player.displayName}</div>
-            {player.ai && !compact && <div className="text-xs text-muted-foreground">{player.trait || t("lobby.smartCompanion")}</div>}
+            {player.ai && <PersonaBadge personaId={player.personaId} personas={personas} />}
           </div>
           {player.ready && (
             <div className="absolute top-2 right-2 h-2 w-2 md:h-3 md:w-3 bg-green-500 rounded-full ring-2 ring-background" />
@@ -131,24 +137,11 @@ const GenericLobby = () => {
               <div>
                 <h4 className="text-sm font-medium mb-3">{t("lobby.aiList")}</h4>
                 <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-3">
-                    {personas.map(persona => (
-                      <div key={persona.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={persona.avatar} />
-                          </Avatar>
-                        </div>
-                        <div className="flex-1 px-3">
-                          <div className="font-medium">{persona.name}</div>
-                          <div className="text-xs text-muted-foreground">{persona.trait}</div>
-                        </div>
-                        <Button size="sm" variant="secondary" onClick={() => addAi(persona.id)}>
-                          {t("lobby.add")}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                  <PersonaPicker personas={personas} selectedAiId={selectedAiId} onSelectedAiIdChange={setSelectedAiId}
+                    canAddAi={isHost && !full && room?.status === "WAITING" && !aiMutation.isPending}
+                    onAddAi={() => aiMutation.mutate(selectedAiId)} isHost={isHost} isWaiting={room?.status === "WAITING"}
+                    full={full} isLoading={personaQuery.isPending} isError={personaQuery.isError}
+                    onRetry={() => void personaQuery.refetch()} isAdding={aiMutation.isPending} addError={aiMutation.isError} />
                 </ScrollArea>
               </div>
             </div>

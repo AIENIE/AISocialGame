@@ -48,6 +48,8 @@ public class GameState {
     private Map<String, Object> data = new HashMap<>();
 
     private LocalDateTime phaseEndsAt;
+    @jakarta.persistence.Version
+    private Long version;
     private LocalDateTime updatedAt;
     private LocalDateTime createdAt;
 
@@ -80,6 +82,7 @@ public class GameState {
     public List<GameLogEntry> getLogs() { return logs; }
     public Map<String, Object> getData() { return data; }
     public LocalDateTime getPhaseEndsAt() { return phaseEndsAt; }
+    public Long getVersion() { return version; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 

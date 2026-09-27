@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -25,7 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@SpringBootTest(classes = AiSocialGameApplication.class)
+// Compatibility coverage for in-progress v1 games.
+@SpringBootTest(classes = AiSocialGameApplication.class, properties = "app.game.v2-enabled=false")
 @ActiveProfiles("test")
 class GamePlayServiceWerewolfTest {
 
@@ -41,7 +42,7 @@ class GamePlayServiceWerewolfTest {
     @Autowired
     private GameStateRepository gameStateRepository;
 
-    @MockBean
+    @MockitoBean
     private AiGrpcClient aiGrpcClient;
 
     private static final String[] PERSONA_IDS = {"ai1", "ai2", "ai3", "ai4"};

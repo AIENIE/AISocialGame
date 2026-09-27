@@ -1,5 +1,6 @@
 import axios from "axios";
-export { getApiErrorMessage } from "./apiError";
+export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
+import { HttpApiError } from "./apiError";
 export type { ApiErrorResponse } from "./apiError";
 import {
   AdminAuthResponse,
@@ -26,6 +27,7 @@ import {
   ExchangeResponse,
   ExchangeHistoryRecord,
   Game,
+  GameLogPage,
   GameState,
   LedgerEntry,
   PagedResponse,
@@ -59,6 +61,9 @@ export const setAuthToken = (token?: string) => {
 };
 
 export const authApi = {
+  async logout(): Promise<void> {
+    await api.post("/auth/logout");
+  },
   async ssoCallback(payload: SsoCallbackData): Promise<AuthResponse> {
     const res = await api.post("/auth/sso-callback", payload);
     return res.data;
@@ -75,7 +80,7 @@ export const aiApi = {
     return res.data;
   },
   async chat(messages: AiMessage[], model?: string): Promise<AiChatResponse> {
-    const res = await api.post("/ai/chat", { messages, model });
+    const res = await api.post("/ai/chat", { messages, model }, { timeout: 60_000 });
     return res.data;
   },
   async chatStream(
@@ -87,6 +92,7 @@ export const aiApi = {
     const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
     const token = api.defaults.headers.common["X-Auth-Token"] as string | undefined;
     const response = await fetch(`${base}/ai/chat/stream`, {
+      signal: AbortSignal.timeout(65_000),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,7 +100,13 @@ export const aiApi = {
       },
       body: JSON.stringify({ messages, model }),
     });
-    if (!response.ok || !response.body) {
+    if (!response.ok) {
+      const data: unknown = await response.json().catch(() => undefined);
+      const body = data && typeof data === "object" ? data as { code?: unknown; message?: unknown } : {};
+      throw new HttpApiError(response.status, typeof body.code === "string" ? body.code : undefined,
+        typeof body.message === "string" ? body.message : "流式请求失败");
+    }
+    if (!response.body) {
       throw new Error("流式请求失败");
     }
 
@@ -132,11 +144,11 @@ export const aiApi = {
     }
   },
   async embeddings(input: string[], model?: string, normalize = true): Promise<AiEmbeddingsResponse> {
-    const res = await api.post("/ai/embeddings", { input, model, normalize });
+    const res = await api.post("/ai/embeddings", { input, model, normalize }, { timeout: 60_000 });
     return res.data;
   },
   async ocr(params: AiOcrParams): Promise<AiOcrResponse> {
-    const res = await api.post("/ai/ocr", params);
+    const res = await api.post("/ai/ocr", params, { timeout: 60_000 });
     return res.data;
   },
 };
@@ -222,6 +234,10 @@ export const personaApi = {
 };
 
 export const gameplayApi = {
+  async logs(gameId: string, roomId: string, before?: number, size = 100): Promise<GameLogPage> {
+    const res = await api.get(`/games/${gameId}/rooms/${roomId}/logs`, { params: { before, size } });
+    return res.data;
+  },
   async state(gameId: string, roomId: string): Promise<GameState> {
     const res = await api.get(`/games/${gameId}/rooms/${roomId}/state`);
     return res.data;
@@ -253,16 +269,8 @@ export const communityApi = {
     const res = await api.get("/community/posts");
     return res.data;
   },
-  async create(content: string, tags: string[], guestName?: string): Promise<CommunityPost> {
-    const res = await api.post(
-      "/community/posts",
-      { content, tags },
-      {
-        headers: guestName
-          ? { "X-Guest-Name": encodeURIComponent(guestName) }
-          : undefined,
-      }
-    );
+  async create(content: string, tags: string[]): Promise<CommunityPost> {
+    const res = await api.post("/community/posts", { content, tags });
     return res.data;
   },
   async like(id: string): Promise<CommunityPost> {
@@ -279,11 +287,11 @@ export const rankingApi = {
 };
 
 export const serverReplayApi = {
-  async list(params: { gameId?: string; page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
+  async list(params: { gameId?: string; playerId?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
     const res = await api.get("/replays", { params });
     return res.data;
   },
-  async my(params: { page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
+  async my(params: { gameId?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
     const res = await api.get("/replays/my", { params });
     return res.data;
   },
@@ -328,6 +336,9 @@ adminApiClient.interceptors.response.use(undefined, async (error) => {
 });
 
 export const adminApi = {
+  async replayEvents(archiveId: string): Promise<ReplayDetail> {
+    return (await adminApiClient.get(`/admin/replays/${encodeURIComponent(archiveId)}/events`)).data;
+  },
   async policy(): Promise<AdminAuthPolicy> {
     const res = await adminApiClient.get("/admin/auth/policy");
     return res.data;
@@ -460,6 +471,9 @@ export const adminApi = {
   },
   async resetAiPersonaMemory(id: number): Promise<void> {
     await adminApiClient.post(`/admin/ai/persona-memories/${id}/reset`);
+  },
+  async reviewAiPersonaMemory(id: number, status: "APPROVED" | "REJECTED", summary: string): Promise<void> {
+    await adminApiClient.post(`/admin/ai/persona-memories/${id}/review`, { status, summary });
   },
   async safetySummary(): Promise<AiSafetySummary> {
     const res = await adminApiClient.get("/admin/safety/summary");

@@ -15,6 +15,8 @@ public class GameService {
     private final GameRepository gameRepository;
     private final RoomRepository roomRepository;
     private final ObjectProvider<GameEngineRegistry> engineRegistryProvider;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.aisocialgame.service.v2.GameMetadataV2 metadataV2;
 
     public GameService(GameRepository gameRepository,
                        RoomRepository roomRepository,
@@ -25,11 +27,11 @@ public class GameService {
     }
 
     public List<Game> listGames() {
-        return gameRepository.findAll().stream().map(this::attachOnlineCount).toList();
+        return (metadataV2!=null && !metadataV2.games().isEmpty()?metadataV2.games():gameRepository.findAll()).stream().map(this::attachOnlineCount).toList();
     }
 
     public Optional<Game> findById(String id) {
-        return gameRepository.findById(id).map(this::attachOnlineCount);
+        return (metadataV2==null?gameRepository.findById(id):metadataV2.find(id).or(() -> gameRepository.findById(id))).map(this::attachOnlineCount);
     }
 
     private Game attachOnlineCount(Game game) {
@@ -44,6 +46,6 @@ public class GameService {
         } else {
             game.setEngineBacked(false);
         }
-        return game;
+        return metadataV2 == null ? game : metadataV2.enhance(game);
     }
 }

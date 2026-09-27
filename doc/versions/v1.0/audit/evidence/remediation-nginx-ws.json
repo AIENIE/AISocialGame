@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "upstreamRequests": [
+    "HTTP /ws",
+    "HTTP /ws/info",
+    "UPGRADE /ws",
+    "UPGRADE /ws/123/abc/websocket"
+  ],
+  "sockJsUpgrade": true,
+  "exactWsNoRedirect": true,
+  "nginxVersion": "1.31.6",
+  "nativeUpgrade": true
+}

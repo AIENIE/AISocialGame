@@ -333,6 +333,21 @@ public class AdminOpsService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void reviewPersonaMemory(Long id, String status, String summary, String actor) {
+        try {
+            var memory = aiPersonaMemoryRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "记忆不存在"));
+            if (!"GENERAL_V2".equals(memory.getRoleKey()) || !java.util.Set.of("APPROVED", "REJECTED").contains(status)) throw new ApiException(HttpStatus.BAD_REQUEST, "仅支持审核 v2 通用经验");
+            String text = summary == null ? "" : summary.strip();
+            if (text.length() > 1200 || ("APPROVED".equals(status) && text.isBlank())) throw new ApiException(HttpStatus.BAD_REQUEST, "通过审核需填写1–1200字通用经验");
+            memory.setApprovedSummary("APPROVED".equals(status) ? text : "");
+            memory.setReviewStatus(status); aiPersonaMemoryRepository.save(memory);
+            auditSuccess(actor, "admin.persona-memory.review." + status, id);
+        } catch (RuntimeException ex) {
+            auditFailure(actor, "admin.persona-memory.review", id, ex); throw ex;
+        }
+    }
+
     private void auditSuccess(String actor, String action, Object targetId) {
         log.info("Admin operation actorFingerprint={} operatorUserId={} action={} targetId={} result=SUCCESS",
                 auditActorFingerprint(actor), operatorUserId, action, targetId);

@@ -1,0 +1,16 @@
+[ERROR] COMPILATION ERROR : 
+[ERROR] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/acceptance/LocalRealismLoginBootstrapTest.java:[137,67] �Ҳ�������
+  ����:   ���� getUserId(java.lang.String)
+  λ��: ����Ϊcom.aisocialgame.service.token.TokenStore�ı��� tokens
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:testCompile (default-testCompile) on project ai-social-game: Compilation failure
+[ERROR] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/acceptance/LocalRealismLoginBootstrapTest.java:[137,67] �Ҳ�������
+[ERROR]   ����:   ���� getUserId(java.lang.String)
+[ERROR]   λ��: ����Ϊcom.aisocialgame.service.token.TokenStore�ı��� tokens
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

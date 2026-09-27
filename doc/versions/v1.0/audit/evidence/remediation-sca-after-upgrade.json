@@ -1,0 +1,1343 @@
+{
+  "engineVersion": "13.0.0",
+  "dataSource": [
+    {
+      "name": "NVD API Last Checked",
+      "timestamp": "2026-09-26T15:30:26+08"
+    },
+    {
+      "name": "NVD API Last Modified",
+      "timestamp": "2026-09-26T07:17:03Z"
+    }
+  ],
+  "dependencyCount": 364,
+  "vulnerableDependencies": [
+    {
+      "fileName": "commons-beanutils-1.9.4.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/commons-beanutils/commons-beanutils@1.9.4",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-48734",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 8.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.8",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "commons-io-2.11.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/commons-io/commons-io@2.11.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2024-47554",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 4.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "commons-lang3-3.16.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.commons/commons-lang3@3.16.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-48924",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "commons-lang3-3.5.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.commons/commons-lang3@3.5",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-48924",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "httpclient5-5.5.2.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.5.2",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-71290",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-64607",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "httpclient5-5.6.3.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.6.3",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-71290",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "httpcore5-5.3.6.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.httpcomponents.core5/httpcore5@5.3.6",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-54399",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-54428",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "jackson-databind-2.21.4.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.21.4",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-54515",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "jetty-io-9.4.58.v20250814.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.eclipse.jetty/jetty-io@9.4.58.v20250814",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-2332",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-10050",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": {
+            "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+            "source": "emo@eclipse.org",
+            "type": "Secondary",
+            "version": "4.0",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "attackRequirements": "NONE",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "vulnerableSystemConfidentiality": "HIGH",
+            "vulnerableSystemIntegrity": "NONE",
+            "vulnerableSystemAvailability": "NONE",
+            "subsequentSystemConfidentiality": "NONE",
+            "subsequentSystemIntegrity": "NONE",
+            "subsequentSystemAvailability": "NONE",
+            "exploitMaturity": "NOT_DEFINED",
+            "confidentialityRequirements": "NOT_DEFINED",
+            "integrityRequirements": "NOT_DEFINED",
+            "availabilityRequirements": "NOT_DEFINED",
+            "modifiedAttackVector": "NOT_DEFINED",
+            "modifiedAttackComplexity": "NOT_DEFINED",
+            "modifiedAttackRequirements": "NOT_DEFINED",
+            "modifiedPrivilegesRequired": "NOT_DEFINED",
+            "modifiedUserInteraction": "NOT_DEFINED",
+            "modifiedVulnerableSystemConfidentiality": "NOT_DEFINED",
+            "modifiedVulnerableSystemIntegrity": "NOT_DEFINED",
+            "modifiedVulnerableSystemAvailability": "NOT_DEFINED",
+            "modifiedSubsequentSystemConfidentiality": "NOT_DEFINED",
+            "modifiedSubsequentSystemIntegrity": "NOT_DEFINED",
+            "modifiedSubsequentSystemAvailability": "NOT_DEFINED",
+            "safety": "NOT_DEFINED",
+            "automatable": "NOT_DEFINED",
+            "recovery": "NOT_DEFINED",
+            "valueDensity": "NOT_DEFINED",
+            "vulnerabilityResponseEffort": "NOT_DEFINED",
+            "providerUrgency": "NOT_DEFINED",
+            "baseScore": 8.7,
+            "baseSeverity": "HIGH"
+          }
+        },
+        {
+          "name": "CVE-2026-5795",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.4,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.2",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2025-11143",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "2.5",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-6790",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "jetty-server-9.4.58.v20250814.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.eclipse.jetty/jetty-server@9.4.58.v20250814",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-2332",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-10050",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": {
+            "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+            "source": "emo@eclipse.org",
+            "type": "Secondary",
+            "version": "4.0",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "attackRequirements": "NONE",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "vulnerableSystemConfidentiality": "HIGH",
+            "vulnerableSystemIntegrity": "NONE",
+            "vulnerableSystemAvailability": "NONE",
+            "subsequentSystemConfidentiality": "NONE",
+            "subsequentSystemIntegrity": "NONE",
+            "subsequentSystemAvailability": "NONE",
+            "exploitMaturity": "NOT_DEFINED",
+            "confidentialityRequirements": "NOT_DEFINED",
+            "integrityRequirements": "NOT_DEFINED",
+            "availabilityRequirements": "NOT_DEFINED",
+            "modifiedAttackVector": "NOT_DEFINED",
+            "modifiedAttackComplexity": "NOT_DEFINED",
+            "modifiedAttackRequirements": "NOT_DEFINED",
+            "modifiedPrivilegesRequired": "NOT_DEFINED",
+            "modifiedUserInteraction": "NOT_DEFINED",
+            "modifiedVulnerableSystemConfidentiality": "NOT_DEFINED",
+            "modifiedVulnerableSystemIntegrity": "NOT_DEFINED",
+            "modifiedVulnerableSystemAvailability": "NOT_DEFINED",
+            "modifiedSubsequentSystemConfidentiality": "NOT_DEFINED",
+            "modifiedSubsequentSystemIntegrity": "NOT_DEFINED",
+            "modifiedSubsequentSystemAvailability": "NOT_DEFINED",
+            "safety": "NOT_DEFINED",
+            "automatable": "NOT_DEFINED",
+            "recovery": "NOT_DEFINED",
+            "valueDensity": "NOT_DEFINED",
+            "vulnerabilityResponseEffort": "NOT_DEFINED",
+            "providerUrgency": "NOT_DEFINED",
+            "baseScore": 8.7,
+            "baseSeverity": "HIGH"
+          }
+        },
+        {
+          "name": "CVE-2026-5795",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.4,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.2",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2025-11143",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "2.5",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-6790",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "maven-core-3.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.apache.maven/maven-core@3.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2021-26291",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "mysql-connector-j-9.7.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/com.mysql/mysql-connector-j@9.7.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-60586",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.7,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "CHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.1",
+            "impactScore": "4.0",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-60623",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "1.6",
+            "impactScore": "5.5",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-60624",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-61082",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "plexus-utils-3.1.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.codehaus.plexus/plexus-utils@3.1.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-67030",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 8.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.8",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "plexus-utils-3.5.1.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-67030",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 8.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.8",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "plexus-utils-3.6.0.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.codehaus.plexus/plexus-utils@3.6.0",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-67030",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 8.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.8",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "plexus-utils-4.0.2.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.codehaus.plexus/plexus-utils@4.0.2",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2025-67030",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 8.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.8",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "spring-core-6.2.19.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.springframework/spring-core@6.2.19",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-47884",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47890",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47891",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47892",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59313",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.8,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.9",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59283",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47885",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47886",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47888",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47889",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47893",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59282",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "HIGH",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "3.9",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47883",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "CHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "2.7",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47887",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "CHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "2.7",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59281",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "CHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "2.7",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59280",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 4.3,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59314",
+          "severity": "LOW",
+          "cvssv3": {
+            "baseScore": 3.7,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "NONE",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "LOW",
+            "exploitabilityScore": "2.2",
+            "impactScore": "1.4",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "spring-data-jpa-3.5.13.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.springframework.data/spring-data-jpa@3.5.13",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-47834",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "LOW",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "3.9",
+            "impactScore": "2.5",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    },
+    {
+      "fileName": "spring-security-crypto-6.5.11.jar",
+      "packages": [
+        {
+          "id": "pkg:maven/org.springframework.security/spring-security-crypto@6.5.11",
+          "confidence": "HIGH"
+        }
+      ],
+      "vulnerabilities": [
+        {
+          "name": "CVE-2026-59270",
+          "severity": "CRITICAL",
+          "cvssv3": {
+            "baseScore": 9.1,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "CRITICAL",
+            "exploitabilityScore": "3.9",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-41707",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.4,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.2",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47841",
+          "severity": "HIGH",
+          "cvssv3": {
+            "baseScore": 7.4,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "HIGH",
+            "exploitabilityScore": "2.2",
+            "impactScore": "5.2",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-47842",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 6.5,
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.8",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        },
+        {
+          "name": "CVE-2026-59276",
+          "severity": "MEDIUM",
+          "cvssv3": {
+            "baseScore": 5.9,
+            "attackVector": "NETWORK",
+            "attackComplexity": "HIGH",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": "2.2",
+            "impactScore": "3.6",
+            "version": "3.1"
+          },
+          "cvssv4": null
+        }
+      ]
+    }
+  ]
+}

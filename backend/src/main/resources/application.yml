@@ -24,6 +24,21 @@ spring:
       password: ${SPRING_DATA_REDIS_PASSWORD:}
       ssl:
         enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:false}
+  grpc:
+    client:
+      channel:
+        user:
+          target: ${USER_GRPC_ADDR:static://localuserservice.testhut.top:22001}
+          ssl:
+            enabled: true
+        billing:
+          target: ${BILLING_GRPC_ADDR:static://localpayservice.testhut.top:22021}
+          ssl:
+            enabled: true
+        ai:
+          target: ${AI_GRPC_ADDR:static://localaiservice.testhut.top:22011}
+          ssl:
+            enabled: true
 
 server:
   port: ${SERVER_PORT:${BACKEND_PORT:11031}}
@@ -71,6 +86,10 @@ logging:
 
 app:
   project-key: ${APP_PROJECT_KEY:aisocialgame}
+  grpc:
+    user-trust-cert-collection: ${GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION:}
+    billing-trust-cert-collection: ${GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION:}
+    ai-trust-cert-collection: ${GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION:}
   sso:
     user-service-base-url: ${SSO_USER_SERVICE_BASE_URL:https://localuserservice.testhut.top}
     callback-url: ${SSO_CALLBACK_URL:https://localsocialgame.testhut.top/sso/callback}
@@ -141,21 +160,3 @@ qdrant:
 
 connection:
   disconnect-threshold-seconds: ${APP_CONNECTION_DISCONNECT_THRESHOLD_SECONDS:60}
-
-grpc:
-  client:
-    user:
-      address: ${USER_GRPC_ADDR:static://localuserservice.testhut.top:12001}
-      negotiationType: ${USER_GRPC_NEGOTIATION_TYPE:TLS}
-      security:
-        trust-cert-collection: ${GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION:}
-    billing:
-      address: ${BILLING_GRPC_ADDR:static://localpayservice.testhut.top:12021}
-      negotiationType: ${BILLING_GRPC_NEGOTIATION_TYPE:TLS}
-      security:
-        trust-cert-collection: ${GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION:}
-    ai:
-      address: ${AI_GRPC_ADDR:static://localaiservice.testhut.top:12011}
-      negotiationType: ${AI_GRPC_NEGOTIATION_TYPE:TLS}
-      security:
-        trust-cert-collection: ${GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION:}

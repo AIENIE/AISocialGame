@@ -37,12 +37,24 @@ public class RoomService {
     private final PersonaRepository personaRepository;
     private final AiNameService aiNameService;
     private final GamePushService gamePushService;
+    private final WriteRateLimiter limiter;
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
+    private final org.springframework.transaction.support.TransactionTemplate joinTransaction;
+    @org.springframework.beans.factory.annotation.Value("${app.room.password-attempts-per-minute:5}")
+    private int passwordAttempts = 5;
+    @org.springframework.beans.factory.annotation.Value("${app.room.join-attempts-per-minute:30}")
+    private int globalJoinAttempts = 30;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.aisocialgame.service.safety.AiSafetyService safetyService;
 
     public RoomService(RoomRepository roomRepository,
                        GameService gameService,
                        PersonaRepository personaRepository,
                        AiNameService aiNameService,
-                       GamePushService gamePushService) {
+                       GamePushService gamePushService, WriteRateLimiter limiter,
+                       org.springframework.transaction.PlatformTransactionManager manager) {
+        this.limiter = limiter;
+        this.joinTransaction = new org.springframework.transaction.support.TransactionTemplate(manager);
         this.roomRepository = roomRepository;
         this.gameService = gameService;
         this.personaRepository = personaRepository;
@@ -58,10 +70,24 @@ public class RoomService {
             storedPassword = encodePrivateRoomPassword(password);
         }
 
-        Room room = new Room(UUID.randomUUID().toString(), gameId, name, RoomStatus.WAITING, maxPlayers, isPrivate, storedPassword, commMode, config != null ? config : new HashMap<>());
+        Map<String, Object> safeConfig = config == null ? new HashMap<>() : new HashMap<>(config);
+        safeConfig.put("playerCount",maxPlayers);
+        var validation=com.aisocialgame.engine.v2.GameConfiguration.validate(game,safeConfig);
+        if (!validation.valid()) throw new ApiException(HttpStatus.BAD_REQUEST,validation.message());
+        safeConfig.remove("usedWordPairIds");
+        boolean authorHost = "undercover".equals(gameId) && "custom".equals(safeConfig.get("wordPack"));
+        Object customWords = safeConfig.remove("customWords");
+        Room room = new Room(UUID.randomUUID().toString(), gameId, name, RoomStatus.WAITING, maxPlayers, isPrivate, storedPassword, commMode, safeConfig);
+        if (creator != null) room.setHostUserId(creator.getId());
+        if (authorHost) {
+            if (creator == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+            var words = validateCustomWords(customWords, creator);
+            room.getPrivateConfig().put("customWords", words);
+            safeConfig.put("customWordCount", words.size()); safeConfig.put("hostMode", "AUTHOR");
+        }
 
         // Auto seat creator as host
-        if (creator != null) {
+        if (creator != null && !authorHost) {
             RoomSeat host = new RoomSeat(0, creator.getId(), creator.getNickname(), false, null, creator.getAvatar(), true, true);
             room.getSeats().add(host);
         }
@@ -90,12 +116,34 @@ public class RoomService {
         return roomRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
     }
 
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public JoinRoomResult joinRoom(String roomId, String displayName, User user, String password) {
-        Room room = getRoomForUpdate(roomId);
-        if (user == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
+        limiter.require(user.getId(), List.of(new WriteRateLimiter.Limit("join-global", globalJoinAttempts)));
+        var snapshot = roomRepository.findJoinSnapshot(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        limiter.require(user.getId(), List.of(new WriteRateLimiter.Limit("join-room:" + snapshot.getId(), passwordAttempts)));
+        if (snapshot.getPrivateRoom()) {
+            String normalized = password == null ? "" : password.trim();
+            if (!StringUtils.hasText(snapshot.getPassword()) || normalized.isBlank() || normalized.length() > MAX_PRIVATE_ROOM_PASSWORD_LENGTH
+                    || !passwordEncoder.matches(normalized, snapshot.getPassword())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码错误", "ROOM_PASSWORD_INVALID", Map.of());
+            }
         }
-        validatePrivateRoomPassword(room, password);
+        return joinTransaction.execute(status -> joinVerified(snapshot.getId(), displayName, user, snapshot));
+    }
+
+    private JoinRoomResult joinVerified(String roomId, String displayName, User user, RoomRepository.JoinSnapshot snapshot) {
+        Room room = getRoomForUpdate(roomId);
+        entityManager.refresh(room);
+        if (room.isPrivate() != snapshot.getPrivateRoom() || !java.util.Objects.equals(room.getPassword(), snapshot.getPassword())) {
+            throw new ApiException(HttpStatus.CONFLICT, "房间口令已更新，请重试", "ROOM_PASSWORD_CHANGED", Map.of());
+        }
+        if ("AUTHOR".equals(room.getConfig().get("hostMode")) && user.getId().equals(room.getHostUserId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "出题主持者不能加入玩家席位，可在房间中组织和观战");
+        }
+        if (room.getStatus() == RoomStatus.PLAYING && room.getSeats().stream().noneMatch(s -> user.getId().equals(s.getPlayerId()))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "对局已开始，不能加入玩家席位");
+        }
 
         // Already joined
         String userId = user.getId();
@@ -107,13 +155,13 @@ public class RoomService {
         }
 
         if (room.getSeats().size() >= room.getMaxPlayers()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满", "ROOM_FULL", Map.of());
         }
 
         int seatNumber = room.getSeats().size();
         String avatar = user != null ? user.getAvatar() : "https://api.dicebear.com/7.x/avataaars/svg?seed=" + displayName.replace(" ", "");
         String playerId = userId != null ? userId : UUID.randomUUID().toString();
-        RoomSeat seat = new RoomSeat(seatNumber, playerId, displayName, false, null, avatar, true, room.getSeats().isEmpty());
+        RoomSeat seat = new RoomSeat(seatNumber, playerId, displayName, false, null, avatar, true, room.getHostUserId() == null && room.getSeats().isEmpty());
         room.getSeats().add(seat);
         room.syncSeatCount();
         roomRepository.save(room);
@@ -128,14 +176,14 @@ public class RoomService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "只有等待中的房间可以添加 AI");
         }
         if (room.getSeats().size() >= room.getMaxPlayers()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满", "ROOM_FULL", Map.of());
         }
         Persona persona = personaRepository.findById(personaId);
         if (persona == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "AI人设不存在");
         }
         int seatNumber = room.getSeats().size();
-        String aiDisplayName = aiNameService.generateName(persona);
+        String aiDisplayName = aiNameService.localName(persona);
         RoomSeat seat = new RoomSeat(seatNumber, "ai-" + personaId + "-" + seatNumber, aiDisplayName, true, personaId, persona.getAvatar(), true, false);
         room.getSeats().add(seat);
         room.syncSeatCount();
@@ -156,25 +204,12 @@ public class RoomService {
         return passwordEncoder.encode(normalized);
     }
 
-    private void validatePrivateRoomPassword(Room room, String password) {
-        if (!room.isPrivate()) {
-            return;
-        }
-        String stored = room.getPassword();
-        if (!StringUtils.hasText(stored)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码未配置");
-        }
-        String normalized = password == null ? "" : password.trim();
-        if (!StringUtils.hasText(normalized) || !passwordEncoder.matches(normalized, stored)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码错误");
-        }
-    }
 
     private void requireHost(Room room, User actor) {
         if (actor == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
         }
-        boolean host = room.getSeats().stream()
+        boolean host = actor.getId().equals(room.getHostUserId()) || room.getSeats().stream()
                 .anyMatch(seat -> actor.getId().equals(seat.getPlayerId()) && seat.isHost());
         if (!host) {
             throw new ApiException(HttpStatus.FORBIDDEN, "只有房主可以添加 AI");
@@ -185,6 +220,30 @@ public class RoomService {
         Room room = getRoom(roomId);
         room.setStatus(status);
         roomRepository.save(room);
+    }
+
+    private List<Map<String, Object>> validateCustomWords(Object raw, User creator) {
+        if (!(raw instanceof List<?> list) || list.isEmpty() || list.size() > 100) throw new ApiException(HttpStatus.BAD_REQUEST, "自定义词库需包含1-100组词对");
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        java.util.ArrayList<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            Map<String, Object> row = com.aisocialgame.engine.v2.RuleSupport.map(list.get(i));
+            String a = normalizeWord(row.get("wordA")), b = normalizeWord(row.get("wordB"));
+            if (a.codePointCount(0, a.length()) < 2 || a.codePointCount(0, a.length()) > 20 || b.codePointCount(0, b.length()) < 2 || b.codePointCount(0, b.length()) > 20 || a.equalsIgnoreCase(b)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "第" + (i + 1) + "行词语需为2-20字，且两个词不能相同");
+            }
+            String key = java.util.stream.Stream.of(a.toLowerCase(java.util.Locale.ROOT), b.toLowerCase(java.util.Locale.ROOT)).sorted().collect(java.util.stream.Collectors.joining("\u0000"));
+            if (!seen.add(key)) throw new ApiException(HttpStatus.BAD_REQUEST, "第" + (i + 1) + "行词对重复");
+            if (safetyService != null) {
+                var context = com.aisocialgame.service.safety.AiSafetyContext.source(com.aisocialgame.service.safety.AiSafetyService.SOURCE_GAME_SPEECH).room(null, "undercover").user(creator.getId(), creator.getId());
+                safetyService.requireAllowedInput(a, context); safetyService.requireAllowedInput(b, context);
+            }
+            result.add(Map.of("wordA", a, "wordB", b));
+        }
+        return result;
+    }
+    private String normalizeWord(Object value) {
+        return java.text.Normalizer.normalize(value == null ? "" : value.toString().strip(), java.text.Normalizer.Form.NFKC);
     }
 
     private int resolveMaxPlayers(Map<String, Object> config, int fallback) {
@@ -211,15 +270,6 @@ public class RoomService {
     }
 
     private int minimumPlayersForGame(String gameId) {
-        if ("undercover".equals(gameId)) {
-            return 4;
-        }
-        if ("werewolf".equals(gameId)) {
-            return 6;
-        }
-        if ("turtle_soup".equals(gameId)) {
-            return 1;
-        }
-        return 2;
+        return gameService.findById(gameId).map(Game::getMinPlayers).orElse(2);
     }
 }

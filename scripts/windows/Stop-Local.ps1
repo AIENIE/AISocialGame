@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([ValidateSet('All','Backend','Frontend')][string]$Component = 'All', [ValidatePattern('^(\d+(,\d+)*)?$')][string]$PreserveProcessIds='')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -57,7 +57,10 @@ if (-not [string]::Equals([string]$state.projectRoot, $repoRoot, [StringComparis
     throw "Native process state belongs to another checkout: $($state.projectRoot)"
 }
 
+$remaining = @()
 foreach ($record in @($state.processes)) {
+    if ([string]$record.ProcessId -in ($PreserveProcessIds -split ',')) { $remaining += $record; continue }
+    if ($Component -ne 'All' -and $record.Name -ne $Component) { $remaining += $record; continue }
     if (Test-RecordedProcess -Record $record) {
         & (Join-Path $env:SystemRoot 'System32\taskkill.exe') /PID ([string]$record.ProcessId) /T /F | Out-Null
         Write-Output "Stopped AISocialGame $($record.Name) process $($record.ProcessId)."
@@ -65,7 +68,7 @@ foreach ($record in @($state.processes)) {
         Write-Output "Removed stale AISocialGame $($record.Name) record (PID $($record.ProcessId))."
     }
 }
-Remove-Item -LiteralPath $statePath -Force -ErrorAction SilentlyContinue
+if ($remaining.Count -eq 0) { Remove-Item -LiteralPath $statePath -Force -ErrorAction SilentlyContinue } else { $state.processes = $remaining; $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding utf8NoBOM }
 
 foreach ($port in @(11031, 11030)) {
     $listeners = @(

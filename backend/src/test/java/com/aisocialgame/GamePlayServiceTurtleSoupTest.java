@@ -16,13 +16,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
 import java.util.UUID;
 
-@SpringBootTest(classes = AiSocialGameApplication.class)
+// Compatibility coverage for in-progress v1 games and archives.
+@SpringBootTest(classes = AiSocialGameApplication.class, properties = "app.game.v2-enabled=false")
 @ActiveProfiles("test")
 class GamePlayServiceTurtleSoupTest {
 
@@ -47,7 +48,7 @@ class GamePlayServiceTurtleSoupTest {
     @Autowired
     private GameEventRepository gameEventRepository;
 
-    @MockBean
+    @MockitoBean
     private AiGrpcClient aiGrpcClient;
 
     @Test

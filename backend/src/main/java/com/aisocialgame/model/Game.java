@@ -19,6 +19,10 @@ public class Game {
     private boolean engineBacked;
     private List<PhaseDefinition> phaseDefinitions;
     private List<RoleDefinition> roleDefinitions;
+    private int ruleVersion = 1;
+    public int getRuleVersion() { return ruleVersion; }
+    public void setRuleVersion(int version) { ruleVersion = version; }
+    public void setConfigSchema(List<GameConfigOption> fields) { configSchema = List.copyOf(fields); }
 
     public Game() {}
 

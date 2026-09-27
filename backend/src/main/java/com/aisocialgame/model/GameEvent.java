@@ -37,6 +37,9 @@ public class GameEvent {
     @Column(nullable = false)
     private int seq;
 
+    /** Contiguous visible cursor; private and god events have no public sequence. */
+    private Long publicSeq;
+
     @Column(nullable = false, length = 64)
     private String eventType;
 
@@ -80,6 +83,7 @@ public class GameEvent {
     public String getRoomId() { return roomId; }
     public String getGameId() { return gameId; }
     public int getSeq() { return seq; }
+    public Long getPublicSeq() { return publicSeq; }
     public String getEventType() { return eventType; }
     public String getPhase() { return phase; }
     public int getRoundNumber() { return roundNumber; }
@@ -96,6 +100,7 @@ public class GameEvent {
     public void setRoomId(String roomId) { this.roomId = roomId; }
     public void setGameId(String gameId) { this.gameId = gameId; }
     public void setSeq(int seq) { this.seq = seq; }
+    public void setPublicSeq(Long publicSeq) { this.publicSeq = publicSeq; }
     public void setEventType(String eventType) { this.eventType = eventType; }
     public void setPhase(String phase) { this.phase = phase; }
     public void setRoundNumber(int roundNumber) { this.roundNumber = roundNumber; }

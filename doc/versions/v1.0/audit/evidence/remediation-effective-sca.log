@@ -1,0 +1,21 @@
+[ERROR] Failed to execute goal org.owasp:dependency-check-maven:13.0.0:check (default) on project ai-social-game: 
+[ERROR] 
+[ERROR] One or more dependencies were identified with vulnerabilities that have a CVSS score greater than or equal to '7.0': 
+[ERROR] 
+[ERROR] httpclient5-cache-5.6.3.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5-cache@5.6.3, cpe:2.3:a:apache:httpclient:5.6.3:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] jna-5.17.0.jar (cpe:2.3:a:oracle:java_se:5.17.0:*:*:*:*:*:*:*, cpe:2.3:a:sun:java_se:5.17.0:*:*:*:*:*:*:*): CVE-2009-2689(10.0), CVE-2009-2475(7.8), CVE-2009-2476(10.0), CVE-2009-2716(7.5)
+[ERROR] maven-core-3.0.jar (pkg:maven/org.apache.maven/maven-core@3.0, cpe:2.3:a:apache:maven:3.0:*:*:*:*:*:*:*): CVE-2021-26291(9.1)
+[ERROR] xz-1.11.jar (cpe:2.3:a:tukaani:xz:1.11:*:*:*:*:*:*:*): CVE-2015-4035(7.8), CVE-2022-1271(8.8)
+[ERROR] xz-1.12.jar (cpe:2.3:a:tukaani:xz:1.12:*:*:*:*:*:*:*): CVE-2015-4035(7.8), CVE-2022-1271(8.8)
+[ERROR] xz-1.9.jar (cpe:2.3:a:tukaani:xz:1.9:*:*:*:*:*:*:*): CVE-2015-4035(7.8), CVE-2022-1271(8.8)
+[ERROR] 
+[ERROR] See the dependency-check report for more details.
+[ERROR] 
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

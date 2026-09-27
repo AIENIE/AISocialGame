@@ -25,7 +25,7 @@ interface GameRoomFrameProps {
   headerExtra?: ReactNode;
   chatMessages: ChatMessage[];
   myPlayerId?: string;
-  onSendChat: (type: ChatMessage["type"], content: string) => void;
+  onSendChat: (type: Exclude<ChatMessage["type"], "SYSTEM">, content: string) => void;
   children: ReactNode;
 }
 

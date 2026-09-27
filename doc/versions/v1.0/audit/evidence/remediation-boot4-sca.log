@@ -1,0 +1,25 @@
+[ERROR] Failed to execute goal org.owasp:dependency-check-maven:13.0.0:check (default) on project ai-social-game: 
+[ERROR] 
+[ERROR] One or more dependencies were identified with vulnerabilities that have a CVSS score greater than or equal to '7.0': 
+[ERROR] 
+[ERROR] commons-beanutils-1.9.4.jar (pkg:maven/commons-beanutils/commons-beanutils@1.9.4, cpe:2.3:a:apache:commons_beanutils:1.9.4:*:*:*:*:*:*:*): CVE-2025-48734(8.8)
+[ERROR] httpclient5-5.6.3.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.6.3, cpe:2.3:a:apache:httpclient:5.6.3:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] jetty-io-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-io@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2026-10050(8.7)
+[ERROR] jetty-server-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-server@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty_http_server:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2026-10050(8.7)
+[ERROR] maven-core-3.0.jar (pkg:maven/org.apache.maven/maven-core@3.0, cpe:2.3:a:apache:maven:3.0:*:*:*:*:*:*:*): CVE-2021-26291(9.1)
+[ERROR] plexus-utils-3.1.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.1.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.1.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.1.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.5.1.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1, cpe:2.3:a:codehaus-plexus:plexus-utils:3.5.1:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.5.1:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.6.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.6.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.6.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.6.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-4.0.2.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.2, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.2:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.2:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] spring-boot-loader-tools-4.1.1.jar (pkg:maven/org.springframework.boot/spring-boot-loader-tools@4.1.1, cpe:2.3:a:vmware:spring_boot:4.1.1:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_boot_tools:4.1.1:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_tools:4.1.1:*:*:*:*:*:*:*): CVE-2022-31691(9.8)
+[ERROR] 
+[ERROR] See the dependency-check report for more details.
+[ERROR] 
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

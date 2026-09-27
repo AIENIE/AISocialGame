@@ -50,7 +50,7 @@ describe("configSchema 字段/选项文案映射", () => {
   });
 
   it("选项 label 按 value 映射", async () => {
-    expect(gameOptionLabel("werewolf", "template", "standard")).toBe("预女猎白 (标准)");
+    expect(gameOptionLabel("werewolf", "template", "standard")).toBe("标准板");
     expect(gameOptionLabel("werewolf", "playerCount", 12)).toBe("12人 (标准)");
     expect(gameOptionLabel("undercover", "wordPack", "acg")).toBe("二次元");
     expect(gameOptionLabel("turtle_soup", "caseId", "rainy_key")).toBe("雨夜的钥匙");
@@ -82,5 +82,25 @@ describe("后端 raw 中文错误本地化兜底", () => {
     expect(localizeErrorMessage(raw, "wallet.redeemFailed")).toBe(raw);
     await i18n.changeLanguage("en");
     expect(localizeErrorMessage(raw, "wallet.redeemFailed")).toBe("Redemption failed");
+  });
+});
+
+
+describe("稳定错误码优先于后端文案", () => {
+  it.each(["zh-CN", "zh-TW", "en"])("%s 为所有业务码提供翻译并忽略冲突文案", async (language) => {
+    await i18n.changeLanguage(language);
+    const mappings = {
+      PHASE_CHANGED: "phaseChanged", ALREADY_ACTED: "alreadyVoted", NOT_YOUR_TURN: "notYourTurn",
+      INVALID_ACTION: "phaseNotSupported", ROOM_FULL: "roomFull", RATE_LIMITED: "rateLimited",
+      RATE_LIMIT_UNAVAILABLE: "rateUnavailable", BUDGET_UNAVAILABLE: "budgetUnavailable",
+      INSUFFICIENT_BALANCE: "insufficientBalance", BUDGET_RECONCILIATION_REQUIRED: "reconciliationRequired",
+      ROOM_PASSWORD_INVALID: "roomPasswordInvalid", ROOM_PASSWORD_CHANGED: "roomPasswordChanged",
+    };
+    for (const [code, suffix] of Object.entries(mappings)) {
+      const key = `errors.${suffix}`;
+      expect(i18n.exists(key, { lng: language, fallbackLng: false })).toBe(true);
+      expect(localizeErrorMessage("unrelated server wording", "lobby.joinFailed", code)).toBe(i18n.t(key));
+    }
+    expect(localizeErrorMessage("房间已满", "lobby.joinFailed", "UNKNOWN_CODE")).toBe(i18n.t("lobby.joinFailed"));
   });
 });

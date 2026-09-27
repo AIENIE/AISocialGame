@@ -1,0 +1,2273 @@
+{
+  "resolver": "maven-dependency-plugin:3.11.0:resolve-plugins",
+  "limitation": "Aether resolution including plugin dependency overrides; not a classloader observation and not yet fully joined into SCA gate",
+  "plugins": {
+    "org.apache.maven.plugins:maven-release-plugin:jar:3.0.1": [
+      {
+        "gav": "org.apache.maven.plugins:maven-release-plugin:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-release-plugin\\3.0.1\\maven-release-plugin-3.0.1.jar",
+        "sha256": "01c2906ddcc673cad8eac7af423dba9932f07c48d1decd13229a5ea9273f9fc6"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-release-plugin:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-release-plugin\\3.0.1\\maven-release-plugin-3.0.1.jar",
+        "sha256": "01c2906ddcc673cad8eac7af423dba9932f07c48d1decd13229a5ea9273f9fc6"
+      },
+      {
+        "gav": "org.apache.maven.release:maven-release-api:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\release\\maven-release-api\\3.0.1\\maven-release-api-3.0.1.jar",
+        "sha256": "d8790eb39c4221e2fcea6c8cb8e75d98dff28278631039fe0968032dbf92602c"
+      },
+      {
+        "gav": "org.eclipse.aether:aether-api:jar:1.0.0.v20140518",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\aether\\aether-api\\1.0.0.v20140518\\aether-api-1.0.0.v20140518.jar",
+        "sha256": "84b98521684ab22f9528470fa6d8ab68a230e1b211623c989ba7016c306eb773"
+      },
+      {
+        "gav": "org.eclipse.aether:aether-util:jar:1.0.0.v20140518",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\aether\\aether-util\\1.0.0.v20140518\\aether-util-1.0.0.v20140518.jar",
+        "sha256": "aff0951639837c4e3a4699a421fa79f410032f603f5c6a5bba435e98531f3984"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.apache.maven.release:maven-release-manager:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\release\\maven-release-manager\\3.0.1\\maven-release-manager-3.0.1.jar",
+        "sha256": "4fe1badc5f18413f3e5b513cd25c13426ced477156dd54c1e765ed74d422de7c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interactivity-api:jar:1.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interactivity-api\\1.1\\plexus-interactivity-api-1.1.jar",
+        "sha256": "26f701c674180dc5535ed8d7bb4a48e4ed6d4b6a97703420383cd31557c6cdeb"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.26",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.26\\plexus-interpolation-1.26.jar",
+        "sha256": "b3b5412ce17889103ea564bcdfcf9fb3dfa540344ffeac6b538a73c9d7182662"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-sec-dispatcher:jar:2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-sec-dispatcher\\2.0\\plexus-sec-dispatcher-2.0.jar",
+        "sha256": "873139960c4c780176dda580b003a2c4bf82188bdce5bb99234e224ef7acfceb"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-cipher:jar:2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-cipher\\2.0\\plexus-cipher-2.0.jar",
+        "sha256": "9a7f1b5c5a9effd61eadfd8731452a2f76a8e79111fac391ef75ea801bea203a"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-invoker:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-invoker\\3.2.0\\maven-invoker-3.2.0.jar",
+        "sha256": "51cdc34d2092a47f394b31e0545858c022030b47fcf30de16389c15ce7afd17c"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.12.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.12.0\\commons-lang3-3.12.0.jar",
+        "sha256": "d919d904486c037f8d193412da0c92e22a9fa24230b9d67a57855c5c31c7e94e"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-providers-standard:pom:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-providers-standard\\2.0.0\\maven-scm-providers-standard-2.0.0.pom",
+        "sha256": "3702021ec1947e91afa6f57075c4e464a821d0c18fd01fbd2c830267050f6f6d"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-gitexe:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-gitexe\\2.0.0\\maven-scm-provider-gitexe-2.0.0.jar",
+        "sha256": "db2bcf18d3ebbb71802d222438f6859f6a617bbc962e29780fb516930c409471"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-git-commons:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-git-commons\\2.0.0\\maven-scm-provider-git-commons-2.0.0.jar",
+        "sha256": "0cc8f631643429b7e169b79232cb9e1db93e93c87012b2036d1ed98ebc9c383c"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-jgit:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-jgit\\2.0.0\\maven-scm-provider-jgit-2.0.0.jar",
+        "sha256": "92de12b75d6092256f3fd77b9203c2a42c44a8324e575f51ce24a44f7b8036a0"
+      },
+      {
+        "gav": "org.eclipse.jgit:org.eclipse.jgit:jar:5.13.1.202206130422-r",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jgit\\org.eclipse.jgit\\5.13.1.202206130422-r\\org.eclipse.jgit-5.13.1.202206130422-r.jar",
+        "sha256": "d679365a6c8e55c1496701099f5e5765433f68dcb659759416ba5b222eb5055c"
+      },
+      {
+        "gav": "com.googlecode.javaewah:JavaEWAH:jar:1.1.13",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\googlecode\\javaewah\\JavaEWAH\\1.1.13\\JavaEWAH-1.1.13.jar",
+        "sha256": "4c0fda2b1d317750d7ea324e36c70b2bc48310c0aaae67b98df0915d696d7111"
+      },
+      {
+        "gav": "org.eclipse.jgit:org.eclipse.jgit.ssh.apache:jar:5.13.1.202206130422-r",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jgit\\org.eclipse.jgit.ssh.apache\\5.13.1.202206130422-r\\org.eclipse.jgit.ssh.apache-5.13.1.202206130422-r.jar",
+        "sha256": "4a05dc5618b394073850671cb7b695c1e5d00556bc995c8b70b4e633e50487c5"
+      },
+      {
+        "gav": "org.apache.sshd:sshd-osgi:jar:2.7.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\sshd\\sshd-osgi\\2.7.0\\sshd-osgi-2.7.0.jar",
+        "sha256": "17195d9df825d8c04286df1e2184f1e830bd8e9b5b7f788cb567eb3de65275d5"
+      },
+      {
+        "gav": "org.apache.sshd:sshd-sftp:jar:2.7.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\sshd\\sshd-sftp\\2.7.0\\sshd-sftp-2.7.0.jar",
+        "sha256": "90692aaedbc6a1d7f5e61a03d811dd0cc6058b424a86e82d96843e2f5287b70c"
+      },
+      {
+        "gav": "org.apache.sshd:sshd-core:jar:2.7.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\sshd\\sshd-core\\2.7.0\\sshd-core-2.7.0.jar",
+        "sha256": "2f23d666dd1fd3317891d784f324542e236d89658c02adc7c02d137aa556e636"
+      },
+      {
+        "gav": "org.apache.sshd:sshd-common:jar:2.7.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\sshd\\sshd-common\\2.7.0\\sshd-common-2.7.0.jar",
+        "sha256": "bbd38821c00f4b0d20271d8a4cd89336d7e7ac57458486c1c9c3798a6e4b873d"
+      },
+      {
+        "gav": "net.i2p.crypto:eddsa:jar:0.3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\net\\i2p\\crypto\\eddsa\\0.3.0\\eddsa-0.3.0.jar",
+        "sha256": "4dda1120db856640dbec04140ed23242215a075fe127bdefa0dcfa29fb31267d"
+      },
+      {
+        "gav": "org.slf4j:jcl-over-slf4j:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\jcl-over-slf4j\\1.7.36\\jcl-over-slf4j-1.7.36.jar",
+        "sha256": "ab57ca8fd223772c17365d121f59e94ecbf0ae59d08c03a3cb5b81071c019195"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-hg:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-hg\\2.0.0\\maven-scm-provider-hg-2.0.0.jar",
+        "sha256": "73e14ab476df757fc4f71131cc78d2b4afd648580a1e1cdb60e56543afd24251"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-svnexe:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-svnexe\\2.0.0\\maven-scm-provider-svnexe-2.0.0.jar",
+        "sha256": "9d1c68bc238328ad74485698523c9b393888960dff8d749770e2de527fa826d3"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-manager-plexus:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-manager-plexus\\2.0.0\\maven-scm-manager-plexus-2.0.0.jar",
+        "sha256": "08145fa8c0cdfa4cd170799ae1c8fa8dbe4bbc633c54938a7f1492794412651f"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-provider-svn-commons:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-provider-svn-commons\\2.0.0\\maven-scm-provider-svn-commons-2.0.0.jar",
+        "sha256": "211fa4a6598003a20b38e82d7b94665a351e8c33f53a213f7a9efeffa7ec8e4e"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-shared-utils:jar:3.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-shared-utils\\3.4.2\\maven-shared-utils-3.4.2.jar",
+        "sha256": "b613357e1bad4dfc1dead801691c9460f9585fe7c6b466bc25186212d7d18487"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.11.0\\commons-io-2.11.0.jar",
+        "sha256": "961b2f6d87dbacc5d54abf45ab7a6e2495f89b75598962d8c723cea9bc210908"
+      },
+      {
+        "gav": "org.jdom:jdom2:jar:2.0.6.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jdom\\jdom2\\2.0.6.1\\jdom2-2.0.6.1.jar",
+        "sha256": "0b20f45e3a0fd8f0d12cdc5316b06776e902b1365db00118876f9175c60f302c"
+      },
+      {
+        "gav": "org.apache.maven.plugin-tools:maven-plugin-annotations:jar:3.7.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugin-tools\\maven-plugin-annotations\\3.7.0\\maven-plugin-annotations-3.7.0.jar",
+        "sha256": "6f154c4eb3bc50dd609e794b364fd18661a4b0b91c7e4a0810127a7620e30603"
+      },
+      {
+        "gav": "org.apache.maven.scm:maven-scm-api:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\scm\\maven-scm-api\\2.0.0\\maven-scm-api-2.0.0.jar",
+        "sha256": "687a773ba4a9dbe27f822b0bf82df2807a0259b5dfbac4c11d3cae90707aa63c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.5.1\\plexus-utils-3.5.1.jar",
+        "sha256": "86e0255d4c879c61b4833ed7f13124e8bb679df47debb127326e7db7dd49a07b"
+      },
+      {
+        "gav": "org.apache.maven.release:maven-release-oddeven-policy:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\release\\maven-release-oddeven-policy\\3.0.1\\maven-release-oddeven-policy-3.0.1.jar",
+        "sha256": "07c628b296d34f772d900b6cd5cd6849b7956abf8de19e0940bf562306a7cd7d"
+      },
+      {
+        "gav": "org.apache.maven.release:maven-release-semver-policy:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\release\\maven-release-semver-policy\\3.0.1\\maven-release-semver-policy-3.0.1.jar",
+        "sha256": "d6556d790ecae21f558d094d8be21819ad05eeb549c3279cecf227d288d2a328"
+      },
+      {
+        "gav": "org.semver:api:jar:0.9.33",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\semver\\api\\0.9.33\\api-0.9.33.jar",
+        "sha256": "31c6d3d6a3a0794cdcf9e7551c62468e96649c40ef7ece45839b495ae7c62df2"
+      },
+      {
+        "gav": "com.google.code.findbugs:jsr305:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\code\\findbugs\\jsr305\\2.0.0\\jsr305-2.0.0.jar",
+        "sha256": "1e7f53fa5b8b5c807e986ba335665da03f18d660802d8bf061823089d1bee468"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:5.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\5.0.3\\asm-5.0.3.jar",
+        "sha256": "71c4f78e437b8fdcd9cc0dfd2abea8c089eb677005a6a5cff320206cc52b46cc"
+      },
+      {
+        "gav": "org.ow2.asm:asm-commons:jar:5.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm-commons\\5.0.3\\asm-commons-5.0.3.jar",
+        "sha256": "18c1e092230233c9d29e46f21943d769bdb48130cc279e4b0e663f423948c2da"
+      },
+      {
+        "gav": "org.ow2.asm:asm-tree:jar:5.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm-tree\\5.0.3\\asm-tree-5.0.3.jar",
+        "sha256": "347a7a9400f9964e87c91d3980e48eebdc8d024bc3b36f7f22189c662853a51c"
+      },
+      {
+        "gav": "commons-lang:commons-lang:jar:1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-lang\\commons-lang\\1.0\\commons-lang-1.0.jar",
+        "sha256": "d327c033f798997b9ad85b33242e2e88b49bbb1369cfe23e10b2686bd4cf3218"
+      },
+      {
+        "gav": "junit:junit:jar:4.13.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\junit\\junit\\4.13.2\\junit-4.13.2.jar",
+        "sha256": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3"
+      },
+      {
+        "gav": "org.hamcrest:hamcrest-core:jar:1.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\hamcrest\\hamcrest-core\\1.3\\hamcrest-core-1.3.jar",
+        "sha256": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9"
+      },
+      {
+        "gav": "de.tototec:de.tototec.cmdoption:jar:0.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\de\\tototec\\de.tototec.cmdoption\\0.2.0\\de.tototec.cmdoption-0.2.0.jar",
+        "sha256": "0dd7dcc62323c7e5c425f261fc026dfe5e69afb8dd49ee51d56b8efc6f1121f5"
+      }
+    ],
+    "org.xolstice.maven.plugins:protobuf-maven-plugin:jar:0.6.1": [
+      {
+        "gav": "org.xolstice.maven.plugins:protobuf-maven-plugin:jar:0.6.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\xolstice\\maven\\plugins\\protobuf-maven-plugin\\0.6.1\\protobuf-maven-plugin-0.6.1.jar",
+        "sha256": "a5b787fa7bfbb8e9f7a368df9eec394d6e50f4512b7ebe3b3d5bcec1d0fe3512"
+      },
+      {
+        "gav": "org.xolstice.maven.plugins:protobuf-maven-plugin:jar:0.6.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\xolstice\\maven\\plugins\\protobuf-maven-plugin\\0.6.1\\protobuf-maven-plugin-0.6.1.jar",
+        "sha256": "a5b787fa7bfbb8e9f7a368df9eec394d6e50f4512b7ebe3b3d5bcec1d0fe3512"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.6.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.6.2\\plexus-utils-3.6.2.jar",
+        "sha256": "7c2cdf8b4a02a2ee3f0514b8d74ad5eb6e2365eeb073a5cabd6f2d61d8f871df"
+      },
+      {
+        "gav": "org.apache.maven:maven-plugin-api:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-plugin-api\\3.0\\maven-plugin-api-3.0.jar",
+        "sha256": "f5ecc6eaa4a32ee0c115d31525f588f491b2cc75fdeb4ed3c0c662c12ac0c32f"
+      },
+      {
+        "gav": "org.apache.maven:maven-model:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-model\\3.0\\maven-model-3.0.jar",
+        "sha256": "27e426d73f8662b47f60df0e43439b3dec2909c42b89175a6e4431dfed3edafd"
+      },
+      {
+        "gav": "org.sonatype.sisu:sisu-inject-plexus:jar:1.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\sisu\\sisu-inject-plexus\\1.4.2\\sisu-inject-plexus-1.4.2.jar",
+        "sha256": "a65e27aefbe74102d73cd7e3c5c7637021d294a9e7f33132f3c782a76714d0a3"
+      },
+      {
+        "gav": "org.sonatype.sisu:sisu-inject-bean:jar:1.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\sisu\\sisu-inject-bean\\1.4.2\\sisu-inject-bean-1.4.2.jar",
+        "sha256": "fb3160e1e3a7852b441016dbcc97a34e3cf4eeb8ceb9e82edf2729439858f080"
+      },
+      {
+        "gav": "org.sonatype.sisu:sisu-guice:jar:noaop:2.1.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\sisu\\sisu-guice\\2.1.7\\sisu-guice-2.1.7-noaop.jar",
+        "sha256": "240113a2f22fd1f0b182b32baecf0e7876b3a8e41f3c4da3335eeb9ffb24b9f4"
+      },
+      {
+        "gav": "org.apache.maven.plugin-tools:maven-plugin-annotations:jar:3.5.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugin-tools\\maven-plugin-annotations\\3.5.2\\maven-plugin-annotations-3.5.2.jar",
+        "sha256": "5ec6466844f7fc5740ebe36cb4c57cc102a2d27bf363102df84b5ca7bbc6d69f"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-component-annotations:jar:1.7.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-component-annotations\\1.7.1\\plexus-component-annotations-1.7.1.jar",
+        "sha256": "a7fee9435db716bff593e9fb5622bcf9f25e527196485929b0cd4065c43e61df"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-build-api:jar:0.0.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-build-api\\0.0.7\\plexus-build-api-0.0.7.jar",
+        "sha256": "934171640fbd3d2495c50b79b0d9adb11e2c83e65bad157df8fe34bcac0ff798"
+      },
+      {
+        "gav": "org.apache.maven:maven-core:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-core\\3.0\\maven-core-3.0.jar",
+        "sha256": "ba03294ee53e7ba31838e4950f280d033c7744c6c7b31253afc75aa351fbd989"
+      },
+      {
+        "gav": "org.apache.maven:maven-settings:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-settings\\3.0\\maven-settings-3.0.jar",
+        "sha256": "3b1a46b4bc26a0176acaf99312ff2f3a631faf3224b0996af546aa48bd73c647"
+      },
+      {
+        "gav": "org.apache.maven:maven-settings-builder:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-settings-builder\\3.0\\maven-settings-builder-3.0.jar",
+        "sha256": "e17e706c6f03c453f6000599cab607c2af5f1cc6e3a3b1e6fce27e5ef4999eab"
+      },
+      {
+        "gav": "org.apache.maven:maven-repository-metadata:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-repository-metadata\\3.0\\maven-repository-metadata-3.0.jar",
+        "sha256": "c938e4d8cdf0674496749a87e6d3b29aa41b1b35a39898a1ade2bc9eae214c17"
+      },
+      {
+        "gav": "org.apache.maven:maven-model-builder:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-model-builder\\3.0\\maven-model-builder-3.0.jar",
+        "sha256": "1c98a4ec9eb0cb86ecf01710aa75c0346ee3f96edc6edeabcb21ed984120e154"
+      },
+      {
+        "gav": "org.apache.maven:maven-aether-provider:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-aether-provider\\3.0\\maven-aether-provider-3.0.jar",
+        "sha256": "1205a1f229999170dcadcfb885a278ad0bc2295540a251f4c438f887ead7bbd9"
+      },
+      {
+        "gav": "org.sonatype.aether:aether-impl:jar:1.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\aether\\aether-impl\\1.7\\aether-impl-1.7.jar",
+        "sha256": "288149850d8d131763df4151f7e443fd2739e48510a6e4cfe49ca082c76130fa"
+      },
+      {
+        "gav": "org.sonatype.aether:aether-spi:jar:1.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\aether\\aether-spi\\1.7\\aether-spi-1.7.jar",
+        "sha256": "f54a0a28ce3d62af0e1cfe41dde616f645c28e452e77f77b78bc36e74d5e1a69"
+      },
+      {
+        "gav": "org.sonatype.aether:aether-api:jar:1.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\aether\\aether-api\\1.7\\aether-api-1.7.jar",
+        "sha256": "1c5c5ac5e8f29aefc8faa051ffa14eccd85b9e20f4bb35dc82fba7d5da50d326"
+      },
+      {
+        "gav": "org.sonatype.aether:aether-util:jar:1.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\aether\\aether-util\\1.7\\aether-util-1.7.jar",
+        "sha256": "ff690ffc550b7ada3a4b79ef4ca89bf002b24f43a13a35d10195c3bba63d7654"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.14",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.14\\plexus-interpolation-1.14.jar",
+        "sha256": "7fc63378d3e84663619b9bedace9f9fe78b276c2be3c62ca2245449294c84176"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-classworlds:jar:2.2.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-classworlds\\2.2.3\\plexus-classworlds-2.2.3.jar",
+        "sha256": "7d95ad21733b060bfda2142b62439a196bde7644f9f127c299ae86d92179b518"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-sec-dispatcher:jar:1.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-sec-dispatcher\\1.3\\plexus-sec-dispatcher-1.3.jar",
+        "sha256": "3b0559bb8432f28937efe6ca193ef54a8506d0075d73fd7406b9b116c6a11063"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-cipher:jar:1.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-cipher\\1.4\\plexus-cipher-1.4.jar",
+        "sha256": "5a15fdba22669e0fdd06e10dcce6320879e1f7398fbc910cd0677b50672a78c4"
+      },
+      {
+        "gav": "org.apache.maven:maven-artifact:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-artifact\\3.0\\maven-artifact-3.0.jar",
+        "sha256": "759079b9cf0cddae5ba06c96fd72347d82d0bc1d903c95d398c96522b139e470"
+      },
+      {
+        "gav": "org.apache.maven:maven-compat:jar:3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-compat\\3.0\\maven-compat-3.0.jar",
+        "sha256": "3b8ad55703b8b60e6978b0efed24103a331c7ffd788374af85e2020f6c9b1f00"
+      },
+      {
+        "gav": "org.apache.maven.wagon:wagon-provider-api:jar:1.0-beta-6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\wagon\\wagon-provider-api\\1.0-beta-6\\wagon-provider-api-1.0-beta-6.jar",
+        "sha256": "e116f32edcb77067289a3148143f2c0c97b27cf9a1342f8108ee37dec4868861"
+      }
+    ],
+    "org.apache.maven.plugins:maven-site-plugin:jar:3.22.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-site-plugin:jar:3.22.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-site-plugin\\3.22.0\\maven-site-plugin-3.22.0.jar",
+        "sha256": "09fcdd247d329eb3d4eb24e59990ca291a8628b223c824587c57e2e8681f7c31"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-site-plugin:jar:3.22.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-site-plugin\\3.22.0\\maven-site-plugin-3.22.0.jar",
+        "sha256": "09fcdd247d329eb3d4eb24e59990ca291a8628b223c824587c57e2e8681f7c31"
+      },
+      {
+        "gav": "org.apache.maven.reporting:maven-reporting-api:jar:4.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\reporting\\maven-reporting-api\\4.0.0\\maven-reporting-api-4.0.0.jar",
+        "sha256": "cb2cbde3c9c7288f7398a250dcf3c90cf92714cff301f22b298e1091b5def33c"
+      },
+      {
+        "gav": "org.apache.maven.reporting:maven-reporting-exec:jar:2.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\reporting\\maven-reporting-exec\\2.0.1\\maven-reporting-exec-2.0.1.jar",
+        "sha256": "1521ed623146948e531a1f4af1ddf16d0104815602f7fa03ae1b3ea257b4fecc"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.4.1\\maven-resolver-api-1.4.1.jar",
+        "sha256": "33dc67306cc95da14e5444e8b494d967924abf1d01bae1894676164cbd3f6112"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.4.1\\maven-resolver-util-1.4.1.jar",
+        "sha256": "6b2184872fa7cc2ef5a90481b56af9711c15b371e69ab52f0f31bf24e910dd82"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-classworlds:jar:2.9.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-classworlds\\2.9.0\\plexus-classworlds-2.9.0.jar",
+        "sha256": "1ad3292cd563381e3fd632f3fded1988f9e9b2be7a9f3db63ff4c4cedba13fa5"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-shared-utils:jar:3.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-shared-utils\\3.4.2\\maven-shared-utils-3.4.2.jar",
+        "sha256": "b613357e1bad4dfc1dead801691c9460f9585fe7c6b466bc25186212d7d18487"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-transport-wagon:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-transport-wagon\\1.4.1\\maven-resolver-transport-wagon-1.4.1.jar",
+        "sha256": "f9d1111cc22ba12dfa30f65a76a2ba632335f0bc651447d9c266c2f0d1f51e3f"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-spi:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-spi\\1.4.1\\maven-resolver-spi-1.4.1.jar",
+        "sha256": "878a03db532fc9e3e80a78ad68bba2c6a1f435b449ebd0ef9dcbf6ef39bba536"
+      },
+      {
+        "gav": "org.apache.maven.wagon:wagon-provider-api:jar:3.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\wagon\\wagon-provider-api\\3.0.0\\wagon-provider-api-3.0.0.jar",
+        "sha256": "04de4d2f39178998ef3ce5f6d91a358363ad3f5270e897d5547321ea69fa2992"
+      },
+      {
+        "gav": "org.apache.maven:maven-archiver:jar:3.6.6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-archiver\\3.6.6\\maven-archiver-3.6.6.jar",
+        "sha256": "9037dee318a68d7ee5dd2e20f2e657a39597ed2622b52e325ab9becddfbc4d38"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.29",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.29\\plexus-interpolation-1.29.jar",
+        "sha256": "088d444dbcedfb384630d8686697ece3c401d6f33c8f8b3aa7259ea1c6996878"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-archiver:jar:4.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-archiver\\4.11.0\\plexus-archiver-4.11.0.jar",
+        "sha256": "d24c3ca2185009d81b1ce3ee90cff1cfeab53b70fadbb3ae0c02a867d7c96034"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-io:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-io\\3.6.0\\plexus-io-3.6.0.jar",
+        "sha256": "fc0f3effea7514e4f214df1afb672f54c982e78e5ca3b32b34196c7d056a1aa4"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.28.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.28.0\\commons-compress-1.28.0.jar",
+        "sha256": "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.19.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.19.0\\commons-codec-1.19.0.jar",
+        "sha256": "5c3881e4f556855e9c532927ee0c9dfde94cc66760d5805c031a59887070af5f"
+      },
+      {
+        "gav": "org.tukaani:xz:jar:1.11",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tukaani\\xz\\1.11\\xz-1.11.jar",
+        "sha256": "0a4077f6aeae2865532a564807af8d30c26acc6f63b7928d93bd7ab1f2190449"
+      },
+      {
+        "gav": "com.github.luben:zstd-jni:jar:1.5.7-6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\luben\\zstd-jni\\1.5.7-6\\zstd-jni-1.5.7-6.jar",
+        "sha256": "8d6feb1da335f3ab13c584c613e23c7b3c61b392e37956872057baf8f0ca1d6f"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.22.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.22.0\\commons-io-2.22.0.jar",
+        "sha256": "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-i18n:jar:1.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-i18n\\1.1.0\\plexus-i18n-1.1.0.jar",
+        "sha256": "995c0792669a031c94d91960a5beb60e1516abcec17a104f9f47470b36e56e27"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interactivity-api:jar:1.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interactivity-api\\1.5.1\\plexus-interactivity-api-1.5.1.jar",
+        "sha256": "722519f8e7fd2e9cc0e1bc0ed9f678107f7144fdd26b412550da947d013b16ac"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-sink-api:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-sink-api\\2.1.0\\doxia-sink-api-2.1.0.jar",
+        "sha256": "b465db838dd482a994d32a088bea4bcbaa62cfb8b2853511a9f8c3e769402c74"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-core:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-core\\2.1.0\\doxia-core-2.1.0.jar",
+        "sha256": "2a439e0f4672b69ae623ea992149e0da52eb0fa3bebfbdc4c829585d7d3358c7"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-xhtml5:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-xhtml5\\2.1.0\\doxia-module-xhtml5-2.1.0.jar",
+        "sha256": "7046028cc59f088f61daeea3edc71f198f19ccf937768599f92e5b39da58552c"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-apt:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-apt\\2.1.0\\doxia-module-apt-2.1.0.jar",
+        "sha256": "386b52553ca68e9c75a8b5aa160cd8fe090ddec36fbca98e37b162a4ae27b4ef"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-xdoc:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-xdoc\\2.1.0\\doxia-module-xdoc-2.1.0.jar",
+        "sha256": "7eeae6fba09a65df58f4bc445731a4dcb2aa6b165c4b1c0000454c98e94c178d"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-fml:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-fml\\2.1.0\\doxia-module-fml-2.1.0.jar",
+        "sha256": "694f1f121905ea7933bacef9622bf9831681e9bc2ff3b8851b2b0ccefb058f41"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-markdown:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-markdown\\2.1.0\\doxia-module-markdown-2.1.0.jar",
+        "sha256": "541ca7115bf1d0b915df9437b63a6c5488408f5f7ea51b0d9e8c336e9d7d0328"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark\\0.62.2\\flexmark-0.62.2.jar",
+        "sha256": "5ebc1707b86c22c70a0ef7c5b7b38a9361c80b89b6bfd0e17be39ab0ed3272a6"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-builder:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-builder\\0.62.2\\flexmark-util-builder-0.62.2.jar",
+        "sha256": "1f3177abf51b4e26e2bba994df4902b392c7336e16dfee7ab2c492e0685d52f5"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-collection:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-collection\\0.62.2\\flexmark-util-collection-0.62.2.jar",
+        "sha256": "59f350f064aeb3d0e01e97fb773fb9701e3605d9db7a6eb12bce0686412b3809"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-dependency:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-dependency\\0.62.2\\flexmark-util-dependency-0.62.2.jar",
+        "sha256": "582d01d2f3f42a9ea966551b354edbd6c19dfc70be74f470bc847db255de1367"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-format:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-format\\0.62.2\\flexmark-util-format-0.62.2.jar",
+        "sha256": "78ced2e678e746a78948ce9469fe95ec78c22d085b0254cce7f826b40231087f"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-html:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-html\\0.62.2\\flexmark-util-html-0.62.2.jar",
+        "sha256": "377bbf407bc7d7b091ada9eba16b058b7e7fa60ed4a3ee3c584c5d514e159786"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-visitor:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-visitor\\0.62.2\\flexmark-util-visitor-0.62.2.jar",
+        "sha256": "7197bfcfdeca859c2da2d775f322f98b9fd722cb992760a9678ba4c706eac982"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-data:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-data\\0.62.2\\flexmark-util-data-0.62.2.jar",
+        "sha256": "4ec42683f8ae51ee8227f3443a54ef0d70d076b593890abac24648d93eecc39c"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-misc:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-misc\\0.62.2\\flexmark-util-misc-0.62.2.jar",
+        "sha256": "06cec0698633f875e668b401dbab208e0f56a5d55f956a993209efae6be45da6"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-sequence:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-sequence\\0.62.2\\flexmark-util-sequence-0.62.2.jar",
+        "sha256": "6684a0048ad088452419a2871a6516e7fd3013700cb34a71cca4f9f31a0320c4"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-ast:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-ast\\0.62.2\\flexmark-util-ast-0.62.2.jar",
+        "sha256": "762c1c2b9cec0cdf53fe1fa1068061265a44f7bc33e672c13f838a697189e434"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-abbreviation:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-abbreviation\\0.62.2\\flexmark-ext-abbreviation-0.62.2.jar",
+        "sha256": "874511f0f08d0a0d58dbf8a2e08d55c055b642a4225cd54f6dd8101c93e16f4d"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util\\0.62.2\\flexmark-util-0.62.2.jar",
+        "sha256": "36bb72a3b57a99ff751190cb538ad553499bd49bc24763c642d58c61e9d5b171"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-util-options:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-util-options\\0.62.2\\flexmark-util-options-0.62.2.jar",
+        "sha256": "a26573c1fedb494d2ff06d28db852d316f4d6fc3b43ed2247afbacd743d9ae50"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-autolink:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-autolink\\0.62.2\\flexmark-ext-autolink-0.62.2.jar",
+        "sha256": "527d4a294778d7dcc7f309d407eba0526816ced2d691c51308606b286abf6573"
+      },
+      {
+        "gav": "org.nibor.autolink:autolink:jar:0.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\nibor\\autolink\\autolink\\0.6.0\\autolink-0.6.0.jar",
+        "sha256": "a80be030f6386f18111cad9161c0b6983157352a1b59a59e6002172f0d321c04"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-definition:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-definition\\0.62.2\\flexmark-ext-definition-0.62.2.jar",
+        "sha256": "0884b4d242bb8b6568d75f84380e07e7b7e99913b50b29d23c42617fdcbf4ede"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-escaped-character:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-escaped-character\\0.62.2\\flexmark-ext-escaped-character-0.62.2.jar",
+        "sha256": "ab4e540ee67cbd56356d338787b9804fd67df1c99f57b4bc77789e38464e4116"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-footnotes:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-footnotes\\0.62.2\\flexmark-ext-footnotes-0.62.2.jar",
+        "sha256": "70cf00622d7a46f3b37b670da0771c9c5976b8a7f0e1f10e1466d0b190d3a1ee"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-gfm-strikethrough:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-gfm-strikethrough\\0.62.2\\flexmark-ext-gfm-strikethrough-0.62.2.jar",
+        "sha256": "a46a7c2abd5e8f2d6655b7e870408053e0beb2dd14a5acec4f2b18f6e5b1f0cf"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-tables:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-tables\\0.62.2\\flexmark-ext-tables-0.62.2.jar",
+        "sha256": "761943d94020b78ac27c89840d9979328fc4cb18cb03aed23ee3b9767bf924b5"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-typographic:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-typographic\\0.62.2\\flexmark-ext-typographic-0.62.2.jar",
+        "sha256": "0bbf8e501174ed9536a95aaba329f1da0481d3a4c486b9b1901d02211f3bf3e0"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-wikilink:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-wikilink\\0.62.2\\flexmark-ext-wikilink-0.62.2.jar",
+        "sha256": "370676119e0db87453fe00d823c5b40172980cb24891ea4fedacf88eff909da3"
+      },
+      {
+        "gav": "com.vladsch.flexmark:flexmark-ext-yaml-front-matter:jar:0.62.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\vladsch\\flexmark\\flexmark-ext-yaml-front-matter\\0.62.2\\flexmark-ext-yaml-front-matter-0.62.2.jar",
+        "sha256": "d59096960d6c80b29b64d4d9dac936b2c121d0b11c3e00b3dfcc1329dbc113b1"
+      },
+      {
+        "gav": "org.jsoup:jsoup:jar:1.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jsoup\\jsoup\\1.22.1\\jsoup-1.22.1.jar",
+        "sha256": "cfd3298d8720cddfb0545109ccc6ea0ef39eff7e9c40a10ad95c93a65f01c916"
+      },
+      {
+        "gav": "org.jetbrains:annotations:jar:26.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jetbrains\\annotations\\26.1.0\\annotations-26.1.0.jar",
+        "sha256": "ebc7aec252ed0c7d2d04c039d7f00e69f7b86b1f493c741d67b3ef31b986b054"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-site-model:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-site-model\\2.1.0\\doxia-site-model-2.1.0.jar",
+        "sha256": "11eeeb79433fec1a36f5ad33305b010f4b0933afb70ba6f1285dbfecedb90d89"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.plexus:jar:1.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.plexus\\1.0.0\\org.eclipse.sisu.plexus-1.0.0.jar",
+        "sha256": "865b5300034fc08c790215d7d97f141914c932191bef9338a7dcef589f7536e9"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.inject:jar:1.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.inject\\1.0.0\\org.eclipse.sisu.inject-1.0.0.jar",
+        "sha256": "3ab8d7bfe68f3b6ec95c1a0a47e628edbc9d76e90634cb0a0ba121fbb11b8e42"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:9.9.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\9.9.1\\asm-9.9.1.jar",
+        "sha256": "6f3828a215c920059a5efa2fb55c233d6c54ec5cadca99ce1b1bdd10077c7ddd"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-component-annotations:jar:2.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-component-annotations\\2.2.0\\plexus-component-annotations-2.2.0.jar",
+        "sha256": "50edb93c73786e62822b4fe1336e22880fdf147191373cf5c911370e16748fcf"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-site-renderer:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-site-renderer\\2.1.0\\doxia-site-renderer-2.1.0.jar",
+        "sha256": "dcff71b635559695643d8a7ecec3c22d8437ab5a46db54dbcd28b9585b8668b0"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-skin-model:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-skin-model\\2.1.0\\doxia-skin-model-2.1.0.jar",
+        "sha256": "6ec34a33e393592f6d22cc39b7eab38fac4b5d8941c60187a299696a5b7c8e00"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-velocity:jar:2.3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-velocity\\2.3.0\\plexus-velocity-2.3.0.jar",
+        "sha256": "6c9078006d851125b487d31cc3d81ec9e3208b43a9c7a7e2cae5e713ddc654f4"
+      },
+      {
+        "gav": "org.apache.velocity:velocity-engine-core:jar:2.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\velocity\\velocity-engine-core\\2.4.1\\velocity-engine-core-2.4.1.jar",
+        "sha256": "1c19157d1171d560088e485be97c93a7a2f7e9f56e517f0a30273c5c39df6231"
+      },
+      {
+        "gav": "org.apache.velocity.tools:velocity-tools-generic:jar:3.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\velocity\\tools\\velocity-tools-generic\\3.1\\velocity-tools-generic-3.1.jar",
+        "sha256": "8258cfdcaa16127f35ffe610a3fa4f76b7ebe51b88922c73c4ee39ce8f378ce5"
+      },
+      {
+        "gav": "commons-beanutils:commons-beanutils:jar:1.9.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-beanutils\\commons-beanutils\\1.9.4\\commons-beanutils-1.9.4.jar",
+        "sha256": "7d938c81789028045c08c065e94be75fc280527620d5bd62b519d5838532368a"
+      },
+      {
+        "gav": "commons-logging:commons-logging:jar:1.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-logging\\commons-logging\\1.2\\commons-logging-1.2.jar",
+        "sha256": "daddea1ea0be0f56978ab3006b8ac92834afeefbd9b7e4e6316fca57df0fa636"
+      },
+      {
+        "gav": "commons-collections:commons-collections:jar:3.2.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-collections\\commons-collections\\3.2.2\\commons-collections-3.2.2.jar",
+        "sha256": "eeeae917917144a68a741d4c0dff66aa5c5c5fd85593ff217bced3fc8ca783b8"
+      },
+      {
+        "gav": "org.apache.commons:commons-digester3:jar:3.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-digester3\\3.2\\commons-digester3-3.2.jar",
+        "sha256": "1c150e3d2df4b4237b47e28fea2079fb0da324578d5cca6a5fed2e37a62082ec"
+      },
+      {
+        "gav": "com.github.cliftonlabs:json-simple:jar:3.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\cliftonlabs\\json-simple\\3.0.2\\json-simple-3.0.2.jar",
+        "sha256": "fda65a9ad0e1ac0c88987106e89aa4d8b2a2495e7e042371efa83813f65b7295"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-integration-tools:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-integration-tools\\2.1.0\\doxia-integration-tools-2.1.0.jar",
+        "sha256": "05c5d3b498e94a4107f5851c87aebde155e7dea24c1dd4edf983bae3d11727b2"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.20.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.20.0\\commons-lang3-3.20.0.jar",
+        "sha256": "69e5c9fa35da7a51a5fd2099dfe56a2d8d32cf233e2f6d770e796146440263f4"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-server:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-server\\9.4.58.v20250814\\jetty-server-9.4.58.v20250814.jar",
+        "sha256": "608dbd3e1c4184374f02c70704e5d1c9daaded45e6a31d07824f40dac6083ba9"
+      },
+      {
+        "gav": "javax.servlet:javax.servlet-api:jar:3.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\servlet\\javax.servlet-api\\3.1.0\\javax.servlet-api-3.1.0.jar",
+        "sha256": "af456b2dd41c4e82cf54f3e743bc678973d9fe35bd4d3071fa05c7e5333b8482"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-io:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-io\\9.4.58.v20250814\\jetty-io-9.4.58.v20250814.jar",
+        "sha256": "f55b2cc7c05244fd7b1773e99979b740002b0186e45b8a688243d89c7006fe21"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-http:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-http\\9.4.58.v20250814\\jetty-http-9.4.58.v20250814.jar",
+        "sha256": "8f49b8583fc8dbbfe3a0ba80a04c97df64ebabca2981b56ee403c989aba9d4da"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-servlet:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-servlet\\9.4.58.v20250814\\jetty-servlet-9.4.58.v20250814.jar",
+        "sha256": "1c6bb17326147e642c8a41e4657b32bca5057c8958db4da770d09c0904aefcff"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-security:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-security\\9.4.58.v20250814\\jetty-security-9.4.58.v20250814.jar",
+        "sha256": "301548ebf008551a3a4312b04df0ea0468acc2780f863b83cc9cf0d668e62252"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-util-ajax:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-util-ajax\\9.4.58.v20250814\\jetty-util-ajax-9.4.58.v20250814.jar",
+        "sha256": "185430a2eafcdffba18204dbf51cb18436ab4ca09b74d97c1dc13abbadd9704b"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-webapp:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-webapp\\9.4.58.v20250814\\jetty-webapp-9.4.58.v20250814.jar",
+        "sha256": "3f58ac238deb2218140ffa446661c1d1323752bc4b4ae01653d9500c3fca38aa"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-xml:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-xml\\9.4.58.v20250814\\jetty-xml-9.4.58.v20250814.jar",
+        "sha256": "2fc7f7364ec009fe2bbae574554994cef16c4230de170bd6be51ecd6f6bb95d3"
+      },
+      {
+        "gav": "org.eclipse.jetty:jetty-util:jar:9.4.58.v20250814",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\jetty\\jetty-util\\9.4.58.v20250814\\jetty-util-9.4.58.v20250814.jar",
+        "sha256": "8d591679d318d20c8fb2b1e83900562b3c4571ff7a189696be700293e0204146"
+      }
+    ],
+    "org.apache.maven.plugins:maven-resources-plugin:jar:3.5.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-resources-plugin:jar:3.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-resources-plugin\\3.5.0\\maven-resources-plugin-3.5.0.jar",
+        "sha256": "2c923c63a197565a3e78f2b16d762d0f49bb83250dd2b1e6286704ea0f447060"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-resources-plugin:jar:3.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-resources-plugin\\3.5.0\\maven-resources-plugin-3.5.0.jar",
+        "sha256": "2c923c63a197565a3e78f2b16d762d0f49bb83250dd2b1e6286704ea0f447060"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-filtering:jar:3.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-filtering\\3.5.0\\maven-filtering-3.5.0.jar",
+        "sha256": "7adb0e46b5fff4fc03aab4baafbdee0b29e444cffe4478858c63082d497220bf"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-build-api:jar:1.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-build-api\\1.2.0\\plexus-build-api-1.2.0.jar",
+        "sha256": "570ae55a95e1887c3004882d30dc4e9035d2a46ba8d58b991de04175f141d88f"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-build-api:jar:0.0.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-build-api\\0.0.7\\plexus-build-api-0.0.7.jar",
+        "sha256": "934171640fbd3d2495c50b79b0d9adb11e2c83e65bad157df8fe34bcac0ff798"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.plexus:jar:0.9.0.M4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.plexus\\0.9.0.M4\\org.eclipse.sisu.plexus-0.9.0.M4.jar",
+        "sha256": "b90579bc652eac7331436e0a25533fce14130b9c6e015f2dd3a3d4bb07e942b7"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.29",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.29\\plexus-interpolation-1.29.jar",
+        "sha256": "088d444dbcedfb384630d8686697ece3c401d6f33c8f8b3aa7259ea1c6996878"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.6.0\\plexus-utils-3.6.0.jar",
+        "sha256": "27ef130e32c236090e408fb5498d94cb9ea26d14070fb1c8985d607b62d098d1"
+      }
+    ],
+    "org.apache.maven.plugins:maven-assembly-plugin:jar:3.7.1": [
+      {
+        "gav": "org.apache.maven.plugins:maven-assembly-plugin:jar:3.7.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-assembly-plugin\\3.7.1\\maven-assembly-plugin-3.7.1.jar",
+        "sha256": "1d65f810ae5de6141ff73c659dae6f9db6bad83c76b811d977eb3798a6dc1d0f"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-assembly-plugin:jar:3.7.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-assembly-plugin\\3.7.1\\maven-assembly-plugin-3.7.1.jar",
+        "sha256": "1d65f810ae5de6141ff73c659dae6f9db6bad83c76b811d977eb3798a6dc1d0f"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.4.1\\maven-resolver-util-1.4.1.jar",
+        "sha256": "6b2184872fa7cc2ef5a90481b56af9711c15b371e69ab52f0f31bf24e910dd82"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.4.1\\maven-resolver-api-1.4.1.jar",
+        "sha256": "33dc67306cc95da14e5444e8b494d967924abf1d01bae1894676164cbd3f6112"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-common-artifact-filters:jar:3.3.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-common-artifact-filters\\3.3.2\\maven-common-artifact-filters-3.3.2.jar",
+        "sha256": "2be8b810cf0937ff4bb7bef8ce78a8faad17ca2182751055ac7df54d5510b908"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.27\\plexus-interpolation-1.27.jar",
+        "sha256": "3fb4fb6143fdf964024c3cb738551524b9ea84e5c211cd660c559ad0703e5230"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.15.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.15.1\\commons-io-2.15.1.jar",
+        "sha256": "a58af12ee1b68cfd2ebb0c27caef164f084381a00ec81a48cc275fd7ea54e154"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-filtering:jar:3.3.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-filtering\\3.3.2\\maven-filtering-3.3.2.jar",
+        "sha256": "96739b6e16cd6b04529f4527553e92909090f42c222e2401e1df7e7da0cd1e50"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-build-api:jar:0.0.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-build-api\\0.0.7\\plexus-build-api-0.0.7.jar",
+        "sha256": "934171640fbd3d2495c50b79b0d9adb11e2c83e65bad157df8fe34bcac0ff798"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.14.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.14.0\\commons-lang3-3.14.0.jar",
+        "sha256": "7b96bf3ee68949abb5bc465559ac270e0551596fa34523fddf890ec418dde13c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-io:jar:3.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-io\\3.4.2\\plexus-io-3.4.2.jar",
+        "sha256": "6ba7fb0db6bfa348c248df3f983ae31318e9c14f35a86a932af5ffd7450aa62a"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-archiver:jar:4.9.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-archiver\\4.9.2\\plexus-archiver-4.9.2.jar",
+        "sha256": "a837bd7d73291564dc8e8c826de0fede75896527a35bdcddb77b0545ee656a4c"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.26.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.26.1\\commons-compress-1.26.1.jar",
+        "sha256": "27bb5d40f37c3bb7205b4a0540247df057715e9f6cbbd97d626ab8b50318bb04"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.16.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.16.1\\commons-codec-1.16.1.jar",
+        "sha256": "ec87bfb55f22cbd1b21e2190eeda28b2b312ed2a431ee49fbdcc01812d04a5e4"
+      },
+      {
+        "gav": "org.iq80.snappy:snappy:jar:0.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\iq80\\snappy\\snappy\\0.4\\snappy-0.4.jar",
+        "sha256": "46a0c87d504ce9d6063e1ff6e4d20738feb49d8abf85b5071a7d18df4f11bac9"
+      },
+      {
+        "gav": "org.tukaani:xz:jar:1.9",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tukaani\\xz\\1.9\\xz-1.9.jar",
+        "sha256": "211b306cfc44f8f96df3a0a3ddaf75ba8c5289eed77d60d72f889bb855f535e5"
+      },
+      {
+        "gav": "com.github.luben:zstd-jni:jar:1.5.5-11",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\luben\\zstd-jni\\1.5.5-11\\zstd-jni-1.5.5-11.jar",
+        "sha256": "d75b2ced6059f81ad23e021c554259b906b6c4f2991cb772409827569ead4c1a"
+      },
+      {
+        "gav": "org.apache.maven:maven-archiver:jar:3.6.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-archiver\\3.6.1\\maven-archiver-3.6.1.jar",
+        "sha256": "a5fd6e2121c0a3f5e5cafdf336e21ba2e67a2cf7e781f69e3b8ae28215832823"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.0\\plexus-utils-4.0.0.jar",
+        "sha256": "270cd703b48c6e5c8c691f1875f22d62d22cfe072c73ae2f5814d83d68c1da0b"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.0\\plexus-xml-3.0.0.jar",
+        "sha256": "d2622dc9339b16f5b8c9cad2add440e965831d0e16f19ae1de24e1202b0de536"
+      }
+    ],
+    "org.apache.maven.plugins:maven-antrun-plugin:jar:3.1.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-antrun-plugin:jar:3.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-antrun-plugin\\3.1.0\\maven-antrun-plugin-3.1.0.jar",
+        "sha256": "8ae8f570b8f4ea46fa7f3df27f22ce4c6b6c1f387a6eaeefae6c896aebae1455"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-antrun-plugin:jar:3.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-antrun-plugin\\3.1.0\\maven-antrun-plugin-3.1.0.jar",
+        "sha256": "8ae8f570b8f4ea46fa7f3df27f22ce4c6b6c1f387a6eaeefae6c896aebae1455"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.4.1\\plexus-utils-3.4.1.jar",
+        "sha256": "52d85e04b3918722af11d12855b4a8257df96a0e76c8f4e3852e6faa851f357b"
+      },
+      {
+        "gav": "org.apache.ant:ant:jar:1.10.12",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\ant\\ant\\1.10.12\\ant-1.10.12.jar",
+        "sha256": "5c6a438c3ebe7a306eba452b09fa307b0e60314926177920bca896c4a504eaf6"
+      },
+      {
+        "gav": "org.apache.ant:ant-launcher:jar:1.10.12",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\ant\\ant-launcher\\1.10.12\\ant-launcher-1.10.12.jar",
+        "sha256": "42a7ca7e7bb777fe7ee75a5ed4cc529c766bc43486367fdaad0ab4a32ee9c249"
+      }
+    ],
+    "org.apache.maven.plugins:maven-compiler-plugin:jar:3.15.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-compiler-plugin:jar:3.15.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-compiler-plugin\\3.15.0\\maven-compiler-plugin-3.15.0.jar",
+        "sha256": "6ea0ca0558ccf248c514aa94908d1f895a92e9b4e4604c1bb29f7a4ab1b833f0"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-compiler-plugin:jar:3.15.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-compiler-plugin\\3.15.0\\maven-compiler-plugin-3.15.0.jar",
+        "sha256": "6ea0ca0558ccf248c514aa94908d1f895a92e9b4e4604c1bb29f7a4ab1b833f0"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:9.9.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\9.9.1\\asm-9.9.1.jar",
+        "sha256": "6f3828a215c920059a5efa2fb55c233d6c54ec5cadca99ce1b1bdd10077c7ddd"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-shared-utils:jar:3.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-shared-utils\\3.4.2\\maven-shared-utils-3.4.2.jar",
+        "sha256": "b613357e1bad4dfc1dead801691c9460f9585fe7c6b466bc25186212d7d18487"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.11.0\\commons-io-2.11.0.jar",
+        "sha256": "961b2f6d87dbacc5d54abf45ab7a6e2495f89b75598962d8c723cea9bc210908"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-shared-incremental:jar:1.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-shared-incremental\\1.1\\maven-shared-incremental-1.1.jar",
+        "sha256": "61988e54486a5dc38f06c70fdae5b108556c63bd433697b9f4305fcdb30fa40e"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-java:jar:1.5.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-java\\1.5.2\\plexus-java-1.5.2.jar",
+        "sha256": "1e6a4298e145c1e23af430b04ac53d76dc11077e0f3d36ef9c027ce790d96505"
+      },
+      {
+        "gav": "com.thoughtworks.qdox:qdox:jar:2.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\thoughtworks\\qdox\\qdox\\2.2.0\\qdox-2.2.0.jar",
+        "sha256": "c260c3230b2340af97d54bf01f7f67ebc57c901922736c881bb11cb981302be2"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-compiler-api:jar:2.16.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-compiler-api\\2.16.2\\plexus-compiler-api-2.16.2.jar",
+        "sha256": "db34d13c8d688063a946922f4de448c909ba43fec355ea15514495f33072b031"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-compiler-manager:jar:2.16.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-compiler-manager\\2.16.2\\plexus-compiler-manager-2.16.2.jar",
+        "sha256": "99630ac196571a2754baa143a12723795b13020631902a6dff18dfb997e59b0e"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-compiler-javac:jar:2.16.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-compiler-javac\\2.16.2\\plexus-compiler-javac-2.16.2.jar",
+        "sha256": "e48141c146d6cb96619aafb07b2e10e1ac08f339e96ae4067ddd9c2d0f626672"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.2\\plexus-utils-4.0.2.jar",
+        "sha256": "8957274e75fe2c278b1428dd16a0daeee1dd38152cb6eff816177ac28fccb697"
+      }
+    ],
+    "org.apache.maven.plugins:maven-surefire-plugin:jar:3.6.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-surefire-plugin:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-surefire-plugin\\3.6.0\\maven-surefire-plugin-3.6.0.jar",
+        "sha256": "07117c7456920c14b9d3bdb9b1e82fbcb2fc5004ff2a3bd19c8fc6d25d6f15bb"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-surefire-plugin:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-surefire-plugin\\3.6.0\\maven-surefire-plugin-3.6.0.jar",
+        "sha256": "07117c7456920c14b9d3bdb9b1e82fbcb2fc5004ff2a3bd19c8fc6d25d6f15bb"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-api:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-api\\3.6.0\\surefire-api-3.6.0.jar",
+        "sha256": "b8cae78767db8c6660f9f07e635ec3e001b883f4e74087f60e995f39a848627e"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-logger-api:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-logger-api\\3.6.0\\surefire-logger-api-3.6.0.jar",
+        "sha256": "3872f9506242841831b3ee321d5ae325128d3329906c6b83474056d91d2a309a"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-shared-utils:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-shared-utils\\3.6.0\\surefire-shared-utils-3.6.0.jar",
+        "sha256": "ce8cc10ffb0e848a8078acc9ddfd447ff69e308f82f431c6311af50c43404c6b"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-extensions-api:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-extensions-api\\3.6.0\\surefire-extensions-api-3.6.0.jar",
+        "sha256": "8e2c305480fde793118cf1257696b7797ba25f3a40c6b3f44a349fd9445e3022"
+      },
+      {
+        "gav": "org.apache.maven.surefire:maven-surefire-common:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\maven-surefire-common\\3.6.0\\maven-surefire-common-3.6.0.jar",
+        "sha256": "acf54c9a5dcdad4c5a30c2f731ee9892a80b4cc5126014c4f28851a5dc32c6ab"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-booter:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-booter\\3.6.0\\surefire-booter-3.6.0.jar",
+        "sha256": "d4a5121988ec22355b54d84f68a2638bdb7315814e650756183ba90a9b7cd0d2"
+      },
+      {
+        "gav": "org.apache.maven.surefire:surefire-extensions-spi:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\surefire\\surefire-extensions-spi\\3.6.0\\surefire-extensions-spi-3.6.0.jar",
+        "sha256": "beadeb0485fc7f3505f26b0cfcf26602639b83e9badaebac4a3ce5345cc19c0e"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.9.27\\maven-resolver-util-1.9.27.jar",
+        "sha256": "74a12548f0d6aad13c728666288c1e81201c24bd05bb4e4ec8c1558517b379a7"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.9.27\\maven-resolver-api-1.9.27.jar",
+        "sha256": "a895d222283666a7320ddc76615e2e93a41fabd93ce9a6bf9ddee39272bb87b4"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-common-artifact-filters:jar:3.4.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-common-artifact-filters\\3.4.0\\maven-common-artifact-filters-3.4.0.jar",
+        "sha256": "931a77aa9dad6c91f10fcfafa70adc7608c004576b4924c74ecbffb27568a880"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-java:jar:1.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-java\\1.6.0\\plexus-java-1.6.0.jar",
+        "sha256": "6baf4d39fe0797a5d623218215568252b2b94049c984d71e8b4da2925e024705"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:9.10.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\9.10.1\\asm-9.10.1.jar",
+        "sha256": "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb"
+      },
+      {
+        "gav": "com.github.javaparser:javaparser-core:jar:3.28.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\javaparser\\javaparser-core\\3.28.2\\javaparser-core-3.28.2.jar",
+        "sha256": "b5499a3b1c40b16c0671fabe478c9aafeab38160c6fde74a6c13f42d86716ecd"
+      }
+    ],
+    "org.apache.maven.plugins:maven-jar-plugin:jar:3.5.1": [
+      {
+        "gav": "org.apache.maven.plugins:maven-jar-plugin:jar:3.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-jar-plugin\\3.5.1\\maven-jar-plugin-3.5.1.jar",
+        "sha256": "c83db6059be3fec9a4a68a0e226caefaa944663008617c697e087444415181d5"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-jar-plugin:jar:3.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-jar-plugin\\3.5.1\\maven-jar-plugin-3.5.1.jar",
+        "sha256": "c83db6059be3fec9a4a68a0e226caefaa944663008617c697e087444415181d5"
+      },
+      {
+        "gav": "org.apache.maven.shared:file-management:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\file-management\\3.2.0\\file-management-3.2.0.jar",
+        "sha256": "32ac469785dd1547ac71437e4c3916c4a56a3d69303cb08d789ecdd0bfd1d6de"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.apache.maven:maven-archiver:jar:3.6.6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-archiver\\3.6.6\\maven-archiver-3.6.6.jar",
+        "sha256": "9037dee318a68d7ee5dd2e20f2e657a39597ed2622b52e325ab9becddfbc4d38"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.29",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.29\\plexus-interpolation-1.29.jar",
+        "sha256": "088d444dbcedfb384630d8686697ece3c401d6f33c8f8b3aa7259ea1c6996878"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-archiver:jar:4.12.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-archiver\\4.12.0\\plexus-archiver-4.12.0.jar",
+        "sha256": "b1e9798a6d711d1e7760d50c78be8be746bb546b87df0a2d7ef67db5eda5431e"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-io:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-io\\3.6.0\\plexus-io-3.6.0.jar",
+        "sha256": "fc0f3effea7514e4f214df1afb672f54c982e78e5ca3b32b34196c7d056a1aa4"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.28.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.28.0\\commons-compress-1.28.0.jar",
+        "sha256": "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.19.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.19.0\\commons-codec-1.19.0.jar",
+        "sha256": "5c3881e4f556855e9c532927ee0c9dfde94cc66760d5805c031a59887070af5f"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.18.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.18.0\\commons-lang3-3.18.0.jar",
+        "sha256": "4eeeae8d20c078abb64b015ec158add383ac581571cddc45c68f0c9ae0230720"
+      },
+      {
+        "gav": "org.tukaani:xz:jar:1.12",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tukaani\\xz\\1.12\\xz-1.12.jar",
+        "sha256": "3e158a87bd73d8afb4b6e8239c013b7d049c48563f45860ce99cd2e448cf4a6b"
+      },
+      {
+        "gav": "com.github.luben:zstd-jni:jar:1.5.7-9",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\luben\\zstd-jni\\1.5.7-9\\zstd-jni-1.5.7-9.jar",
+        "sha256": "087d02f39a46ab79b18f883ac7c3a3d6c2df1fd3bf7eaafeade699e0743d0dbe"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.22.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.22.0\\commons-io-2.22.0.jar",
+        "sha256": "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758"
+      }
+    ],
+    "org.apache.maven.plugins:maven-clean-plugin:jar:3.5.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-clean-plugin:jar:3.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-clean-plugin\\3.5.0\\maven-clean-plugin-3.5.0.jar",
+        "sha256": "a15977e3457ff8cd803c1a37e1e53aad76e4609cd23bbca8e8f783e5c78e5fa8"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-clean-plugin:jar:3.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-clean-plugin\\3.5.0\\maven-clean-plugin-3.5.0.jar",
+        "sha256": "a15977e3457ff8cd803c1a37e1e53aad76e4609cd23bbca8e8f783e5c78e5fa8"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.2\\plexus-utils-4.0.2.jar",
+        "sha256": "8957274e75fe2c278b1428dd16a0daeee1dd38152cb6eff816177ac28fccb697"
+      }
+    ],
+    "org.owasp:dependency-check-maven:jar:13.0.0": [
+      {
+        "gav": "org.owasp:dependency-check-maven:jar:13.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\owasp\\dependency-check-maven\\13.0.0\\dependency-check-maven-13.0.0.jar",
+        "sha256": "627ab0406bde4ae5261a5dc002cd233ddf6a044d6b3b92950188abf1951b4b13"
+      },
+      {
+        "gav": "org.owasp:dependency-check-maven:jar:13.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\owasp\\dependency-check-maven\\13.0.0\\dependency-check-maven-13.0.0.jar",
+        "sha256": "627ab0406bde4ae5261a5dc002cd233ddf6a044d6b3b92950188abf1951b4b13"
+      },
+      {
+        "gav": "org.apache.httpcomponents.client5:httpclient5:jar:5.6.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\client5\\httpclient5\\5.6.4\\httpclient5-5.6.4.jar",
+        "sha256": "bdef5f8841145cd76c4c605ff301bc840eea0d5292332b7b892a93316c0d8ee1"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:2.0.18",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\2.0.18\\slf4j-api-2.0.18.jar",
+        "sha256": "44508fd1576500688c790b190acdd16fec4f8c79a3e0b900afd70503cf055f55"
+      },
+      {
+        "gav": "org.apache.httpcomponents.core5:httpcore5:jar:5.4.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\core5\\httpcore5\\5.4.4\\httpcore5-5.4.4.jar",
+        "sha256": "b08e3c3a440fec2029e89980134c7c787dd6796454641ad1eafb81478d7e8b0b"
+      },
+      {
+        "gav": "org.apache.httpcomponents.core5:httpcore5-h2:jar:5.4.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\core5\\httpcore5-h2\\5.4.4\\httpcore5-h2-5.4.4.jar",
+        "sha256": "9a61441889f9b222ce99581977cc549b4dfca7ac9d2841582c1e57a31fa65b48"
+      },
+      {
+        "gav": "org.owasp:dependency-check-core:jar:13.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\owasp\\dependency-check-core\\13.0.0\\dependency-check-core-13.0.0.jar",
+        "sha256": "698c9958e5e1c12911845ea20a7bc5a1eb3c55cd69e808890d643716da4ed596"
+      },
+      {
+        "gav": "com.kichik.pecoff4j:pecoff4j:jar:0.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\kichik\\pecoff4j\\pecoff4j\\0.4.1\\pecoff4j-0.4.1.jar",
+        "sha256": "adc97f5795994581235582891f81de218239865dcd972d3b0c808e86b1f058c4"
+      },
+      {
+        "gav": "io.github.jeremylong:jcs3-slf4j:jar:1.0.5",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\io\\github\\jeremylong\\jcs3-slf4j\\1.0.5\\jcs3-slf4j-1.0.5.jar",
+        "sha256": "5b2129a9115d17c9fb65b143f375ab0c15f850248fd5aa0f3307d2cc618df09b"
+      },
+      {
+        "gav": "org.apache.commons:commons-jcs3-core:jar:3.2.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-jcs3-core\\3.2.1\\commons-jcs3-core-3.2.1.jar",
+        "sha256": "12c6fe08223820089f60969b6088e6ac5d358aa872de78357585cdacb6c61049"
+      },
+      {
+        "gav": "us.springett:cpe-parser:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\us\\springett\\cpe-parser\\3.0.1\\cpe-parser-3.0.1.jar",
+        "sha256": "f98a50dce0a381e08f0f0ac067801c7f4c51dc7f8f1fe7a3c9960c684a809705"
+      },
+      {
+        "gav": "org.semver4j:semver4j:jar:5.8.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\semver4j\\semver4j\\5.8.0\\semver4j-5.8.0.jar",
+        "sha256": "ca4055d354c9ad37bcb03b932a4bb8288166ec069c75d8ceaff14f8c76197fe6"
+      },
+      {
+        "gav": "org.apache.commons:commons-collections4:jar:4.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-collections4\\4.5.0\\commons-collections4-4.5.0.jar",
+        "sha256": "00f93263c267be201b8ae521b44a7137271b16688435340bf629db1bac0a5845"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.27.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.27.1\\commons-compress-1.27.1.jar",
+        "sha256": "293d80f54b536b74095dcd7ea3cf0a29bbfc3402519281332495f4420d370d16"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.22.1\\commons-codec-1.22.1.jar",
+        "sha256": "78a5d732fbd715e2d10bd7150d2f8030bae57267f8aacc5c88f642cb6c2e5d3f"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.22.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.22.0\\commons-io-2.22.0.jar",
+        "sha256": "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758"
+      },
+      {
+        "gav": "org.apache.commons:commons-text:jar:1.15.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-text\\1.15.0\\commons-text-1.15.0.jar",
+        "sha256": "58d2da30f058512a1e7f914e39241deca4dff5c27a085b4ed2faa9e7208067f6"
+      },
+      {
+        "gav": "org.apache.commons:commons-dbcp2:jar:2.14.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-dbcp2\\2.14.0\\commons-dbcp2-2.14.0.jar",
+        "sha256": "459bebb8191906bacfeb73c62fcebc3e8c1e405a54594212b5f148d0567e668a"
+      },
+      {
+        "gav": "org.apache.commons:commons-pool2:jar:2.13.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-pool2\\2.13.0\\commons-pool2-2.13.0.jar",
+        "sha256": "488ededfcc481666845265a64dccc322fc8f0205940b4943a53de2d8ed04c48c"
+      },
+      {
+        "gav": "jakarta.transaction:jakarta.transaction-api:jar:1.3.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\jakarta\\transaction\\jakarta.transaction-api\\1.3.3\\jakarta.transaction-api-1.3.3.jar",
+        "sha256": "0b02a194dd04ee2e192dc9da9579e10955dd6e8ac707adfc91d92f119b0e67ab"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-core:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-core\\9.12.3\\lucene-core-9.12.3.jar",
+        "sha256": "b64a3f8098a7572034fb30085cdee01b34ec81fb0e5a31b471536af58dc6c01b"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-analysis-common:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-analysis-common\\9.12.3\\lucene-analysis-common-9.12.3.jar",
+        "sha256": "fa571bd7caf0f0b4faf46a72ca004a7836f348c31d92bd522dddcc3d128d287e"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-queryparser:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-queryparser\\9.12.3\\lucene-queryparser-9.12.3.jar",
+        "sha256": "5db83a184512fd7a46cf7b34efa997b5f1b28ad1cee26dd665180b19eab0a1b1"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-queries:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-queries\\9.12.3\\lucene-queries-9.12.3.jar",
+        "sha256": "81c8993da5dcca9da5e4041b623f00169868e37988691434b14fc910c700a30c"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-sandbox:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-sandbox\\9.12.3\\lucene-sandbox-9.12.3.jar",
+        "sha256": "21cf9ad1bb97265983c698b9c5eb071b1a4a1d4f0f74b98c6e61ad8f04c5c9d7"
+      },
+      {
+        "gav": "org.apache.lucene:lucene-facet:jar:9.12.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\lucene\\lucene-facet\\9.12.3\\lucene-facet-9.12.3.jar",
+        "sha256": "688e9b71fecba026e44f0a228cc0e09af3c9aec5e1f5b10e9f102a6730ef7dec"
+      },
+      {
+        "gav": "org.slf4j:jul-to-slf4j:jar:2.0.18",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\jul-to-slf4j\\2.0.18\\jul-to-slf4j-2.0.18.jar",
+        "sha256": "cbb7d1aaaa9e871eb1a06594abd911bf97027152976edf1edc315be75239204e"
+      },
+      {
+        "gav": "org.slf4j:jcl-over-slf4j:jar:2.0.18",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\jcl-over-slf4j\\2.0.18\\jcl-over-slf4j-2.0.18.jar",
+        "sha256": "ec5c36d57d2dbe100f84878f944575cb7871da32c7a115b8d7e0721277045d67"
+      },
+      {
+        "gav": "org.apache.velocity:velocity-engine-core:jar:2.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\velocity\\velocity-engine-core\\2.4.1\\velocity-engine-core-2.4.1.jar",
+        "sha256": "1c19157d1171d560088e485be97c93a7a2f7e9f56e517f0a30273c5c39df6231"
+      },
+      {
+        "gav": "com.h2database:h2:jar:2.4.240",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\h2database\\h2\\2.4.240\\h2-2.4.240.jar",
+        "sha256": "29b70e427cc1c40cdc376283adbb0cc62853073797bb5fe5761f81fe73d57ce0"
+      },
+      {
+        "gav": "org.eclipse.parsson:jakarta.json:jar:1.1.9",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\parsson\\jakarta.json\\1.1.9\\jakarta.json-1.1.9.jar",
+        "sha256": "75b97f4c8dd035aae97a92478fdd7fe961a6ed7c4051b54377152decafa62a57"
+      },
+      {
+        "gav": "org.jsoup:jsoup:jar:1.23.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jsoup\\jsoup\\1.23.1\\jsoup-1.23.1.jar",
+        "sha256": "8b15e2b28eeb1e0a88a9b7dab4dc0c23524491c56959785dea22f7846897b668"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-databind:jar:2.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-databind\\2.22.1\\jackson-databind-2.22.1.jar",
+        "sha256": "7dcd7e53bec1f56c7ad278bd1ca0840bebcc595d61ce44d6a8439abb75b965b2"
+      },
+      {
+        "gav": "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:jar:2.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\datatype\\jackson-datatype-jsr310\\2.22.1\\jackson-datatype-jsr310-2.22.1.jar",
+        "sha256": "85da45b7e5e565418963ff8f0dcb184365b0557c15468933f4318dde5c3ce845"
+      },
+      {
+        "gav": "com.fasterxml.jackson.module:jackson-module-blackbird:jar:2.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\module\\jackson-module-blackbird\\2.22.1\\jackson-module-blackbird-2.22.1.jar",
+        "sha256": "f39289def4930c5379e734f2c844d764684fe12b738498980be180dbcab97fc7"
+      },
+      {
+        "gav": "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\dataformat\\jackson-dataformat-yaml\\2.22.1\\jackson-dataformat-yaml-2.22.1.jar",
+        "sha256": "cc3a0e540791a9a1cbcd7584767b84572ffda0b72823856558f47dea69ae8ed1"
+      },
+      {
+        "gav": "org.yaml:snakeyaml:jar:2.5",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\yaml\\snakeyaml\\2.5\\snakeyaml-2.5.jar",
+        "sha256": "e6682acf1ace77508ef13649cbf4f8d09d2cf5457bdb61d25ffb6ac0233d78dd"
+      },
+      {
+        "gav": "com.h3xstream.retirejs:retirejs-core:jar:3.0.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\h3xstream\\retirejs\\retirejs-core\\3.0.4\\retirejs-core-3.0.4.jar",
+        "sha256": "ef429049b1e828bfce0a98869765a7f10d7daf41acb03201fcd3404f424d0c37"
+      },
+      {
+        "gav": "com.github.spullara.mustache.java:compiler:jar:0.9.6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\spullara\\mustache\\java\\compiler\\0.9.6\\compiler-0.9.6.jar",
+        "sha256": "c4d697fd3619cb616cc5e22e9530c8a4fd4a8e9a76953c0655ee627cb2d22318"
+      },
+      {
+        "gav": "org.sonatype.ossindex:ossindex-service-client:jar:1.8.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\ossindex\\ossindex-service-client\\1.8.2\\ossindex-service-client-1.8.2.jar",
+        "sha256": "ef692b99e11e558524036447daedf7cb98285407d4db7af579a5914c265f981b"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "com.google.code.gson:gson:jar:2.9.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.9.0\\gson-2.9.0.jar",
+        "sha256": "c96d60551331a196dac54b745aa642cd078ef89b6f267146b705f2c2cbef052d"
+      },
+      {
+        "gav": "javax.xml.bind:jaxb-api:jar:2.3.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\xml\\bind\\jaxb-api\\2.3.1\\jaxb-api-2.3.1.jar",
+        "sha256": "88b955a0df57880a26a74708bc34f74dcaf8ebf4e78843a28b50eae945732b06"
+      },
+      {
+        "gav": "javax.activation:javax.activation-api:jar:1.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\activation\\javax.activation-api\\1.2.0\\javax.activation-api-1.2.0.jar",
+        "sha256": "43fdef0b5b6ceb31b0424b208b930c74ab58fac2ceeb7b3f6fd3aeb8b5ca4393"
+      },
+      {
+        "gav": "com.google.guava:guava:jar:33.6.0-jre",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\guava\\guava\\33.6.0-jre\\guava-33.6.0-jre.jar",
+        "sha256": "dc573e1fca4fd5454f4a5fd3d7da2df03002876a4175bafc14a95980dd7713b3"
+      },
+      {
+        "gav": "com.google.guava:failureaccess:jar:1.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\guava\\failureaccess\\1.0.3\\failureaccess-1.0.3.jar",
+        "sha256": "cbfc3906b19b8f55dd7cfd6dfe0aa4532e834250d7f080bd8d211a3e246b59cb"
+      },
+      {
+        "gav": "com.moandjiezana.toml:toml4j:jar:0.7.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\moandjiezana\\toml\\toml4j\\0.7.2\\toml4j-0.7.2.jar",
+        "sha256": "f5475e63e7e89e5db62223489aec7a56bd303543772077a17c2cb54c19ca3a20"
+      },
+      {
+        "gav": "com.hankcs:aho-corasick-double-array-trie:jar:1.2.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\hankcs\\aho-corasick-double-array-trie\\1.2.3\\aho-corasick-double-array-trie-1.2.3.jar",
+        "sha256": "564f0fc690d50702a313510b9a72e9505ace6e81108e84f65de4feb0da244eb8"
+      },
+      {
+        "gav": "commons-validator:commons-validator:jar:1.10.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-validator\\commons-validator\\1.10.1\\commons-validator-1.10.1.jar",
+        "sha256": "ed74711a78d793ca37f6075e4a1e93d107233dfd20d0bb17e32bad88d38e56aa"
+      },
+      {
+        "gav": "org.eclipse.packager:packager-rpm:jar:0.21.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\packager\\packager-rpm\\0.21.0\\packager-rpm-0.21.0.jar",
+        "sha256": "07d2895d5360e3e29d298d74349577c97610713f17ed442e92db1bcf4a4a6ac2"
+      },
+      {
+        "gav": "org.eclipse.packager:packager-core:jar:0.21.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\packager\\packager-core\\0.21.0\\packager-core-0.21.0.jar",
+        "sha256": "70be2643085e0edba106691211535c9023bdb6fcc2c8348ea43a8438333c43d5"
+      },
+      {
+        "gav": "org.tukaani:xz:jar:1.9",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tukaani\\xz\\1.9\\xz-1.9.jar",
+        "sha256": "211b306cfc44f8f96df3a0a3ddaf75ba8c5289eed77d60d72f889bb855f535e5"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-core:jar:2.22.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-core\\2.22.1\\jackson-core-2.22.1.jar",
+        "sha256": "941ff029bcdb93e83d209ce516c1a7fb8bbac07d0a2fa122f5bf194b2cd7b4f4"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-annotations:jar:2.22",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-annotations\\2.22\\jackson-annotations-2.22.jar",
+        "sha256": "21ddb598807d3a51a876704eb979d9296e1c6a6f47ab1826ff88c6d6a127a2d0"
+      },
+      {
+        "gav": "org.sonatype.goodies:package-url-java:jar:1.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\goodies\\package-url-java\\1.2.0\\package-url-java-1.2.0.jar",
+        "sha256": "a5fe3de2603a5812c0358950c53e550fa2c330ca787c5534fc79576c8146abb4"
+      },
+      {
+        "gav": "joda-time:joda-time:jar:2.14.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\joda-time\\joda-time\\2.14.2\\joda-time-2.14.2.jar",
+        "sha256": "6f65df20eed028bc1a2eba1506e27f943203534d099f94e16b6842391afb72f5"
+      },
+      {
+        "gav": "org.sonatype.ossindex:ossindex-service-api:jar:1.8.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\ossindex\\ossindex-service-api\\1.8.2\\ossindex-service-api-1.8.2.jar",
+        "sha256": "61fb04e93cf2991718057956f92534cbf1494ed5e74250b9dfd6c012bc379aa8"
+      },
+      {
+        "gav": "javax.ws.rs:javax.ws.rs-api:jar:2.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\ws\\rs\\javax.ws.rs-api\\2.0.1\\javax.ws.rs-api-2.0.1.jar",
+        "sha256": "38607d626f2288d8fbc1b1f8a62c369e63806d9a313ac7cbc5f9d6c94f4b466d"
+      },
+      {
+        "gav": "com.esotericsoftware:minlog:jar:1.3.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\esotericsoftware\\minlog\\1.3.1\\minlog-1.3.1.jar",
+        "sha256": "5d4d632cfbebfe0a7644501cc303570b691406181bee65e9916b921c767d7c72"
+      },
+      {
+        "gav": "org.json:json:jar:20260522",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\json\\json\\20260522\\json-20260522.jar",
+        "sha256": "d671b45e5954211f3566722aa614fbd3b5d46e95f4f9da4dc58c173280bb1799"
+      },
+      {
+        "gav": "org.owasp:dependency-check-utils:jar:13.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\owasp\\dependency-check-utils\\13.0.0\\dependency-check-utils-13.0.0.jar",
+        "sha256": "28b00a6ba5a204334a6fd9261604e4130a68d1132ae79c144ad47ce4e0ec609c"
+      },
+      {
+        "gav": "org.apache.maven.reporting:maven-reporting-api:jar:4.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\reporting\\maven-reporting-api\\4.0.0\\maven-reporting-api-4.0.0.jar",
+        "sha256": "cb2cbde3c9c7288f7398a250dcf3c90cf92714cff301f22b298e1091b5def33c"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-sink-api:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-sink-api\\2.1.0\\doxia-sink-api-2.1.0.jar",
+        "sha256": "b465db838dd482a994d32a088bea4bcbaa62cfb8b2853511a9f8c3e769402c74"
+      },
+      {
+        "gav": "org.apache.maven.shared:file-management:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\file-management\\3.2.0\\file-management-3.2.0.jar",
+        "sha256": "32ac469785dd1547ac71437e4c3916c4a56a3d69303cb08d789ecdd0bfd1d6de"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-dependency-tree:jar:3.3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-dependency-tree\\3.3.0\\maven-dependency-tree-3.3.0.jar",
+        "sha256": "a3353f6a82feb950d5e7e64b0cd4ceadea7eb62112e447172e34974a510316f4"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.4.1\\maven-resolver-util-1.4.1.jar",
+        "sha256": "6b2184872fa7cc2ef5a90481b56af9711c15b371e69ab52f0f31bf24e910dd82"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.4.1\\maven-resolver-api-1.4.1.jar",
+        "sha256": "33dc67306cc95da14e5444e8b494d967924abf1d01bae1894676164cbd3f6112"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-common-artifact-filters:jar:3.4.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-common-artifact-filters\\3.4.0\\maven-common-artifact-filters-3.4.0.jar",
+        "sha256": "931a77aa9dad6c91f10fcfafa70adc7608c004576b4924c74ecbffb27568a880"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.20.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.20.0\\commons-lang3-3.20.0.jar",
+        "sha256": "69e5c9fa35da7a51a5fd2099dfe56a2d8d32cf233e2f6d770e796146440263f4"
+      },
+      {
+        "gav": "io.github.jeremylong:open-vulnerability-clients:jar:9.0.6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\io\\github\\jeremylong\\open-vulnerability-clients\\9.0.6\\open-vulnerability-clients-9.0.6.jar",
+        "sha256": "34028f01a88cf7d032809c581e22bc005740391704b88f8147eeeb358fd75068"
+      },
+      {
+        "gav": "org.apache.httpcomponents.client5:httpclient5-cache:jar:5.6.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\client5\\httpclient5-cache\\5.6.3\\httpclient5-cache-5.6.3.jar",
+        "sha256": "8eb52e3c3308f8f6ed425ed0b808b6c850b841238d8ef80a6f7917be55f169a3"
+      },
+      {
+        "gav": "com.samskivert:jmustache:jar:1.16",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\samskivert\\jmustache\\1.16\\jmustache-1.16.jar",
+        "sha256": "3d4b984abd66908f05b38c9c892325cd4785d01ff33922569ff9b90c9ebfc475"
+      },
+      {
+        "gav": "com.github.package-url:packageurl-java:jar:1.5.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\package-url\\packageurl-java\\1.5.0\\packageurl-java-1.5.0.jar",
+        "sha256": "e45551727707acc0c56ac62d56964332ea0f138d6cc3656d988b9369150f5247"
+      },
+      {
+        "gav": "org.jspecify:jspecify:jar:1.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jspecify\\jspecify\\1.0.1\\jspecify-1.0.1.jar",
+        "sha256": "070d75f261fe4c5b8202508366715f7f2d4660f88c8ef7e6d3575e48c9683b66"
+      },
+      {
+        "gav": "com.github.spotbugs:spotbugs-annotations:jar:4.10.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\spotbugs\\spotbugs-annotations\\4.10.3\\spotbugs-annotations-4.10.3.jar",
+        "sha256": "3fabaf088f8cd10803cc87dba4666cf874bdcd2e07ad154ed3fe403647ce3f2a"
+      },
+      {
+        "gav": "com.google.code.findbugs:jsr305:jar:3.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
+        "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+      }
+    ],
+    "org.apache.maven.plugins:maven-dependency-plugin:jar:3.11.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-dependency-plugin:jar:3.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-dependency-plugin\\3.11.0\\maven-dependency-plugin-3.11.0.jar",
+        "sha256": "e37a8fc9ff47435cc6bda257a4501cf79626c8115610ba33c77775ce23b4c3b7"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-dependency-plugin:jar:3.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-dependency-plugin\\3.11.0\\maven-dependency-plugin-3.11.0.jar",
+        "sha256": "e37a8fc9ff47435cc6bda257a4501cf79626c8115610ba33c77775ce23b4c3b7"
+      },
+      {
+        "gav": "eu.maveniverse.maven.domtrip:domtrip-maven:jar:1.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\eu\\maveniverse\\maven\\domtrip\\domtrip-maven\\1.5.1\\domtrip-maven-1.5.1.jar",
+        "sha256": "d8ddc436506a6d2288bcb0cc12c0257793005af1ae67c53d7d7c6c1fd59d82af"
+      },
+      {
+        "gav": "eu.maveniverse.maven.domtrip:domtrip-core:jar:1.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\eu\\maveniverse\\maven\\domtrip\\domtrip-core\\1.5.1\\domtrip-core-1.5.1.jar",
+        "sha256": "7f70f7c35068a99a9e0c527bdd6392a6e07678bd9933ca4429116b8275629f74"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-sink-api:jar:2.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-sink-api\\2.1.0\\doxia-sink-api-2.1.0.jar",
+        "sha256": "b465db838dd482a994d32a088bea4bcbaa62cfb8b2853511a9f8c3e769402c74"
+      },
+      {
+        "gav": "org.apache.maven.reporting:maven-reporting-api:jar:4.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\reporting\\maven-reporting-api\\4.0.0\\maven-reporting-api-4.0.0.jar",
+        "sha256": "cb2cbde3c9c7288f7398a250dcf3c90cf92714cff301f22b298e1091b5def33c"
+      },
+      {
+        "gav": "org.apache.maven.reporting:maven-reporting-impl:jar:4.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\reporting\\maven-reporting-impl\\4.0.0\\maven-reporting-impl-4.0.0.jar",
+        "sha256": "e9e70fdb26ff8b1f15435e3a68866a25c85b1694007e0fbdfe84e48e946fe463"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-site-model:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-site-model\\2.0.0\\doxia-site-model-2.0.0.jar",
+        "sha256": "f6ec9ef75a41d1b826e5ecf02d92c5de90a6bc70ea93d5340988703223bf2205"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-core:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-core\\2.0.0\\doxia-core-2.0.0.jar",
+        "sha256": "939183cf5ced6741745b2475a4adf78ca85885ee0dad6dae28dd3f25bd447ff3"
+      },
+      {
+        "gav": "org.apache.commons:commons-text:jar:1.12.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-text\\1.12.0\\commons-text-1.12.0.jar",
+        "sha256": "de023257ff166044a56bd1aa9124e843cd05dac5806cc705a9311f3556d5a15f"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-integration-tools:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-integration-tools\\2.0.0\\doxia-integration-tools-2.0.0.jar",
+        "sha256": "4aee72f9b30b507964c2f52b63f70e7b41fb9d957359cb5dc13c428abb4b6189"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-interpolation:jar:1.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-interpolation\\1.27\\plexus-interpolation-1.27.jar",
+        "sha256": "3fb4fb6143fdf964024c3cb738551524b9ea84e5c211cd660c559ad0703e5230"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-site-renderer:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-site-renderer\\2.0.0\\doxia-site-renderer-2.0.0.jar",
+        "sha256": "6cdee370194f4b9f742d12ef46528042f480d9bdf3de832de2792e1ae9ffc68d"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-skin-model:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-skin-model\\2.0.0\\doxia-skin-model-2.0.0.jar",
+        "sha256": "3ced0d90353f49e8eb1458f54664b93ec117d79b9789a576da41e2f6f99723e0"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-xhtml5:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-xhtml5\\2.0.0\\doxia-module-xhtml5-2.0.0.jar",
+        "sha256": "c91557679a0eb9fde3175055628ceb7b8fd5ab6d308340770d236fb06265dc26"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-velocity:jar:2.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-velocity\\2.2.0\\plexus-velocity-2.2.0.jar",
+        "sha256": "3e7e902f492c973cf210ddb8267843a3b65e83f5067467e2f4d9af0051f6b8b9"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-apt:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-apt\\2.0.0\\doxia-module-apt-2.0.0.jar",
+        "sha256": "f4a846c448ca85358279184a310f6ee3f46fa39688f74a72961c1bfe222f28a6"
+      },
+      {
+        "gav": "org.apache.maven.doxia:doxia-module-xdoc:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\doxia\\doxia-module-xdoc\\2.0.0\\doxia-module-xdoc-2.0.0.jar",
+        "sha256": "7956aca14f8adbc48bac86b218701dd44cc990063a69edbfca363b105994a474"
+      },
+      {
+        "gav": "org.apache.maven:maven-archiver:jar:3.6.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-archiver\\3.6.2\\maven-archiver-3.6.2.jar",
+        "sha256": "1f895a587df4844d9b7565e8e9a6352afe1d55532458a0dbeb746bc1d02e9216"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.4.1\\maven-resolver-api-1.4.1.jar",
+        "sha256": "33dc67306cc95da14e5444e8b494d967924abf1d01bae1894676164cbd3f6112"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.plexus:jar:1.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.plexus\\1.0.0\\org.eclipse.sisu.plexus-1.0.0.jar",
+        "sha256": "865b5300034fc08c790215d7d97f141914c932191bef9338a7dcef589f7536e9"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.inject:jar:1.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.inject\\1.0.0\\org.eclipse.sisu.inject-1.0.0.jar",
+        "sha256": "3ab8d7bfe68f3b6ec95c1a0a47e628edbc9d76e90634cb0a0ba121fbb11b8e42"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-classworlds:jar:2.9.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-classworlds\\2.9.0\\plexus-classworlds-2.9.0.jar",
+        "sha256": "1ad3292cd563381e3fd632f3fded1988f9e9b2be7a9f3db63ff4c4cedba13fa5"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-archiver:jar:4.11.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-archiver\\4.11.0\\plexus-archiver-4.11.0.jar",
+        "sha256": "d24c3ca2185009d81b1ce3ee90cff1cfeab53b70fadbb3ae0c02a867d7c96034"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.28.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.28.0\\commons-compress-1.28.0.jar",
+        "sha256": "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.19.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.19.0\\commons-codec-1.19.0.jar",
+        "sha256": "5c3881e4f556855e9c532927ee0c9dfde94cc66760d5805c031a59887070af5f"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.21.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.21.0\\commons-io-2.21.0.jar",
+        "sha256": "7d643a2afea8b058b762aa6fb90e5b256f6c729739f8b3784c3370ddc609e88d"
+      },
+      {
+        "gav": "org.tukaani:xz:jar:1.11",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tukaani\\xz\\1.11\\xz-1.11.jar",
+        "sha256": "0a4077f6aeae2865532a564807af8d30c26acc6f63b7928d93bd7ab1f2190449"
+      },
+      {
+        "gav": "com.github.luben:zstd-jni:jar:1.5.7-6",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\luben\\zstd-jni\\1.5.7-6\\zstd-jni-1.5.7-6.jar",
+        "sha256": "8d6feb1da335f3ab13c584c613e23c7b3c61b392e37956872057baf8f0ca1d6f"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.20.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.20.0\\commons-lang3-3.20.0.jar",
+        "sha256": "69e5c9fa35da7a51a5fd2099dfe56a2d8d32cf233e2f6d770e796146440263f4"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-io:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-io\\3.6.0\\plexus-io-3.6.0.jar",
+        "sha256": "fc0f3effea7514e4f214df1afb672f54c982e78e5ca3b32b34196c7d056a1aa4"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-i18n:jar:1.1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-i18n\\1.1.0\\plexus-i18n-1.1.0.jar",
+        "sha256": "995c0792669a031c94d91960a5beb60e1516abcec17a104f9f47470b36e56e27"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-dependency-analyzer:jar:1.17.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-dependency-analyzer\\1.17.1\\maven-dependency-analyzer-1.17.1.jar",
+        "sha256": "1c01883172b50855ceaa68f3688b21a4b8d8bc77435d162db08818680b7fed87"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:9.10",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\9.10\\asm-9.10.jar",
+        "sha256": "34f38c5d5e8bcb32cbd2d11e44bc12725be1ccdb87c3c96000af57fd81df6e64"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-dependency-tree:jar:3.3.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-dependency-tree\\3.3.0\\maven-dependency-tree-3.3.0.jar",
+        "sha256": "a3353f6a82feb950d5e7e64b0cd4ceadea7eb62112e447172e34974a510316f4"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-common-artifact-filters:jar:3.4.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-common-artifact-filters\\3.4.0\\maven-common-artifact-filters-3.4.0.jar",
+        "sha256": "931a77aa9dad6c91f10fcfafa70adc7608c004576b4924c74ecbffb27568a880"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-artifact-transfer:jar:0.13.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-artifact-transfer\\0.13.1\\maven-artifact-transfer-0.13.1.jar",
+        "sha256": "1ac88accde99ed71e65253bd130868c0e654f940f01ade073b895eb2f817cf06"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-component-annotations:jar:2.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-component-annotations\\2.0.0\\plexus-component-annotations-2.0.0.jar",
+        "sha256": "405eef6fc9188241ec88579c3e473f5c8997455c69bcd62e142492aca15106bc"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-shared-utils:jar:3.4.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-shared-utils\\3.4.2\\maven-shared-utils-3.4.2.jar",
+        "sha256": "b613357e1bad4dfc1dead801691c9460f9585fe7c6b466bc25186212d7d18487"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.9.25",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.9.25\\maven-resolver-util-1.9.25.jar",
+        "sha256": "e31330fdb29045f3087b4985cb488a5b5ebbcbd7d879fda14e6ed4dd61b1fdf7"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-build-api:jar:0.0.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-build-api\\0.0.7\\plexus-build-api-0.0.7.jar",
+        "sha256": "934171640fbd3d2495c50b79b0d9adb11e2c83e65bad157df8fe34bcac0ff798"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.apache.velocity:velocity-engine-core:jar:2.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\velocity\\velocity-engine-core\\2.4.1\\velocity-engine-core-2.4.1.jar",
+        "sha256": "1c19157d1171d560088e485be97c93a7a2f7e9f56e517f0a30273c5c39df6231"
+      },
+      {
+        "gav": "org.apache.velocity.tools:velocity-tools-generic:jar:3.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\velocity\\tools\\velocity-tools-generic\\3.1\\velocity-tools-generic-3.1.jar",
+        "sha256": "8258cfdcaa16127f35ffe610a3fa4f76b7ebe51b88922c73c4ee39ce8f378ce5"
+      },
+      {
+        "gav": "commons-beanutils:commons-beanutils:jar:1.9.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-beanutils\\commons-beanutils\\1.9.4\\commons-beanutils-1.9.4.jar",
+        "sha256": "7d938c81789028045c08c065e94be75fc280527620d5bd62b519d5838532368a"
+      },
+      {
+        "gav": "commons-logging:commons-logging:jar:1.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-logging\\commons-logging\\1.2\\commons-logging-1.2.jar",
+        "sha256": "daddea1ea0be0f56978ab3006b8ac92834afeefbd9b7e4e6316fca57df0fa636"
+      },
+      {
+        "gav": "commons-collections:commons-collections:jar:3.2.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-collections\\commons-collections\\3.2.2\\commons-collections-3.2.2.jar",
+        "sha256": "eeeae917917144a68a741d4c0dff66aa5c5c5fd85593ff217bced3fc8ca783b8"
+      },
+      {
+        "gav": "org.apache.commons:commons-digester3:jar:3.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-digester3\\3.2\\commons-digester3-3.2.jar",
+        "sha256": "1c150e3d2df4b4237b47e28fea2079fb0da324578d5cca6a5fed2e37a62082ec"
+      },
+      {
+        "gav": "com.github.cliftonlabs:json-simple:jar:3.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\github\\cliftonlabs\\json-simple\\3.0.2\\json-simple-3.0.2.jar",
+        "sha256": "fda65a9ad0e1ac0c88987106e89aa4d8b2a2495e7e042371efa83813f65b7295"
+      }
+    ],
+    "org.apache.maven.plugins:maven-install-plugin:jar:3.2.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-install-plugin:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-install-plugin\\3.2.0\\maven-install-plugin-3.2.0.jar",
+        "sha256": "6fd9d26eb6f473d123f6138bf54d5bae80466a84dab95ab5017590c010621e35"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-install-plugin:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-install-plugin\\3.2.0\\maven-install-plugin-3.2.0.jar",
+        "sha256": "6fd9d26eb6f473d123f6138bf54d5bae80466a84dab95ab5017590c010621e35"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.9.27\\maven-resolver-util-1.9.27.jar",
+        "sha256": "74a12548f0d6aad13c728666288c1e81201c24bd05bb4e4ec8c1558517b379a7"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.9.27\\maven-resolver-api-1.9.27.jar",
+        "sha256": "a895d222283666a7320ddc76615e2e93a41fabd93ce9a6bf9ddee39272bb87b4"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      }
+    ],
+    "org.apache.maven.plugins:maven-deploy-plugin:jar:3.2.0": [
+      {
+        "gav": "org.apache.maven.plugins:maven-deploy-plugin:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-deploy-plugin\\3.2.0\\maven-deploy-plugin-3.2.0.jar",
+        "sha256": "7e467636a998a377c76163e2891b79d274b7d6886834a29f74089aade68af4aa"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-deploy-plugin:jar:3.2.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-deploy-plugin\\3.2.0\\maven-deploy-plugin-3.2.0.jar",
+        "sha256": "7e467636a998a377c76163e2891b79d274b7d6886834a29f74089aade68af4aa"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:4.0.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\4.0.3\\plexus-utils-4.0.3.jar",
+        "sha256": "421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-xml:jar:3.0.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-xml\\3.0.1\\plexus-xml-3.0.1.jar",
+        "sha256": "c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.9.27\\maven-resolver-util-1.9.27.jar",
+        "sha256": "74a12548f0d6aad13c728666288c1e81201c24bd05bb4e4ec8c1558517b379a7"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.9.27",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.9.27\\maven-resolver-api-1.9.27.jar",
+        "sha256": "a895d222283666a7320ddc76615e2e93a41fabd93ce9a6bf9ddee39272bb87b4"
+      }
+    ],
+    "kr.motd.maven:os-maven-plugin:jar:1.7.1": [
+      {
+        "gav": "kr.motd.maven:os-maven-plugin:jar:1.7.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\kr\\motd\\maven\\os-maven-plugin\\1.7.1\\os-maven-plugin-1.7.1.jar",
+        "sha256": "f47aeef86821e52b2b18758978bd045f03d722292e32e747082122c6228952e0"
+      },
+      {
+        "gav": "kr.motd.maven:os-maven-plugin:jar:1.7.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\kr\\motd\\maven\\os-maven-plugin\\1.7.1\\os-maven-plugin-1.7.1.jar",
+        "sha256": "f47aeef86821e52b2b18758978bd045f03d722292e32e747082122c6228952e0"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.6.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.6.2\\plexus-utils-3.6.2.jar",
+        "sha256": "7c2cdf8b4a02a2ee3f0514b8d74ad5eb6e2365eeb073a5cabd6f2d61d8f871df"
+      },
+      {
+        "gav": "org.apache.maven:maven-plugin-api:jar:3.5.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-plugin-api\\3.5.3\\maven-plugin-api-3.5.3.jar",
+        "sha256": "eb0341df87279f506b0b24e528730a94a459e7e86d0a3f0aa22246b8fd183aec"
+      },
+      {
+        "gav": "org.apache.maven:maven-model:jar:3.5.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-model\\3.5.3\\maven-model-3.5.3.jar",
+        "sha256": "a7b1418f0761e1b31aa930d5a06ac8a468462a3310a6d545d91c71df770f53db"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.5",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.5\\commons-lang3-3.5.jar",
+        "sha256": "8ac96fc686512d777fca85e144f196cd7cfe0c0aec23127229497d1a38ff651c"
+      },
+      {
+        "gav": "org.apache.maven:maven-artifact:jar:3.5.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\maven-artifact\\3.5.3\\maven-artifact-3.5.3.jar",
+        "sha256": "30d066e27379a51c8d9c67b1ab0b7e55d930c9721161b07ef1666ab9fc24c629"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.plexus:jar:0.3.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.plexus\\0.3.3\\org.eclipse.sisu.plexus-0.3.3.jar",
+        "sha256": "98045f5ecd802d6a96ba00394f8cb61259f9ac781ec2cb51ca0cb7b2c94ac720"
+      },
+      {
+        "gav": "javax.enterprise:cdi-api:jar:1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\enterprise\\cdi-api\\1.0\\cdi-api-1.0.jar",
+        "sha256": "1f10b2204cc77c919301f20ff90461c3df1b6e6cb148be1c2d22107f4851d423"
+      },
+      {
+        "gav": "javax.annotation:jsr250-api:jar:1.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\annotation\\jsr250-api\\1.0\\jsr250-api-1.0.jar",
+        "sha256": "a1a922d0d9b6d183ed3800dfac01d1e1eb159f0e8c6f94736931c1def54a941f"
+      },
+      {
+        "gav": "javax.inject:javax.inject:jar:1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\javax\\inject\\javax.inject\\1\\javax.inject-1.jar",
+        "sha256": "91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff"
+      },
+      {
+        "gav": "org.eclipse.sisu:org.eclipse.sisu.inject:jar:0.3.3",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\eclipse\\sisu\\org.eclipse.sisu.inject\\0.3.3\\org.eclipse.sisu.inject-0.3.3.jar",
+        "sha256": "c6935e0b7d362ed4ca768c9b71d5d4d98788ff0a79c0d2bb954c221a078b166b"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-component-annotations:jar:1.5.5",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-component-annotations\\1.5.5\\plexus-component-annotations-1.5.5.jar",
+        "sha256": "4df7a6a7be64b35bbccf60b5c115697f9ea3421d22674ae67135dde375fcca1f"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-classworlds:jar:2.5.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-classworlds\\2.5.2\\plexus-classworlds-2.5.2.jar",
+        "sha256": "b2931d41740490a8d931cbe0cfe9ac20deb66cca606e679f52522f7f534c9fd7"
+      },
+      {
+        "gav": "com.google.code.findbugs:jsr305:jar:3.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
+        "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+      }
+    ],
+    "org.springframework.boot:spring-boot-maven-plugin:jar:3.5.16": [
+      {
+        "gav": "org.springframework.boot:spring-boot-maven-plugin:jar:3.5.16",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\boot\\spring-boot-maven-plugin\\3.5.16\\spring-boot-maven-plugin-3.5.16.jar",
+        "sha256": "38cb61896d3f1029bbf4bd2209a837e26a2421c7d4e8f18c1fe3714d84837b9c"
+      },
+      {
+        "gav": "org.springframework.boot:spring-boot-maven-plugin:jar:3.5.16",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\boot\\spring-boot-maven-plugin\\3.5.16\\spring-boot-maven-plugin-3.5.16.jar",
+        "sha256": "38cb61896d3f1029bbf4bd2209a837e26a2421c7d4e8f18c1fe3714d84837b9c"
+      },
+      {
+        "gav": "org.apache.httpcomponents.client5:httpclient5:jar:5.6.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\client5\\httpclient5\\5.6.4\\httpclient5-5.6.4.jar",
+        "sha256": "bdef5f8841145cd76c4c605ff301bc840eea0d5292332b7b892a93316c0d8ee1"
+      },
+      {
+        "gav": "org.slf4j:slf4j-api:jar:1.7.36",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\slf4j\\slf4j-api\\1.7.36\\slf4j-api-1.7.36.jar",
+        "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      {
+        "gav": "org.apache.httpcomponents.core5:httpcore5:jar:5.4.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\core5\\httpcore5\\5.4.4\\httpcore5-5.4.4.jar",
+        "sha256": "b08e3c3a440fec2029e89980134c7c787dd6796454641ad1eafb81478d7e8b0b"
+      },
+      {
+        "gav": "org.apache.httpcomponents.core5:httpcore5-h2:jar:5.4.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\httpcomponents\\core5\\httpcore5-h2\\5.4.4\\httpcore5-h2-5.4.4.jar",
+        "sha256": "9a61441889f9b222ce99581977cc549b4dfca7ac9d2841582c1e57a31fa65b48"
+      },
+      {
+        "gav": "org.springframework.boot:spring-boot-buildpack-platform:jar:3.5.16",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\boot\\spring-boot-buildpack-platform\\3.5.16\\spring-boot-buildpack-platform-3.5.16.jar",
+        "sha256": "2c0c11fb0e6fc365dfb1a26403f3550119c9e5156b291ab76cc9cd4eb482580f"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-databind:jar:2.21.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-databind\\2.21.4\\jackson-databind-2.21.4.jar",
+        "sha256": "3888e9e69ab66fbacaacc9aea0e9ffbf15368288e4aca468b024dba11c09fbf9"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-annotations:jar:2.21",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-annotations\\2.21\\jackson-annotations-2.21.jar",
+        "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b"
+      },
+      {
+        "gav": "com.fasterxml.jackson.core:jackson-core:jar:2.21.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\core\\jackson-core\\2.21.4\\jackson-core-2.21.4.jar",
+        "sha256": "4b40a06396f239f8de2da57419adde6e94e5edc18a2171d471ea05eeed4e5c2d"
+      },
+      {
+        "gav": "com.fasterxml.jackson.module:jackson-module-parameter-names:jar:2.21.4",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\fasterxml\\jackson\\module\\jackson-module-parameter-names\\2.21.4\\jackson-module-parameter-names-2.21.4.jar",
+        "sha256": "9510f91a4be2c700753ad244596b67424cb32c23659db1dc534219226e5df3a3"
+      },
+      {
+        "gav": "net.java.dev.jna:jna-platform:jar:5.17.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\net\\java\\dev\\jna\\jna-platform\\5.17.0\\jna-platform-5.17.0.jar",
+        "sha256": "b7e3d46c87bad2eb409b0e704916bcd81206168e357312dfddd0e253679cd9e0"
+      },
+      {
+        "gav": "net.java.dev.jna:jna:jar:5.17.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\net\\java\\dev\\jna\\jna\\5.17.0\\jna-5.17.0.jar",
+        "sha256": "b3a9408e7c51e08ef0e3bfcc08f443f6ec0f6191ba8cd7c18d53d2b22e5bdbc0"
+      },
+      {
+        "gav": "org.apache.commons:commons-compress:jar:1.27.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-compress\\1.27.1\\commons-compress-1.27.1.jar",
+        "sha256": "293d80f54b536b74095dcd7ea3cf0a29bbfc3402519281332495f4420d370d16"
+      },
+      {
+        "gav": "commons-codec:commons-codec:jar:1.17.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-codec\\commons-codec\\1.17.1\\commons-codec-1.17.1.jar",
+        "sha256": "f9f6cb103f2ddc3c99a9d80ada2ae7bf0685111fd6bffccb72033d1da4e6ff23"
+      },
+      {
+        "gav": "org.apache.commons:commons-lang3:jar:3.16.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\commons\\commons-lang3\\3.16.0\\commons-lang3-3.16.0.jar",
+        "sha256": "08709dd74d602b705ce4017d26544210056a4ba583d5b20c09373406fe7a00f8"
+      },
+      {
+        "gav": "org.tomlj:tomlj:jar:1.0.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\tomlj\\tomlj\\1.0.0\\tomlj-1.0.0.jar",
+        "sha256": "32697c7567b2921c473678a820b13fc64700aa87bb14576eeb48d0ed5847cfd4"
+      },
+      {
+        "gav": "org.antlr:antlr4-runtime:jar:4.7.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\antlr\\antlr4-runtime\\4.7.2\\antlr4-runtime-4.7.2.jar",
+        "sha256": "4c518b87d4bdff8b44cd8cbc1af816e944b62a3fe5b80b781501cf1f4759bbc4"
+      },
+      {
+        "gav": "com.google.code.findbugs:jsr305:jar:3.0.2",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
+        "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+      },
+      {
+        "gav": "org.springframework.boot:spring-boot-loader-tools:jar:3.5.16",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\boot\\spring-boot-loader-tools\\3.5.16\\spring-boot-loader-tools-3.5.16.jar",
+        "sha256": "8096fc208bea29f8986c3411b65b36edd264292a8b0b3982157b945d79e9113a"
+      },
+      {
+        "gav": "org.apache.maven.shared:maven-common-artifact-filters:jar:3.4.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\shared\\maven-common-artifact-filters\\3.4.0\\maven-common-artifact-filters-3.4.0.jar",
+        "sha256": "931a77aa9dad6c91f10fcfafa70adc7608c004576b4924c74ecbffb27568a880"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-util:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-util\\1.4.1\\maven-resolver-util-1.4.1.jar",
+        "sha256": "6b2184872fa7cc2ef5a90481b56af9711c15b371e69ab52f0f31bf24e910dd82"
+      },
+      {
+        "gav": "org.apache.maven.resolver:maven-resolver-api:jar:1.4.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\resolver\\maven-resolver-api\\1.4.1\\maven-resolver-api-1.4.1.jar",
+        "sha256": "33dc67306cc95da14e5444e8b494d967924abf1d01bae1894676164cbd3f6112"
+      },
+      {
+        "gav": "org.sonatype.plexus:plexus-build-api:jar:0.0.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\sonatype\\plexus\\plexus-build-api\\0.0.7\\plexus-build-api-0.0.7.jar",
+        "sha256": "934171640fbd3d2495c50b79b0d9adb11e2c83e65bad157df8fe34bcac0ff798"
+      },
+      {
+        "gav": "org.springframework:spring-core:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-core\\6.2.19\\spring-core-6.2.19.jar",
+        "sha256": "52146689e71a911c92bac26677d73c692512a739893a57710cc233591756bff6"
+      },
+      {
+        "gav": "org.springframework:spring-jcl:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-jcl\\6.2.19\\spring-jcl-6.2.19.jar",
+        "sha256": "9994478bcea1423b8892d4eb0db942c94da0090167c3c684050c1eaef04491d0"
+      },
+      {
+        "gav": "org.springframework:spring-context:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-context\\6.2.19\\spring-context-6.2.19.jar",
+        "sha256": "ead4b645f94a7f665f00093eaafde634e97b34524294de653b51e43e0b3fc4a4"
+      },
+      {
+        "gav": "org.springframework:spring-aop:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-aop\\6.2.19\\spring-aop-6.2.19.jar",
+        "sha256": "a11b93539d80b02caf76171db2da96df39abebbfef49a2fadd6dda0779f2e20b"
+      },
+      {
+        "gav": "org.springframework:spring-beans:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-beans\\6.2.19\\spring-beans-6.2.19.jar",
+        "sha256": "846dc8f30a639a36eb551ee99a30469be4d11bd285ca9daf164d98321571b404"
+      },
+      {
+        "gav": "org.springframework:spring-expression:jar:6.2.19",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\springframework\\spring-expression\\6.2.19\\spring-expression-6.2.19.jar",
+        "sha256": "d710a44417d890353895b341a722d7d08199e2b7da52f0a11c0e92571e1d6e19"
+      },
+      {
+        "gav": "io.micrometer:micrometer-observation:jar:1.15.12",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\io\\micrometer\\micrometer-observation\\1.15.12\\micrometer-observation-1.15.12.jar",
+        "sha256": "54483e68ed44af1bb0c36d1df2235d36f233e459d52f5a3be3e69813827a6300"
+      },
+      {
+        "gav": "io.micrometer:micrometer-commons:jar:1.15.12",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\io\\micrometer\\micrometer-commons\\1.15.12\\micrometer-commons-1.15.12.jar",
+        "sha256": "4b779cf7acb0534bb1f8e964f25200037ecb3944368f859a630fa637d6d5d7c0"
+      },
+      {
+        "gav": "org.apache.maven.plugins:maven-shade-plugin:jar:3.6.0",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\apache\\maven\\plugins\\maven-shade-plugin\\3.6.0\\maven-shade-plugin-3.6.0.jar",
+        "sha256": "f66fa16d7db430097c222ed82e84d9a1304cab973caf818168f1251695b7e007"
+      },
+      {
+        "gav": "org.codehaus.plexus:plexus-utils:jar:3.5.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\codehaus\\plexus\\plexus-utils\\3.5.1\\plexus-utils-3.5.1.jar",
+        "sha256": "86e0255d4c879c61b4833ed7f13124e8bb679df47debb127326e7db7dd49a07b"
+      },
+      {
+        "gav": "org.ow2.asm:asm:jar:9.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm\\9.7\\asm-9.7.jar",
+        "sha256": "adf46d5e34940bdf148ecdd26a9ee8eea94496a72034ff7141066b3eea5c4e9d"
+      },
+      {
+        "gav": "org.ow2.asm:asm-commons:jar:9.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm-commons\\9.7\\asm-commons-9.7.jar",
+        "sha256": "389bc247958e049fc9a0408d398c92c6d370c18035120395d4cba1d9d9304b7a"
+      },
+      {
+        "gav": "org.ow2.asm:asm-tree:jar:9.7",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\ow2\\asm\\asm-tree\\9.7\\asm-tree-9.7.jar",
+        "sha256": "62f4b3bc436045c1acb5c3ba2d8ec556ec3369093d7f5d06c747eb04b56d52b1"
+      },
+      {
+        "gav": "org.jdom:jdom2:jar:2.0.6.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\jdom\\jdom2\\2.0.6.1\\jdom2-2.0.6.1.jar",
+        "sha256": "0b20f45e3a0fd8f0d12cdc5316b06776e902b1365db00118876f9175c60f302c"
+      },
+      {
+        "gav": "commons-io:commons-io:jar:2.16.1",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\commons-io\\commons-io\\2.16.1\\commons-io-2.16.1.jar",
+        "sha256": "f41f7baacd716896447ace9758621f62c1c6b0a91d89acee488da26fc477c84f"
+      },
+      {
+        "gav": "org.vafer:jdependency:jar:2.10",
+        "path": "C:\\Users\\duwei\\.m2\\repository\\org\\vafer\\jdependency\\2.10\\jdependency-2.10.jar",
+        "sha256": "1dcd8355ab9ebced687715bf1252eb2aee5d0e74497a2014fd3387cfce8df85f"
+      }
+    ]
+  }
+}

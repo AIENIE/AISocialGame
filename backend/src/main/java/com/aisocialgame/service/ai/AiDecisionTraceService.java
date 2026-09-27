@@ -42,6 +42,8 @@ public class AiDecisionTraceService {
                                   String inputSummary) {
         AiDecisionTrace trace = new AiDecisionTrace();
         trace.setRoomId(state.getRoomId());
+        Object instance = state.getData().get("archiveId");
+        if (instance instanceof String value && !value.isBlank()) trace.setInstanceId(value);
         trace.setGameId(state.getGameId());
         trace.setPhase(state.getPhase());
         trace.setRoundNumber(state.getRoundNumber());

@@ -17,6 +17,13 @@ import java.util.UUID;
 @SpringBootTest(classes = AiSocialGameApplication.class)
 @ActiveProfiles("test")
 class RoomServiceTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.aisocialgame.service.AiNameService aiNameService;
+
+    @org.junit.jupiter.api.BeforeEach void mockNames() {
+        org.mockito.Mockito.when(aiNameService.localName(org.mockito.ArgumentMatchers.any())).thenReturn("离线昵称");
+    }
+
 
     @Autowired
     private RoomService roomService;

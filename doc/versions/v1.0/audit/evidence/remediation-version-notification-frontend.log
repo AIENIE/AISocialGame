@@ -1,0 +1,15 @@
+[WARN] Unsupported engine: wanted: {"node":"22.23.2"} (current: {"node":"v24.13.0","pnpm":"11.22.0"})
+$ tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json
+src/pages/games/UndercoverRoom.tsx(87,5): error TS2322: Type '(event?: GameStateEvent | PrivateEvent) => void' is not assignable to type '(data: GameState, variables: void, onMutateResult: unknown, context: MutationFunctionContext) => unknown'.
+  Types of parameters 'event' and 'data' are incompatible.
+    Type 'GameState' is not assignable to type 'GameStateEvent | PrivateEvent'.
+      Property 'type' is missing in type 'GameState' but required in type 'GameStateEvent'.
+src/pages/games/WerewolfRoom.tsx(79,5): error TS2322: Type '(event?: GameStateEvent | PrivateEvent) => void' is not assignable to type '(data: GameState, variables: void, onMutateResult: unknown, context: MutationFunctionContext) => unknown'.
+  Types of parameters 'event' and 'data' are incompatible.
+    Type 'GameState' is not assignable to type 'GameStateEvent | PrivateEvent'.
+      Property 'type' is missing in type 'GameState' but required in type 'GameStateEvent'.
+src/pages/games/WerewolfRoom.tsx(86,5): error TS2322: Type '(event?: GameStateEvent | PrivateEvent) => void' is not assignable to type '(data: GameState, variables: NightActionPayload, onMutateResult: unknown, context: MutationFunctionContext) => unknown'.
+  Types of parameters 'event' and 'data' are incompatible.
+    Type 'GameState' is not assignable to type 'GameStateEvent | PrivateEvent'.
+      Property 'type' is missing in type 'GameState' but required in type 'GameStateEvent'.
+[ELIFECYCLE] Command failed with exit code 2.

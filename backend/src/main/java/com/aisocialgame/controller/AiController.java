@@ -58,16 +58,14 @@ public class AiController {
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request,
                                  @CurrentUser User user) {
+        aiProxyService.requireChargedCallReady(user);
         SseEmitter emitter = new SseEmitter(60_000L);
         String userId = user.getId();
-        if (!aiStreamConcurrencyLimiter.tryAcquire(userId)) {
+        var permit = aiStreamConcurrencyLimiter.tryAcquire(userId);
+        if (permit == null) {
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "AI 流式请求过多，请稍后再试");
         }
-        emitter.onCompletion(() -> aiStreamConcurrencyLimiter.release(userId));
-        emitter.onTimeout(() -> aiStreamConcurrencyLimiter.release(userId));
-        emitter.onError(ignored -> aiStreamConcurrencyLimiter.release(userId));
-        try {
-            aiStreamTaskExecutor.execute(() -> {
+        var task = new com.aisocialgame.service.CancellableAiTask(() -> {
                 try {
                     AiChatResponse response = new AiChatResponse(aiProxyService.chat(request, user));
                     String content = response.getContent() == null ? "" : response.getContent();
@@ -81,9 +79,14 @@ public class AiController {
                 } catch (Exception ex) {
                     emitter.completeWithError(ex);
                 }
-            });
+            }, permit);
+        emitter.onCompletion(() -> task.cancel(true));
+        emitter.onTimeout(() -> task.cancel(true));
+        emitter.onError(ignored -> task.cancel(true));
+        try {
+            aiStreamTaskExecutor.execute(task);
         } catch (RejectedExecutionException ex) {
-            aiStreamConcurrencyLimiter.release(userId);
+            task.cancel(true);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "AI 流式服务繁忙，请稍后再试");
         }
         return emitter;

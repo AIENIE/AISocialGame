@@ -1,0 +1,44 @@
+[ERROR] Failed to execute goal org.owasp:dependency-check-maven:13.0.0:check (default-cli) on project ai-social-game: 
+[ERROR] 
+[ERROR] One or more dependencies were identified with vulnerabilities that have a CVSS score greater than or equal to '7.0': 
+[ERROR] 
+[ERROR] commons-beanutils-1.7.0.jar (pkg:maven/commons-beanutils/commons-beanutils@1.7.0, cpe:2.3:a:apache:commons_beanutils:1.7.0:*:*:*:*:*:*:*): CVE-2025-48734(8.8), CVE-2014-0114(7.5), CVE-2019-10086(7.3)
+[ERROR] commons-compress-1.20.jar (pkg:maven/org.apache.commons/commons-compress@1.20, cpe:2.3:a:apache:commons_compress:1.20:*:*:*:*:*:*:*): CVE-2021-35517(7.5), CVE-2021-35516(7.5), CVE-2021-35515(7.5), CVE-2021-36090(7.5)
+[ERROR] dom4j-1.1.jar (pkg:maven/dom4j/dom4j@1.1, cpe:2.3:a:dom4j_project:dom4j:1.1:*:*:*:*:*:*:*): CVE-2020-10683(9.8)
+[ERROR] doxia-module-twiki-1.11.1.jar (pkg:maven/org.apache.maven.doxia/doxia-module-twiki@1.11.1, cpe:2.3:a:twiki:twiki:1.11.1:*:*:*:*:*:*:*): CVE-2006-6071(9.0), CVE-2008-5305(10.0), CVE-2013-1751(9.8)
+[ERROR] guava-16.0.1.jar (pkg:maven/com.google.guava/guava@16.0.1, cpe:2.3:a:google:guava:16.0.1:*:*:*:*:*:*:*): CVE-2023-2976(7.1)
+[ERROR] httpclient5-5.5.2.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.5.2, cpe:2.3:a:apache:httpclient:5.5.2:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] httpclient5-5.6.3.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.6.3, cpe:2.3:a:apache:httpclient:5.6.3:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] httpcore5-5.3.6.jar (pkg:maven/org.apache.httpcomponents.core5/httpcore5@5.3.6, cpe:2.3:a:apache:httpcomponents_core:5.3.6:*:*:*:*:*:*:*): CVE-2026-54399(7.5), CVE-2026-54428(7.5)
+[ERROR] jackson-databind-2.21.2.jar (pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.21.2, cpe:2.3:a:fasterxml:jackson-core:2.21.2:*:*:*:*:*:*:*, cpe:2.3:a:fasterxml:jackson-databind:2.21.2:*:*:*:*:*:*:*, cpe:2.3:a:fasterxml:jackson-modules-java8:2.21.2:*:*:*:*:*:*:*): CVE-2026-54512(8.1), CVE-2026-54513(8.1)
+[ERROR] jetty-io-9.4.46.v20220331.jar (pkg:maven/org.eclipse.jetty/jetty-io@9.4.46.v20220331, cpe:2.3:a:eclipse:jetty:9.4.46:20220331:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.46:20220331:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.46:20220331:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2024-13009(7.2), CVE-2023-36478(7.5), CVE-2022-2048(7.5), CVE-2026-10050(8.7), CVE-2024-22201(7.5), CVE-2024-9823(7.5), CVE-2023-44487(7.5), CVE-2025-5115(7.7)
+[ERROR] jetty-server-9.4.46.v20220331.jar (pkg:maven/org.eclipse.jetty/jetty-server@9.4.46.v20220331, cpe:2.3:a:eclipse:jetty:9.4.46:20220331:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.46:20220331:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty_http_server:9.4.46:20220331:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.46:20220331:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2024-13009(7.2), CVE-2023-36478(7.5), CVE-2022-2048(7.5), CVE-2026-10050(8.7), CVE-2024-22201(7.5), CVE-2024-9823(7.5), CVE-2023-44487(7.5), CVE-2025-5115(7.7)
+[ERROR] jsoup-1.10.2.jar (pkg:maven/org.jsoup/jsoup@1.10.2, cpe:2.3:a:jsoup:jsoup:1.10.2:*:*:*:*:*:*:*): CVE-2021-37714(7.5)
+[ERROR] log4j-api-2.24.3.jar (pkg:maven/org.apache.logging.log4j/log4j-api@2.24.3, cpe:2.3:a:apache:log4j:2.24.3:*:*:*:*:*:*:*): CVE-2026-34479(6.9)
+[ERROR] maven-core-3.0.jar (pkg:maven/org.apache.maven/maven-core@3.0, cpe:2.3:a:apache:maven:3.0:*:*:*:*:*:*:*): CVE-2021-26291(9.1)
+[ERROR] maven-core-3.2.5.jar (pkg:maven/org.apache.maven/maven-core@3.2.5, cpe:2.3:a:apache:maven:3.2.5:*:*:*:*:*:*:*): CVE-2021-26291(9.1)
+[ERROR] mysql-connector-j-9.7.0.jar (pkg:maven/com.mysql/mysql-connector-j@9.7.0, cpe:2.3:a:oracle:mysql_connector\/j:9.7.0:*:*:*:*:*:*:*): CVE-2026-60586(7.7), CVE-2026-60623(7.1)
+[ERROR] netty-transport-4.1.132.Final.jar (pkg:maven/io.netty/netty-transport@4.1.132.Final, cpe:2.3:a:netty:netty:4.1.132:*:*:*:*:*:*:*): CVE-2026-44893(7.5), CVE-2026-44250(7.5), CVE-2026-48059(8.7), CVE-2026-44890(7.5), CVE-2026-44891(7.5), CVE-2026-50011(7.5), CVE-2026-59901(8.7), CVE-2026-59902(7.5), CVE-2026-59903(7.5), CVE-2026-42587(7.5), CVE-2026-42586(7.1), CVE-2026-44248(7.5), CVE-2026-44249(8.1), CVE-2026-45416(7.5), CVE-2026-45674(10.0), CVE-2026-56745(8.7), CVE-2026-56822(7.4), CVE-2026-56821(7.4), CVE-2026-73508(7.5), CVE-2026-47691(10.0), CVE-2026-56820(9.1), CVE-2026-73507(7.5), CVE-2026-50010(7.5), CVE-2026-56819(7.5), CVE-2026-56817(8.3), CVE-2026-62380(6.3), CVE-2026-59898(6.3), CVE-2026-59899(6.9), CVE-2026-55851(8.7), CVE-2026-42581(9.8), CVE-2026-48006(8.7), CVE-2026-42585(7.5), CVE-2026-42584(9.1), CVE-2026-46340(7.5), CVE-2026-42583(7.5), CVE-2026-48043(7.5), CVE-2026-55833(7.5), CVE-2026-55831(7.5), CVE-2026-42578(2.9), CVE-2026-75596(8.7), CVE-2026-75595(9.1), CVE-2026-42579(9.1)
+[ERROR] plexus-archiver-4.2.7.jar (pkg:maven/org.codehaus.plexus/plexus-archiver@4.2.7, cpe:2.3:a:codehaus-plexus:plexus-archiver:4.2.7:*:*:*:*:*:*:*): CVE-2023-37460(9.8)
+[ERROR] plexus-utils-3.1.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.1.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.1.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.1.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.4.2.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.4.2, cpe:2.3:a:codehaus-plexus:plexus-utils:3.4.2:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.4.2:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.5.1.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1, cpe:2.3:a:codehaus-plexus:plexus-utils:3.5.1:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.5.1:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-4.0.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.0, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-4.0.1.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.1, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.1:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.1:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-4.0.2.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.2, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.2:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.2:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] spring-core-6.2.18.jar (pkg:maven/org.springframework/spring-core@6.2.18, cpe:2.3:a:pivotal_software:spring_framework:6.2.18:*:*:*:*:*:*:*, cpe:2.3:a:springsource:spring_framework:6.2.18:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_framework:6.2.18:*:*:*:*:*:*:*): CVE-2026-47885(7.5), CVE-2026-47884(9.8), CVE-2026-47886(7.5), CVE-2026-41838(7.5), CVE-2026-59313(9.8), CVE-2026-41851(7.5), CVE-2026-41850(7.5), CVE-2026-41855(9.8), CVE-2026-47892(9.8), CVE-2026-47891(9.8), CVE-2026-47893(7.5), CVE-2026-47890(9.8), CVE-2026-41848(7.5), CVE-2026-59283(9.1), CVE-2026-47889(7.5), CVE-2026-47888(7.5), CVE-2026-41842(7.5), CVE-2026-59282(7.5)
+[ERROR] spring-security-crypto-6.5.10.jar (pkg:maven/org.springframework.security/spring-security-crypto@6.5.10, cpe:2.3:a:pivotal_software:spring_security:6.5.10:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_security:6.5.10:*:*:*:*:*:*:*): CVE-2026-47841(7.4), CVE-2026-40988(7.5), CVE-2026-41707(7.4), CVE-2026-47838(8.1), CVE-2026-59270(9.1)
+[ERROR] surefire-shared-utils-3.2.5.jar (pkg:maven/org.apache.maven.surefire/surefire-shared-utils@3.2.5, cpe:2.3:a:apache:maven_shared_utils:3.2.5:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.2.5:*:*:*:*:*:*:*): CVE-2022-29599(9.8)
+[ERROR] tomcat-embed-core-10.1.54.jar (pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@10.1.54, cpe:2.3:a:apache:tomcat:10.1.54:*:*:*:*:*:*:*, cpe:2.3:a:apache_tomcat:apache_tomcat:10.1.54:*:*:*:*:*:*:*): CVE-2026-66422(8.1), CVE-2026-41284(7.5), CVE-2026-68763(7.5), CVE-2026-53404(7.3), CVE-2026-65905(9.8), CVE-2026-65927(7.5), CVE-2026-55276(9.1), CVE-2026-43513(7.5), CVE-2026-43512(9.8), CVE-2026-43515(9.1), CVE-2026-65183(8.1), CVE-2026-41293(9.8), CVE-2026-53434(9.1), CVE-2026-65182(9.1), CVE-2026-42498(7.3), CVE-2026-68525(9.1), CVE-2026-68569(8.1), CVE-2026-59083(9.1), CVE-2026-59084(9.1), CVE-2026-65637(9.8)
+[ERROR] velocity-1.7.jar (pkg:maven/org.apache.velocity/velocity@1.7, cpe:2.3:a:apache:velocity_engine:1.7:*:*:*:*:*:*:*): CVE-2020-13936(8.8)
+[ERROR] 
+[ERROR] See the dependency-check report for more details.
+[ERROR] 
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

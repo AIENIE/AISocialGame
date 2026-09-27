@@ -26,15 +26,14 @@ public class CommunityController {
     }
 
     @PostMapping("/posts")
-    public ResponseEntity<CommunityPost> create(@Valid @RequestBody CommunityPostRequest request,
-                                                @CurrentUser(required = false) User user,
-                                                @RequestHeader(value = "X-Guest-Name", required = false) String guestName) {
-        CommunityPost post = communityService.create(request, user, guestName);
+    public ResponseEntity<CommunityPost> create(@CurrentUser User user,
+                                                @Valid @RequestBody CommunityPostRequest request) {
+        CommunityPost post = communityService.create(request, user);
         return ResponseEntity.ok(post);
     }
 
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<CommunityPost> like(@PathVariable String id) {
-        return ResponseEntity.ok(communityService.like(id));
+    public ResponseEntity<CommunityPost> like(@PathVariable String id, @CurrentUser User user) {
+        return ResponseEntity.ok(communityService.like(id, user));
     }
 }

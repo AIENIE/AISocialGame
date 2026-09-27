@@ -18,6 +18,7 @@ public class RoomResponse {
     private Map<String, Object> config;
     private List<RoomSeat> seats;
     private String selfPlayerId;
+    private String hostUserId;
 
     public RoomResponse(Room room) {
         this.id = room.getId();
@@ -28,8 +29,11 @@ public class RoomResponse {
         this.seatCount = room.getSeatCount();
         this.isPrivate = room.isPrivate();
         this.commMode = room.getCommMode();
-        this.config = room.getConfig();
+        this.config = new java.util.LinkedHashMap<>();
+        java.util.Set<String> visibleKeys = java.util.Set.of("playerCount", "template", "witchRule", "winCondition", "speechTime", "hasLastWords", "spyMode", "spyCount", "hasBlank", "wordPack", "speakTime", "caseId", "maxQuestions", "aiAssist", "customWordCount", "hostMode");
+        room.getConfig().forEach((key, value) -> { if (visibleKeys.contains(key)) this.config.put(key, value); });
         this.seats = room.getSeats();
+        this.hostUserId = room.getHostUserId() != null ? room.getHostUserId() : room.getSeats().stream().filter(RoomSeat::isHost).map(RoomSeat::getPlayerId).findFirst().orElse(null);
     }
 
     public RoomResponse(Room room, String selfPlayerId) {
@@ -48,4 +52,5 @@ public class RoomResponse {
     public Map<String, Object> getConfig() { return config; }
     public List<RoomSeat> getSeats() { return seats; }
     public String getSelfPlayerId() { return selfPlayerId; }
+    public String getHostUserId() { return hostUserId; }
 }

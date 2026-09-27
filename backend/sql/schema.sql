@@ -1,4 +1,4 @@
--- AISocialGame 全量表结构（v1.1）
+-- AISocialGame 全量表结构（v2）
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` CHAR(36) NOT NULL,
@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `password` VARCHAR(255) NULL,
   `comm_mode` VARCHAR(64) NULL,
   `config` LONGTEXT NULL,
+  `host_user_id` VARCHAR(36) NULL,
+  `private_config` LONGTEXT NULL,
   `seats` LONGTEXT NULL,
   `seat_count` INT NOT NULL DEFAULT 0,
   `version` BIGINT NULL,
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `game_states` (
   `players` LONGTEXT NULL,
   `logs` LONGTEXT NULL,
   `data` LONGTEXT NULL,
+  `version` BIGINT NOT NULL DEFAULT 0,
   `phase_ends_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   `created_at` DATETIME NULL,
@@ -98,6 +101,8 @@ CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
   `mistake_notes` LONGTEXT NULL,
   `speech_patterns` LONGTEXT NULL,
   `games_played` INT NOT NULL DEFAULT 0,
+  `approved_summary` LONGTEXT NULL,
+  `review_status` VARCHAR(24) NULL DEFAULT 'PENDING',
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
@@ -107,6 +112,7 @@ CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
 CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `room_id` VARCHAR(64) NULL,
+  `instance_id` VARCHAR(96) NULL,
   `game_id` VARCHAR(64) NOT NULL,
   `phase` VARCHAR(64) NULL,
   `round_number` INT NOT NULL DEFAULT 1,
@@ -133,6 +139,7 @@ CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
   `created_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `idx_ai_trace_room_id` (`room_id`, `id`),
+  KEY `idx_ai_trace_instance` (`instance_id`, `fallback`, `id`),
   KEY `idx_ai_trace_game_action` (`game_id`, `action`, `id`),
   KEY `idx_ai_trace_persona` (`persona_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -193,6 +200,7 @@ CREATE TABLE IF NOT EXISTS `game_events` (
   `room_id` VARCHAR(64) NOT NULL,
   `game_id` VARCHAR(64) NOT NULL,
   `seq` INT NOT NULL,
+  `public_seq` BIGINT NULL,
   `event_type` VARCHAR(64) NOT NULL,
   `phase` VARCHAR(64) NULL,
   `round_number` INT NOT NULL DEFAULT 1,
@@ -205,6 +213,7 @@ CREATE TABLE IF NOT EXISTS `game_events` (
   `created_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_game_events_archive_seq` (`archive_id`, `seq`),
+  UNIQUE KEY `uk_game_events_archive_public_seq` (`archive_id`, `public_seq`),
   KEY `idx_game_events_room` (`room_id`, `id`),
   KEY `idx_game_events_game` (`game_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -435,3 +444,36 @@ CREATE TABLE IF NOT EXISTS admin_auth_audit (
   KEY idx_admin_auth_audit_subject (subject_id, created_at),
   KEY idx_admin_auth_audit_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS `ai_turn_jobs` (
+  `id` VARCHAR(64) NOT NULL,
+  `room_id` VARCHAR(64) NOT NULL,
+  `instance_id` VARCHAR(96) NOT NULL,
+  `actor_id` VARCHAR(64) NOT NULL,
+  `kind` VARCHAR(40) NOT NULL,
+  `turn_key` VARCHAR(256) NOT NULL,
+  `status` VARCHAR(24) NOT NULL DEFAULT 'QUEUED',
+  `observation` LONGTEXT NULL,
+  `diagnostics` LONGTEXT NULL,
+  `created_at` DATETIME NULL,
+  `started_at` DATETIME NULL,
+  `completed_at` DATETIME NULL,
+  `version` BIGINT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_turn_job_status` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_call_budgets` (
+  `id` VARCHAR(96) NOT NULL,
+  `consumed` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Additive, repeatable. Run after 20260919_ai_turn_diagnostics.sql. No history rewrite.
+CREATE TABLE IF NOT EXISTS ai_call_usage (
+ id VARCHAR(128) NOT NULL PRIMARY KEY,
+ source VARCHAR(64), user_id VARCHAR(64), room_id VARCHAR(64), persona_id VARCHAR(64), model_key VARCHAR(128),
+ started_epoch_ms BIGINT NOT NULL, completed_epoch_ms BIGINT NULL,
+ outcome VARCHAR(32), admitted BOOLEAN NOT NULL DEFAULT FALSE,
+ prompt_tokens BIGINT NULL, completion_tokens BIGINT NULL, anomaly BOOLEAN NOT NULL DEFAULT FALSE, anomaly_scopes VARCHAR(128) NULL,
+ INDEX idx_call_usage_time (started_epoch_ms)
+);

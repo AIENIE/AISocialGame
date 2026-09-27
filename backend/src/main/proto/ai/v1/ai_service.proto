@@ -12,6 +12,18 @@ enum ModelType {
   MODEL_TYPE_IMAGE = 2;
   MODEL_TYPE_EMBEDDING = 3;
   MODEL_TYPE_AUDIO = 4;
+  MODEL_TYPE_OCR = 5;
+}
+
+enum ThinkingEffort {
+  // 无偏好（等于未设置），不代表任何具体强度。
+  THINKING_EFFORT_UNSPECIFIED = 0;
+  THINKING_EFFORT_MINIMAL = 1;
+  THINKING_EFFORT_LOW = 2;
+  THINKING_EFFORT_MEDIUM = 3;
+  THINKING_EFFORT_HIGH = 4;
+  THINKING_EFFORT_XHIGH = 5;
+  THINKING_EFFORT_MAX = 6;
 }
 
 message ModelOption {
@@ -21,7 +33,12 @@ message ModelOption {
   double input_rate = 4;
   double output_rate = 5;
   ModelType type = 6;
+  // 仅对 TEXT 模型有意义：是否支持图片输入。
   bool supports_image_input = 7;
+  // 仅对 TEXT 模型有意义：是否支持真实服务端流式输出。
+  bool supports_streaming = 8;
+  // 稳定模型键，用于调用方选择模型；不要使用可变的 display_name 代替。
+  string model_key = 9;
 }
 
 message ListModelsRequest {
@@ -35,19 +52,42 @@ message ListModelsResponse {
 message ChatMessage {
   string role = 1;
   string content = 2;
+  // Native tools only. Provider JSON arrays are validated; not ordinary prompt text.
+  optional string tool_call_id = 3;
+  optional string tool_calls_json = 4;
+  optional string reasoning_content = 5;
 }
 
 message ChatCompletionsRequest {
-  // Recommended idempotency / tracing key.
+  // 建议传入：用于幂等与链路追踪。
   string request_id = 1;
   string project_key = 2;
   int64 user_id = 3;
   string session_id = 4;
 
-  // Accepts model id (stringified) or model name.
+  // 允许传模型 ID（字符串）或模型名称。
   string model = 5;
+  // 最多 200 条；部署可通过 CHAT_HISTORY_MAX 下调，但不能超过 200。
+  // 超限返回 INVALID_ARGUMENT，调用方应缩短历史后再请求，不得原样重试。
   repeated ChatMessage messages = 6;
+
+  // 可选图片输入（URL 或 data URI）。仅在模型支持识图时生效。
   string img = 7;
+
+  // 可选：是否启用模型思考模式。仅 true 才启用；false 显式关闭；
+  // 未传时保持供应商/后台配置默认行为（单独传 thinking_effort 不会启用）。
+  optional bool thinking_enabled = 8;
+  // 可选：思考强度相对偏好（MINIMAL..MAX，值越大偏好越强）。
+  // UNSPECIFIED 表示无偏好；单独设置不启用思考，须配合 thinking_enabled=true；
+  // 关闭思考靠 thinking_enabled=false。
+  ThinkingEffort thinking_effort = 9;
+  // Optional thinking-prefix input; requires thinking_enabled=true and an explicitly supported route.
+  // Not a history message. 1..2000 UTF-8 bytes; whitespace-only input is invalid.
+  optional string reasoning_prefix = 10;
+  // JSON array of OpenAI function tools. Opt-in; requires an explicitly supported route.
+  optional string tools_json = 11;
+  // Opt-in bounded, durable logical call. Empty keeps legacy semantics.
+  optional string budget_credential = 12;
 }
 
 message ChatCompletionsResponse {
@@ -55,16 +95,63 @@ message ChatCompletionsResponse {
   string model_key = 2;
   int64 prompt_tokens = 3;
   int64 completion_tokens = 4;
+  // Upstream prompt/input tokens served from prompt cache, when reported by the provider.
+  int64 cache_tokens = 5;
+  // Present only for a requested prefix; true confirms the wire format was sent, not model compliance.
+  optional bool reasoning_prefix_applied = 6;
+  // Native tools only: {message,finish_reason,model,system_fingerprint}; includes private reasoning.
+  optional string native_response_json = 7;
+}
+
+enum ChatStreamEventType {
+  CHAT_STREAM_EVENT_TYPE_UNSPECIFIED = 0;
+  CHAT_STREAM_EVENT_TYPE_STARTED = 1;
+  CHAT_STREAM_EVENT_TYPE_CONTENT_DELTA = 2;
+  CHAT_STREAM_EVENT_TYPE_COMPLETED = 3;
+}
+
+message ChatCompletionsStreamEvent {
+  // 与请求中的 request_id 一致。
+  string request_id = 1;
+  // 从 1 开始严格递增。
+  int64 sequence = 2;
+  ChatStreamEventType event_type = 3;
+  // 实际使用的模型。
+  string model_key = 4;
+  // 仅 CONTENT_DELTA 使用，且不能为空。
+  string content_delta = 5;
+  // 当前已经输出的 token 数。
+  int64 output_tokens_so_far = 6;
+  // true 表示当前 token 数根据输出文本估算。
+  bool output_tokens_estimated = 7;
+  // 以下 usage 字段仅 COMPLETED 提供。
+  int64 prompt_tokens = 8;
+  int64 completion_tokens = 9;
+  int64 cache_tokens = 10;
+  // 例如 stop、length、content_filter。
+  string finish_reason = 11;
+  // Same semantics as the unary response; only present on COMPLETED.
+  optional bool reasoning_prefix_applied = 12;
+  // Only COMPLETED; assembled, bounded native response. Never execute partial arguments.
+  optional string native_response_json = 13;
 }
 
 message EmbeddingsRequest {
+  // 建议传入：用于幂等与链路追踪。
   string request_id = 1;
   string project_key = 2;
   int64 user_id = 3;
   string session_id = 4;
+
+  // 允许传模型 ID（字符串）或模型名称；为空时使用默认 embedding 模型。
   string model = 5;
+
+  // 批量文本输入；输出 embeddings 与输入下标一一对应。
   repeated string input = 6;
+
+  // 是否归一化为单位向量；未传时默认 true。
   optional bool normalize = 7;
+  optional string budget_credential = 8;
 }
 
 message Embedding {
@@ -75,22 +162,31 @@ message EmbeddingsResponse {
   string model_key = 1;
   int32 dimensions = 2;
   repeated Embedding embeddings = 3;
+
   int64 prompt_tokens = 4;
 }
 
 message OcrParseRequest {
+  // 建议传入：用于幂等与链路追踪。
   string request_id = 1;
   string project_key = 2;
   int64 user_id = 3;
   string session_id = 4;
+
+  // 允许传模型 ID（字符串）或模型名称；为空时使用默认 OCR 模型。
   string model = 5;
+
+  // 三选一：image_url / image_base64 / document_url。
   string image_url = 6;
   string image_base64 = 7;
   string document_url = 8;
   string pages = 9;
+
+  // 支持 TEXT / MARKDOWN / JSON；为空时默认 TEXT。
   string output_type = 10;
   optional bool flatten = 11;
   optional bool page_details = 12;
+  optional string budget_credential = 13;
 }
 
 message OcrParseResponse {
@@ -99,28 +195,115 @@ message OcrParseResponse {
   string output_type = 3;
   string content = 4;
   string raw_json = 5;
+  // Authoritative usage recorded for the completed OCR provider call.
+  int64 prompt_tokens = 6;
+  int64 completion_tokens = 7;
+  int64 total_tokens = 8;
 }
 
 message GenerateImageRequest {
   int64 user_id = 1;
+  // 模型名称（必填，且必须为 IMAGE 类型）。
   string model = 2;
+  // 生图提示词。
   string prompt = 3;
+  // 图片质量：standard / hd。
   string quality = 4;
+  // 改图参考图 URL（二选一）。必须是完整 http/https URL，且能直接下载图片文件。
   string reference_image_url = 5;
+  // 改图参考图 Base64（二选一）。支持 data URI 或纯 base64。
   string reference_image_base64 = 6;
 }
 
 message GenerateImageResponse {
+  // 可直接下载的图片 URL。
   string image_url = 1;
   int64 prompt_tokens = 2;
   int64 completion_tokens = 3;
   int64 total_tokens = 4;
 }
 
+enum BudgetOperation {
+  BUDGET_OPERATION_UNSPECIFIED = 0;
+  BUDGET_OPERATION_CHAT = 1;
+  BUDGET_OPERATION_EMBEDDINGS = 2;
+  BUDGET_OPERATION_OCR = 3;
+}
+
+enum BudgetCallState {
+  BUDGET_CALL_STATE_UNSPECIFIED = 0;
+  BUDGET_CALL_STATE_PREPARED = 1;
+  BUDGET_CALL_STATE_RUNNING = 2;
+  BUDGET_CALL_STATE_SUCCEEDED = 3;
+  BUDGET_CALL_STATE_FAILED_NOT_SENT = 4;
+  BUDGET_CALL_STATE_RECONCILIATION_REQUIRED = 5;
+}
+
+message PrepareCallBudgetRequest {
+  // Original request, with a non-empty logical request_id and no budget credential.
+  oneof request {
+    ChatCompletionsRequest chat = 1;
+    EmbeddingsRequest embeddings = 2;
+    OcrParseRequest ocr = 3;
+  }
+  // Positive bound including hidden reasoning. Embeddings must use zero.
+  int64 max_output_tokens = 4;
+  // 1..3; includes every provider retry and failover attempt.
+  int32 max_provider_attempts = 5;
+}
+
+message PrepareCallBudgetResponse {
+  string budget_id = 1;
+  string budget_credential = 2;
+  string request_sha256 = 3;
+  string policy_sha256 = 4;
+  int64 expires_at_epoch_ms = 5;
+  int64 max_prompt_tokens = 6;
+  int64 max_completion_tokens = 7;
+  int64 max_total_tokens = 8;
+  int32 max_provider_attempts = 9;
+}
+
+message GetBudgetCallStatusRequest {
+  string budget_id = 1;
+  string project_key = 2;
+  int64 user_id = 3;
+  string request_id = 4;
+  BudgetOperation operation = 5;
+}
+
+message GetBudgetCallStatusResponse {
+  string budget_id = 1;
+  BudgetCallState state = 2;
+  string request_sha256 = 3;
+  int64 prompt_tokens = 4;
+  int64 completion_tokens = 5;
+  int64 total_tokens = 6;
+  bool usage_authoritative = 7;
+  // Stable code; no upstream content, credentials or prompts in errors.
+  string code = 8;
+  int64 updated_at_epoch_ms = 9;
+  // Only a durably committed success is replayable; never executes inference.
+  oneof result {
+    ChatCompletionsResponse chat = 10;
+    EmbeddingsResponse embeddings = 11;
+    OcrParseResponse ocr = 12;
+  }
+}
+
 service AiGatewayService {
+  rpc PrepareCallBudget(PrepareCallBudgetRequest) returns (PrepareCallBudgetResponse);
+  rpc GetBudgetCallStatus(GetBudgetCallStatusRequest) returns (GetBudgetCallStatusResponse);
+  // 获取当前可用模型列表（仅返回 ACTIVE 模型）。
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  // 发起一次对话补全请求。
   rpc ChatCompletions(ChatCompletionsRequest) returns (ChatCompletionsResponse);
+  // 发起一次服务端流式对话补全请求。
+  rpc ChatCompletionsStream(ChatCompletionsRequest) returns (stream ChatCompletionsStreamEvent);
+  // 批量生成向量。
   rpc Embeddings(EmbeddingsRequest) returns (EmbeddingsResponse);
+  // 解析图片/PDF 文档为文本、Markdown 或 JSON。
   rpc OcrParse(OcrParseRequest) returns (OcrParseResponse);
+  // 生成图片，返回可下载的图片 URL。
   rpc GenerateImage(GenerateImageRequest) returns (GenerateImageResponse);
 }

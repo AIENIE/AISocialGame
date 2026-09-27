@@ -1,9 +1,9 @@
 package com.aisocialgame.service.token;
 
 public interface TokenStore {
-    void store(String token, String userId);
+    void store(String token, String userId, long externalUserId, String sessionId);
 
-    String getUserId(String token);
+    SessionRecord getSession(String token);
 
     void revoke(String token);
 }

@@ -53,4 +53,23 @@ public class GamePlayerState {
     public void setConnectionStatus(String connectionStatus) { this.connectionStatus = connectionStatus; }
     public void setLastActiveAt(LocalDateTime lastActiveAt) { this.lastActiveAt = lastActiveAt; }
     public void setDisconnectedAt(LocalDateTime disconnectedAt) { this.disconnectedAt = disconnectedAt; }
+    // JSON-converted list values need structural equality for Hibernate dirty checking.
+    @Override public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof GamePlayerState value)) return false;
+        return java.util.Objects.equals(playerId, value.playerId)
+                && java.util.Objects.equals(displayName, value.displayName)
+                && java.util.Objects.equals(seatNumber, value.seatNumber)
+                && java.util.Objects.equals(ai, value.ai)
+                && java.util.Objects.equals(personaId, value.personaId)
+                && java.util.Objects.equals(avatar, value.avatar)
+                && java.util.Objects.equals(role, value.role)
+                && java.util.Objects.equals(word, value.word)
+                && java.util.Objects.equals(alive, value.alive)
+                && java.util.Objects.equals(connectionStatus, value.connectionStatus)
+                && java.util.Objects.equals(lastActiveAt, value.lastActiveAt)
+                && java.util.Objects.equals(disconnectedAt, value.disconnectedAt);
+    }
+    @Override public int hashCode() { return java.util.Objects.hash(playerId, displayName, seatNumber, ai, personaId, avatar, role, word, alive, connectionStatus, lastActiveAt, disconnectedAt); }
+
 }

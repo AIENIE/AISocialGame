@@ -2,15 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "backend: compile",
+      "label": "local: debug start",
       "type": "shell",
-      "command": "mvn",
+      "command": "pwsh",
       "args": [
-        "-DskipTests",
-        "compile"
+        "-NoProfile", "-File", "${workspaceFolder}/../start.ps1", "-Action", "Start", "-NoBrowser", "-EnableBackendDebug"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/.."
       },
       "problemMatcher": [
         "$javac"

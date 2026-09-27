@@ -101,7 +101,7 @@ public class AdminSafetyController {
 
     @DeleteMapping("/controls/{id}")
     public ResponseEntity<Void> disableControl(@CurrentAdmin String operator, @PathVariable long id) {
-        aiSafetyService.disableControl(id);
+        aiSafetyService.disableControl(id,operator);
         return ResponseEntity.noContent().build();
     }
 }

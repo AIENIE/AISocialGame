@@ -22,9 +22,9 @@
 ## 服务发现与域名策略
 
 - 三服务 gRPC 默认走静态域名：
-  - `static://localuserservice.testhut.top:12001`
-  - `static://localpayservice.testhut.top:443`
-  - `static://localaiservice.testhut.top:443`
+  - `static://localuserservice.testhut.top:22001`
+  - `static://localpayservice.testhut.top:22021`
+  - `static://localaiservice.testhut.top:22011`
 - SSO/HTTP 对外地址默认使用域名：
   - `localuserservice.testhut.top`
   - `localpayservice.testhut.top`

@@ -337,6 +337,17 @@ PY
     # authoritatively.
     (cd "$AIENIE_CI_REPO_ROOT/$module" && mvn -B -ntp \
       -Dmaven.repo.local="$AIENIE_CI_CACHE_DIR/maven" -DskipTests test)
+    local plugin_resolution="$AIENIE_CI_REPO_ROOT/$module/target/sca-plugin-resolution.txt"
+    (cd "$AIENIE_CI_REPO_ROOT/$module" && mvn -B -ntp \
+      -Dmaven.repo.local="$AIENIE_CI_CACHE_DIR/maven" -Psecurity-audit \
+      org.apache.maven.plugins:maven-dependency-plugin:3.11.0:resolve-plugins \
+      -DoutputFile="$plugin_resolution" -DoutputAbsoluteArtifactFilename=true)
+    python3 "$AIENIE_CI_REPO_ROOT/scripts/ci/prepare-maven-plugin-sca.py" \
+      "$AIENIE_CI_REPO_ROOT/$module/pom.xml" "$plugin_resolution"
+    (cd "$AIENIE_CI_REPO_ROOT/$module" && mvn -B -ntp \
+      -Dmaven.repo.local="$AIENIE_CI_CACHE_DIR/maven" -Psecurity-audit -DskipTests dependency-check:check)
+    python3 "$AIENIE_CI_REPO_ROOT/scripts/ci/verify-maven-plugin-sca.py" \
+      "$AIENIE_CI_REPO_ROOT/$module/pom.xml" "$AIENIE_CI_REPO_ROOT/$module/target/dependency-check-report.json"
   done
   local artifact
   for artifact in "${AIENIE_CI_MAVEN_EXTRA_ARTIFACTS[@]}"; do
@@ -371,6 +382,7 @@ aienie_ci_resolve_pnpm() {
   for module in "${AIENIE_CI_PNPM_MODULES[@]}"; do
     pnpm --dir "$AIENIE_CI_REPO_ROOT/$module" fetch --frozen-lockfile \
       --store-dir "$AIENIE_CI_CACHE_DIR/pnpm"
+    pnpm --dir "$AIENIE_CI_REPO_ROOT/$module" audit --audit-level=high
   done
 }
 
@@ -389,7 +401,7 @@ for line in specs_path.read_text(encoding='utf-8').splitlines():
     modules.append({'kind':kind, 'path':relative})
     input_paths.add(f'{relative}/package.json' if kind != 'maven' else f'{relative}/pom.xml')
     if kind == 'npm': input_paths.add(f'{relative}/package-lock.json')
-    if kind == 'pnpm': input_paths.add(f'{relative}/pnpm-lock.yaml')
+    if kind == 'pnpm': input_paths.update((f'{relative}/pnpm-lock.yaml', f'{relative}/pnpm-workspace.yaml'))
 inputs=[]
 for relative in sorted(input_paths):
     path=root/relative
@@ -405,7 +417,11 @@ value={
   'modules':modules,
   'toolchains':toolchains,
   'cache':{'file_count':int(cache_count),'inventory_sha256':cache_sha},
-  'resolve_checks':{'npm_audit':'passed' if npm_audit == 'true' else 'not-applicable'}
+  'resolve_checks':{
+    'npm_audit':'passed' if npm_audit == 'true' else 'not-applicable',
+    'pnpm_audit':'passed' if any(m['kind']=='pnpm' for m in modules) else 'not-applicable',
+    'maven_sca':'passed' if any(m['kind']=='maven' for m in modules) else 'not-applicable'
+  }
 }
 out_path.write_text(json.dumps(value,sort_keys=True,separators=(',',':'))+'\n',encoding='utf-8')
 PY
@@ -428,11 +444,14 @@ for line in specs_path.read_text(encoding='utf-8').splitlines():
     kind,relative=line.split('\t',1); expected_modules.append({'kind':kind,'path':relative})
     input_paths.add(f'{relative}/package.json' if kind!='maven' else f'{relative}/pom.xml')
     if kind=='npm': input_paths.add(f'{relative}/package-lock.json')
-    if kind=='pnpm': input_paths.add(f'{relative}/pnpm-lock.yaml')
+    if kind=='pnpm': input_paths.update((f'{relative}/pnpm-lock.yaml', f'{relative}/pnpm-workspace.yaml'))
 expected_inputs=[{'path':p,'sha256':hashlib.sha256((root/p).read_bytes()).hexdigest()} for p in sorted(input_paths)]
 expected_tools={}
 for line in tools_path.read_text(encoding='utf-8').splitlines():
     key,tool_value=line.split('\t',1); expected_tools[key]=re.sub(r'[\x00-\x1f\x7f]+',' ',tool_value).strip()
+for kind, check in (('pnpm', 'pnpm_audit'), ('maven', 'maven_sca')):
+    expected = 'passed' if any(m['kind']==kind for m in expected_modules) else 'not-applicable'
+    if value.get('resolve_checks', {}).get(check) != expected: raise SystemExit(f'dependency security check missing: {check}')
 if value.get('modules')!=expected_modules: raise SystemExit('dependency manifest module set mismatch')
 if value.get('inputs')!=expected_inputs: raise SystemExit('dependency lock input mismatch')
 if value.get('toolchains')!=expected_tools: raise SystemExit('dependency toolchain mismatch')
@@ -460,6 +479,7 @@ aienie_ci_build_npm() {
       --cache "$AIENIE_CI_CACHE_DIR/npm" --no-audit --no-fund
     if aienie_ci_has_script "$module_dir" lint; then npm --prefix "$module_dir" run lint; fi
     if aienie_ci_has_script "$module_dir" typecheck; then npm --prefix "$module_dir" run typecheck; fi
+    if aienie_ci_has_script "$module_dir" test:typecheck; then npm --prefix "$module_dir" run test:typecheck; fi
     if aienie_ci_has_script "$module_dir" test:unit; then
       npm --prefix "$module_dir" run test:unit
     elif aienie_ci_has_script "$module_dir" test; then
@@ -476,6 +496,7 @@ aienie_ci_build_pnpm() {
     pnpm --dir "$module_dir" install --offline --frozen-lockfile --store-dir "$AIENIE_CI_CACHE_DIR/pnpm"
     if aienie_ci_has_script "$module_dir" lint; then pnpm --dir "$module_dir" run lint; fi
     if aienie_ci_has_script "$module_dir" typecheck; then pnpm --dir "$module_dir" run typecheck; fi
+    if aienie_ci_has_script "$module_dir" test:typecheck; then pnpm --dir "$module_dir" run test:typecheck; fi
     if aienie_ci_has_script "$module_dir" test:unit; then
       pnpm --dir "$module_dir" run test:unit
     elif aienie_ci_has_script "$module_dir" test; then

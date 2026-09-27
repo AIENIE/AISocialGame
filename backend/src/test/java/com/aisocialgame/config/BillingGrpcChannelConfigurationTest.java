@@ -5,20 +5,19 @@ import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 
 class BillingGrpcChannelConfigurationTest {
 
     @Test
     void disablesTransportManagedRetriesOnlyForBillingChannel() {
-        BillingGrpcChannelConfiguration configuration = new BillingGrpcChannelConfiguration();
         ManagedChannelBuilder<?> billing = mock(ManagedChannelBuilder.class);
-        ManagedChannelBuilder<?> other = mock(ManagedChannelBuilder.class);
+        ManagedChannelBuilder<?> user = mock(ManagedChannelBuilder.class);
 
-        configuration.billingTransportRetryPolicy().accept(billing, "billing");
-        configuration.billingTransportRetryPolicy().accept(other, "user");
+        GrpcClientConfiguration.configureBillingRetry("billing", billing);
+        GrpcClientConfiguration.configureBillingRetry("user", user);
 
         verify(billing).disableRetry();
-        verifyNoInteractions(other);
+        verify(user, never()).disableRetry();
     }
 }

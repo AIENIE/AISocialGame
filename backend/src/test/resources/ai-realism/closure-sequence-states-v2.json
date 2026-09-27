@@ -1,0 +1,888 @@
+{
+  "undercover" : {
+    "roomId" : "sequence-v2-undercover",
+    "gameId" : "undercover",
+    "phase" : "DESCRIPTION",
+    "roundNumber" : 1,
+    "currentSeat" : 6,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "剧院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "剧院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "剧院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "UNDERCOVER",
+      "word" : "电影院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p5",
+      "displayName" : "玩家5",
+      "seatNumber" : 4,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "UNDERCOVER",
+      "word" : "电影院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p6",
+      "displayName" : "玩家6",
+      "seatNumber" : 5,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "剧院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p7",
+      "displayName" : "玩家7",
+      "seatNumber" : 6,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "CIVILIAN",
+      "word" : "剧院",
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "ROUND_START",
+      "message" : "进入第1轮描述。",
+      "time" : [ 2026, 9, 22, 13, 14, 21, 674907800 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "DESCRIPTION",
+      "metadata" : {
+        "eventId" : "343cc8f4-f12b-4066-9ced-cb16adedd7fb"
+      }
+    }, {
+      "type" : "GAME_START",
+      "message" : "词语已发放：有词玩家只知道词语；白板存活到最后两人独赢。",
+      "time" : [ 2026, 9, 22, 13, 14, 21, 674907800 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "DESCRIPTION",
+      "metadata" : {
+        "eventId" : "c7f78bd7-bb06-4df5-9cc8-f89a7288f155"
+      }
+    } ],
+    "data" : {
+      "knowledgeVersion" : "undercover-words-v1",
+      "runoffCandidates" : [ ],
+      "challengedPlayers" : [ ],
+      "rules" : {
+        "speakTime" : 60,
+        "speechTime" : 60,
+        "caseId" : "midnight_train",
+        "aiDifficulty" : 2,
+        "playerCount" : 7,
+        "spyMode" : "manual",
+        "spyCount" : 2
+      },
+      "archiveId" : "archive-f073bbb4-112b-49a1-984c-99bd927aefd5",
+      "hasBlank" : false,
+      "noEliminationRounds" : 0,
+      "promptVersion" : "social-v2.7",
+      "speakers" : [ ],
+      "roundStartSeat" : 6,
+      "wordKnowledgeByPlayer" : {
+        "p4" : {
+          "attributes" : [ "有大屏幕", "通常需要购票", "开场后灯光变暗" ],
+          "scenes" : [ "周末按票面座位等片头出现" ],
+          "definition" : "集中放映影片供观众观看的场所",
+          "forbiddenTerms" : [ "电影院" ],
+          "word" : "电影院"
+        },
+        "p5" : {
+          "attributes" : [ "有大屏幕", "通常需要购票", "开场后灯光变暗" ],
+          "scenes" : [ "周末按票面座位等片头出现" ],
+          "definition" : "集中放映影片供观众观看的场所",
+          "forbiddenTerms" : [ "电影院" ],
+          "word" : "电影院"
+        },
+        "p7" : {
+          "attributes" : [ "舞台上有人表演", "观众通常分区入座", "谢幕时常有掌声" ],
+          "scenes" : [ "看完演出后朝舞台上的演员鼓掌" ],
+          "definition" : "供现场舞台演出和观众观看的场所",
+          "forbiddenTerms" : [ "剧院" ],
+          "word" : "剧院"
+        },
+        "p6" : {
+          "attributes" : [ "舞台上有人表演", "观众通常分区入座", "谢幕时常有掌声" ],
+          "scenes" : [ "看完演出后朝舞台上的演员鼓掌" ],
+          "definition" : "供现场舞台演出和观众观看的场所",
+          "forbiddenTerms" : [ "剧院" ],
+          "word" : "剧院"
+        },
+        "p1" : {
+          "attributes" : [ "舞台上有人表演", "观众通常分区入座", "谢幕时常有掌声" ],
+          "scenes" : [ "看完演出后朝舞台上的演员鼓掌" ],
+          "definition" : "供现场舞台演出和观众观看的场所",
+          "forbiddenTerms" : [ "剧院" ],
+          "word" : "剧院"
+        },
+        "p3" : {
+          "attributes" : [ "舞台上有人表演", "观众通常分区入座", "谢幕时常有掌声" ],
+          "scenes" : [ "看完演出后朝舞台上的演员鼓掌" ],
+          "definition" : "供现场舞台演出和观众观看的场所",
+          "forbiddenTerms" : [ "剧院" ],
+          "word" : "剧院"
+        },
+        "p2" : {
+          "attributes" : [ "舞台上有人表演", "观众通常分区入座", "谢幕时常有掌声" ],
+          "scenes" : [ "看完演出后朝舞台上的演员鼓掌" ],
+          "definition" : "供现场舞台演出和观众观看的场所",
+          "forbiddenTerms" : [ "剧院" ],
+          "word" : "剧院"
+        }
+      },
+      "events" : [ {
+        "eventId" : "cb63b9bd-5142-4081-8ef8-2c68e2f97b15",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p4" ],
+        "data" : {
+          "word" : "电影院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "6bab0ecb-c1a1-48f0-9339-184e7d1e4f3f",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "电影院",
+          "role" : "UNDERCOVER"
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "78c75f20-53e9-4a7c-900a-7b4b54350d6b",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p5",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p5" ],
+        "data" : {
+          "word" : "电影院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "7d5d960b-2a8f-43b0-9b88-e3b5e5aa5c6d",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p5",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "电影院",
+          "role" : "UNDERCOVER"
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "becd6bbe-4c56-4a2c-81c0-12a5eef15248",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p7",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p7" ],
+        "data" : {
+          "word" : "剧院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "35d9bfcd-c122-4efd-beb5-c60c0027f5ff",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p7",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "剧院",
+          "role" : "CIVILIAN"
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "5bab7259-1014-43fa-b754-b2f0a8d6cd73",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p6",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p6" ],
+        "data" : {
+          "word" : "剧院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "47968d21-2c0d-4725-b6cc-48a5ea5506a7",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p6",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "剧院",
+          "role" : "CIVILIAN"
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "2efe75d6-0a56-4625-87d2-a91afc9572bf",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p1" ],
+        "data" : {
+          "word" : "剧院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "3f16449d-0d6d-483c-8d34-de00fc44f1f9",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "剧院",
+          "role" : "CIVILIAN"
+        },
+        "time" : "2026-09-22T13:14:21.672909900"
+      }, {
+        "eventId" : "009e7f1f-65a7-476a-9fad-d45eaab8c264",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p3" ],
+        "data" : {
+          "word" : "剧院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.673909200"
+      }, {
+        "eventId" : "7fef8022-e682-49b4-ba76-770067eb1c21",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "剧院",
+          "role" : "CIVILIAN"
+        },
+        "time" : "2026-09-22T13:14:21.673909200"
+      }, {
+        "eventId" : "076e3f99-03e1-4068-bb89-6e5d6e876ce5",
+        "type" : "WORD_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p2" ],
+        "data" : {
+          "word" : "剧院",
+          "blank" : false
+        },
+        "time" : "2026-09-22T13:14:21.673909200"
+      }, {
+        "eventId" : "fb180420-9fbb-4b2d-9cd6-70ab6a4e1009",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "GOD",
+        "visibleTo" : [ ],
+        "data" : {
+          "word" : "剧院",
+          "role" : "CIVILIAN"
+        },
+        "time" : "2026-09-22T13:14:21.673909200"
+      }, {
+        "eventId" : "343cc8f4-f12b-4066-9ced-cb16adedd7fb",
+        "type" : "ROUND_START",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "进入第1轮描述。",
+        "phase" : "DESCRIPTION",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "descriptionOrder" : [ "p7", "p1", "p2", "p3", "p4", "p5", "p6" ]
+        },
+        "time" : "2026-09-22T13:14:21.674907800"
+      }, {
+        "eventId" : "c7f78bd7-bb06-4df5-9cc8-f89a7288f155",
+        "type" : "GAME_START",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "词语已发放：有词玩家只知道词语；白板存活到最后两人独赢。",
+        "phase" : "DESCRIPTION",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "ruleVersion" : 2
+        },
+        "time" : "2026-09-22T13:14:21.674907800"
+      } ],
+      "descriptionOrder" : [ "p7", "p1", "p2", "p3", "p4", "p5", "p6" ],
+      "wordPack" : "daily",
+      "wordPairId" : "uc-daily-025",
+      "randomSeed" : 3896597105144907404,
+      "undercoverWord" : "电影院",
+      "ruleVersion" : 2,
+      "questionCursorSeat" : 6,
+      "descriptionIndex" : 0,
+      "questioners" : [ ],
+      "phaseSerial" : 1,
+      "votes" : { },
+      "civilianWord" : "剧院",
+      "activeQuestion" : { }
+    },
+    "phaseEndsAt" : [ 2026, 9, 22, 12, 1 ],
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  },
+  "werewolf" : {
+    "roomId" : "sequence-v2-werewolf",
+    "gameId" : "werewolf",
+    "phase" : "NIGHT",
+    "roundNumber" : 1,
+    "currentSeat" : null,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "WEREWOLF",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "SEER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "VILLAGER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "WEREWOLF",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p5",
+      "displayName" : "玩家5",
+      "seatNumber" : 4,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "WITCH",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p6",
+      "displayName" : "玩家6",
+      "seatNumber" : 5,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "VILLAGER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "GAME_STARTED",
+      "message" : "狼人杀开始，死亡身份将在结算时揭晓。",
+      "time" : [ 2026, 9, 22, 13, 14, 22, 17732100 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "WAITING",
+      "metadata" : {
+        "eventId" : "c549a48a-bdd4-47f8-9a46-6046b5da062c"
+      }
+    }, {
+      "type" : "NIGHT_STARTED",
+      "message" : "天黑了，第1夜开始。",
+      "time" : [ 2026, 9, 22, 13, 14, 22, 17732100 ],
+      "actorId" : null,
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "NIGHT",
+      "metadata" : {
+        "eventId" : "c2553c57-64cd-4fe4-a09e-c424d42eb743"
+      }
+    } ],
+    "data" : {
+      "randomSeed" : -5231808523912593109,
+      "knowledgeVersion" : "werewolf-r2.2026-09-12.1",
+      "werewolf" : {
+        "antidoteUsed" : false,
+        "poisonUsed" : false,
+        "seerChecks" : { },
+        "guardHistory" : { },
+        "guardLastTargets" : { },
+        "revealedIdiots" : [ ],
+        "hunterUsed" : [ ],
+        "wolfVotes" : { },
+        "wolfCouncil" : [ ],
+        "wolfTarget" : "",
+        "guardTarget" : "",
+        "saveTarget" : "",
+        "poisonTarget" : "",
+        "lastNightDeaths" : [ ],
+        "nightIndex" : 0,
+        "nightQueue" : [ "p1", "p4", "p2", "p5" ],
+        "nightActor" : "p1"
+      },
+      "ruleVersion" : 2,
+      "promptVersion" : "social-v2.7",
+      "rules" : {
+        "template" : "standard",
+        "playerCount" : 6,
+        "witchRule" : "first_night",
+        "winCondition" : "side",
+        "speechTime" : 60,
+        "hasLastWords" : "first_night",
+        "deathReveal" : "settlement",
+        "roleCounts" : {
+          "WEREWOLF" : 2,
+          "SEER" : 1,
+          "WITCH" : 1,
+          "VILLAGER" : 2
+        }
+      },
+      "phaseSerial" : 1,
+      "archiveId" : "archive-2d9dd55d-b2bf-47e2-8102-2f05cf1cd46e",
+      "events" : [ {
+        "eventId" : "c549a48a-bdd4-47f8-9a46-6046b5da062c",
+        "type" : "GAME_STARTED",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "狼人杀开始，死亡身份将在结算时揭晓。",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "ruleVersion" : 2
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "3ec4ab4a-e252-4d8f-ba3c-5049cfa1a6e5",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p1",
+        "targetId" : null,
+        "message" : "你的身份是狼人",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p1" ],
+        "data" : {
+          "role" : "WEREWOLF"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "162a5a6b-8dd4-4602-9e60-b253da839d31",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p2",
+        "targetId" : null,
+        "message" : "你的身份是预言家",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p2" ],
+        "data" : {
+          "role" : "SEER"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "f95807e0-1987-4321-b585-3c702043b4d7",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p3",
+        "targetId" : null,
+        "message" : "你的身份是村民",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p3" ],
+        "data" : {
+          "role" : "VILLAGER"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "6c291043-ae25-43f5-b226-b3ff0262e3da",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p4",
+        "targetId" : null,
+        "message" : "你的身份是狼人",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p4" ],
+        "data" : {
+          "role" : "WEREWOLF"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "e1d5770f-f60c-4616-a966-31a34404f195",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p5",
+        "targetId" : null,
+        "message" : "你的身份是女巫",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p5" ],
+        "data" : {
+          "role" : "WITCH"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "0785c18b-f44d-472e-9c03-17a9c9fac264",
+        "type" : "ROLE_ASSIGNED",
+        "actorId" : "p6",
+        "targetId" : null,
+        "message" : "你的身份是村民",
+        "phase" : "WAITING",
+        "round" : 1,
+        "visibility" : "PRIVATE",
+        "visibleTo" : [ "p6" ],
+        "data" : {
+          "role" : "VILLAGER"
+        },
+        "time" : "2026-09-22T13:14:22.017732100"
+      }, {
+        "eventId" : "c2553c57-64cd-4fe4-a09e-c424d42eb743",
+        "type" : "NIGHT_STARTED",
+        "actorId" : null,
+        "targetId" : null,
+        "message" : "天黑了，第1夜开始。",
+        "phase" : "NIGHT",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : { },
+        "time" : "2026-09-22T13:14:22.017732100"
+      } ]
+    },
+    "phaseEndsAt" : [ 2026, 9, 22, 12, 0, 30 ],
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  },
+  "turtle_soup" : {
+    "roomId" : "sequence-v2-turtle_soup",
+    "gameId" : "turtle_soup",
+    "phase" : "QUESTIONING",
+    "roundNumber" : 1,
+    "currentSeat" : null,
+    "players" : [ {
+      "playerId" : "p1",
+      "displayName" : "玩家1",
+      "seatNumber" : 0,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p2",
+      "displayName" : "玩家2",
+      "seatNumber" : 1,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p3",
+      "displayName" : "玩家3",
+      "seatNumber" : 2,
+      "ai" : false,
+      "personaId" : null,
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    }, {
+      "playerId" : "p4",
+      "displayName" : "玩家4",
+      "seatNumber" : 3,
+      "ai" : true,
+      "personaId" : "ai1",
+      "avatar" : "",
+      "role" : "TURTLE_SOUP_PLAYER",
+      "word" : null,
+      "alive" : true,
+      "connectionStatus" : "ONLINE",
+      "lastActiveAt" : [ 2026, 9, 22, 12, 0 ],
+      "disconnectedAt" : null
+    } ],
+    "logs" : [ {
+      "type" : "TURTLE_SOUP_START",
+      "message" : "主持：末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+      "time" : [ 2026, 9, 22, 13, 14, 22, 49048800 ],
+      "actorId" : "$host",
+      "targetId" : null,
+      "roundNumber" : 1,
+      "phase" : "QUESTIONING",
+      "metadata" : {
+        "eventId" : "c96f28d6-c9cd-4542-99f9-fec835bb6f7a"
+      }
+    } ],
+    "data" : {
+      "hostTruth" : {
+        "solution" : "发车前，车停在贴有寻人海报的站台旁。海报上的女人围着红围巾，她其实在发车前已遇难。站台灯光使海报影像映在车窗上，司机又从后视镜看到这层反光，把影像误当成最后一排的乘客。车上从来没有这名女人，所以终点无人，也不需要有人中途下车。",
+        "facts" : [ {
+          "text" : "海报上的女人在末班车发车前已经遇难。",
+          "requiredForSolution" : true,
+          "id" : "death"
+        }, {
+          "text" : "站台的寻人海报上有女人围着红围巾的照片。",
+          "requiredForSolution" : true,
+          "id" : "poster"
+        }, {
+          "text" : "停车时，站台灯光使海报影像映在车窗上，再被司机通过后视镜看到。",
+          "requiredForSolution" : true,
+          "id" : "reflection"
+        }, {
+          "text" : "女人从未登上这班车，司机把反光误认成了真人。",
+          "requiredForSolution" : true,
+          "id" : "empty"
+        }, {
+          "text" : "司机只在发车前看到了那个影像，没有持续看见她坐在车上。",
+          "requiredForSolution" : false,
+          "id" : "before"
+        }, {
+          "text" : "警方在始发站附近找到的遗物属于海报上的女人。",
+          "requiredForSolution" : false,
+          "id" : "belongings"
+        } ],
+        "excludedFacts" : [ {
+          "id" : "ghost",
+          "text" : "没有鬼魂或超自然力量。"
+        }, {
+          "id" : "exit",
+          "text" : "没有女乘客在途中秘密下车。"
+        }, {
+          "id" : "dream",
+          "text" : "司机并没有做梦。"
+        } ],
+        "causalChain" : [ "女人遇难但站台仍贴着寻人海报", "海报中的红围巾照片映在车窗上", "司机从后视镜误认影像为乘客", "车上本就没有女人，因此终点空无一人" ],
+        "acceptedSolutions" : [ "女人早已遇难，并没上车。司机把站台寻人海报里红围巾女人映在车窗上的影像看成乘客。", "他看到的不是活人，而是站台上红围巾女人照片的车窗倒影；照片中的女子在发车前已遇难。" ]
+      },
+      "questionCount" : 0,
+      "knowledgeVersion" : "turtle-soup-cases-v1/midnight_train/v2",
+      "aiAssist" : true,
+      "rules" : {
+        "speakTime" : 60,
+        "speechTime" : 60,
+        "caseId" : "midnight_train",
+        "aiDifficulty" : 2,
+        "playerCount" : 4
+      },
+      "caseHints" : [ "司机确实看见了一个形象，但还没证明那是车厢里的真人。", "发车前的站台、车窗反光和红围巾照片共同造成了误认。" ],
+      "knownClues" : [ ],
+      "archiveId" : "archive-14d75778-2843-4a5d-ac50-14f481c2a8c9",
+      "caseVersion" : 2,
+      "aiCycle" : 0,
+      "aiUsedInCycle" : [ ],
+      "promptVersion" : "social-v2.7",
+      "caseId" : "midnight_train",
+      "qaHistory" : [ ],
+      "finalAnswerRemaining" : 1,
+      "events" : [ {
+        "eventId" : "c96f28d6-c9cd-4542-99f9-fec835bb6f7a",
+        "type" : "TURTLE_SOUP_START",
+        "actorId" : "$host",
+        "targetId" : null,
+        "message" : "主持：末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+        "phase" : "QUESTIONING",
+        "round" : 1,
+        "visibility" : "PUBLIC",
+        "visibleTo" : [ ],
+        "data" : {
+          "surface" : "末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。"
+        },
+        "time" : "2026-09-22T13:14:22.049048800"
+      } ],
+      "aiQuestionBudget" : 4,
+      "hostRequestSerial" : 0,
+      "propositionHistory" : [ ],
+      "surface" : "末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+      "hintCount" : 0,
+      "aiCursor" : -1,
+      "maxQuestions" : 12,
+      "caseTitle" : "末班车的乘客",
+      "aiQuestionThisCycle" : false,
+      "randomSeed" : -3393307087878273301,
+      "difficulty" : "MEDIUM",
+      "aiContributions" : 0,
+      "ruleVersion" : 2,
+      "aiCycleActive" : false,
+      "discussionHistory" : [ ],
+      "phaseSerial" : 1,
+      "hostVerdict" : "",
+      "aiQuestionsUsed" : 0
+    },
+    "phaseEndsAt" : null,
+    "version" : null,
+    "updatedAt" : null,
+    "createdAt" : null
+  }
+}

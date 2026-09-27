@@ -4,13 +4,10 @@
     {
       "type": "java",
       "name": "Backend: Launch AiSocialGameApplication",
-      "request": "launch",
-      "mainClass": "com.aisocialgame.AiSocialGameApplication",
-      "projectName": "ai-social-game",
-      "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/../env.local",
-      "preLaunchTask": "backend: compile",
-      "console": "integratedTerminal"
+      "request": "attach",
+      "hostName": "127.0.0.1",
+      "port": 40000,
+      "preLaunchTask": "local: debug start"
     }
   ]
 }

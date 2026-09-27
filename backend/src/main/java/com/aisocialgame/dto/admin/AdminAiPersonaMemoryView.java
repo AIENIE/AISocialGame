@@ -14,6 +14,8 @@ public class AdminAiPersonaMemoryView {
     private final String mistakeNotes;
     private final String speechPatterns;
     private final int gamesPlayed;
+    private final String approvedSummary;
+    private final String reviewStatus;
     private final LocalDateTime updatedAt;
 
     public AdminAiPersonaMemoryView(AiPersonaMemory memory) {
@@ -26,6 +28,8 @@ public class AdminAiPersonaMemoryView {
         this.mistakeNotes = memory.getMistakeNotes();
         this.speechPatterns = memory.getSpeechPatterns();
         this.gamesPlayed = memory.getGamesPlayed();
+        this.approvedSummary = memory.getApprovedSummary();
+        this.reviewStatus = memory.getReviewStatus();
         this.updatedAt = memory.getUpdatedAt();
     }
 
@@ -38,5 +42,7 @@ public class AdminAiPersonaMemoryView {
     public String getMistakeNotes() { return mistakeNotes; }
     public String getSpeechPatterns() { return speechPatterns; }
     public int getGamesPlayed() { return gamesPlayed; }
+    public String getApprovedSummary() { return approvedSummary; }
+    public String getReviewStatus() { return reviewStatus; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

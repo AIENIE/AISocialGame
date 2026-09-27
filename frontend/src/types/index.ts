@@ -53,6 +53,11 @@ export interface Persona {
   strategyStyle?: string;
   difficultyLevel?: number;
   memorySeed?: string;
+  riskPreference?: number;
+  emotionalRecovery?: number;
+  sociability?: number;
+  behaviorGuide?: Partial<Record<"questioning" | "stance" | "revision" | "commitment", string>>;
+  presetVersion?: number;
 }
 
 export interface RoomSeat {
@@ -80,6 +85,7 @@ export interface Room {
   spectatorCount?: number;
   seats: RoomSeat[];
   selfPlayerId?: string;
+  hostUserId?: string;
 }
 
 export interface AuthResponse {
@@ -227,6 +233,8 @@ export interface AdminAiPersonaMemory {
   mistakeNotes?: string;
   speechPatterns?: string;
   gamesPlayed: number;
+  approvedSummary?: string;
+  reviewStatus?: "PENDING" | "APPROVED" | "REJECTED";
   updatedAt?: string;
 }
 
@@ -370,6 +378,23 @@ export interface GameLogEntry {
   type: string;
   message: string;
   time: string;
+  actorId?: string;
+  targetId?: string;
+  phase?: string;
+  roundNumber?: number;
+  metadata?: Record<string, unknown> & { presentation?: AiPresentation; eventId?: string };
+}
+
+export interface GameLogPage {
+  items: GameLogEntry[];
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
+export interface AiPresentation {
+  emotion?: "neutral" | "curious" | "tense" | "relieved" | "uncertain" | "amused" | "determined" | "disappointed";
+  gesture?: "none" | "pause" | "nod" | "shake_head" | "frown" | "smile" | "sigh" | "lean_in";
+  intensity?: 0 | 1 | 2 | 3;
 }
 
 export interface GamePlayerStateView {
@@ -383,6 +408,7 @@ export interface GamePlayerStateView {
   role?: string;
   word?: string;
   connectionStatus?: "ONLINE" | "DISCONNECTED" | "AI_TAKEOVER";
+  presentation?: AiPresentation;
 }
 
 export interface PendingAction {
@@ -406,13 +432,24 @@ export interface RoleDefinition {
 }
 
 export interface PlayerAction {
-  type: "SPEAK" | "VOTE" | "NIGHT_ACTION" | "ASK_QUESTION" | "SUBMIT_SOLUTION";
+  type: "SPEAK" | "VOTE" | "NIGHT_ACTION" | "ASK_QUESTION" | "SUBMIT_SOLUTION"
+    | "ASK_PLAYER" | "ANSWER_PLAYER" | "SKIP" | "HUNTER_SHOOT" | "DISCUSS" | "REQUEST_HINT" | "REVEAL_SOLUTION";
   content?: string;
   targetPlayerId?: string;
   abstain?: boolean;
   nightAction?: string;
   useHeal?: boolean;
   extra?: Record<string, any>;
+  requestId?: string;
+  expectedPhaseToken?: string;
+}
+
+export interface LegalAction {
+  type: PlayerAction["type"];
+  label: string;
+  nightAction?: string | null;
+  targets: string[];
+  maxLength: number;
 }
 
 export interface GameState {
@@ -522,6 +559,8 @@ export interface PlayerAchievement {
 }
 
 export interface ReplayEvent {
+  phase?: string;
+  seq?: number;
   id: string;
   timestamp: string;
   type: string;
@@ -573,6 +612,7 @@ export interface ReplayStructuredEvent {
 }
 
 export interface ReplayDetail {
+  availableViews?: ReplayViewMode[];
   archive: ReplayArchiveView;
   viewMode: ReplayViewMode;
   events: ReplayStructuredEvent[];

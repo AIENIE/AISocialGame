@@ -321,8 +321,12 @@ public final class ProductionSocialMigrationMain {
                     """);
         }
         for (MigrationEntry entry : pending) {
-            ScriptUtils.executeSqlScript(connection, new EncodedResource(
-                    new FileSystemResource(entry.path()), StandardCharsets.UTF_8));
+            if (entry.ordinal() == 2) {
+                applyLegacyRoomUpgrade(connection);
+            } else {
+                ScriptUtils.executeSqlScript(connection, new EncodedResource(
+                        new FileSystemResource(entry.path()), StandardCharsets.UTF_8));
+            }
             try (PreparedStatement statement = connection.prepareStatement(
                     "INSERT INTO " + HISTORY_TABLE
                             + "(ordinal,plan_id,migration_path,checksum_sha256) VALUES(?,?,?,?)")) {
@@ -337,44 +341,45 @@ public final class ProductionSocialMigrationMain {
         }
     }
 
-    static void validateSchema(Connection connection, MigrationPlan plan) throws SQLException, IOException {
-        Set<String> tables = new TreeSet<>();
-        for (MigrationEntry entry : plan.selectedEntries()) {
-            var matcher = CREATE_TABLE.matcher(Files.readString(entry.path(), StandardCharsets.UTF_8));
-            while (matcher.find()) {
-                tables.add(matcher.group(1));
+    // The published 20260519 SQL is immutable and predates repeatable DDL. Resume
+    // its operations individually so a crash between MySQL implicit commits is safe.
+    private static void applyLegacyRoomUpgrade(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            if (!columnExists(connection, "rooms", "seat_count")) {
+                statement.execute("ALTER TABLE rooms ADD COLUMN seat_count INT NOT NULL DEFAULT 0 AFTER seats");
             }
-        }
-        for (String table : tables) {
-            if (!tableExists(connection, table)) {
-                throw new IllegalStateException("migration schema table is missing");
+            if (!columnExists(connection, "rooms", "version")) {
+                statement.execute("ALTER TABLE rooms ADD COLUMN version BIGINT NULL AFTER seat_count");
             }
-        }
-        Set<Integer> ordinals = new TreeSet<>();
-        plan.selectedEntries().forEach(entry -> ordinals.add(entry.ordinal()));
-        if (ordinals.contains(1) || ordinals.contains(2)) {
-            requireInformationSchemaCount(connection, """
-                    SELECT COUNT(*) FROM information_schema.columns
-                     WHERE table_schema=DATABASE() AND table_name='rooms'
-                       AND column_name IN ('seat_count','version')
-                    """, 2);
-            requireInformationSchemaCount(connection, """
-                    SELECT COUNT(*) FROM information_schema.statistics
-                     WHERE table_schema=DATABASE() AND table_name='rooms'
-                       AND index_name='idx_rooms_game_status_created'
-                    """, 3);
-        }
-        if (!tableExists(connection, HISTORY_TABLE)) {
-            throw new IllegalStateException("migration history table is missing");
+            statement.execute("UPDATE rooms SET seat_count = CASE WHEN seats IS NULL OR JSON_VALID(seats)=0 THEN 0 ELSE JSON_LENGTH(seats) END");
+            if (indexColumns(connection, "rooms", "idx_rooms_game_status_created").isEmpty()) {
+                statement.execute("CREATE INDEX idx_rooms_game_status_created ON rooms(game_id,status,created_at)");
+            }
         }
     }
 
-    private static void requireInformationSchemaCount(Connection connection, String sql, int expected)
-            throws SQLException {
-        try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery(sql)) {
-            if (!result.next() || result.getInt(1) != expected || result.next()) {
-                throw new IllegalStateException("migration schema validation failed");
-            }
+    private static boolean columnExists(Connection connection, String table, String column) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?")) {
+            statement.setString(1, table);
+            statement.setString(2, column);
+            try (ResultSet result = statement.executeQuery()) { return result.next() && result.getInt(1) == 1; }
+        }
+    }
+
+    private static List<String> indexColumns(Connection connection, String table, String index) throws SQLException {
+        List<String> columns = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("SELECT column_name FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=? ORDER BY seq_in_index")) {
+            statement.setString(1, table);
+            statement.setString(2, index);
+            try (ResultSet result = statement.executeQuery()) { while (result.next()) columns.add(result.getString(1)); }
+        }
+        return columns;
+    }
+
+    static void validateSchema(Connection connection, MigrationPlan plan) throws SQLException, IOException {
+        SchemaContract.validate(connection, plan.allEntries().values().stream().map(MigrationEntry::path).toList());
+        if (!tableExists(connection, HISTORY_TABLE)) {
+            throw new IllegalStateException("migration history table is missing");
         }
     }
 

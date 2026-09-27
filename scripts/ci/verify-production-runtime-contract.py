@@ -166,7 +166,9 @@ if executor.name != "production-migration-executor" or entrypoint.name != "produ
     raise SystemExit("one-shot migration executable path drifted")
 ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
 plan = json.loads(plan_path.read_text(encoding="utf-8"))
-if ledger.get("schema_version") != "aienie-production-sql-ledger-v2" or len(ledger.get("entries", [])) != 3:
+from production_migration_manifest import load_manifest
+source_manifest = load_manifest(ledger_path.parent / "migrations.json")
+if ledger.get("schema_version") != "aienie-production-sql-ledger-v2" or len(ledger.get("entries", [])) != len(source_manifest["entries"]):
     raise SystemExit("SQL ledger identity drifted")
-if plan.get("schema_version") != "aienie-production-sql-plan-v1" or plan.get("selected_ordinals") not in ([1], [2, 3]):
+if plan.get("schema_version") != "aienie-production-sql-plan-v1" or not any(plan.get("selected_execution_plan") == candidate["id"] and plan.get("selected_ordinals") == candidate["ordinals"] for candidate in source_manifest["execution_plans"]):
     raise SystemExit("sealed SQL execution plan drifted")

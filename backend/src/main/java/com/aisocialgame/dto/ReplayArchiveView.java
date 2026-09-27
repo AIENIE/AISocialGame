@@ -17,6 +17,7 @@ public class ReplayArchiveView {
     private final long eventCount;
     private final String summary;
     private final Map<String, Object> aiQualitySummary;
+    private final java.util.List<Map<String,Object>> players;
     private final LocalDateTime startedAt;
     private final LocalDateTime finishedAt;
     private final LocalDateTime createdAt;
@@ -33,11 +34,17 @@ public class ReplayArchiveView {
         this.eventCount = archive.getEventCount();
         this.summary = archive.getSummary();
         this.aiQualitySummary = archive.getAiQualitySummary();
+        this.players = com.aisocialgame.engine.v2.RuleSupport.maps(archive.getPlayersSnapshot().get("players")).stream().map(p -> {
+            Map<String,Object> visible=new java.util.LinkedHashMap<>();
+            for(String key:java.util.List.of("playerId","displayName","seatNumber","ai","personaId")) if(p.containsKey(key))visible.put(key,p.get(key));
+            return visible;
+        }).toList();
         this.startedAt = archive.getStartedAt();
         this.finishedAt = archive.getFinishedAt();
         this.createdAt = archive.getCreatedAt();
     }
 
+    public java.util.List<Map<String,Object>> getPlayers() { return players; }
     public String getId() { return id; }
     public String getRoomId() { return roomId; }
     public String getGameId() { return gameId; }

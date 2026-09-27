@@ -25,6 +25,7 @@ export function gameTags(id: string | undefined, fallback: string[] = []): strin
 
 /** configSchema 字段 label：未知 game/field 回退原始中文 label（zh-CN 兜底）。 */
 export function gameFieldLabel(gameId: string | undefined, fieldId: string, fallback = ""): string {
+  if (fieldId === "aiDifficulty") return i18n.language.startsWith("en") ? "AI difficulty" : i18n.language === "zh-TW" ? "AI 難度" : "AI 难度";
   const fieldKeys = gameId ? GAME_CONFIG_KEYS[gameId]?.[fieldId] : undefined;
   return fieldKeys ? i18n.t(fieldKeys.label) : fallback;
 }
@@ -36,6 +37,8 @@ export function gameOptionLabel(
   optionValue: string | number | boolean,
   fallback = "",
 ): string {
+  if (fieldId === "aiDifficulty") { const labels = i18n.language.startsWith("en") ? ["Simple", "Social", "Advanced"] : i18n.language === "zh-TW" ? ["簡單", "娛樂", "進階"] : ["简单", "娱乐", "进阶"]; return labels[Number(optionValue) - 1] || fallback; }
+  if (gameId === "turtle_soup" && fieldId === "caseId" && optionValue === "random") return i18n.language.startsWith("en") ? "Random puzzle" : i18n.language === "zh-TW" ? "隨機題目" : "随机题目";
   const fieldKeys = gameId ? GAME_CONFIG_KEYS[gameId]?.[fieldId] : undefined;
   const key = fieldKeys?.options?.[String(optionValue)];
   return key ? i18n.t(key) : fallback;

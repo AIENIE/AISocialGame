@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(classes = AiSocialGameApplication.class, properties = {
-        "grpc.client.ai.address=${AI_GRPC_ADDR:static://127.0.0.1:19003}",
+        "spring.grpc.client.channel.ai.target=${AI_GRPC_ADDR:static://127.0.0.1:19003}",
         "app.external.aiservice-hmac-caller=${APP_EXTERNAL_AISERVICE_HMAC_CALLER:}",
         "app.external.aiservice-hmac-secret=${APP_EXTERNAL_AISERVICE_HMAC_SECRET:}",
         "app.ai.default-model=${APP_AI_DEFAULT_MODEL:}",

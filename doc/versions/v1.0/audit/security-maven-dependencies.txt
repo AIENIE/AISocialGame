@@ -1,0 +1,5 @@
+com.aisocialgame:ai-social-game:jar:0.0.1-SNAPSHOT
++- net.devh:grpc-client-spring-boot-starter:jar:3.1.0.RELEASE:compile
+|  \- io.grpc:grpc-netty-shaded:jar:1.63.0:compile
+\- io.grpc:grpc-protobuf:jar:1.63.0:compile
+   \- com.google.protobuf:protobuf-java:jar:3.25.1:compile

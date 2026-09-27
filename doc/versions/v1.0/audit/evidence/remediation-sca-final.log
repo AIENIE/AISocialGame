@@ -1,0 +1,115 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: windows
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 10.0
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 0
+[INFO] os.detected.classifier: windows-x86_64
+[INFO] 
+[INFO] ------------------< com.aisocialgame:ai-social-game >-------------------
+[INFO] Building AI Social Game Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency-check:13.0.0:check (default-cli) @ ai-social-game ---
+[INFO] Checking for updates
+[INFO] Skipping the NVD API Update as it was completed within the last 240 minutes
+[INFO] Should skip RetireJSDataSource update since last update was within period PT24H.
+[INFO] Should skip HostedSuppressionsDataSource update since last update was within period PT2H.
+[INFO] Skipping Known Exploited Vulnerabilities update check since last check was within 24 hours.
+[INFO] Check for updates complete (13 ms)
+[INFO] 
+
+Dependency-Check is an open source tool performing a best effort analysis of 3rd party dependencies; false positives and false negatives may exist in the analysis performed by the tool. Use of the tool and the reporting provided constitutes acceptance for use in an AS IS condition, and there are NO warranties, implied or otherwise, with regard to the analysis or its use. Any use of the tool and the reporting provided is at the user's risk. In no event shall the copyright holder or OWASP be held liable for any damages whatsoever arising out of or in connection with the use of this tool, the analysis performed, or the resulting report.
+
+
+   About ODC: https://dependency-check.github.io/DependencyCheck/general/internals.html
+   False Positives: https://dependency-check.github.io/DependencyCheck/general/suppression.html
+
+
+[INFO] Analysis Started
+[INFO] Finished Archive Analyzer (0 seconds)
+[INFO] Finished File Name Analyzer (0 seconds)
+[INFO] Finished Jar Analyzer (0 seconds)
+[INFO] Finished Assembly Analyzer (0 seconds)
+[INFO] Finished Dependency Merging Analyzer (0 seconds)
+[INFO] Finished Hint Analyzer (0 seconds)
+[INFO] Finished Version Filter Analyzer (0 seconds)
+[INFO] Created CPE Index (0 seconds)
+[INFO] Finished CPE Analyzer (2 seconds)
+[INFO] Finished False Positive Analyzer (0 seconds)
+[INFO] Finished NVD CVE Analyzer (0 seconds)
+[INFO] Finished RetireJS Analyzer (3 seconds)
+[WARNING] Sonatype OSS Index Analyzer disabled due to missing credentials. Authentication with token is now required, and OSS Index is migrating to Sonatype Guide. See https://dependency-check.github.io/DependencyCheck/analyzers/oss-index-analyzer.html for more information on authentication with Sonatype Guide OSS Index.
+[INFO] Finished Vulnerability Suppression Analyzer (0 seconds)
+[INFO] Finished Known Exploited Vulnerability Analyzer (0 seconds)
+[INFO] Finished Dependency Bundling Analyzer (0 seconds)
+[INFO] Finished Unused Suppression Rule Analyzer (0 seconds)
+[INFO] Analysis Complete (9 seconds)
+[INFO] Writing JSON report to: D:\project\aienie\aienie-projects\AISocialGame\backend\target\dependency-check-report.json
+[INFO] Writing HTML report to: D:\project\aienie\aienie-projects\AISocialGame\backend\target\dependency-check-report.html
+[WARNING] 
+
+One or more dependencies were identified with known vulnerabilities in AI Social Game Backend:
+
+commons-beanutils-1.9.4.jar (pkg:maven/commons-beanutils/commons-beanutils@1.9.4, cpe:2.3:a:apache:commons_beanutils:1.9.4:*:*:*:*:*:*:*) : CVE-2025-48734
+commons-io-2.11.0.jar (pkg:maven/commons-io/commons-io@2.11.0, cpe:2.3:a:apache:commons_io:2.11.0:*:*:*:*:*:*:*) : CVE-2024-47554
+commons-lang3-3.16.0.jar (pkg:maven/org.apache.commons/commons-lang3@3.16.0, cpe:2.3:a:apache:commons_lang:3.16.0:*:*:*:*:*:*:*) : CVE-2025-48924
+commons-lang3-3.5.jar (pkg:maven/org.apache.commons/commons-lang3@3.5, cpe:2.3:a:apache:commons_lang:3.5:*:*:*:*:*:*:*) : CVE-2025-48924
+httpclient5-5.5.2.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.5.2, cpe:2.3:a:apache:httpclient:5.5.2:*:*:*:*:*:*:*) : CVE-2026-71290, CVE-2026-64607
+httpclient5-5.6.3.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.6.3, cpe:2.3:a:apache:httpclient:5.6.3:*:*:*:*:*:*:*) : CVE-2026-71290
+httpcore5-5.3.6.jar (pkg:maven/org.apache.httpcomponents.core5/httpcore5@5.3.6, cpe:2.3:a:apache:httpcomponents_core:5.3.6:*:*:*:*:*:*:*) : CVE-2026-54399, CVE-2026-54428
+jackson-databind-2.21.4.jar (pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.21.4, cpe:2.3:a:fasterxml:jackson-core:2.21.4:*:*:*:*:*:*:*, cpe:2.3:a:fasterxml:jackson-databind:2.21.4:*:*:*:*:*:*:*, cpe:2.3:a:fasterxml:jackson-modules-java8:2.21.4:*:*:*:*:*:*:*) : CVE-2026-54515
+jetty-io-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-io@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*) : CVE-2026-2332, CVE-2026-10050, CVE-2026-5795, CVE-2025-11143, CVE-2026-6790
+jetty-server-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-server@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty_http_server:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*) : CVE-2026-2332, CVE-2026-10050, CVE-2026-5795, CVE-2025-11143, CVE-2026-6790
+maven-core-3.0.jar (pkg:maven/org.apache.maven/maven-core@3.0, cpe:2.3:a:apache:maven:3.0:*:*:*:*:*:*:*) : CVE-2021-26291
+mysql-connector-j-9.7.0.jar (pkg:maven/com.mysql/mysql-connector-j@9.7.0, cpe:2.3:a:oracle:mysql_connector\/j:9.7.0:*:*:*:*:*:*:*) : CVE-2026-60586, CVE-2026-60623, CVE-2026-60624, CVE-2026-61082
+plexus-utils-3.1.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.1.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.1.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.1.0:*:*:*:*:*:*:*) : CVE-2025-67030
+plexus-utils-3.5.1.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1, cpe:2.3:a:codehaus-plexus:plexus-utils:3.5.1:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.5.1:*:*:*:*:*:*:*) : CVE-2025-67030
+plexus-utils-3.6.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.6.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.6.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.6.0:*:*:*:*:*:*:*) : CVE-2025-67030
+plexus-utils-4.0.2.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.2, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.2:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.2:*:*:*:*:*:*:*) : CVE-2025-67030
+spring-core-6.2.19.jar (pkg:maven/org.springframework/spring-core@6.2.19, cpe:2.3:a:pivotal_software:spring_framework:6.2.19:*:*:*:*:*:*:*, cpe:2.3:a:springsource:spring_framework:6.2.19:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_framework:6.2.19:*:*:*:*:*:*:*) : CVE-2026-47884, CVE-2026-47890, CVE-2026-47891, CVE-2026-47892, CVE-2026-59313, CVE-2026-59283, CVE-2026-47885, CVE-2026-47886, CVE-2026-47888, CVE-2026-47889, CVE-2026-47893, CVE-2026-59282, CVE-2026-47883, CVE-2026-47887, CVE-2026-59281, CVE-2026-59280, CVE-2026-59314
+spring-data-jpa-3.5.13.jar (pkg:maven/org.springframework.data/spring-data-jpa@3.5.13, cpe:2.3:a:pivotal_software:spring_data_jpa:3.5.13:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_data_jpa:3.5.13:*:*:*:*:*:*:*) : CVE-2026-47834
+spring-security-crypto-6.5.11.jar (pkg:maven/org.springframework.security/spring-security-crypto@6.5.11, cpe:2.3:a:pivotal_software:spring_security:6.5.11:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_security:6.5.11:*:*:*:*:*:*:*) : CVE-2026-59270, CVE-2026-41707, CVE-2026-47841, CVE-2026-47842, CVE-2026-59276
+
+
+See the dependency-check report for more details.
+
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  12.433 s
+[INFO] Finished at: 2026-09-26T16:00:55+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.owasp:dependency-check-maven:13.0.0:check (default-cli) on project ai-social-game: 
+[ERROR] 
+[ERROR] One or more dependencies were identified with vulnerabilities that have a CVSS score greater than or equal to '7.0': 
+[ERROR] 
+[ERROR] commons-beanutils-1.9.4.jar (pkg:maven/commons-beanutils/commons-beanutils@1.9.4, cpe:2.3:a:apache:commons_beanutils:1.9.4:*:*:*:*:*:*:*): CVE-2025-48734(8.8)
+[ERROR] httpclient5-5.5.2.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.5.2, cpe:2.3:a:apache:httpclient:5.5.2:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] httpclient5-5.6.3.jar (pkg:maven/org.apache.httpcomponents.client5/httpclient5@5.6.3, cpe:2.3:a:apache:httpclient:5.6.3:*:*:*:*:*:*:*): CVE-2026-71290(9.1)
+[ERROR] httpcore5-5.3.6.jar (pkg:maven/org.apache.httpcomponents.core5/httpcore5@5.3.6, cpe:2.3:a:apache:httpcomponents_core:5.3.6:*:*:*:*:*:*:*): CVE-2026-54399(7.5), CVE-2026-54428(7.5)
+[ERROR] jetty-io-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-io@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2026-10050(8.7)
+[ERROR] jetty-server-9.4.58.v20250814.jar (pkg:maven/org.eclipse.jetty/jetty-server@9.4.58.v20250814, cpe:2.3:a:eclipse:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:jetty:jetty_http_server:9.4.58:20250814:*:*:*:*:*:*, cpe:2.3:a:mortbay_jetty:jetty:9.4.58:20250814:*:*:*:*:*:*): CVE-2026-2332(9.1), CVE-2026-5795(7.4), CVE-2026-10050(8.7)
+[ERROR] maven-core-3.0.jar (pkg:maven/org.apache.maven/maven-core@3.0, cpe:2.3:a:apache:maven:3.0:*:*:*:*:*:*:*): CVE-2021-26291(9.1)
+[ERROR] mysql-connector-j-9.7.0.jar (pkg:maven/com.mysql/mysql-connector-j@9.7.0, cpe:2.3:a:oracle:mysql_connector\/j:9.7.0:*:*:*:*:*:*:*): CVE-2026-60586(7.7), CVE-2026-60623(7.1)
+[ERROR] plexus-utils-3.1.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.1.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.1.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.1.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.5.1.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.5.1, cpe:2.3:a:codehaus-plexus:plexus-utils:3.5.1:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.5.1:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-3.6.0.jar (pkg:maven/org.codehaus.plexus/plexus-utils@3.6.0, cpe:2.3:a:codehaus-plexus:plexus-utils:3.6.0:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:3.6.0:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] plexus-utils-4.0.2.jar (pkg:maven/org.codehaus.plexus/plexus-utils@4.0.2, cpe:2.3:a:codehaus-plexus:plexus-utils:4.0.2:*:*:*:*:*:*:*, cpe:2.3:a:utils_project:utils:4.0.2:*:*:*:*:*:*:*): CVE-2025-67030(8.8)
+[ERROR] spring-core-6.2.19.jar (pkg:maven/org.springframework/spring-core@6.2.19, cpe:2.3:a:pivotal_software:spring_framework:6.2.19:*:*:*:*:*:*:*, cpe:2.3:a:springsource:spring_framework:6.2.19:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_framework:6.2.19:*:*:*:*:*:*:*): CVE-2026-47885(7.5), CVE-2026-47884(9.8), CVE-2026-47886(7.5), CVE-2026-47892(9.8), CVE-2026-47891(9.8), CVE-2026-47893(7.5), CVE-2026-47890(9.8), CVE-2026-59313(9.8), CVE-2026-59283(9.1), CVE-2026-47889(7.5), CVE-2026-47888(7.5), CVE-2026-59282(7.5)
+[ERROR] spring-security-crypto-6.5.11.jar (pkg:maven/org.springframework.security/spring-security-crypto@6.5.11, cpe:2.3:a:pivotal_software:spring_security:6.5.11:*:*:*:*:*:*:*, cpe:2.3:a:vmware:spring_security:6.5.11:*:*:*:*:*:*:*): CVE-2026-47841(7.4), CVE-2026-41707(7.4), CVE-2026-59270(9.1)
+[ERROR] 
+[ERROR] See the dependency-check report for more details.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

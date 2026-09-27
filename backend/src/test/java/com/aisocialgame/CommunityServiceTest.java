@@ -29,8 +29,8 @@ class CommunityServiceTest {
     private AiSafetyService aiSafetyService;
 
     @Test
-    void createShouldDecodeGuestNameBeforeSavingAndReviewing() {
-        CommunityService service = new CommunityService(repository, aiSafetyService);
+    void createBindsAuthorAndSafetySubjectToAuthenticatedAccount() {
+        CommunityService service = new CommunityService(repository, aiSafetyService, org.mockito.Mockito.mock(com.aisocialgame.repository.CommunityLikeRepository.class), org.mockito.Mockito.mock(com.aisocialgame.service.WriteRateLimiter.class));
         when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.save(any(CommunityPost.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -38,13 +38,22 @@ class CommunityServiceTest {
         request.setContent("社区分享内容");
         request.setTags(List.of("安全", "分享"));
 
-        CommunityPost post = service.create(request, null, "%E6%B5%8B%E8%AF%95%E7%8E%A9%E5%AE%B6");
+        var user = new com.aisocialgame.model.User(); user.setId("account"); user.setNickname("测试玩家");
+        CommunityPost post = service.create(request, user);
 
         ArgumentCaptor<AiSafetyContext> contextCaptor = ArgumentCaptor.forClass(AiSafetyContext.class);
         verify(aiSafetyService).requireAllowedInput(anyString(), contextCaptor.capture());
-        assertEquals("guest:测试玩家", contextCaptor.getValue().getUserId());
+        assertEquals("account", contextCaptor.getValue().getUserId());
         assertEquals("测试玩家", post.getAuthorName());
         assertEquals("社区分享内容", post.getContent());
         assertEquals(List.of("安全", "分享"), post.getTags());
     }
+    @Test void anonymousWritesAreRejectedBeforeAnyWork() {
+        var service = new CommunityService(repository, aiSafetyService, org.mockito.Mockito.mock(com.aisocialgame.repository.CommunityLikeRepository.class), org.mockito.Mockito.mock(com.aisocialgame.service.WriteRateLimiter.class));
+        var error = org.junit.jupiter.api.Assertions.assertThrows(com.aisocialgame.exception.ApiException.class, () -> service.create(new CommunityPostRequest(), null));
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, error.getStatus());
+        org.junit.jupiter.api.Assertions.assertThrows(com.aisocialgame.exception.ApiException.class, () -> service.like("post", null));
+        org.mockito.Mockito.verifyNoInteractions(repository, aiSafetyService);
+    }
+
 }

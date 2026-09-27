@@ -16,7 +16,7 @@ import { CommunityPost } from "@/types";
 
 const Community = () => {
   const { t } = useTranslation();
-  const { displayName, avatar } = useAuth();
+  const { user, avatar, redirectToSsoLogin } = useAuth();
   const [input, setInput] = useState("");
   const [publishError, setPublishError] = useState("");
   const queryClient = useQueryClient();
@@ -27,7 +27,7 @@ const Community = () => {
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => communityApi.create(input.trim(), [], displayName),
+    mutationFn: () => communityApi.create(input.trim(), []),
     onSuccess: () => {
       setInput("");
       setPublishError("");
@@ -48,6 +48,7 @@ const Community = () => {
   });
 
   const publish = () => {
+    if (!user) { void redirectToSsoLogin(); return; }
     const value = input.trim();
     if (!value) {
       toast.error(t("community.emptyInput"));
@@ -151,7 +152,7 @@ const Community = () => {
                     ))}
                   </div>
                   <div className="flex items-center gap-6 pt-2 border-t border-slate-100">
-                    <Button variant="ghost" size="sm" className="text-slate-500 hover:text-red-500 px-0 h-8 text-xs md:text-sm" onClick={() => likeMutation.mutate(post.id)}>
+                    <Button variant="ghost" size="sm" className="text-slate-500 hover:text-red-500 px-0 h-8 text-xs md:text-sm" onClick={() => { if (!user) void redirectToSsoLogin(); else likeMutation.mutate(post.id); }}>
                       <Heart className="h-3 w-3 md:h-4 md:w-4 mr-1.5" /> {post.likes}
                     </Button>
                     <div className="text-xs text-slate-500 flex items-center gap-1">

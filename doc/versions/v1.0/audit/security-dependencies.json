@@ -1,0 +1,437 @@
+{
+  "tool": "pnpm audit --json",
+  "date": "2026-09-26",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 11,
+      "high": 8,
+      "critical": 0
+    },
+    "dependencies": 281,
+    "devDependencies": 250,
+    "optionalDependencies": 58,
+    "totalDependencies": 533
+  },
+  "advisories": [
+    {
+      "package": "glob",
+      "severity": "high",
+      "versions": [
+        "10.4.5"
+      ],
+      "title": "glob CLI: Command injection via -c/--cmd executes matches with shell:true",
+      "advisory": "GHSA-5j98-mcp5-4vw2",
+      "url": "https://github.com/advisories/GHSA-5j98-mcp5-4vw2",
+      "affected": ">=10.2.0 <10.5.0",
+      "patched": ">=10.5.0",
+      "paths": [
+        ".>tailwindcss-animate>tailwindcss>sucrase>glob",
+        ".>@tailwindcss/typography>tailwindcss>sucrase>glob",
+        ".>tailwindcss>sucrase>glob"
+      ]
+    },
+    {
+      "package": "rollup",
+      "severity": "high",
+      "versions": [
+        "4.40.0"
+      ],
+      "title": "Rollup 4 has Arbitrary File Write via Path Traversal",
+      "advisory": "GHSA-mw96-cpmx-2vgc",
+      "url": "https://github.com/advisories/GHSA-mw96-cpmx-2vgc",
+      "affected": ">=4.0.0 <4.59.0",
+      "patched": ">=4.59.0",
+      "paths": [
+        ".>@dyad-sh/react-vite-component-tagger>vite>rollup",
+        ".>@vitejs/plugin-react-swc>vite>rollup",
+        ".>vite>rollup",
+        ".>vitest>@vitest/mocker>vite>rollup",
+        ".>vitest>vite>rollup"
+      ]
+    },
+    {
+      "package": "flatted",
+      "severity": "high",
+      "versions": [
+        "3.3.3"
+      ],
+      "title": "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+      "advisory": "GHSA-25h7-pfq9-p65f",
+      "url": "https://github.com/advisories/GHSA-25h7-pfq9-p65f",
+      "affected": "<3.4.0",
+      "patched": ">=3.4.0",
+      "paths": [
+        ".>eslint>file-entry-cache>flat-cache>flatted",
+        ".>eslint-plugin-react-hooks>eslint>file-entry-cache>flat-cache>flatted",
+        ".>eslint-plugin-react-refresh>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/parser>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>eslint>file-entry-cache>flat-cache>flatted"
+      ]
+    },
+    {
+      "package": "flatted",
+      "severity": "high",
+      "versions": [
+        "3.3.3"
+      ],
+      "title": "Prototype Pollution via parse() in NodeJS flatted",
+      "advisory": "GHSA-rf6f-7fwh-wjgh",
+      "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh",
+      "affected": "<=3.4.1",
+      "patched": ">=3.4.2",
+      "paths": [
+        ".>eslint>file-entry-cache>flat-cache>flatted",
+        ".>eslint-plugin-react-hooks>eslint>file-entry-cache>flat-cache>flatted",
+        ".>eslint-plugin-react-refresh>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/parser>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>@typescript-eslint/utils>eslint>file-entry-cache>flat-cache>flatted",
+        ".>typescript-eslint>eslint>file-entry-cache>flat-cache>flatted"
+      ]
+    },
+    {
+      "package": "picomatch",
+      "severity": "moderate",
+      "versions": [
+        "2.3.1"
+      ],
+      "title": "Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+      "advisory": "GHSA-3v7f-55p6-f55p",
+      "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p",
+      "affected": "<2.3.2",
+      "patched": ">=2.3.2",
+      "paths": [
+        ".>tailwindcss-animate>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>tailwindcss-animate>tailwindcss>micromatch>picomatch",
+        ".>@tailwindcss/typography>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>@tailwindcss/typography>tailwindcss>micromatch>picomatch",
+        ".>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>tailwindcss>micromatch>picomatch"
+      ]
+    },
+    {
+      "package": "picomatch",
+      "severity": "moderate",
+      "versions": [
+        "4.0.2"
+      ],
+      "title": "Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+      "advisory": "GHSA-3v7f-55p6-f55p",
+      "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p",
+      "affected": ">=4.0.0 <4.0.4",
+      "patched": ">=4.0.4",
+      "paths": [
+        ".>@dyad-sh/react-vite-component-tagger>vite>fdir>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>tinyglobby>fdir>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>tinyglobby>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>fdir>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>tinyglobby>fdir>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>tinyglobby>picomatch",
+        ".>vite>fdir>picomatch",
+        ".>vite>picomatch",
+        ".>vite>tinyglobby>fdir>picomatch",
+        ".>vite>tinyglobby>picomatch",
+        ".>vitest>@vitest/mocker>vite>fdir>picomatch",
+        ".>vitest>@vitest/mocker>vite>picomatch",
+        ".>vitest>@vitest/mocker>vite>tinyglobby>fdir>picomatch",
+        ".>vitest>@vitest/mocker>vite>tinyglobby>picomatch",
+        ".>vitest>vite>fdir>picomatch",
+        ".>vitest>vite>picomatch",
+        ".>vitest>vite>tinyglobby>fdir>picomatch",
+        ".>vitest>vite>tinyglobby>picomatch"
+      ]
+    },
+    {
+      "package": "picomatch",
+      "severity": "high",
+      "versions": [
+        "2.3.1"
+      ],
+      "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "advisory": "GHSA-c2c7-rcm5-vvqj",
+      "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+      "affected": "<2.3.2",
+      "patched": ">=2.3.2",
+      "paths": [
+        ".>tailwindcss-animate>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>tailwindcss-animate>tailwindcss>micromatch>picomatch",
+        ".>@tailwindcss/typography>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>@tailwindcss/typography>tailwindcss>micromatch>picomatch",
+        ".>tailwindcss>fast-glob>micromatch>picomatch",
+        ".>tailwindcss>micromatch>picomatch"
+      ]
+    },
+    {
+      "package": "picomatch",
+      "severity": "high",
+      "versions": [
+        "4.0.2"
+      ],
+      "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "advisory": "GHSA-c2c7-rcm5-vvqj",
+      "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+      "affected": ">=4.0.0 <4.0.4",
+      "patched": ">=4.0.4",
+      "paths": [
+        ".>@dyad-sh/react-vite-component-tagger>vite>fdir>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>tinyglobby>fdir>picomatch",
+        ".>@dyad-sh/react-vite-component-tagger>vite>tinyglobby>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>fdir>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>tinyglobby>fdir>picomatch",
+        ".>@vitejs/plugin-react-swc>vite>tinyglobby>picomatch",
+        ".>vite>fdir>picomatch",
+        ".>vite>picomatch",
+        ".>vite>tinyglobby>fdir>picomatch",
+        ".>vite>tinyglobby>picomatch",
+        ".>vitest>@vitest/mocker>vite>fdir>picomatch",
+        ".>vitest>@vitest/mocker>vite>picomatch",
+        ".>vitest>@vitest/mocker>vite>tinyglobby>fdir>picomatch",
+        ".>vitest>@vitest/mocker>vite>tinyglobby>picomatch",
+        ".>vitest>vite>fdir>picomatch",
+        ".>vitest>vite>picomatch",
+        ".>vitest>vite>tinyglobby>fdir>picomatch",
+        ".>vitest>vite>tinyglobby>picomatch"
+      ]
+    },
+    {
+      "package": "yaml",
+      "severity": "moderate",
+      "versions": [
+        "2.7.1"
+      ],
+      "title": "yaml is vulnerable to Stack Overflow via deeply nested YAML collections",
+      "advisory": "GHSA-48c2-rrv3-qjmp",
+      "url": "https://github.com/advisories/GHSA-48c2-rrv3-qjmp",
+      "affected": ">=2.0.0 <2.8.3",
+      "patched": ">=2.8.3",
+      "paths": [
+        ".>tailwindcss-animate>tailwindcss>postcss-load-config>yaml",
+        ".>@dyad-sh/react-vite-component-tagger>vite>yaml",
+        ".>@tailwindcss/typography>tailwindcss>postcss-load-config>yaml",
+        ".>@vitejs/plugin-react-swc>vite>yaml",
+        ".>tailwindcss>postcss-load-config>yaml",
+        ".>vite>yaml",
+        ".>vitest>@vitest/mocker>vite>yaml",
+        ".>vitest>vite>yaml"
+      ]
+    },
+    {
+      "package": "lodash",
+      "severity": "high",
+      "versions": [
+        "4.17.21"
+      ],
+      "title": "lodash vulnerable to Code Injection via `_.template` imports key names",
+      "advisory": "GHSA-r5fr-rjxr-66jc",
+      "url": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc",
+      "affected": ">=4.0.0 <=4.17.23",
+      "patched": ">=4.17.24",
+      "paths": [
+        ".>recharts>lodash"
+      ]
+    },
+    {
+      "package": "lodash",
+      "severity": "moderate",
+      "versions": [
+        "4.17.21"
+      ],
+      "title": "lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`",
+      "advisory": "GHSA-f23m-r3pf-42rh",
+      "url": "https://github.com/advisories/GHSA-f23m-r3pf-42rh",
+      "affected": "<=4.17.23",
+      "patched": ">=4.17.24",
+      "paths": [
+        ".>recharts>lodash"
+      ]
+    },
+    {
+      "package": "lodash",
+      "severity": "moderate",
+      "versions": [
+        "4.17.21"
+      ],
+      "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+      "advisory": "GHSA-xxjr-mmjv-4gpg",
+      "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+      "affected": ">=4.0.0 <=4.17.22",
+      "patched": ">=4.17.23",
+      "paths": [
+        ".>recharts>lodash"
+      ]
+    },
+    {
+      "package": "react-router",
+      "severity": "moderate",
+      "versions": [
+        "6.30.4"
+      ],
+      "title": "React Router: Open redirect via backslash in <Link> and useNavigate (CVE-2025-68470 bypass)",
+      "advisory": "GHSA-wrjc-x8rr-h8h6",
+      "url": "https://github.com/advisories/GHSA-wrjc-x8rr-h8h6",
+      "affected": ">=6.0.0 <7.18.0",
+      "patched": ">=7.18.0",
+      "paths": [
+        ".>react-router-dom>react-router"
+      ]
+    },
+    {
+      "package": "react-router",
+      "severity": "moderate",
+      "versions": [
+        "6.30.4"
+      ],
+      "title": "React Router: Arbitrary Constructor Injection via deserializeErrors() in React Router SSR Hydration",
+      "advisory": "GHSA-337j-9hxr-rhxg",
+      "url": "https://github.com/advisories/GHSA-337j-9hxr-rhxg",
+      "affected": ">=6.4.0 <7.18.0",
+      "patched": ">=7.18.0",
+      "paths": [
+        ".>react-router-dom>react-router"
+      ]
+    },
+    {
+      "package": "postcss-selector-parser",
+      "severity": "low",
+      "versions": [
+        "6.1.2"
+      ],
+      "title": "postcss-selector-parser allows denial of service through uncontrolled AST recursion",
+      "advisory": "GHSA-w9m9-85wc-3x92",
+      "url": "https://github.com/advisories/GHSA-w9m9-85wc-3x92",
+      "affected": ">=6.1.0 <6.1.3",
+      "patched": ">=6.1.3",
+      "paths": [
+        ".>tailwindcss-animate>tailwindcss>postcss-nested>postcss-selector-parser",
+        ".>tailwindcss-animate>tailwindcss>postcss-selector-parser",
+        ".>@tailwindcss/typography>tailwindcss>postcss-nested>postcss-selector-parser",
+        ".>@tailwindcss/typography>tailwindcss>postcss-selector-parser",
+        ".>tailwindcss>postcss-nested>postcss-selector-parser",
+        ".>tailwindcss>postcss-selector-parser"
+      ]
+    },
+    {
+      "package": "@humanfs/node",
+      "severity": "moderate",
+      "versions": [
+        "0.16.6"
+      ],
+      "title": "humanfs: Recursive copy follows symlinked files and copies data from outside the source tree",
+      "advisory": "GHSA-p498-v437-472g",
+      "url": "https://github.com/advisories/GHSA-p498-v437-472g",
+      "affected": "<0.16.8",
+      "patched": ">=0.16.8",
+      "paths": [
+        ".>eslint>@humanfs/node",
+        ".>eslint-plugin-react-hooks>eslint>@humanfs/node",
+        ".>eslint-plugin-react-refresh>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/parser>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@humanfs/node",
+        ".>typescript-eslint>@typescript-eslint/utils>eslint>@humanfs/node",
+        ".>typescript-eslint>eslint>@humanfs/node"
+      ]
+    },
+    {
+      "package": "react-router-dom",
+      "severity": "moderate",
+      "versions": [
+        "6.30.4"
+      ],
+      "title": "React Router: Open redirect leading to XSS",
+      "advisory": "GHSA-jjmj-jmhj-qwj2",
+      "url": "https://github.com/advisories/GHSA-jjmj-jmhj-qwj2",
+      "affected": ">=6.30.2 <=6.30.5",
+      "patched": ">=6.30.6",
+      "paths": [
+        ".>react-router-dom"
+      ]
+    },
+    {
+      "package": "vitest",
+      "severity": "moderate",
+      "versions": [
+        "4.1.10"
+      ],
+      "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "affected": ">=2.1.0 <4.1.11",
+      "patched": ">=4.1.11",
+      "paths": [
+        ".>vitest"
+      ]
+    },
+    {
+      "package": "@vitest/mocker",
+      "severity": "moderate",
+      "versions": [
+        "4.1.10"
+      ],
+      "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "affected": ">=2.1.0 <4.1.11",
+      "patched": ">=4.1.11",
+      "paths": [
+        ".>vitest>@vitest/mocker"
+      ]
+    },
+    {
+      "package": "js-yaml",
+      "severity": "high",
+      "versions": [
+        "4.3.1"
+      ],
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+      "advisory": "GHSA-2883-xcg3-v3hh",
+      "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+      "affected": ">=4.0.0 <4.3.2",
+      "patched": ">=4.3.2",
+      "paths": [
+        ".>eslint>@eslint/eslintrc>js-yaml",
+        ".>eslint-plugin-react-hooks>eslint>@eslint/eslintrc>js-yaml",
+        ".>eslint-plugin-react-refresh>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/eslint-plugin>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/parser>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>@typescript-eslint/utils>eslint>@eslint/eslintrc>js-yaml",
+        ".>typescript-eslint>eslint>@eslint/eslintrc>js-yaml"
+      ]
+    }
+  ]
+}

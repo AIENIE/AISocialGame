@@ -46,6 +46,14 @@ public class Room {
     private String password;
     private String commMode;
 
+    @Column(name = "host_user_id", length = 36)
+    private String hostUserId;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Convert(converter = MapToJsonConverter.class)
+    @Column(name = "private_config", columnDefinition = "LONGTEXT")
+    private Map<String, Object> privateConfig = new HashMap<>();
+
     @Convert(converter = MapToJsonConverter.class)
     @Column(columnDefinition = "LONGTEXT")
     private Map<String, Object> config = new HashMap<>();
@@ -110,6 +118,12 @@ public class Room {
     public boolean isPrivate() { return isPrivate; }
     public String getPassword() { return password; }
     public String getCommMode() { return commMode; }
+    public String getHostUserId() { return hostUserId; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public Map<String, Object> getPrivateConfig() {
+        if (privateConfig == null) privateConfig = new HashMap<>();
+        return privateConfig;
+    }
     public Map<String, Object> getConfig() {
         if (config == null) {
             config = new HashMap<>();
@@ -136,6 +150,8 @@ public class Room {
     public void setPrivate(boolean aPrivate) { isPrivate = aPrivate; }
     public void setPassword(String password) { this.password = password; }
     public void setCommMode(String commMode) { this.commMode = commMode; }
+    public void setHostUserId(String hostUserId) { this.hostUserId = hostUserId; }
+    public void setPrivateConfig(Map<String, Object> privateConfig) { this.privateConfig = privateConfig == null ? new HashMap<>() : privateConfig; }
     public void setConfig(Map<String, Object> config) { this.config = config; }
     public void setSeats(List<RoomSeat> seats) {
         this.seats = seats;

@@ -1,0 +1,4344 @@
+{
+  "version": 1,
+  "reviewPolicy": "Curated static starter content; no runtime model-generated pairs.",
+  "pairs": [
+    {
+      "id": "uc-daily-001",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "豆浆",
+        "definition": "豆类磨制而成的饮品",
+        "attributes": [
+          "早餐常见",
+          "颜色偏白",
+          "有植物清香"
+        ],
+        "scenes": [
+          "清晨在街边小店配着油条喝"
+        ],
+        "forbiddenTerms": [
+          "豆浆"
+        ]
+      },
+      "sideB": {
+        "word": "牛奶",
+        "definition": "动物乳汁加工成的饮品",
+        "attributes": [
+          "颜色乳白",
+          "常有盒装",
+          "口感柔和"
+        ],
+        "scenes": [
+          "上学前从冰箱取出一盒"
+        ],
+        "forbiddenTerms": [
+          "牛奶"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-002",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "火锅",
+        "definition": "食材在桌边热汤中煮熟的聚餐方式",
+        "attributes": [
+          "边煮边吃",
+          "锅中有汤",
+          "可以多人围坐"
+        ],
+        "scenes": [
+          "冬天与朋友围着热气腾腾的桌子"
+        ],
+        "forbiddenTerms": [
+          "火锅"
+        ]
+      },
+      "sideB": {
+        "word": "烧烤",
+        "definition": "食材靠近热源烤熟的烹饪方式",
+        "attributes": [
+          "表面易焦香",
+          "常用签子",
+          "会撒调味粉"
+        ],
+        "scenes": [
+          "夏夜在露天摊位等一把刚烤好的串"
+        ],
+        "forbiddenTerms": [
+          "烧烤"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-003",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "饺子",
+        "definition": "面皮包馅并收口的传统面食",
+        "attributes": [
+          "通常有褶",
+          "可以水煮",
+          "常蘸醋吃"
+        ],
+        "scenes": [
+          "过年时一家人围桌捏面皮"
+        ],
+        "forbiddenTerms": [
+          "饺子"
+        ]
+      },
+      "sideB": {
+        "word": "馄饨",
+        "definition": "薄面皮包小份馅并带汤食用的面食",
+        "attributes": [
+          "皮比较薄",
+          "经常带汤",
+          "汤里可放紫菜"
+        ],
+        "scenes": [
+          "晚归时喝下一碗热乎的汤食"
+        ],
+        "forbiddenTerms": [
+          "馄饨"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-004",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "汉堡",
+        "definition": "圆形面包夹入肉饼与配菜的食物",
+        "attributes": [
+          "可以手拿",
+          "常见圆形",
+          "中间有多层馅"
+        ],
+        "scenes": [
+          "匆忙午餐时拆开纸包装"
+        ],
+        "forbiddenTerms": [
+          "汉堡"
+        ]
+      },
+      "sideB": {
+        "word": "三明治",
+        "definition": "多片面包夹入配料的食物",
+        "attributes": [
+          "常见切片外形",
+          "方便携带",
+          "可以冷食"
+        ],
+        "scenes": [
+          "郊游前把做好的午餐放进饭盒"
+        ],
+        "forbiddenTerms": [
+          "三明治"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-005",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "面包",
+        "definition": "面团发酵后烘烤的食物",
+        "attributes": [
+          "内部有气孔",
+          "可以当主食",
+          "外形多样"
+        ],
+        "scenes": [
+          "清晨路过烘焙店闻到香味"
+        ],
+        "forbiddenTerms": [
+          "面包"
+        ]
+      },
+      "sideB": {
+        "word": "蛋糕",
+        "definition": "面糊烘焙或凝固定型的甜点",
+        "attributes": [
+          "经常甜软",
+          "可以分层",
+          "节庆时常见"
+        ],
+        "scenes": [
+          "生日时围着点燃的蜡烛唱歌"
+        ],
+        "forbiddenTerms": [
+          "蛋糕"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-006",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "冰棍",
+        "definition": "带小棒并冻成固定形状的冷饮",
+        "attributes": [
+          "需要冷冻",
+          "可以拿着棒吃",
+          "融化会滴水"
+        ],
+        "scenes": [
+          "放学后在小卖部拆开冰凉包装"
+        ],
+        "forbiddenTerms": [
+          "冰棍",
+          "雪条"
+        ]
+      },
+      "sideB": {
+        "word": "冰淇淋",
+        "definition": "乳类等原料制成的柔滑冷冻甜品",
+        "attributes": [
+          "口感绵软",
+          "可用勺挖",
+          "常装在脆筒里"
+        ],
+        "scenes": [
+          "逛街时挑选喜欢的球状口味"
+        ],
+        "forbiddenTerms": [
+          "冰淇淋",
+          "冰激凌"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-007",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "西瓜",
+        "definition": "外皮较厚且果肉多汁的大型瓜果",
+        "attributes": [
+          "水分多",
+          "常切成三角片",
+          "夏天常见"
+        ],
+        "scenes": [
+          "炎热午后把切好的果盘端出来"
+        ],
+        "forbiddenTerms": [
+          "西瓜"
+        ]
+      },
+      "sideB": {
+        "word": "哈密瓜",
+        "definition": "果肉香甜且较脆的瓜果",
+        "attributes": [
+          "外皮常有纹路",
+          "果肉可呈橙色",
+          "香气明显"
+        ],
+        "scenes": [
+          "旅行早餐时拿几块橙色果肉"
+        ],
+        "forbiddenTerms": [
+          "哈密瓜"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-008",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "橘子",
+        "definition": "果瓣容易分开的柑橘类水果",
+        "attributes": [
+          "外皮容易剥",
+          "通常不大",
+          "果肉分瓣"
+        ],
+        "scenes": [
+          "坐在沙发上边聊天边用手剥皮"
+        ],
+        "forbiddenTerms": [
+          "橘子",
+          "桔子"
+        ]
+      },
+      "sideB": {
+        "word": "柚子",
+        "definition": "外皮较厚的大型柑橘类水果",
+        "attributes": [
+          "个头较大",
+          "白色内皮厚",
+          "果瓣外膜较韧"
+        ],
+        "scenes": [
+          "秋天一家人分着吃一个大果子"
+        ],
+        "forbiddenTerms": [
+          "柚子"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-009",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "苹果",
+        "definition": "口感多为脆甜的圆形水果",
+        "attributes": [
+          "外皮可红可绿",
+          "果肉较紧实",
+          "中心有籽"
+        ],
+        "scenes": [
+          "课间从书包里拿出洗好的水果"
+        ],
+        "forbiddenTerms": [
+          "苹果"
+        ]
+      },
+      "sideB": {
+        "word": "梨子",
+        "definition": "果肉常有细小石细胞的多汁水果",
+        "attributes": [
+          "汁水较足",
+          "口感可有颗粒感",
+          "外形常上小下大"
+        ],
+        "scenes": [
+          "秋天把切块的水果放进炖盅"
+        ],
+        "forbiddenTerms": [
+          "梨子"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-010",
+      "category": "daily",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "咖啡",
+        "definition": "用烘焙种子冲泡的饮品",
+        "attributes": [
+          "香气浓郁",
+          "可能偏苦",
+          "经常用于提神"
+        ],
+        "scenes": [
+          "上班路上取走刚做好的纸杯饮品"
+        ],
+        "forbiddenTerms": [
+          "咖啡"
+        ]
+      },
+      "sideB": {
+        "word": "茶水",
+        "definition": "植物叶片等浸泡而成的饮品",
+        "attributes": [
+          "可以续热水",
+          "颜色随品种变化",
+          "适合慢慢喝"
+        ],
+        "scenes": [
+          "午后给来访的客人添一杯热饮"
+        ],
+        "forbiddenTerms": [
+          "茶水"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-011",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "汽水",
+        "definition": "含有二氧化碳气泡的饮料",
+        "attributes": [
+          "打开会冒泡",
+          "常带甜味",
+          "冰镇很常见"
+        ],
+        "scenes": [
+          "运动结束后听到开瓶时的一声响"
+        ],
+        "forbiddenTerms": [
+          "汽水"
+        ]
+      },
+      "sideB": {
+        "word": "果汁",
+        "definition": "水果压榨或加工得到的饮品",
+        "attributes": [
+          "有水果风味",
+          "颜色多样",
+          "有时带果肉"
+        ],
+        "scenes": [
+          "早餐时往透明杯里倒橙色饮品"
+        ],
+        "forbiddenTerms": [
+          "果汁"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-012",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "口罩",
+        "definition": "遮住口鼻的面部用品",
+        "attributes": [
+          "有挂带",
+          "贴近脸部",
+          "可以阻挡部分飞沫"
+        ],
+        "scenes": [
+          "进入人多的室内场所前整理挂带"
+        ],
+        "forbiddenTerms": [
+          "口罩"
+        ]
+      },
+      "sideB": {
+        "word": "围巾",
+        "definition": "围在颈部的长条衣物",
+        "attributes": [
+          "可以绕几圈",
+          "材质多样",
+          "常用于保暖"
+        ],
+        "scenes": [
+          "出门前把长条织物往脖子上绕"
+        ],
+        "forbiddenTerms": [
+          "围巾"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-013",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "雨伞",
+        "definition": "展开后可遮挡雨水的便携用品",
+        "attributes": [
+          "有骨架",
+          "可以收拢",
+          "通常要手持"
+        ],
+        "scenes": [
+          "突然下雨时在包里寻找折叠物件"
+        ],
+        "forbiddenTerms": [
+          "雨伞"
+        ]
+      },
+      "sideB": {
+        "word": "雨衣",
+        "definition": "穿在身上遮挡雨水的外衣",
+        "attributes": [
+          "表面防水",
+          "可以解放双手",
+          "常有兜帽"
+        ],
+        "scenes": [
+          "骑车遇雨时先把罩子套到身上"
+        ],
+        "forbiddenTerms": [
+          "雨衣"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-014",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "拖鞋",
+        "definition": "便于穿脱的室内或休闲鞋类",
+        "attributes": [
+          "脚后跟常不包住",
+          "容易穿脱",
+          "家中常见"
+        ],
+        "scenes": [
+          "进门后把脚从外出鞋中换出来"
+        ],
+        "forbiddenTerms": [
+          "拖鞋"
+        ]
+      },
+      "sideB": {
+        "word": "凉鞋",
+        "definition": "通过开口或系带保持通风的鞋类",
+        "attributes": [
+          "夏天常穿",
+          "可以露出脚趾",
+          "通常有固定脚部的带子"
+        ],
+        "scenes": [
+          "旅游步行时想让脚保持透气"
+        ],
+        "forbiddenTerms": [
+          "凉鞋"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-015",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "毛衣",
+        "definition": "用纱线针织而成的上衣",
+        "attributes": [
+          "能看到针织纹路",
+          "弹性常较好",
+          "冷天常穿"
+        ],
+        "scenes": [
+          "天气转凉时翻出一件柔软上衣"
+        ],
+        "forbiddenTerms": [
+          "毛衣"
+        ]
+      },
+      "sideB": {
+        "word": "卫衣",
+        "definition": "偏休闲运动风的套头或开襟上衣",
+        "attributes": [
+          "版型较宽松",
+          "可能有帽子",
+          "袖口常收紧"
+        ],
+        "scenes": [
+          "周末出门随手套上一件休闲上衣"
+        ],
+        "forbiddenTerms": [
+          "卫衣"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-016",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "牙刷",
+        "definition": "清洁牙齿的小型刷具",
+        "attributes": [
+          "一端有细毛",
+          "需要握柄",
+          "常与膏状清洁品配合"
+        ],
+        "scenes": [
+          "早起站在洗漱台前做日常清洁"
+        ],
+        "forbiddenTerms": [
+          "牙刷"
+        ]
+      },
+      "sideB": {
+        "word": "梳子",
+        "definition": "整理头发的齿状工具",
+        "attributes": [
+          "有排列的齿",
+          "可以放在包里",
+          "用于理顺发丝"
+        ],
+        "scenes": [
+          "出门前对着镜子整理发型"
+        ],
+        "forbiddenTerms": [
+          "梳子"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-017",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "洗发水",
+        "definition": "清洁头发和头皮的液体用品",
+        "attributes": [
+          "加水会起泡",
+          "常有香味",
+          "需要充分冲洗"
+        ],
+        "scenes": [
+          "洗澡时先把泡沫揉进头发"
+        ],
+        "forbiddenTerms": [
+          "洗发水",
+          "洗发露"
+        ]
+      },
+      "sideB": {
+        "word": "沐浴露",
+        "definition": "清洁身体皮肤的液体用品",
+        "attributes": [
+          "加水可起泡",
+          "多装在瓶中",
+          "可以配合浴球"
+        ],
+        "scenes": [
+          "运动后冲澡时挤出一泵清洁用品"
+        ],
+        "forbiddenTerms": [
+          "沐浴露"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-018",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "沙发",
+        "definition": "具有软垫并供人坐卧的家具",
+        "attributes": [
+          "常在客厅",
+          "可以有多个座位",
+          "靠背较软"
+        ],
+        "scenes": [
+          "下班后往客厅软垫上一坐"
+        ],
+        "forbiddenTerms": [
+          "沙发"
+        ]
+      },
+      "sideB": {
+        "word": "躺椅",
+        "definition": "靠背较后倾供人半躺的椅子",
+        "attributes": [
+          "常供一人使用",
+          "姿势较放松",
+          "有些可以折叠"
+        ],
+        "scenes": [
+          "阳台晒太阳时把靠背往后放"
+        ],
+        "forbiddenTerms": [
+          "躺椅"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-019",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "台灯",
+        "definition": "放在桌面提供局部照明的灯具",
+        "attributes": [
+          "光照范围较集中",
+          "靠近桌面",
+          "可以辅助阅读"
+        ],
+        "scenes": [
+          "深夜做笔记时只点亮桌边一小片"
+        ],
+        "forbiddenTerms": [
+          "台灯"
+        ]
+      },
+      "sideB": {
+        "word": "落地灯",
+        "definition": "立在地面且灯头位置较高的灯具",
+        "attributes": [
+          "有较长支架",
+          "常放在房间角落",
+          "可以营造氛围"
+        ],
+        "scenes": [
+          "傍晚坐在客厅角落打开柔和光源"
+        ],
+        "forbiddenTerms": [
+          "落地灯"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-020",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "冰箱",
+        "definition": "低温保存食物的家用电器",
+        "attributes": [
+          "内部有隔层",
+          "需要通电",
+          "打开时常有冷气"
+        ],
+        "scenes": [
+          "买完菜回家后把食材分层收好"
+        ],
+        "forbiddenTerms": [
+          "冰箱"
+        ]
+      },
+      "sideB": {
+        "word": "空调",
+        "definition": "调节室内空气温度的设备",
+        "attributes": [
+          "常有遥控器",
+          "能够制冷或制热",
+          "会吹出气流"
+        ],
+        "scenes": [
+          "夏天回家后把设定温度调低"
+        ],
+        "forbiddenTerms": [
+          "空调"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-021",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "地铁",
+        "definition": "主要沿城市专用轨道运行的公共交通",
+        "attributes": [
+          "有固定站点",
+          "通常班次密集",
+          "经常在地下运行"
+        ],
+        "scenes": [
+          "早高峰跟着人流走过闸机"
+        ],
+        "forbiddenTerms": [
+          "地铁"
+        ]
+      },
+      "sideB": {
+        "word": "公交车",
+        "definition": "沿城市道路固定线路载客的车辆",
+        "attributes": [
+          "在路边站点停靠",
+          "受路况影响",
+          "车内常有扶手"
+        ],
+        "scenes": [
+          "看着站牌等一辆按线路编号的车"
+        ],
+        "forbiddenTerms": [
+          "公交车",
+          "公共汽车"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-022",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "自行车",
+        "definition": "通常依靠脚踏驱动的两轮交通工具",
+        "attributes": [
+          "需要保持平衡",
+          "通过脚踏前进",
+          "有车把"
+        ],
+        "scenes": [
+          "周末沿河道用双脚慢慢前行"
+        ],
+        "forbiddenTerms": [
+          "自行车",
+          "单车"
+        ]
+      },
+      "sideB": {
+        "word": "电动车",
+        "definition": "主要由电能驱动的日常交通工具",
+        "attributes": [
+          "需要充电",
+          "有电池",
+          "启动较省力"
+        ],
+        "scenes": [
+          "出门前确认剩余电量是否够用"
+        ],
+        "forbiddenTerms": [
+          "电动车"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-023",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "外卖",
+        "definition": "商家把餐食送到指定地点的服务",
+        "attributes": [
+          "与吃饭有关",
+          "常装在餐盒中",
+          "需要及时食用"
+        ],
+        "scenes": [
+          "忙得走不开时在手机上点午饭"
+        ],
+        "forbiddenTerms": [
+          "外卖"
+        ]
+      },
+      "sideB": {
+        "word": "快递",
+        "definition": "把包裹从寄件处送到收件处的服务",
+        "attributes": [
+          "有运单",
+          "包裹大小多样",
+          "常在驿站领取"
+        ],
+        "scenes": [
+          "收到取件码后下楼拿纸箱"
+        ],
+        "forbiddenTerms": [
+          "快递"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-024",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "书店",
+        "definition": "以销售书籍为主要业务的场所",
+        "attributes": [
+          "可以买书",
+          "有分类书架",
+          "可能有新书展示"
+        ],
+        "scenes": [
+          "逛街时看到一本新出版的小说"
+        ],
+        "forbiddenTerms": [
+          "书店"
+        ]
+      },
+      "sideB": {
+        "word": "图书馆",
+        "definition": "供人查阅和借阅书籍的公共文化场所",
+        "attributes": [
+          "通常较安静",
+          "可以借阅",
+          "常有阅览座位"
+        ],
+        "scenes": [
+          "考试前找一张安静的桌子坐下"
+        ],
+        "forbiddenTerms": [
+          "图书馆"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-025",
+      "category": "daily",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "电影院",
+        "definition": "集中放映影片供观众观看的场所",
+        "attributes": [
+          "有大屏幕",
+          "通常需要购票",
+          "开场后灯光变暗"
+        ],
+        "scenes": [
+          "周末按票面座位等片头出现"
+        ],
+        "forbiddenTerms": [
+          "电影院"
+        ]
+      },
+      "sideB": {
+        "word": "剧院",
+        "definition": "供现场舞台演出和观众观看的场所",
+        "attributes": [
+          "舞台上有人表演",
+          "观众通常分区入座",
+          "谢幕时常有掌声"
+        ],
+        "scenes": [
+          "看完演出后朝舞台上的演员鼓掌"
+        ],
+        "forbiddenTerms": [
+          "剧院"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-026",
+      "category": "daily",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "海滩",
+        "definition": "海水与陆地交接处的沙石地带",
+        "attributes": [
+          "能听到海浪",
+          "通常在户外",
+          "脚下可能是沙子"
+        ],
+        "scenes": [
+          "脱鞋走向不断涌来的水边"
+        ],
+        "forbiddenTerms": [
+          "海滩"
+        ]
+      },
+      "sideB": {
+        "word": "泳池",
+        "definition": "专门修建并蓄水供游泳的设施",
+        "attributes": [
+          "边界较规则",
+          "可能分泳道",
+          "水深会标识"
+        ],
+        "scenes": [
+          "换好泳衣后沿着池边热身"
+        ],
+        "forbiddenTerms": [
+          "泳池"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-027",
+      "category": "daily",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "相框",
+        "definition": "用于固定和展示照片的框架",
+        "attributes": [
+          "中间放图片",
+          "可摆放或悬挂",
+          "常有透明保护层"
+        ],
+        "scenes": [
+          "把旅行合影摆到书桌上"
+        ],
+        "forbiddenTerms": [
+          "相框"
+        ]
+      },
+      "sideB": {
+        "word": "镜子",
+        "definition": "利用光的反射呈现物体影像的用品",
+        "attributes": [
+          "能看到自己的样子",
+          "表面通常平整",
+          "角度影响视野"
+        ],
+        "scenes": [
+          "出门前检查脸上是否沾了东西"
+        ],
+        "forbiddenTerms": [
+          "镜子"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-028",
+      "category": "daily",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "信封",
+        "definition": "用来装信件的纸质封套",
+        "attributes": [
+          "可以封口",
+          "表面可写地址",
+          "需要放入纸张"
+        ],
+        "scenes": [
+          "寄信前在纸套正面写收件人"
+        ],
+        "forbiddenTerms": [
+          "信封"
+        ]
+      },
+      "sideB": {
+        "word": "明信片",
+        "definition": "一面常有图案并可直接邮寄的卡片",
+        "attributes": [
+          "通常不另装纸套",
+          "可以写短留言",
+          "旅行时常见"
+        ],
+        "scenes": [
+          "在景点选一张风景卡寄给朋友"
+        ],
+        "forbiddenTerms": [
+          "明信片"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-029",
+      "category": "daily",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "闹钟",
+        "definition": "到达设定时刻会提醒的计时用品",
+        "attributes": [
+          "能设定提醒时刻",
+          "会发出提示",
+          "常放在床边"
+        ],
+        "scenes": [
+          "睡前确认明早几点响铃"
+        ],
+        "forbiddenTerms": [
+          "闹钟"
+        ]
+      },
+      "sideB": {
+        "word": "计时器",
+        "definition": "按设定时长累计或倒数的工具",
+        "attributes": [
+          "关注经过多久",
+          "可以倒数",
+          "厨房和运动中常用"
+        ],
+        "scenes": [
+          "烤东西时设置还要等多少分钟"
+        ],
+        "forbiddenTerms": [
+          "计时器"
+        ]
+      }
+    },
+    {
+      "id": "uc-daily-030",
+      "category": "daily",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "指南针",
+        "definition": "借助磁场指示方向的工具",
+        "attributes": [
+          "有会转动的指针",
+          "用于辨别方位",
+          "户外活动中常见"
+        ],
+        "scenes": [
+          "在陌生山路判断应该往哪个方向走"
+        ],
+        "forbiddenTerms": [
+          "指南针"
+        ]
+      },
+      "sideB": {
+        "word": "温度计",
+        "definition": "测量冷热程度的仪器",
+        "attributes": [
+          "显示数值",
+          "有多种量程",
+          "需要接触或感应被测对象"
+        ],
+        "scenes": [
+          "给水杯中的液体测量冷热"
+        ],
+        "forbiddenTerms": [
+          "温度计"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-001",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "画蛇添足",
+        "definition": "做了多余的事反而把事情弄坏",
+        "attributes": [
+          "强调过度",
+          "原本已经够用",
+          "结果反受影响"
+        ],
+        "scenes": [
+          "已经完成的作品又被多改了几笔"
+        ],
+        "forbiddenTerms": [
+          "画蛇添足"
+        ]
+      },
+      "sideB": {
+        "word": "锦上添花",
+        "definition": "在已有的好事之上再增加好处",
+        "attributes": [
+          "原本状态好",
+          "增加亮点",
+          "语气多为赞许"
+        ],
+        "scenes": [
+          "活动本已顺利又得到额外支持"
+        ],
+        "forbiddenTerms": [
+          "锦上添花"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-002",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "亡羊补牢",
+        "definition": "发生损失后及时采取补救措施",
+        "attributes": [
+          "已有教训",
+          "重在补救",
+          "仍有改进价值"
+        ],
+        "scenes": [
+          "发现系统出过错后及时修补漏洞"
+        ],
+        "forbiddenTerms": [
+          "亡羊补牢"
+        ]
+      },
+      "sideB": {
+        "word": "未雨绸缪",
+        "definition": "事情尚未发生时预先做好准备",
+        "attributes": [
+          "强调提前",
+          "面向可能风险",
+          "带有计划性"
+        ],
+        "scenes": [
+          "出远门前把可能需要的东西备齐"
+        ],
+        "forbiddenTerms": [
+          "未雨绸缪"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-003",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "守株待兔",
+        "definition": "不主动努力而侥幸等待偶然收获",
+        "attributes": [
+          "等待被动",
+          "依赖运气",
+          "常含批评意味"
+        ],
+        "scenes": [
+          "偶然赢过一次便只等同样机会再来"
+        ],
+        "forbiddenTerms": [
+          "守株待兔"
+        ]
+      },
+      "sideB": {
+        "word": "刻舟求剑",
+        "definition": "拘泥于旧方法而不顾情况变化",
+        "attributes": [
+          "忽略变化",
+          "方法僵化",
+          "结果难以达成"
+        ],
+        "scenes": [
+          "环境已变却仍按老坐标找东西"
+        ],
+        "forbiddenTerms": [
+          "刻舟求剑"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-004",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "掩耳盗铃",
+        "definition": "自己欺骗自己以为别人也不知道",
+        "attributes": [
+          "回避现实",
+          "自欺意味强",
+          "问题并未消失"
+        ],
+        "scenes": [
+          "把提示关掉就以为错误不存在"
+        ],
+        "forbiddenTerms": [
+          "掩耳盗铃"
+        ]
+      },
+      "sideB": {
+        "word": "自欺欺人",
+        "definition": "用虚假想法同时蒙蔽自己和别人",
+        "attributes": [
+          "不愿面对事实",
+          "涉及自己和他人",
+          "通常用于批评"
+        ],
+        "scenes": [
+          "明知计划失败还假装一切顺利"
+        ],
+        "forbiddenTerms": [
+          "自欺欺人"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-005",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "杯弓蛇影",
+        "definition": "因疑神疑鬼而把无害事物当成威胁",
+        "attributes": [
+          "恐惧来自误认",
+          "有想象成分",
+          "发现真相后可消除"
+        ],
+        "scenes": [
+          "看到模糊影子便误以为有危险"
+        ],
+        "forbiddenTerms": [
+          "杯弓蛇影"
+        ]
+      },
+      "sideB": {
+        "word": "草木皆兵",
+        "definition": "处于惊恐之中把普通事物都看成敌人",
+        "attributes": [
+          "情绪高度紧张",
+          "到处感到威胁",
+          "常处于不利局面"
+        ],
+        "scenes": [
+          "受惊后听到任何动静都觉得有人追来"
+        ],
+        "forbiddenTerms": [
+          "草木皆兵"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-006",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "一箭双雕",
+        "definition": "一次行动同时达到两个目的",
+        "attributes": [
+          "行动只有一次",
+          "收获不止一个",
+          "强调效率"
+        ],
+        "scenes": [
+          "一次出差同时办完两件重要事情"
+        ],
+        "forbiddenTerms": [
+          "一箭双雕"
+        ]
+      },
+      "sideB": {
+        "word": "事半功倍",
+        "definition": "花较少力气却取得较大成效",
+        "attributes": [
+          "方法得当",
+          "投入较少",
+          "产出较好"
+        ],
+        "scenes": [
+          "掌握技巧后很快完成原本费劲的任务"
+        ],
+        "forbiddenTerms": [
+          "事半功倍"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-007",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "对牛弹琴",
+        "definition": "向不理解的人讲他听不懂的内容",
+        "attributes": [
+          "沟通不对路",
+          "接受者难理解",
+          "常带无奈"
+        ],
+        "scenes": [
+          "给完全不懂背景的人讲复杂细节"
+        ],
+        "forbiddenTerms": [
+          "对牛弹琴"
+        ]
+      },
+      "sideB": {
+        "word": "鸡同鸭讲",
+        "definition": "双方因为理解方式不同而难以交流",
+        "attributes": [
+          "双方互不理解",
+          "交流效率低",
+          "容易答非所问"
+        ],
+        "scenes": [
+          "两个人一直说话却没对上话题"
+        ],
+        "forbiddenTerms": [
+          "鸡同鸭讲"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-008",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "井底之蛙",
+        "definition": "见识受到环境限制的人",
+        "attributes": [
+          "视野狭小",
+          "缺乏外部经验",
+          "常用于提醒开阔眼界"
+        ],
+        "scenes": [
+          "只见过一种做法就断言天下都一样"
+        ],
+        "forbiddenTerms": [
+          "井底之蛙"
+        ]
+      },
+      "sideB": {
+        "word": "坐井观天",
+        "definition": "从受限的位置看世界因而认识片面",
+        "attributes": [
+          "观察范围有限",
+          "容易以偏概全",
+          "强调看待事物的角度"
+        ],
+        "scenes": [
+          "拿自己小范围经验评价整个行业"
+        ],
+        "forbiddenTerms": [
+          "坐井观天"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-009",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "狐假虎威",
+        "definition": "借助别人的权势吓唬他人",
+        "attributes": [
+          "威势来自他人",
+          "自己未必强大",
+          "带有欺压意味"
+        ],
+        "scenes": [
+          "有人总拿上级的名头威胁同事"
+        ],
+        "forbiddenTerms": [
+          "狐假虎威"
+        ]
+      },
+      "sideB": {
+        "word": "仗势欺人",
+        "definition": "依靠某种权势欺负别人",
+        "attributes": [
+          "依赖地位或背景",
+          "行为伤害他人",
+          "明显贬义"
+        ],
+        "scenes": [
+          "有背景的人在办事时强压旁人"
+        ],
+        "forbiddenTerms": [
+          "仗势欺人"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-010",
+      "category": "idiom",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "纸上谈兵",
+        "definition": "只讲理论而不能解决实际问题",
+        "attributes": [
+          "缺乏实践",
+          "说得多做得少",
+          "理论与实际脱节"
+        ],
+        "scenes": [
+          "方案写得漂亮却没人知道怎么执行"
+        ],
+        "forbiddenTerms": [
+          "纸上谈兵"
+        ]
+      },
+      "sideB": {
+        "word": "夸夸其谈",
+        "definition": "说话浮夸且缺乏实际内容",
+        "attributes": [
+          "表达很张扬",
+          "内容空泛",
+          "容易让人不信任"
+        ],
+        "scenes": [
+          "会议上说了很久却没有具体措施"
+        ],
+        "forbiddenTerms": [
+          "夸夸其谈"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-011",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "望梅止渴",
+        "definition": "用想象中的事物暂时安慰自己",
+        "attributes": [
+          "现实需求未解决",
+          "想象提供慰藉",
+          "效果有限"
+        ],
+        "scenes": [
+          "旅途中想着终点的美食给自己打气"
+        ],
+        "forbiddenTerms": [
+          "望梅止渴"
+        ]
+      },
+      "sideB": {
+        "word": "画饼充饥",
+        "definition": "用空想或空话代替实际需要",
+        "attributes": [
+          "缺少实际供给",
+          "承诺可能空洞",
+          "常含讽刺"
+        ],
+        "scenes": [
+          "只给美好承诺却迟迟没有兑现"
+        ],
+        "forbiddenTerms": [
+          "画饼充饥"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-012",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "雪中送炭",
+        "definition": "在别人困难时及时给予帮助",
+        "attributes": [
+          "时机很关键",
+          "对象处于困境",
+          "帮助有实际作用"
+        ],
+        "scenes": [
+          "朋友最需要支持时收到一笔及时援助"
+        ],
+        "forbiddenTerms": [
+          "雪中送炭"
+        ]
+      },
+      "sideB": {
+        "word": "落井下石",
+        "definition": "趁别人遭遇困难时进一步加害",
+        "attributes": [
+          "利用他人困境",
+          "行为不友善",
+          "通常遭到谴责"
+        ],
+        "scenes": [
+          "别人刚失败又有人借机羞辱"
+        ],
+        "forbiddenTerms": [
+          "落井下石"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-013",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "水滴石穿",
+        "definition": "凭借长期坚持使困难的事取得成功",
+        "attributes": [
+          "力量可以很小",
+          "需要长久坚持",
+          "强调积累"
+        ],
+        "scenes": [
+          "每天练一点最后掌握了很难的技能"
+        ],
+        "forbiddenTerms": [
+          "水滴石穿"
+        ]
+      },
+      "sideB": {
+        "word": "一蹴而就",
+        "definition": "只迈出一步便取得成功以形容事情轻易完成",
+        "attributes": [
+          "结果来得很快",
+          "常用来否定不切实际期待",
+          "强调完成难易"
+        ],
+        "scenes": [
+          "提醒新人复杂目标不可能马上实现"
+        ],
+        "forbiddenTerms": [
+          "一蹴而就"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-014",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "拔苗助长",
+        "definition": "急于求成而采取违背规律的做法",
+        "attributes": [
+          "进度被强推",
+          "忽略成长规律",
+          "结果适得其反"
+        ],
+        "scenes": [
+          "为了快一点而安排超出能力的训练"
+        ],
+        "forbiddenTerms": [
+          "拔苗助长"
+        ]
+      },
+      "sideB": {
+        "word": "欲速不达",
+        "definition": "过分追求速度反而达不到目的",
+        "attributes": [
+          "太着急",
+          "目标没有实现",
+          "强调节奏取舍"
+        ],
+        "scenes": [
+          "赶工省略必要检查后反而返工"
+        ],
+        "forbiddenTerms": [
+          "欲速不达"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-015",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "邯郸学步",
+        "definition": "盲目模仿别人反而丢掉自己的本领",
+        "attributes": [
+          "模仿失当",
+          "原有能力受损",
+          "缺少自主判断"
+        ],
+        "scenes": [
+          "照搬别人的风格后连自己的优点也没了"
+        ],
+        "forbiddenTerms": [
+          "邯郸学步"
+        ]
+      },
+      "sideB": {
+        "word": "东施效颦",
+        "definition": "不理解他人特点而生硬模仿产生坏效果",
+        "attributes": [
+          "模仿表面",
+          "缺乏适配",
+          "效果不佳"
+        ],
+        "scenes": [
+          "把别人的招牌动作硬套在自己身上"
+        ],
+        "forbiddenTerms": [
+          "东施效颦"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-016",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "班门弄斧",
+        "definition": "在行家面前卖弄自己的本领",
+        "attributes": [
+          "面前有专家",
+          "容易显得不自量力",
+          "也可用于自谦"
+        ],
+        "scenes": [
+          "新人在高手面前先谦虚一句再展示"
+        ],
+        "forbiddenTerms": [
+          "班门弄斧"
+        ]
+      },
+      "sideB": {
+        "word": "抛砖引玉",
+        "definition": "先拿出自己不成熟的意见来引出他人的好见解",
+        "attributes": [
+          "主动先开口",
+          "带有自谦",
+          "目的是引出更好意见"
+        ],
+        "scenes": [
+          "讨论开始时先提一个粗浅方案"
+        ],
+        "forbiddenTerms": [
+          "抛砖引玉"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-017",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "画龙点睛",
+        "definition": "在关键处补上一笔使整体更加出色",
+        "attributes": [
+          "改动可以很少",
+          "位置十分关键",
+          "整体因此生动"
+        ],
+        "scenes": [
+          "一句结尾让整篇文章突然有了神采"
+        ],
+        "forbiddenTerms": [
+          "画龙点睛"
+        ]
+      },
+      "sideB": {
+        "word": "点石成金",
+        "definition": "使普通或不足之物变得出色而有价值",
+        "attributes": [
+          "变化显著",
+          "强调转化能力",
+          "常用于赞扬指导"
+        ],
+        "scenes": [
+          "经过高手修改一段平淡文字焕然一新"
+        ],
+        "forbiddenTerms": [
+          "点石成金"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-018",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "滥竽充数",
+        "definition": "没有真本领却混在群体中凑数",
+        "attributes": [
+          "依赖集体掩护",
+          "能力不足",
+          "难以单独接受检验"
+        ],
+        "scenes": [
+          "团队展示时有人只躲在人群里"
+        ],
+        "forbiddenTerms": [
+          "滥竽充数"
+        ]
+      },
+      "sideB": {
+        "word": "鱼目混珠",
+        "definition": "用假的或劣质的东西冒充真的或好的",
+        "attributes": [
+          "真假混杂",
+          "存在冒充",
+          "需要辨别品质"
+        ],
+        "scenes": [
+          "挑货时发现好货中混进仿品"
+        ],
+        "forbiddenTerms": [
+          "鱼目混珠"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-019",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "鹤立鸡群",
+        "definition": "一个人的才能或仪表在群体中突出",
+        "attributes": [
+          "比较对象是群体",
+          "特点明显",
+          "通常是赞美"
+        ],
+        "scenes": [
+          "一群初学者中有一位表现特别成熟"
+        ],
+        "forbiddenTerms": [
+          "鹤立鸡群"
+        ]
+      },
+      "sideB": {
+        "word": "独树一帜",
+        "definition": "自成一家而具有与众不同的风格",
+        "attributes": [
+          "强调特色",
+          "可以形成流派",
+          "不一定强调高低排名"
+        ],
+        "scenes": [
+          "许多创作者中有人发展出自己的风格"
+        ],
+        "forbiddenTerms": [
+          "独树一帜"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-020",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "南辕北辙",
+        "definition": "行动方向与想要达到的目的相反",
+        "attributes": [
+          "方向相悖",
+          "努力未必有效",
+          "目标和做法不一致"
+        ],
+        "scenes": [
+          "想改善关系却持续用责备的方式交流"
+        ],
+        "forbiddenTerms": [
+          "南辕北辙"
+        ]
+      },
+      "sideB": {
+        "word": "背道而驰",
+        "definition": "向相反方向前进或遵循相反原则",
+        "attributes": [
+          "方向相反",
+          "可比较双方",
+          "常用于路线或观点"
+        ],
+        "scenes": [
+          "两项政策的实际效果朝着相反方向发展"
+        ],
+        "forbiddenTerms": [
+          "背道而驰"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-021",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "朝三暮四",
+        "definition": "反复变化而缺乏稳定想法",
+        "attributes": [
+          "心意容易改变",
+          "缺乏定性",
+          "多为贬义"
+        ],
+        "scenes": [
+          "刚确定一个方案又马上想换成另一个"
+        ],
+        "forbiddenTerms": [
+          "朝三暮四"
+        ]
+      },
+      "sideB": {
+        "word": "朝秦暮楚",
+        "definition": "立场不稳定而在不同对象之间摇摆",
+        "attributes": [
+          "立场反复",
+          "有多方可选",
+          "强调不坚定"
+        ],
+        "scenes": [
+          "一个人不断更换自己支持的阵营"
+        ],
+        "forbiddenTerms": [
+          "朝秦暮楚"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-022",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "叶公好龙",
+        "definition": "表面喜欢某事物却不能接受真实接触",
+        "attributes": [
+          "喜好停在表面",
+          "实际反应矛盾",
+          "带有讽刺"
+        ],
+        "scenes": [
+          "总说向往冒险却在机会来时退缩"
+        ],
+        "forbiddenTerms": [
+          "叶公好龙"
+        ]
+      },
+      "sideB": {
+        "word": "口是心非",
+        "definition": "说出来的话与内心想法不同",
+        "attributes": [
+          "外在与内在不一致",
+          "涉及表达",
+          "需要结合行动判断"
+        ],
+        "scenes": [
+          "嘴上说不在意却悄悄反复查看结果"
+        ],
+        "forbiddenTerms": [
+          "口是心非"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-023",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "闻鸡起舞",
+        "definition": "听到晨间声音就起身练习以形容勤奋",
+        "attributes": [
+          "开始得很早",
+          "行动积极",
+          "强调自我磨炼"
+        ],
+        "scenes": [
+          "天刚亮便主动起来训练"
+        ],
+        "forbiddenTerms": [
+          "闻鸡起舞"
+        ]
+      },
+      "sideB": {
+        "word": "悬梁刺股",
+        "definition": "用极强的自我约束来勤奋学习",
+        "attributes": [
+          "学习投入很深",
+          "克服困倦",
+          "表达刻苦"
+        ],
+        "scenes": [
+          "备考时以古人的勤学故事激励自己"
+        ],
+        "forbiddenTerms": [
+          "悬梁刺股"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-024",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "破釜沉舟",
+        "definition": "断绝退路以坚定决胜的意志",
+        "attributes": [
+          "不给自己退路",
+          "决心很强",
+          "通常面对重大挑战"
+        ],
+        "scenes": [
+          "决定把全部力量投入最后一次尝试"
+        ],
+        "forbiddenTerms": [
+          "破釜沉舟"
+        ]
+      },
+      "sideB": {
+        "word": "背水一战",
+        "definition": "处在难以退却的境地而奋力一搏",
+        "attributes": [
+          "退路受限",
+          "局面紧迫",
+          "需要全力争胜"
+        ],
+        "scenes": [
+          "到了最后机会只能集中力量拼一次"
+        ],
+        "forbiddenTerms": [
+          "背水一战"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-025",
+      "category": "idiom",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "负荆请罪",
+        "definition": "主动承认过错并请求原谅",
+        "attributes": [
+          "愿意认错",
+          "姿态诚恳",
+          "重在修复关系"
+        ],
+        "scenes": [
+          "冲突后主动登门向对方道歉"
+        ],
+        "forbiddenTerms": [
+          "负荆请罪"
+        ]
+      },
+      "sideB": {
+        "word": "将功补过",
+        "definition": "通过新的功劳弥补过去的错误",
+        "attributes": [
+          "有过失在先",
+          "靠行动弥补",
+          "关注后续贡献"
+        ],
+        "scenes": [
+          "做错事情后争取把下一项任务做好"
+        ],
+        "forbiddenTerms": [
+          "将功补过"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-026",
+      "category": "idiom",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "唇亡齿寒",
+        "definition": "关系密切的一方受损会连累另一方",
+        "attributes": [
+          "相互依存",
+          "风险会传递",
+          "强调共同利益"
+        ],
+        "scenes": [
+          "合作伙伴倒下后自己的处境也恶化"
+        ],
+        "forbiddenTerms": [
+          "唇亡齿寒"
+        ]
+      },
+      "sideB": {
+        "word": "休戚与共",
+        "definition": "彼此共同承担快乐和忧患",
+        "attributes": [
+          "利益和命运相连",
+          "有共同经历",
+          "感情色彩较强"
+        ],
+        "scenes": [
+          "团队约定无论顺逆都一起承担"
+        ],
+        "forbiddenTerms": [
+          "休戚与共"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-027",
+      "category": "idiom",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "投鼠忌器",
+        "definition": "想处理某个问题却顾虑连带损害",
+        "attributes": [
+          "有所顾忌",
+          "目标和重要事物相近",
+          "行动受到约束"
+        ],
+        "scenes": [
+          "想纠正问题又怕伤及无辜的人"
+        ],
+        "forbiddenTerms": [
+          "投鼠忌器"
+        ]
+      },
+      "sideB": {
+        "word": "因噎废食",
+        "definition": "因为一次受挫就停止原本必要的事情",
+        "attributes": [
+          "一次失败影响后续",
+          "反应过度",
+          "放弃了必要行为"
+        ],
+        "scenes": [
+          "遇到小事故后从此不再尝试"
+        ],
+        "forbiddenTerms": [
+          "因噎废食"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-028",
+      "category": "idiom",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "胶柱鼓瑟",
+        "definition": "固守既定方式而不懂灵活变通",
+        "attributes": [
+          "方法僵硬",
+          "不随情况调整",
+          "难以实现效果"
+        ],
+        "scenes": [
+          "参数必须变化却坚持永远用同一个值"
+        ],
+        "forbiddenTerms": [
+          "胶柱鼓瑟"
+        ]
+      },
+      "sideB": {
+        "word": "削足适履",
+        "definition": "为了迁就现成条件而勉强改变合理事物",
+        "attributes": [
+          "本末倒置",
+          "迁就不合适框架",
+          "会造成损害"
+        ],
+        "scenes": [
+          "为了套进旧表格而删去重要信息"
+        ],
+        "forbiddenTerms": [
+          "削足适履"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-029",
+      "category": "idiom",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "缘木求鱼",
+        "definition": "采取错误途径因而不可能达到目的",
+        "attributes": [
+          "方法根本不对",
+          "目标难以实现",
+          "不是单纯努力不足"
+        ],
+        "scenes": [
+          "想得到结果却一直在错误地方寻找"
+        ],
+        "forbiddenTerms": [
+          "缘木求鱼"
+        ]
+      },
+      "sideB": {
+        "word": "刻鹄类鹜",
+        "definition": "模仿高水平事物虽未达到仍有所成就",
+        "attributes": [
+          "结果不及目标",
+          "仍有一定可取之处",
+          "评价并非全盘否定"
+        ],
+        "scenes": [
+          "学习高标准后虽然未及仍有不错进步"
+        ],
+        "forbiddenTerms": [
+          "刻鹄类鹜"
+        ]
+      }
+    },
+    {
+      "id": "uc-idiom-030",
+      "category": "idiom",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "猴子捞月",
+        "definition": "把虚幻事物当作真实目标而徒劳行动",
+        "attributes": [
+          "对象只是幻象",
+          "费力没有实得",
+          "常用于提醒辨清现实"
+        ],
+        "scenes": [
+          "为一个看似存在却实际上不存在的目标忙碌"
+        ],
+        "forbiddenTerms": [
+          "猴子捞月"
+        ]
+      },
+      "sideB": {
+        "word": "海底捞针",
+        "definition": "在范围极大而线索极少的情况下寻找目标",
+        "attributes": [
+          "寻找极其困难",
+          "目标可能真实存在",
+          "需要缩小范围"
+        ],
+        "scenes": [
+          "只凭一点模糊线索在大量资料中寻找人名"
+        ],
+        "forbiddenTerms": [
+          "海底捞针"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-001",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "魔法师",
+        "definition": "以学习和施展法术为主要能力的幻想角色",
+        "attributes": [
+          "常研究咒语",
+          "能力可远程生效",
+          "形象可能携带法杖"
+        ],
+        "scenes": [
+          "队伍遇到障碍时有人念出一段咒语"
+        ],
+        "forbiddenTerms": [
+          "魔法师"
+        ]
+      },
+      "sideB": {
+        "word": "炼金术师",
+        "definition": "通过材料与配方进行奇异转化的幻想角色",
+        "attributes": [
+          "常用实验器具",
+          "讲究配方",
+          "能力与物质转化有关"
+        ],
+        "scenes": [
+          "在摆满瓶罐的工作台前尝试新配方"
+        ],
+        "forbiddenTerms": [
+          "炼金术师"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-002",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "骑士",
+        "definition": "以武器与护甲承担战斗或守护职责的角色",
+        "attributes": [
+          "可能穿重甲",
+          "重视誓言",
+          "经常近身战斗"
+        ],
+        "scenes": [
+          "城门前有人举盾挡住来袭的敌人"
+        ],
+        "forbiddenTerms": [
+          "骑士"
+        ]
+      },
+      "sideB": {
+        "word": "弓箭手",
+        "definition": "使用弓与箭进行远距离攻击的角色",
+        "attributes": [
+          "需要瞄准",
+          "注重距离",
+          "常携带箭袋"
+        ],
+        "scenes": [
+          "树林里有人拉开弦等待目标进入视野"
+        ],
+        "forbiddenTerms": [
+          "弓箭手"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-003",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "勇者",
+        "definition": "承担冒险与拯救使命的幻想主角类型",
+        "attributes": [
+          "经常组成队伍",
+          "面对强大挑战",
+          "故事常围绕成长"
+        ],
+        "scenes": [
+          "小镇把艰巨使命托付给一位出发的人"
+        ],
+        "forbiddenTerms": [
+          "勇者"
+        ]
+      },
+      "sideB": {
+        "word": "魔王",
+        "definition": "统领强大黑暗势力的幻想角色类型",
+        "attributes": [
+          "常是主要对手",
+          "可能有部下",
+          "通常拥有强大力量"
+        ],
+        "scenes": [
+          "冒险队伍终于来到敌方首领的城堡"
+        ],
+        "forbiddenTerms": [
+          "魔王"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-004",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "精灵",
+        "definition": "常与自然和长寿设定相关的幻想种族",
+        "attributes": [
+          "经常住在森林",
+          "耳形可能尖长",
+          "形象通常轻盈"
+        ],
+        "scenes": [
+          "森林深处出现一位熟悉树木语言的居民"
+        ],
+        "forbiddenTerms": [
+          "精灵"
+        ]
+      },
+      "sideB": {
+        "word": "矮人",
+        "definition": "常以采矿锻造和坚韧著称的幻想种族",
+        "attributes": [
+          "身材通常较矮壮",
+          "擅长工艺",
+          "地下城镇常见"
+        ],
+        "scenes": [
+          "山腹中的工坊传来连续敲打金属的声音"
+        ],
+        "forbiddenTerms": [
+          "矮人"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-005",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "吸血鬼",
+        "definition": "以吸取血液和夜间活动为典型设定的角色",
+        "attributes": [
+          "常与夜晚关联",
+          "传统设定害怕阳光",
+          "可能拥有尖牙"
+        ],
+        "scenes": [
+          "古堡主人选择在日落后迎接客人"
+        ],
+        "forbiddenTerms": [
+          "吸血鬼"
+        ]
+      },
+      "sideB": {
+        "word": "狼人",
+        "definition": "在人类与狼形态间转变的幻想角色",
+        "attributes": [
+          "可能受月相影响",
+          "力量与兽性相关",
+          "身份常有隐瞒"
+        ],
+        "scenes": [
+          "月色变化时一个人开始担心自己失控"
+        ],
+        "forbiddenTerms": [
+          "狼人"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-006",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "机甲",
+        "definition": "由驾驶员操控或自主运行的大型战斗机械",
+        "attributes": [
+          "外形常似人形",
+          "可以有驾驶舱",
+          "体型通常很大"
+        ],
+        "scenes": [
+          "驾驶员进入舱内后巨大的金属身影站起"
+        ],
+        "forbiddenTerms": [
+          "机甲"
+        ]
+      },
+      "sideB": {
+        "word": "外骨骼",
+        "definition": "穿戴在人身上增强行动或承重能力的装备",
+        "attributes": [
+          "贴近使用者身体",
+          "辅助四肢动作",
+          "大小接近人体"
+        ],
+        "scenes": [
+          "搬运重物时穿戴装置随手臂一起抬起"
+        ],
+        "forbiddenTerms": [
+          "外骨骼"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-007",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "传送门",
+        "definition": "连接两个空间位置的幻想通道",
+        "attributes": [
+          "跨越距离很快",
+          "通常有固定入口",
+          "穿过边界会换地点"
+        ],
+        "scenes": [
+          "角色踏过发光的边框来到另一座城市"
+        ],
+        "forbiddenTerms": [
+          "传送门"
+        ]
+      },
+      "sideB": {
+        "word": "时光机",
+        "definition": "用于在不同时间之间移动的设想装置",
+        "attributes": [
+          "与年代变化有关",
+          "会涉及过去或未来",
+          "常引发因果问题"
+        ],
+        "scenes": [
+          "角色启动机器后看到尚未出生的亲人"
+        ],
+        "forbiddenTerms": [
+          "时光机"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-008",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "宠物小精灵",
+        "definition": "以可收集培育并参加对战的生物为中心的作品元素",
+        "attributes": [
+          "种类很多",
+          "可以一起成长",
+          "经常与训练者合作"
+        ],
+        "scenes": [
+          "旅行途中遇见一只想加入队伍的小伙伴"
+        ],
+        "forbiddenTerms": [
+          "宠物小精灵",
+          "宝可梦",
+          "口袋妖怪"
+        ]
+      },
+      "sideB": {
+        "word": "数码宝贝",
+        "definition": "以数码世界生命及其伙伴为中心的作品元素",
+        "attributes": [
+          "与数字世界有关",
+          "常会进化",
+          "伙伴关系重要"
+        ],
+        "scenes": [
+          "屏幕另一侧的世界出现一个需要帮助的伙伴"
+        ],
+        "forbiddenTerms": [
+          "数码宝贝"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-009",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "漫画",
+        "definition": "用连续画面与文字讲述故事的媒介",
+        "attributes": [
+          "可以逐格阅读",
+          "常有对话框",
+          "节奏由读者控制"
+        ],
+        "scenes": [
+          "翻到下一页才发现上一格留下的悬念"
+        ],
+        "forbiddenTerms": [
+          "漫画"
+        ]
+      },
+      "sideB": {
+        "word": "动画",
+        "definition": "通过连续影像呈现运动与故事的媒介",
+        "attributes": [
+          "画面会动",
+          "常有配音",
+          "播放有时间进度"
+        ],
+        "scenes": [
+          "片头音乐响起后角色开始在屏幕上行动"
+        ],
+        "forbiddenTerms": [
+          "动画"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-010",
+      "category": "acg",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "同人志",
+        "definition": "爱好者自行创作和制作的作品刊物",
+        "attributes": [
+          "创作者常是爱好者",
+          "可能在展会交换",
+          "主题选择自由"
+        ],
+        "scenes": [
+          "逛摊位时买到作者亲手装订的小册子"
+        ],
+        "forbiddenTerms": [
+          "同人志"
+        ]
+      },
+      "sideB": {
+        "word": "设定集",
+        "definition": "整理角色世界或美术资料的书籍",
+        "attributes": [
+          "包含资料图文",
+          "会展示设计细节",
+          "适合查阅背景"
+        ],
+        "scenes": [
+          "翻开书想了解角色服装背后的设计"
+        ],
+        "forbiddenTerms": [
+          "设定集"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-011",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "手办",
+        "definition": "用于展示和收藏的角色立体模型",
+        "attributes": [
+          "通常摆放观赏",
+          "细节与造型重要",
+          "可能需要预订"
+        ],
+        "scenes": [
+          "收到包裹后小心把角色模型放进展示柜"
+        ],
+        "forbiddenTerms": [
+          "手办"
+        ]
+      },
+      "sideB": {
+        "word": "模型拼装",
+        "definition": "把多个零件组合成模型的活动或制品",
+        "attributes": [
+          "需要组装",
+          "可能使用工具",
+          "完成过程本身有乐趣"
+        ],
+        "scenes": [
+          "按说明把一片片零件从板上取下来"
+        ],
+        "forbiddenTerms": [
+          "模型拼装"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-012",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "角色扮演",
+        "definition": "装扮并演绎某个角色的活动",
+        "attributes": [
+          "会准备服装",
+          "可模仿动作",
+          "展会中常见"
+        ],
+        "scenes": [
+          "活动前对着镜子调整假发和道具"
+        ],
+        "forbiddenTerms": [
+          "角色扮演",
+          "Cosplay"
+        ]
+      },
+      "sideB": {
+        "word": "配音",
+        "definition": "用声音为角色或画面提供语言表现的工作",
+        "attributes": [
+          "侧重声音",
+          "要把握语气",
+          "经常需要对口型或节奏"
+        ],
+        "scenes": [
+          "在话筒前用不同声线演绎一段台词"
+        ],
+        "forbiddenTerms": [
+          "配音"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-013",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "魔法少女",
+        "definition": "以获得神奇能力并变身为典型设定的少女角色",
+        "attributes": [
+          "常有变身桥段",
+          "道具具有象征性",
+          "伙伴关系常很重要"
+        ],
+        "scenes": [
+          "普通放学路上突然需要换一种身份迎战"
+        ],
+        "forbiddenTerms": [
+          "魔法少女"
+        ]
+      },
+      "sideB": {
+        "word": "超级英雄",
+        "definition": "拥有特殊能力并承担保护职责的角色",
+        "attributes": [
+          "可能有代号",
+          "常面对危机",
+          "身份有时需要隐藏"
+        ],
+        "scenes": [
+          "城市出现危险时一个身影赶到现场"
+        ],
+        "forbiddenTerms": [
+          "超级英雄"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-014",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "冒险公会",
+        "definition": "为冒险者提供任务和交流的幻想组织",
+        "attributes": [
+          "有任务公告",
+          "可以登记成员",
+          "常连接不同队伍"
+        ],
+        "scenes": [
+          "旅途中到大厅看看今天有哪些委托"
+        ],
+        "forbiddenTerms": [
+          "冒险公会"
+        ]
+      },
+      "sideB": {
+        "word": "魔法学院",
+        "definition": "教授法术与相关知识的幻想学校",
+        "attributes": [
+          "有课程和老师",
+          "需要练习技能",
+          "常有校园生活"
+        ],
+        "scenes": [
+          "课堂上学生第一次尝试让物体浮起来"
+        ],
+        "forbiddenTerms": [
+          "魔法学院"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-015",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "龙蛋",
+        "definition": "幻想故事中尚未孵化巨龙的卵",
+        "attributes": [
+          "需要孵化",
+          "外壳可能特殊",
+          "通常被小心保护"
+        ],
+        "scenes": [
+          "队伍守着一枚偶尔发热的大卵"
+        ],
+        "forbiddenTerms": [
+          "龙蛋"
+        ]
+      },
+      "sideB": {
+        "word": "魔法石",
+        "definition": "储存或引导特殊力量的幻想石头",
+        "attributes": [
+          "体积可能很小",
+          "常有能量设定",
+          "可作为道具核心"
+        ],
+        "scenes": [
+          "把发光晶体嵌进装置后机关开始运行"
+        ],
+        "forbiddenTerms": [
+          "魔法石"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-016",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "治疗术",
+        "definition": "恢复受伤者状态的幻想能力",
+        "attributes": [
+          "帮助队友",
+          "常在受伤后使用",
+          "可能消耗资源"
+        ],
+        "scenes": [
+          "战斗结束后有人为伤者恢复体力"
+        ],
+        "forbiddenTerms": [
+          "治疗术"
+        ]
+      },
+      "sideB": {
+        "word": "护盾术",
+        "definition": "在伤害到来前提供防护的幻想能力",
+        "attributes": [
+          "用于防御",
+          "可能形成屏障",
+          "通常需要维持"
+        ],
+        "scenes": [
+          "攻击落下前队友周围出现一层光幕"
+        ],
+        "forbiddenTerms": [
+          "护盾术"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-017",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "召唤兽",
+        "definition": "通过特定方式被召来协助的幻想生物",
+        "attributes": [
+          "可以作为战力",
+          "出现常有仪式",
+          "与召来者有联系"
+        ],
+        "scenes": [
+          "危急时从光阵中出现一个强力帮手"
+        ],
+        "forbiddenTerms": [
+          "召唤兽"
+        ]
+      },
+      "sideB": {
+        "word": "使魔",
+        "definition": "与主人保持联系并提供辅助的幻想伙伴",
+        "attributes": [
+          "经常长期跟随",
+          "可以传递信息",
+          "体型和能力多样"
+        ],
+        "scenes": [
+          "窗边的小动物带回远处发生的消息"
+        ],
+        "forbiddenTerms": [
+          "使魔"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-018",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "史莱姆",
+        "definition": "常以胶状身体出现的幻想生物",
+        "attributes": [
+          "身体柔软",
+          "形状可变化",
+          "经常作为初级冒险对象"
+        ],
+        "scenes": [
+          "草地上一团半透明的小东西弹跳着靠近"
+        ],
+        "forbiddenTerms": [
+          "史莱姆"
+        ]
+      },
+      "sideB": {
+        "word": "哥布林",
+        "definition": "常以体型较小的类人生物出现的幻想种族",
+        "attributes": [
+          "可能结群活动",
+          "使用简单工具",
+          "冒险故事中常见"
+        ],
+        "scenes": [
+          "洞口附近有几只小个子生物正在搬东西"
+        ],
+        "forbiddenTerms": [
+          "哥布林"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-019",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "宝箱怪",
+        "definition": "伪装成装物箱子的幻想怪物",
+        "attributes": [
+          "外观有迷惑性",
+          "靠近后可能攻击",
+          "常利用贪心"
+        ],
+        "scenes": [
+          "刚想掀开盖子就发现箱子长出了牙齿"
+        ],
+        "forbiddenTerms": [
+          "宝箱怪"
+        ]
+      },
+      "sideB": {
+        "word": "幽灵",
+        "definition": "以非实体形态出现的超自然角色",
+        "attributes": [
+          "可能穿过物体",
+          "常与未了心愿有关",
+          "外观有时半透明"
+        ],
+        "scenes": [
+          "夜晚走廊里出现一个若隐若现的身影"
+        ],
+        "forbiddenTerms": [
+          "幽灵"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-020",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "复活点",
+        "definition": "游戏中角色失败后重新出现的位置",
+        "attributes": [
+          "与再次尝试有关",
+          "位置通常相对固定",
+          "可能减少重跑距离"
+        ],
+        "scenes": [
+          "挑战失败后角色回到熟悉的起始位置"
+        ],
+        "forbiddenTerms": [
+          "复活点"
+        ]
+      },
+      "sideB": {
+        "word": "存档点",
+        "definition": "游戏中记录当前进度的位置或机制",
+        "attributes": [
+          "用于保存进展",
+          "可能有特殊标记",
+          "再次游玩可读取"
+        ],
+        "scenes": [
+          "退出前先到发光标记旁确认进度已记录"
+        ],
+        "forbiddenTerms": [
+          "存档点"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-021",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "支线任务",
+        "definition": "主线之外可选择完成的游戏目标",
+        "attributes": [
+          "通常可以暂缓",
+          "可能补充故事",
+          "会提供额外奖励"
+        ],
+        "scenes": [
+          "赶路时顺便帮村民找回丢失的物品"
+        ],
+        "forbiddenTerms": [
+          "支线任务"
+        ]
+      },
+      "sideB": {
+        "word": "每日任务",
+        "definition": "按天刷新并可重复完成的游戏目标",
+        "attributes": [
+          "有刷新周期",
+          "目标常较短",
+          "适合日常安排"
+        ],
+        "scenes": [
+          "登录后先看看今天有哪些小目标"
+        ],
+        "forbiddenTerms": [
+          "每日任务"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-022",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "隐藏关卡",
+        "definition": "需要特殊条件才能进入的游戏区域",
+        "attributes": [
+          "入口不明显",
+          "常鼓励探索",
+          "可能有独特奖励"
+        ],
+        "scenes": [
+          "尝试一个不起眼的机关后打开新通道"
+        ],
+        "forbiddenTerms": [
+          "隐藏关卡"
+        ]
+      },
+      "sideB": {
+        "word": "随机副本",
+        "definition": "布局或内容会随生成变化的游戏挑战区域",
+        "attributes": [
+          "每次体验可能不同",
+          "需要临场应变",
+          "有重复挑战价值"
+        ],
+        "scenes": [
+          "再次进入时发现上次的路线已改变"
+        ],
+        "forbiddenTerms": [
+          "随机副本"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-023",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "回合制",
+        "definition": "各方按轮次或行动顺序进行的玩法方式",
+        "attributes": [
+          "有思考间隙",
+          "行动有先后",
+          "常重视资源规划"
+        ],
+        "scenes": [
+          "轮到自己时先想清楚再选行动"
+        ],
+        "forbiddenTerms": [
+          "回合制"
+        ]
+      },
+      "sideB": {
+        "word": "即时制",
+        "definition": "参与者与环境持续行动的玩法方式",
+        "attributes": [
+          "局势不断变化",
+          "反应速度有用",
+          "操作时机重要"
+        ],
+        "scenes": [
+          "战斗中一边移动一边观察对手动作"
+        ],
+        "forbiddenTerms": [
+          "即时制"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-024",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "像素画",
+        "definition": "以明显的小方格单元组织形象的美术风格",
+        "attributes": [
+          "轮廓有阶梯感",
+          "颜色常经过取舍",
+          "常见于复古游戏"
+        ],
+        "scenes": [
+          "放大角色图后能看清一格格颜色"
+        ],
+        "forbiddenTerms": [
+          "像素画"
+        ]
+      },
+      "sideB": {
+        "word": "水彩画",
+        "definition": "以水调颜料形成透明或晕染效果的绘画方式",
+        "attributes": [
+          "颜色可相互晕开",
+          "纸面质感明显",
+          "边缘有时柔和"
+        ],
+        "scenes": [
+          "背景图中天空的颜色自然地洇到一起"
+        ],
+        "forbiddenTerms": [
+          "水彩画"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-025",
+      "category": "acg",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "傲娇",
+        "definition": "外在态度强硬而内心关心他人的角色性格类型",
+        "attributes": [
+          "言语与关心可能不一致",
+          "常不愿直接承认",
+          "反差形成趣味"
+        ],
+        "scenes": [
+          "递来帮助时却嘴上说只是顺手"
+        ],
+        "forbiddenTerms": [
+          "傲娇"
+        ]
+      },
+      "sideB": {
+        "word": "天然呆",
+        "definition": "因反应单纯或不经意脱线产生趣味的性格类型",
+        "attributes": [
+          "反应可能出人意料",
+          "往往没有恶意",
+          "常显得单纯"
+        ],
+        "scenes": [
+          "认真回答却把大家的问题理解成另一件事"
+        ],
+        "forbiddenTerms": [
+          "天然呆"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-026",
+      "category": "acg",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "无口",
+        "definition": "语言表达很少的角色类型",
+        "attributes": [
+          "台词较少",
+          "可通过行动表达",
+          "情绪可能较内敛"
+        ],
+        "scenes": [
+          "整个场景只说了一句话却做了很多事"
+        ],
+        "forbiddenTerms": [
+          "无口"
+        ]
+      },
+      "sideB": {
+        "word": "元气",
+        "definition": "表现活泼积极且富有精力的角色类型",
+        "attributes": [
+          "行动积极",
+          "语气明快",
+          "容易带动气氛"
+        ],
+        "scenes": [
+          "清晨一见面就精神饱满地招呼大家"
+        ],
+        "forbiddenTerms": [
+          "元气"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-027",
+      "category": "acg",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "转生",
+        "definition": "角色在死亡或结束原生命后以新生命开始的设定",
+        "attributes": [
+          "涉及新生命",
+          "可能保留记忆",
+          "身份通常发生变化"
+        ],
+        "scenes": [
+          "醒来后发现自己以全新身份开始成长"
+        ],
+        "forbiddenTerms": [
+          "转生"
+        ]
+      },
+      "sideB": {
+        "word": "穿越",
+        "definition": "角色来到原本所属时空之外的设定",
+        "attributes": [
+          "地点或时代改变",
+          "不一定失去原身体",
+          "常有适应过程"
+        ],
+        "scenes": [
+          "推开门后街景变成完全陌生的时代"
+        ],
+        "forbiddenTerms": [
+          "穿越"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-028",
+      "category": "acg",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "弹幕",
+        "definition": "观众评论随播放画面移动或叠加的互动形式",
+        "attributes": [
+          "文字在画面上出现",
+          "有时间同步感",
+          "能形成集体反应"
+        ],
+        "scenes": [
+          "看到名场面时屏幕突然飘过许多相同感叹"
+        ],
+        "forbiddenTerms": [
+          "弹幕"
+        ]
+      },
+      "sideB": {
+        "word": "字幕",
+        "definition": "把语言内容以文字呈现在画面上的辅助形式",
+        "attributes": [
+          "帮助理解对白",
+          "常与声音同步",
+          "通常位置较稳定"
+        ],
+        "scenes": [
+          "听不清对白时低头看屏幕上的文字"
+        ],
+        "forbiddenTerms": [
+          "字幕"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-029",
+      "category": "acg",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "圣剑",
+        "definition": "在幻想叙事中具备神圣意义或力量的剑",
+        "attributes": [
+          "常关联使命",
+          "可能需要资格才能使用",
+          "是一种武器"
+        ],
+        "scenes": [
+          "角色终于拔出被赋予特殊使命的兵器"
+        ],
+        "forbiddenTerms": [
+          "圣剑"
+        ]
+      },
+      "sideB": {
+        "word": "魔杖",
+        "definition": "帮助施展法术的棒状道具",
+        "attributes": [
+          "用于引导能力",
+          "常由施法者携带",
+          "材质和顶端造型多样"
+        ],
+        "scenes": [
+          "角色抬起细长道具让前方亮起光芒"
+        ],
+        "forbiddenTerms": [
+          "魔杖"
+        ]
+      }
+    },
+    {
+      "id": "uc-acg-030",
+      "category": "acg",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "世界观",
+        "definition": "故事所处世界的基本规则与背景设定",
+        "attributes": [
+          "涉及社会和自然规则",
+          "帮助理解故事背景",
+          "可以跨越多部作品"
+        ],
+        "scenes": [
+          "开始写故事前先确定这个世界允许发生什么"
+        ],
+        "forbiddenTerms": [
+          "世界观"
+        ]
+      },
+      "sideB": {
+        "word": "时间线",
+        "definition": "把故事事件按照先后关系组织的顺序",
+        "attributes": [
+          "关注事件早晚",
+          "可以梳理因果",
+          "叙述顺序未必与之相同"
+        ],
+        "scenes": [
+          "看完倒叙故事后重新整理各件事发生的先后"
+        ],
+        "forbiddenTerms": [
+          "时间线"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-001",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "键盘",
+        "definition": "通过按键向设备输入字符或指令的外设",
+        "attributes": [
+          "有许多按键",
+          "常用于文字输入",
+          "可以有快捷组合"
+        ],
+        "scenes": [
+          "写长文时双手在桌面上连续敲击"
+        ],
+        "forbiddenTerms": [
+          "键盘"
+        ]
+      },
+      "sideB": {
+        "word": "鼠标",
+        "definition": "通过移动与点击控制屏幕指针的外设",
+        "attributes": [
+          "常握在手中",
+          "有按键或滚轮",
+          "适合指向操作"
+        ],
+        "scenes": [
+          "把屏幕上的文件拖到另一个位置"
+        ],
+        "forbiddenTerms": [
+          "鼠标"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-002",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "固态硬盘",
+        "definition": "使用半导体存储数据的设备",
+        "attributes": [
+          "没有机械磁头",
+          "可长期保存数据",
+          "读取通常较快"
+        ],
+        "scenes": [
+          "给旧电脑升级后开机等待明显缩短"
+        ],
+        "forbiddenTerms": [
+          "固态硬盘",
+          "SSD"
+        ]
+      },
+      "sideB": {
+        "word": "机械硬盘",
+        "definition": "使用旋转磁盘和磁头存储数据的设备",
+        "attributes": [
+          "内部有旋转部件",
+          "可保存大量数据",
+          "工作时可能有声音"
+        ],
+        "scenes": [
+          "为大量旧照片选择一个大容量存储设备"
+        ],
+        "forbiddenTerms": [
+          "机械硬盘",
+          "HDD"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-003",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "路由器",
+        "definition": "在不同网络之间转发数据的设备",
+        "attributes": [
+          "负责选择转发路径",
+          "家庭网络中常见",
+          "可能集成无线功能"
+        ],
+        "scenes": [
+          "家里多台设备通过一个盒子访问外部网络"
+        ],
+        "forbiddenTerms": [
+          "路由器"
+        ]
+      },
+      "sideB": {
+        "word": "交换机",
+        "definition": "在局域网络内连接设备并转发数据的设备",
+        "attributes": [
+          "常有多个网口",
+          "连接同一网络内设备",
+          "可用于扩展有线连接"
+        ],
+        "scenes": [
+          "办公室需要把更多电脑接入有线网络"
+        ],
+        "forbiddenTerms": [
+          "交换机"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-004",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "蓝牙",
+        "definition": "用于设备间短距离无线通信的技术",
+        "attributes": [
+          "常用于配件连接",
+          "距离通常较短",
+          "可先进行配对"
+        ],
+        "scenes": [
+          "把无线耳机与手机进行首次配对"
+        ],
+        "forbiddenTerms": [
+          "蓝牙",
+          "Bluetooth"
+        ]
+      },
+      "sideB": {
+        "word": "无线局域网",
+        "definition": "让设备通过无线方式接入局部网络的技术",
+        "attributes": [
+          "常连接接入点",
+          "适合局域网络",
+          "需要网络名称等信息"
+        ],
+        "scenes": [
+          "到新地方后选择可用的无线网络"
+        ],
+        "forbiddenTerms": [
+          "无线局域网",
+          "WiFi",
+          "Wi-Fi"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-005",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "二维码",
+        "definition": "在二维平面排列图形来编码信息的形式",
+        "attributes": [
+          "常为方形",
+          "可由摄像头识别",
+          "能够承载链接等信息"
+        ],
+        "scenes": [
+          "结账时把手机摄像头对准小方块图案"
+        ],
+        "forbiddenTerms": [
+          "二维码"
+        ]
+      },
+      "sideB": {
+        "word": "条形码",
+        "definition": "用宽窄条纹及间隔表示信息的形式",
+        "attributes": [
+          "常为长条形",
+          "商品包装上常见",
+          "可用扫描器读取"
+        ],
+        "scenes": [
+          "收银员把商品包装上的线条对准扫描口"
+        ],
+        "forbiddenTerms": [
+          "条形码"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-006",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "摄像头",
+        "definition": "把光学影像转成电子信号的设备",
+        "attributes": [
+          "有镜头",
+          "用于采集画面",
+          "可参与视频通信"
+        ],
+        "scenes": [
+          "线上会议前调整镜头的位置"
+        ],
+        "forbiddenTerms": [
+          "摄像头"
+        ]
+      },
+      "sideB": {
+        "word": "麦克风",
+        "definition": "把声音转成电信号的设备",
+        "attributes": [
+          "用于采集声音",
+          "摆放距离影响效果",
+          "录音时常见"
+        ],
+        "scenes": [
+          "开始录音前先试说几句话"
+        ],
+        "forbiddenTerms": [
+          "麦克风",
+          "话筒"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-007",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "投影仪",
+        "definition": "把画面投射到外部表面的设备",
+        "attributes": [
+          "需要投射距离",
+          "常配合幕布",
+          "环境亮度影响观看"
+        ],
+        "scenes": [
+          "会议前把电脑画面投到前方大幕上"
+        ],
+        "forbiddenTerms": [
+          "投影仪"
+        ]
+      },
+      "sideB": {
+        "word": "显示器",
+        "definition": "直接在自身屏幕上呈现画面的设备",
+        "attributes": [
+          "有固定屏幕",
+          "可连接电脑",
+          "分辨率影响细节"
+        ],
+        "scenes": [
+          "工作时调整桌上屏幕的高度"
+        ],
+        "forbiddenTerms": [
+          "显示器"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-008",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "充电宝",
+        "definition": "能够储电并为其他便携设备供电的装置",
+        "attributes": [
+          "便于携带",
+          "需要预先充电",
+          "常使用线缆连接"
+        ],
+        "scenes": [
+          "旅途中手机电量低时拿出备用电源"
+        ],
+        "forbiddenTerms": [
+          "充电宝",
+          "移动电源"
+        ]
+      },
+      "sideB": {
+        "word": "充电器",
+        "definition": "把输入电能转换成适合设备充电的形式的装置",
+        "attributes": [
+          "通常连接外部电源",
+          "有功率规格",
+          "适配不同接口"
+        ],
+        "scenes": [
+          "睡前把设备接到墙边的供电装置"
+        ],
+        "forbiddenTerms": [
+          "充电器"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-009",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "指纹识别",
+        "definition": "根据手指表面纹路进行身份核验的技术",
+        "attributes": [
+          "使用生物特征",
+          "常需触碰感应区域",
+          "湿手可能影响体验"
+        ],
+        "scenes": [
+          "解锁设备时把手指放在指定区域"
+        ],
+        "forbiddenTerms": [
+          "指纹识别"
+        ]
+      },
+      "sideB": {
+        "word": "人脸识别",
+        "definition": "根据面部特征进行身份核验的技术",
+        "attributes": [
+          "需要采集面部信息",
+          "可实现非接触操作",
+          "光线与遮挡可能影响效果"
+        ],
+        "scenes": [
+          "把设备朝向自己后完成身份核验"
+        ],
+        "forbiddenTerms": [
+          "人脸识别"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-010",
+      "category": "tech",
+      "difficulty": "EASY",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "虚拟现实",
+        "definition": "通过设备呈现沉浸式数字环境的技术",
+        "attributes": [
+          "可遮挡真实视野",
+          "强调沉浸感",
+          "常使用头戴设备"
+        ],
+        "scenes": [
+          "戴好头显后环顾一个数字构建的房间"
+        ],
+        "forbiddenTerms": [
+          "虚拟现实",
+          "VR"
+        ]
+      },
+      "sideB": {
+        "word": "增强现实",
+        "definition": "把数字信息叠加到真实环境感知中的技术",
+        "attributes": [
+          "仍能看到现实",
+          "叠加虚拟内容",
+          "可辅助导航或展示"
+        ],
+        "scenes": [
+          "通过屏幕看到真实桌面上叠着数字模型"
+        ],
+        "forbiddenTerms": [
+          "增强现实",
+          "AR"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-011",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "浏览器",
+        "definition": "用于访问和呈现网页内容的软件",
+        "attributes": [
+          "可以打开网页",
+          "常有地址栏",
+          "支持多个页面标签"
+        ],
+        "scenes": [
+          "输入一个网址后开始阅读页面"
+        ],
+        "forbiddenTerms": [
+          "浏览器"
+        ]
+      },
+      "sideB": {
+        "word": "搜索引擎",
+        "definition": "帮助用户从索引中查找相关信息的服务",
+        "attributes": [
+          "接受查询词",
+          "返回结果列表",
+          "用于发现信息"
+        ],
+        "scenes": [
+          "不知道具体地址时先输入几个关键词"
+        ],
+        "forbiddenTerms": [
+          "搜索引擎"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-012",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "操作系统",
+        "definition": "管理计算机硬件资源并为程序提供基础服务的软件",
+        "attributes": [
+          "协调设备资源",
+          "提供基础接口",
+          "支持运行应用"
+        ],
+        "scenes": [
+          "开机后进入一个可以启动各种应用的环境"
+        ],
+        "forbiddenTerms": [
+          "操作系统"
+        ]
+      },
+      "sideB": {
+        "word": "数据库",
+        "definition": "按一定结构组织和管理数据的系统",
+        "attributes": [
+          "支持查询",
+          "用于保存业务记录",
+          "通常重视一致性和访问效率"
+        ],
+        "scenes": [
+          "需要查出某位用户过去的订单"
+        ],
+        "forbiddenTerms": [
+          "数据库"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-013",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "编译器",
+        "definition": "把源代码转换为其他目标形式的软件工具",
+        "attributes": [
+          "处理程序文本",
+          "可报告语法问题",
+          "通常产生目标代码"
+        ],
+        "scenes": [
+          "准备发布程序前先检查代码能否转换成功"
+        ],
+        "forbiddenTerms": [
+          "编译器"
+        ]
+      },
+      "sideB": {
+        "word": "解释器",
+        "definition": "读取并执行程序指令的软件工具",
+        "attributes": [
+          "参与执行过程",
+          "可以逐步处理指令",
+          "常用于交互环境"
+        ],
+        "scenes": [
+          "在交互窗口输入一段代码马上看到结果"
+        ],
+        "forbiddenTerms": [
+          "解释器"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-014",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "缓存",
+        "definition": "为后续更快访问而保存的数据副本或中间结果",
+        "attributes": [
+          "强调减少重复工作",
+          "可能需要更新",
+          "容量通常有限"
+        ],
+        "scenes": [
+          "重复打开内容时发现第二次快了许多"
+        ],
+        "forbiddenTerms": [
+          "缓存"
+        ]
+      },
+      "sideB": {
+        "word": "备份",
+        "definition": "为恢复目的额外保存的数据副本的行为或结果",
+        "attributes": [
+          "强调恢复能力",
+          "需要定期维护",
+          "通常独立于日常使用数据"
+        ],
+        "scenes": [
+          "误删文件后尝试从旧副本中找回来"
+        ],
+        "forbiddenTerms": [
+          "备份"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-015",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "防火墙",
+        "definition": "按照规则控制网络流量的防护机制",
+        "attributes": [
+          "检查通信规则",
+          "可以允许或拒绝连接",
+          "常位于网络边界"
+        ],
+        "scenes": [
+          "排查服务访问失败时检查流量是否被拦截"
+        ],
+        "forbiddenTerms": [
+          "防火墙"
+        ]
+      },
+      "sideB": {
+        "word": "杀毒软件",
+        "definition": "用于发现和处理恶意软件的程序",
+        "attributes": [
+          "可扫描文件",
+          "会更新检测能力",
+          "可能隔离可疑对象"
+        ],
+        "scenes": [
+          "下载文件后先执行一次安全扫描"
+        ],
+        "forbiddenTerms": [
+          "杀毒软件"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-016",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "加密",
+        "definition": "使用算法与密钥把信息变为受保护形式的过程",
+        "attributes": [
+          "需要密钥参与",
+          "关注内容保密",
+          "通常可由授权方还原"
+        ],
+        "scenes": [
+          "发送敏感文件前先保护其中内容"
+        ],
+        "forbiddenTerms": [
+          "加密"
+        ]
+      },
+      "sideB": {
+        "word": "哈希",
+        "definition": "把输入数据映射成固定形式摘要的计算方式",
+        "attributes": [
+          "可用于校验完整性",
+          "通常不用于还原原文",
+          "输入变化会影响结果"
+        ],
+        "scenes": [
+          "比对下载文件的摘要是否一致"
+        ],
+        "forbiddenTerms": [
+          "哈希"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-017",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "数字签名",
+        "definition": "使用密码学机制验证数据来源与完整性的方式",
+        "attributes": [
+          "使用公私钥体系",
+          "可验证签署者",
+          "改动内容会影响验证"
+        ],
+        "scenes": [
+          "安装程序前检查发布者的签署信息"
+        ],
+        "forbiddenTerms": [
+          "数字签名"
+        ]
+      },
+      "sideB": {
+        "word": "数字证书",
+        "definition": "把身份信息与公钥等数据绑定的电子凭证",
+        "attributes": [
+          "通常有有效期",
+          "可由签发者背书",
+          "用于身份验证"
+        ],
+        "scenes": [
+          "访问网站时查看连接所用凭证"
+        ],
+        "forbiddenTerms": [
+          "数字证书"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-018",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "容器",
+        "definition": "利用操作系统隔离机制打包和运行应用的方式",
+        "attributes": [
+          "打包运行依赖",
+          "通常共享宿主内核",
+          "适合一致部署"
+        ],
+        "scenes": [
+          "把同一应用包送到不同机器上运行"
+        ],
+        "forbiddenTerms": [
+          "容器"
+        ]
+      },
+      "sideB": {
+        "word": "虚拟机",
+        "definition": "通过虚拟化运行完整计算环境的实例",
+        "attributes": [
+          "有自己的客户操作系统",
+          "可以模拟硬件环境",
+          "资源需要分配"
+        ],
+        "scenes": [
+          "在一台电脑中启动另一套操作系统"
+        ],
+        "forbiddenTerms": [
+          "虚拟机"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-019",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "云计算",
+        "definition": "通过网络按需获取计算存储等资源的方式",
+        "attributes": [
+          "资源远程提供",
+          "可按需求伸缩",
+          "用户不必直接维护全部硬件"
+        ],
+        "scenes": [
+          "访问量突然增大时临时增加服务资源"
+        ],
+        "forbiddenTerms": [
+          "云计算"
+        ]
+      },
+      "sideB": {
+        "word": "边缘计算",
+        "definition": "在更靠近数据产生或使用地点进行计算的方式",
+        "attributes": [
+          "减少远距离往返",
+          "贴近终端或现场",
+          "常关注响应延迟"
+        ],
+        "scenes": [
+          "工厂设备就近处理采集到的信号"
+        ],
+        "forbiddenTerms": [
+          "边缘计算"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-020",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "负载均衡",
+        "definition": "把请求或工作分配给多个处理资源的机制",
+        "attributes": [
+          "分散工作量",
+          "可能使用多种策略",
+          "有助于提升服务承载"
+        ],
+        "scenes": [
+          "大量用户同时访问时把请求分给多台机器"
+        ],
+        "forbiddenTerms": [
+          "负载均衡"
+        ]
+      },
+      "sideB": {
+        "word": "消息队列",
+        "definition": "让生产者与消费者通过排队消息协作的机制",
+        "attributes": [
+          "可以异步处理",
+          "缓冲突发工作",
+          "发送与处理可解耦"
+        ],
+        "scenes": [
+          "订单提交后把后续通知交给后台逐步处理"
+        ],
+        "forbiddenTerms": [
+          "消息队列"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-021",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "单元测试",
+        "definition": "针对较小程序单元验证行为的测试方式",
+        "attributes": [
+          "范围较小",
+          "通常运行较快",
+          "便于定位局部问题"
+        ],
+        "scenes": [
+          "修改一个函数后立即验证几种输入结果"
+        ],
+        "forbiddenTerms": [
+          "单元测试"
+        ]
+      },
+      "sideB": {
+        "word": "集成测试",
+        "definition": "验证多个组件协作是否正确的测试方式",
+        "attributes": [
+          "涉及组件连接",
+          "关注接口配合",
+          "可能需要外部依赖"
+        ],
+        "scenes": [
+          "检查服务与存储共同完成一次操作"
+        ],
+        "forbiddenTerms": [
+          "集成测试"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-022",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "版本控制",
+        "definition": "记录和管理文件内容变化的机制",
+        "attributes": [
+          "保留修改历史",
+          "可比较差异",
+          "便于协作"
+        ],
+        "scenes": [
+          "想知道某段代码是谁在什么时候改动的"
+        ],
+        "forbiddenTerms": [
+          "版本控制"
+        ]
+      },
+      "sideB": {
+        "word": "持续集成",
+        "definition": "把频繁提交的变更自动构建和验证的实践",
+        "attributes": [
+          "强调自动验证",
+          "会反复运行",
+          "有助于及早发现冲突"
+        ],
+        "scenes": [
+          "提交代码后等待自动检查返回结果"
+        ],
+        "forbiddenTerms": [
+          "持续集成"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-023",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "光纤",
+        "definition": "利用光在纤维介质中传输信息的材料",
+        "attributes": [
+          "以光信号传输",
+          "长距离通信常见",
+          "弯折需要注意"
+        ],
+        "scenes": [
+          "布设通信线路时保护细细的传输介质"
+        ],
+        "forbiddenTerms": [
+          "光纤"
+        ]
+      },
+      "sideB": {
+        "word": "网线",
+        "definition": "用于常见有线网络连接的线缆",
+        "attributes": [
+          "连接设备接口",
+          "家庭办公常见",
+          "长度和规格影响使用"
+        ],
+        "scenes": [
+          "把桌面电脑接到墙边网络插口"
+        ],
+        "forbiddenTerms": [
+          "网线"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-024",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "触摸屏",
+        "definition": "同时支持画面显示和触摸输入的界面装置",
+        "attributes": [
+          "可以直接点按",
+          "支持手势操作",
+          "便携设备常见"
+        ],
+        "scenes": [
+          "用手指在画面上滑动列表"
+        ],
+        "forbiddenTerms": [
+          "触摸屏"
+        ]
+      },
+      "sideB": {
+        "word": "触控板",
+        "definition": "通过手指移动和手势控制指针的输入表面",
+        "attributes": [
+          "常见于笔记本",
+          "不必显示画面",
+          "可以多指操作"
+        ],
+        "scenes": [
+          "不接外设时在掌托附近滑动手指"
+        ],
+        "forbiddenTerms": [
+          "触控板"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-025",
+      "category": "tech",
+      "difficulty": "MEDIUM",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "激光雷达",
+        "definition": "通过发射并接收光信号测量距离的传感技术",
+        "attributes": [
+          "用于空间测量",
+          "可以形成点云",
+          "与主动发光有关"
+        ],
+        "scenes": [
+          "机器人测量周围物体离自己有多远"
+        ],
+        "forbiddenTerms": [
+          "激光雷达"
+        ]
+      },
+      "sideB": {
+        "word": "超声波传感器",
+        "definition": "利用高频声波进行探测的传感装置",
+        "attributes": [
+          "主动发出声波",
+          "可根据回波估计距离",
+          "常用于近距离测量"
+        ],
+        "scenes": [
+          "倒车时设备监测后方障碍是否靠近"
+        ],
+        "forbiddenTerms": [
+          "超声波传感器"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-026",
+      "category": "tech",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "数字孪生",
+        "definition": "用数字模型对应现实对象状态和变化的方法",
+        "attributes": [
+          "关联真实对象",
+          "可用于监测分析",
+          "需要数据更新"
+        ],
+        "scenes": [
+          "在屏幕上查看工厂设备对应模型的实时状态"
+        ],
+        "forbiddenTerms": [
+          "数字孪生"
+        ]
+      },
+      "sideB": {
+        "word": "仿真模拟",
+        "definition": "用模型重现某类过程以分析行为的方法",
+        "attributes": [
+          "可以测试假设",
+          "不一定连接实时对象",
+          "便于比较方案"
+        ],
+        "scenes": [
+          "正式搭建系统前先试算不同方案的效果"
+        ],
+        "forbiddenTerms": [
+          "仿真模拟"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-027",
+      "category": "tech",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "区块链",
+        "definition": "通过按规则连接的数据块维护共享记录的技术",
+        "attributes": [
+          "记录按块组织",
+          "多方可参与维护",
+          "共识机制很重要"
+        ],
+        "scenes": [
+          "多个参与者需要共同核对一份记录历史"
+        ],
+        "forbiddenTerms": [
+          "区块链"
+        ]
+      },
+      "sideB": {
+        "word": "分布式文件系统",
+        "definition": "在多个节点协同存取文件的系统",
+        "attributes": [
+          "数据可分散存放",
+          "访问方式力求统一",
+          "需要协调节点故障"
+        ],
+        "scenes": [
+          "把大型文件分散保存仍能通过统一路径访问"
+        ],
+        "forbiddenTerms": [
+          "分布式文件系统"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-028",
+      "category": "tech",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "神经网络",
+        "definition": "用相互连接的计算单元进行学习的模型",
+        "attributes": [
+          "有可调整参数",
+          "可通过数据训练",
+          "有多种结构"
+        ],
+        "scenes": [
+          "给模型许多例子后观察它是否学会分类"
+        ],
+        "forbiddenTerms": [
+          "神经网络"
+        ]
+      },
+      "sideB": {
+        "word": "决策树",
+        "definition": "通过分支条件逐步形成判断的模型",
+        "attributes": [
+          "判断过程有分支",
+          "可以用于分类或回归",
+          "结构较便于解释"
+        ],
+        "scenes": [
+          "根据一连串条件把样本分到不同结果"
+        ],
+        "forbiddenTerms": [
+          "决策树"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-029",
+      "category": "tech",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "进程",
+        "definition": "程序运行时由系统管理的资源与执行实例",
+        "attributes": [
+          "有独立资源边界",
+          "可以包含多个执行单元",
+          "系统可单独管理其生命周期"
+        ],
+        "scenes": [
+          "查看任务管理界面时结束一个卡住的程序实例"
+        ],
+        "forbiddenTerms": [
+          "进程"
+        ]
+      },
+      "sideB": {
+        "word": "线程",
+        "definition": "程序执行时被调度的基本计算单元",
+        "attributes": [
+          "与同组单元共享资源",
+          "可以并发工作",
+          "需要注意同步"
+        ],
+        "scenes": [
+          "应用一边响应界面一边执行后台任务"
+        ],
+        "forbiddenTerms": [
+          "线程"
+        ]
+      }
+    },
+    {
+      "id": "uc-tech-030",
+      "category": "tech",
+      "difficulty": "HARD",
+      "reviewStatus": "CURATED_REVIEWED",
+      "sideA": {
+        "word": "有损压缩",
+        "definition": "通过舍弃部分信息来减少数据大小的方法",
+        "attributes": [
+          "原始细节无法完全恢复",
+          "适合某些媒体数据",
+          "质量与体积需要取舍"
+        ],
+        "scenes": [
+          "为了更小的传输体积接受图片细节减少"
+        ],
+        "forbiddenTerms": [
+          "有损压缩"
+        ]
+      },
+      "sideB": {
+        "word": "无损压缩",
+        "definition": "能够完整还原原始数据的压缩方法",
+        "attributes": [
+          "可恢复原始内容",
+          "不丢弃有效信息",
+          "压缩比例取决于数据"
+        ],
+        "scenes": [
+          "把文档打包后仍要求解开时一个字节也不变"
+        ],
+        "forbiddenTerms": [
+          "无损压缩"
+        ]
+      }
+    }
+  ]
+}

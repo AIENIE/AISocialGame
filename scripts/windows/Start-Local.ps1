@@ -2,12 +2,15 @@
 param(
     [string]$EnvironmentFile = (Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\secrets\aisocialgame.env'),
     [ValidateRange(30, 600)][int]$StartupTimeoutSeconds = 240,
+    [ValidateSet('All','Backend','Frontend')][string]$Component = 'All',
+    [switch]$EnableBackendDebug,
     # -NoBrowser skips opening the project homepage after a successful start.
     [switch]$NoBrowser
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'LocalCommand.ps1')
 
 # The foreground debug scripts require PowerShell 7 Core; transparently
 # re-enter under pwsh so this script also works from Windows PowerShell 5.1.
@@ -44,6 +47,7 @@ $components = @(
     [pscustomobject]@{ Name = 'Backend'; Script = (Join-Path $PSScriptRoot 'Start-Backend.ps1'); Port = 11031; HealthPath = '/actuator/health'; HealthKind = 'JsonUp' },
     [pscustomobject]@{ Name = 'Frontend'; Script = (Join-Path $PSScriptRoot 'Start-Frontend.ps1'); Port = 11030; HealthPath = '/'; HealthKind = 'Http200' }
 )
+if ($Component -ne 'All') { $components = @($components | Where-Object Name -eq $Component) }
 $stateRoot = Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\native-runs\aisocialgame'
 $statePath = Join-Path $stateRoot 'processes.json'
 $logsRoot = Join-Path $stateRoot 'logs'
@@ -141,12 +145,14 @@ function Start-Component {
     $argumentList = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', (Convert-LaunchArgument -Value $Spec.Script))
     if ($Spec.Name -eq 'Backend') {
         $argumentList += @('-EnvironmentFile', (Convert-LaunchArgument -Value $EnvironmentFile))
+        if ($EnableBackendDebug) { $argumentList += '-EnableBackendDebug' }
     }
     $launcher = (Get-Process -Id $PID).Path
     $process = Start-Process -FilePath $launcher -ArgumentList $argumentList -WorkingDirectory $repoRoot -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $logsRoot "$($Spec.Name.ToLowerInvariant()).stdout.log") `
         -RedirectStandardError (Join-Path $logsRoot "$($Spec.Name.ToLowerInvariant()).stderr.log") -PassThru
     $launchedStartUtc = try { $process.StartTime.ToUniversalTime() } catch { $null }
+    $ready = $false
     try {
         $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
         do {
@@ -154,6 +160,7 @@ function Start-Component {
                 throw "AISocialGame $($Spec.Name) process exited during startup with code $($process.ExitCode). See logs under $logsRoot."
             }
             if ((Test-TcpPort -Port $Spec.Port) -and (Test-HttpEndpoint -Port $Spec.Port -Path $Spec.HealthPath -HealthKind $Spec.HealthKind)) {
+                $ready = $true
                 return [pscustomobject]@{
                     Name = $Spec.Name
                     ProcessId = $process.Id
@@ -166,14 +173,15 @@ function Start-Component {
             $process.Refresh()
         } while ([DateTime]::UtcNow -lt $deadline)
         throw "AISocialGame $($Spec.Name) did not become healthy on port $($Spec.Port) within $StartupTimeoutSeconds seconds. See logs under $logsRoot."
-    } catch {
+    } finally {
+        if (-not $ready) {
         $current = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
         if ($null -ne $current -and $null -ne $launchedStartUtc -and
             [Math]::Abs(($current.StartTime.ToUniversalTime() - $launchedStartUtc).TotalMilliseconds) -le 1000) {
             & (Join-Path $env:SystemRoot 'System32\taskkill.exe') /PID ([string]$process.Id) /T /F 2>$null | Out-Null
         }
         $process.Dispose()
-        throw
+        }
     }
 }
 
@@ -193,17 +201,35 @@ if ($null -ne $state) {
 }
 
 $records = @($liveRecords)
+$created = @()
+$stackReady = $false
+try {
 foreach ($spec in $components) {
     $existing = @($liveRecords | Where-Object Name -eq $spec.Name)
     if ($existing.Count -gt 0) {
+        if (-not (Test-HttpEndpoint -Port $spec.Port -Path $spec.HealthPath -HealthKind $spec.HealthKind)) { throw "Recorded AISocialGame $($spec.Name) instance is not healthy." }
+        if ($EnableBackendDebug -and $spec.Name -eq 'Backend') { Assert-LocalDebugListener 11031 51031 }
         Write-Output "AISocialGame $($spec.Name) already running (PID $($existing[0].ProcessId)); skipping start."
         continue
     }
     Write-Output "Starting AISocialGame $($spec.Name) on port $($spec.Port)..."
-    $records += Start-Component -Spec $spec
+    $record = Start-Component -Spec $spec
+    $created += $record
+    $records += $record
     Save-State -Records $records
 }
 Save-State -Records $records
+
+if ($Component -in @('All','Frontend')) { Assert-LocalEndpoint 'https://localsocialgame.testhut.top/' }
+$stackReady = $true
+} finally {
+    if (-not $stackReady) {
+    foreach ($record in $created) {
+        if (Test-RecordedProcess $record) { & (Join-Path $env:SystemRoot 'System32/taskkill.exe') /PID ([string]$record.ProcessId) /T /F | Out-Null }
+    }
+    Save-State -Records $liveRecords
+    }
+}
 
 Write-Output ''
 Write-Output 'AISocialGame local stack is up:'

@@ -170,6 +170,7 @@ public class TurtleSoupGameEngine implements GameEngine {
         data.put("aiAssist", aiAssist(room));
         data.put("hostVerdict", "");
         state.setData(data);
+        com.aisocialgame.service.RoomAccessPolicy.snapshot(state, room);
         state.setLogs(new ArrayList<>(List.of(new GameLogEntry("system", "海龟汤开局，AI 主持已给出汤面"))));
         recordGameStart(state);
         roomService.updateStatus(room.getId(), RoomStatus.PLAYING);
@@ -347,7 +348,8 @@ public class TurtleSoupGameEngine implements GameEngine {
             Set<String> winners = "SOLVED".equals(winner)
                     ? state.getPlayers().stream().map(GamePlayerState::getPlayerId).collect(java.util.stream.Collectors.toSet())
                     : Set.of();
-            statsService.recordResult(room.getGameId(), state.getPlayers(), winners);
+            state.getData().put("winnerIds", new ArrayList<>(winners));
+            statsService.recordResult(gameEventRecorder.ensureArchiveId(state), room.getGameId(), state.getPlayers(), winners);
             state.getData().put("statsRecorded", true);
         }
         replayArchiveService.archiveFinishedGame(state, room);
@@ -402,14 +404,15 @@ public class TurtleSoupGameEngine implements GameEngine {
                 state.getPhaseEndsAt(),
                 players,
                 state.getLogs(),
-                visibleExtra(state),
+                visibleExtra(state, viewerId),
                 Map.of(),
                 GamePhases.QUESTIONING.equals(state.getPhase()) ? new PendingAction("TURTLE_SOUP", "可以继续提问或提交最终解答", 0) : null
         );
     }
 
-    private Map<String, Object> visibleExtra(GameState state) {
+    private Map<String, Object> visibleExtra(GameState state, String viewerId) {
         Map<String, Object> extra = new LinkedHashMap<>();
+        com.aisocialgame.service.SettlementView.add(extra, state, viewerId);
         extra.put("caseId", state.getData().get("caseId"));
         extra.put("caseTitle", state.getData().get("caseTitle"));
         extra.put("surface", state.getData().get("surface"));
@@ -467,13 +470,13 @@ public class TurtleSoupGameEngine implements GameEngine {
     private void pushState(String roomId, String type, GameState state) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("logs", state.getLogs());
-        payload.put("extra", visibleExtra(state));
+        payload.put("extra", visibleExtra(state, null));
         gamePushService.pushStateChange(roomId, new GameStateEvent(type, state.getPhase(), state.getRoundNumber(), state.getCurrentSeat(), payload));
     }
 
     private void ensureQuestioning(GameState state) {
         if (!GamePhases.QUESTIONING.equals(state.getPhase())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "当前阶段不支持该操作", "INVALID_ACTION", Map.of());
         }
     }
 

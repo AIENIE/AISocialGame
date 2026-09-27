@@ -16,7 +16,7 @@ import fireflychat.user.v1.UserDirectoryServiceGrpc;
 import fireflychat.user.v1.ValidateSessionRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -26,18 +26,18 @@ import java.util.UUID;
 @Component
 public class UserGrpcClient {
 
-    @GrpcClient(value = "user", interceptors = UserGrpcAuthClientInterceptor.class)
+    @Autowired
     private UserAuthServiceGrpc.UserAuthServiceBlockingStub userAuthStub;
 
-    @GrpcClient(value = "user", interceptors = UserGrpcAuthClientInterceptor.class)
+    @Autowired
     private UserDirectoryServiceGrpc.UserDirectoryServiceBlockingStub userDirectoryStub;
 
-    @GrpcClient(value = "user", interceptors = UserGrpcAuthClientInterceptor.class)
+    @Autowired
     private UserBanServiceGrpc.UserBanServiceBlockingStub userBanStub;
 
     public ExternalUserProfile validateSession(long userId, String sessionId) {
         try {
-            var response = userAuthStub.validateSession(ValidateSessionRequest.newBuilder()
+            var response = userAuthStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).validateSession(ValidateSessionRequest.newBuilder()
                     .setUserId(userId)
                     .setSessionId(normalize(sessionId))
                     .build());
@@ -52,7 +52,7 @@ public class UserGrpcClient {
 
     public ExternalUserProfile getUserBasic(long userId) {
         try {
-            var response = userDirectoryStub.getUserBasic(GetUserBasicRequest.newBuilder().setUserId(userId).build());
+            var response = userDirectoryStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getUserBasic(GetUserBasicRequest.newBuilder().setUserId(userId).build());
             if (!response.hasUser()) {
                 return null;
             }
@@ -64,7 +64,7 @@ public class UserGrpcClient {
 
     public BanStatusSnapshot getBanStatus(long userId) {
         try {
-            var response = userBanStub.getBanStatus(GetBanStatusRequest.newBuilder().setUserId(userId).build());
+            var response = userBanStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).getBanStatus(GetBanStatusRequest.newBuilder().setUserId(userId).build());
             return new BanStatusSnapshot(
                     response.getIsBanned(),
                     response.getBanType().name(),
@@ -91,7 +91,7 @@ public class UserGrpcClient {
                         .setNanos(expiresAt.getNano())
                         .build());
             }
-            var response = userBanStub.banUser(builder.build());
+            var response = userBanStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).banUser(builder.build());
             if (!response.getSuccess()) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, normalizeError(response.getErrorMessage(), "封禁失败"));
             }
@@ -103,7 +103,7 @@ public class UserGrpcClient {
 
     public ExternalUserProfile unbanUser(long userId, String reason, long operatorUserId) {
         try {
-            var response = userBanStub.unbanUser(UnbanUserRequest.newBuilder()
+            var response = userBanStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).unbanUser(UnbanUserRequest.newBuilder()
                     .setRequestId(UUID.randomUUID().toString())
                     .setUserId(userId)
                     .setReason(normalize(reason))

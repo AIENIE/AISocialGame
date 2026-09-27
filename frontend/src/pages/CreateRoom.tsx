@@ -1,3 +1,4 @@
+import { closureText } from "@/i18n/closureTexts";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,13 +25,15 @@ import { gameFieldLabel, gameName, gameOptionLabel } from "@/i18n/gameTexts";
 import { getApiErrorMessage } from "@/services/apiError";
 import { Game, GameConfigOption } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
+import { WEREWOLF_ROLE_LABELS, werewolfBoardRoles } from "./games/shared/werewolfSetup";
 
 const CreateRoom = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const english = i18n.language.startsWith("en");
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { user, redirectToSsoLogin } = useAuth();
-  const { data: game } = useQuery<Game | undefined>({
+  const { data: game, isError: gameError, refetch: reloadGame } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
     enabled: !!gameId,
@@ -38,13 +41,17 @@ const CreateRoom = () => {
   
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [customWords, setCustomWords] = useState([{ wordA: "", wordB: "" }]);
+  const roleComposition = (template: string) => Object.entries(werewolfBoardRoles(template, Number(formData.playerCount || 12)))
+    .map(([role, count]) => `${count} ${t(`game.werewolf.role.${role}`, { defaultValue: WEREWOLF_ROLE_LABELS[role] || role })}`)
+    .join(" · ");
 
   useEffect(() => {
     if (game) {
       const defaults: Record<string, any> = {
         roomName: t("create.defaultRoomName", { game: gameName(game.id, game.name) }),
         isPrivate: false,
-        commMode: "voice",
+        commMode: "text",
       };
       game.configSchema.forEach(field => {
         defaults[field.id] = field.defaultValue;
@@ -63,9 +70,9 @@ const CreateRoom = () => {
       isPrivate: formData.isPrivate,
       password: formData.isPrivate ? formData.password : undefined,
       commMode: formData.commMode,
-      config: Object.fromEntries(
+      config: { ...Object.fromEntries(
         Object.entries(formData).filter(([key]) => !["roomName", "isPrivate", "password", "commMode"].includes(key))
-      ),
+      ), ...(gameId === "undercover" && formData.wordPack === "custom" ? { customWords } : {}) },
     }),
     onSuccess: (room) => {
       toast.success(t("create.success"));
@@ -86,6 +93,24 @@ const CreateRoom = () => {
       toast.error(t("create.passwordTooShort"));
       return;
     }
+    if (gameId === "undercover" && formData.spyMode === "manual") {
+      const maximum = Math.floor((Number(formData.playerCount) - 1) / 3);
+      if (!Number.isInteger(formData.spyCount) || formData.spyCount < 1 || formData.spyCount > maximum) {
+        toast.error(english ? `Choose between 1 and ${maximum} undercover players.` : `卧底数量需为1-${maximum}的整数`); return;
+      }
+    }
+    if (gameId === "undercover" && formData.wordPack === "custom") {
+      const seen = new Set<string>();
+      for (let index = 0; index < customWords.length; index++) {
+        const pair = customWords[index];
+        const a = pair.wordA.normalize("NFKC").trim(), b = pair.wordB.normalize("NFKC").trim();
+        const key = [a.toLocaleLowerCase(), b.toLocaleLowerCase()].sort().join("\u0000");
+        if ([...a].length < 2 || [...a].length > 20 || [...b].length < 2 || [...b].length > 20 || a.toLocaleLowerCase() === b.toLocaleLowerCase() || seen.has(key)) {
+          toast.error(english ? `Check pair ${index + 1}: use two different words of 2–20 characters, with no duplicate pairs.` : `请检查第${index + 1}组：每词2-20字，两个词不同且词对不重复`); return;
+        }
+        seen.add(key);
+      }
+    }
     createMutation.mutate();
   };
 
@@ -94,6 +119,7 @@ const CreateRoom = () => {
     return !["template", "playerCount"].includes(id);
   };
 
+  if (gameError) return <div className="p-8 text-center">{closureText(i18n.language,"配置加载失败，暂不能创建房间")}<Button onClick={() => reloadGame()}>{closureText(i18n.language,"重新加载")}</Button></div>;
   if (!game) return <div className="p-8 text-center">{t("common.gameNotFound")}</div>;
 
   return (
@@ -226,13 +252,16 @@ const CreateRoom = () => {
                       >
                         <div className="font-bold text-slate-900">{gameOptionLabel(gameId, "template", opt.value, opt.label)}</div>
                         <div className="text-xs text-slate-500 mt-1">
-                          {opt.value === "standard" && t("create.templateDesc.standard")}
-                          {opt.value === "guard" && t("create.templateDesc.guard")}
-                          {opt.value === "no_god" && t("create.templateDesc.no_god")}
+                          {gameId === "werewolf" ? roleComposition(String(opt.value)) : t(`create.templateDesc.${opt.value}`, { defaultValue: opt.label })}
                         </div>
                       </div>
                     ))}
                   </div>
+                  {gameId === "werewolf" && (
+                    <p className="text-sm leading-6 text-slate-600" data-testid="create-werewolf-setup-note">
+                      {t("game.werewolf.rulesPreviewNote")}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -247,7 +276,7 @@ const CreateRoom = () => {
                 <CollapsibleContent className="p-4 pt-0 space-y-4">
                   <div className="h-px bg-slate-200 mb-4" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {game.configSchema.filter(f => isAdvancedField(f.id)).map((field) => (
+                    {game.configSchema.filter(f => isAdvancedField(f.id) && (f.id !== "spyCount" || formData.spyMode === "manual")).map((field) => (
                       <div key={field.id} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor={field.id} className="text-sm text-slate-600">{gameFieldLabel(gameId, field.id, field.label)}</Label>
@@ -280,7 +309,10 @@ const CreateRoom = () => {
                         
                         {field.type === "number" && (
                            <Input 
+                             id={field.id}
                              type="number"
+                             min={field.min}
+                             max={field.id === "spyCount" ? Math.floor((Number(formData.playerCount) - 1) / 3) : field.max}
                              value={formData[field.id]}
                              onChange={(e) => handleInputChange(field.id, Number(e.target.value))}
                              className="bg-white h-9"
@@ -289,6 +321,25 @@ const CreateRoom = () => {
                       </div>
                     ))}
                   </div>
+                  {gameId === "undercover" && formData.wordPack === "custom" && (
+                    <div className="space-y-3 border-t border-slate-200 pt-4">
+                      <div>
+                        <h3 className="font-medium text-slate-900">{english ? "Your word pairs" : "自定义词对"}</h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">{english ? "You will host and watch this game without taking a player seat. Your word pairs remain hidden from the players. Add 1–100 pairs." : "你将担任出题主持，组织和观战，不占玩家席位。词对不会发送给参赛者。可添加1-100组。"}</p>
+                      </div>
+                      <div className="space-y-2">
+                        {customWords.map((pair, index) => (
+                          <div className="grid grid-cols-[1.5rem_1fr_1fr_auto] items-center gap-2" key={index}>
+                            <span className="text-xs text-slate-500">{index + 1}</span>
+                            <Input aria-label={english ? `Pair ${index + 1} word A` : `第${index + 1}组词A`} maxLength={20} value={pair.wordA} placeholder={english ? "Word A" : "词语A"} onChange={e => setCustomWords(rows => rows.map((row, i) => i === index ? { ...row, wordA: e.target.value } : row))} />
+                            <Input aria-label={english ? `Pair ${index + 1} word B` : `第${index + 1}组词B`} maxLength={20} value={pair.wordB} placeholder={english ? "Word B" : "词语B"} onChange={e => setCustomWords(rows => rows.map((row, i) => i === index ? { ...row, wordB: e.target.value } : row))} />
+                            <Button variant="ghost" disabled={customWords.length === 1} onClick={() => setCustomWords(rows => rows.filter((_, i) => i !== index))}>{english ? "Remove" : "移除"}</Button>
+                          </div>
+                        ))}
+                      </div>
+                      <Button variant="outline" disabled={customWords.length >= 100} onClick={() => setCustomWords(rows => [...rows, { wordA: "", wordB: "" }])}>{english ? "Add pair" : "添加一组"}</Button>
+                    </div>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
 
@@ -307,7 +358,7 @@ const CreateRoom = () => {
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
               <span>{formData.commMode === 'voice' ? t('create.voiceShort') : t('create.textShort')}</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              <span>{formData.template === 'standard' ? t('create.templateShort.standard') : formData.template || gameName(game.id, game.name)}</span>
+              <span>{formData.template ? gameOptionLabel(gameId, "template", formData.template, formData.template) : gameName(game.id, game.name)}</span>
             </div>
           </div>
           <div className="flex-1 md:flex-none flex gap-4 justify-end">
@@ -316,9 +367,9 @@ const CreateRoom = () => {
                 <span className="text-xl font-bold text-blue-600">50</span>
                 <span className="text-xs text-slate-400">{t("create.coins")}</span>
              </div>
-             <Button size="lg" className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleCreate}>
+             <Button size="lg" disabled={createMutation.isPending} className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleCreate}>
               <Zap className="mr-2 h-5 w-5 fill-current" />
-              {t("create.createAndSeat")}
+              {gameId === "undercover" && formData.wordPack === "custom" ? (english ? "Create and host" : "创建并主持") : t("create.createAndSeat")}
             </Button>
           </div>
         </div>

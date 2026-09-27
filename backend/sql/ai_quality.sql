@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
   `mistake_notes` LONGTEXT NULL,
   `speech_patterns` LONGTEXT NULL,
   `games_played` INT NOT NULL DEFAULT 0,
+  `approved_summary` LONGTEXT NULL,
+  `review_status` VARCHAR(24) NULL DEFAULT 'PENDING',
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
 CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `room_id` VARCHAR(64) NULL,
+  `instance_id` VARCHAR(96) NULL,
   `game_id` VARCHAR(64) NOT NULL,
   `phase` VARCHAR(64) NULL,
   `round_number` INT NOT NULL DEFAULT 1,
@@ -43,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
   `created_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `idx_ai_trace_room_id` (`room_id`, `id`),
+  KEY `idx_ai_trace_instance` (`instance_id`, `fallback`, `id`),
   KEY `idx_ai_trace_game_action` (`game_id`, `action`, `id`),
   KEY `idx_ai_trace_persona` (`persona_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,5 +1,6 @@
+import { AdminReplayEvidence } from "./AdminReplayEvidence";
 import { useEffect, useMemo, useState } from "react";
-import { adminApi } from "@/services/api";
+import { adminApi, getApiErrorMessage } from "@/services/api";
 import { AdminAiDecisionTrace, AdminAiPersonaMemory } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ const AiAdmin = () => {
   const [traces, setTraces] = useState<AdminAiDecisionTrace[]>([]);
   const [traceTotal, setTraceTotal] = useState(0);
   const [memories, setMemories] = useState<AdminAiPersonaMemory[]>([]);
+  const [experienceDrafts, setExperienceDrafts] = useState<Record<number, string>>({});
+  const [reviewingMemory, setReviewingMemory] = useState<number | null>(null);
   const [filters, setFilters] = useState({ gameId: "", personaId: "", qualityFlag: "" });
   const [loading, setLoading] = useState({ models: false, traces: false, memories: false, test: false });
 
@@ -115,6 +118,17 @@ const AiAdmin = () => {
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "重置失败");
     }
+  };
+
+  const reviewMemory = async (memory: AdminAiPersonaMemory, status: "APPROVED" | "REJECTED") => {
+    setReviewingMemory(memory.id);
+    try {
+      await adminApi.reviewAiPersonaMemory(memory.id, status, experienceDrafts[memory.id] ?? memory.approvedSummary ?? "");
+      toast.success(status === "APPROVED" ? "通用经验已通过审核" : "通用经验已停用");
+      await loadMemories();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "审核失败"));
+    } finally { setReviewingMemory(null); }
   };
 
   return (
@@ -209,6 +223,7 @@ const AiAdmin = () => {
                     <div className="font-medium text-slate-900">{trace.outputSummary || "无输出摘要"}</div>
                     <div className="mt-1">{trace.reason || "无理由摘要"}</div>
                   </div>
+                  {typeof trace.quality?.instanceId === "string" && <AdminReplayEvidence archiveId={trace.quality.instanceId} eventIds={Array.isArray(trace.quality.eventIds) ? trace.quality.eventIds : []} />}
                   <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 lg:grid-cols-3">
                     <div className="rounded border bg-white p-2"><span className="font-medium">质量</span><p className="mt-1 break-all">{compactJson(trace.quality)}</p></div>
                     <div className="rounded border bg-white p-2"><span className="font-medium">信念</span><p className="mt-1 break-all">{compactJson(trace.beliefSnapshot)}</p></div>
@@ -243,10 +258,21 @@ const AiAdmin = () => {
                   <div className="rounded-md bg-slate-50 p-3"><span className="font-medium">口吻</span><p className="mt-1 text-slate-700">{memory.speechPatterns || "-"}</p></div>
                 </div>
                 <div className="text-xs text-slate-500">更新于 {formatDate(memory.updatedAt)}</div>
+                {memory.roleKey === "GENERAL_V2" && (
+                  <div className="space-y-2 border-t pt-3">
+                    <Label htmlFor={`experience-${memory.id}`}>审核后的通用经验 · {memory.reviewStatus || "PENDING"}</Label>
+                    <p className="text-xs text-slate-500">仅保留通用参与方法。审核时移除玩家身份、关系、词语、题底和具体对局记录；旧原文不会进入新决策。</p>
+                    <Textarea id={`experience-${memory.id}`} maxLength={1200} value={experienceDrafts[memory.id] ?? memory.approvedSummary ?? ""} onChange={(event) => setExperienceDrafts((drafts) => ({ ...drafts, [memory.id]: event.target.value }))} />
+                    <div className="flex gap-2">
+                      <Button size="sm" disabled={reviewingMemory !== null || !(experienceDrafts[memory.id] ?? memory.approvedSummary ?? "").trim()} onClick={() => reviewMemory(memory, "APPROVED")}>通过审核</Button>
+                      <Button size="sm" variant="outline" disabled={reviewingMemory !== null} onClick={() => reviewMemory(memory, "REJECTED")}>停用经验</Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
-          {!memories.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">暂无 Persona 记忆。AI 完成行动后会自动沉淀。</div>}
+          {!memories.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">暂无 Persona 记忆。新版本在对局结算后累计局数，通用经验经人工审核后使用。</div>}
         </TabsContent>
 
         <TabsContent value="gateway" className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">

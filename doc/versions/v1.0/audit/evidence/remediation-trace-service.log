@@ -1,0 +1,43 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-09-27T09:08:13.753+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] c.aisocialgame.ReplayArchiveServiceTest  : Starting ReplayArchiveServiceTest using Java 25.0.3 with PID 60056 (started by duwei in D:\project\aienie\aienie-projects\AISocialGame\backend)
+2026-09-27T09:08:13.765+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] c.aisocialgame.ReplayArchiveServiceTest  : The following 1 profile is active: "test"
+2026-09-27T09:08:14.418+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-27T09:08:14.420+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-27T09:08:14.530+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 105 ms. Found 22 JPA repository interfaces.
+2026-09-27T09:08:15.028+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-27T09:08:15.059+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-09-27T09:08:15.206+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-27T09:08:15.222+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-27T09:08:15.318+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:aisocial user=SA
+2026-09-27T09:08:15.319+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-27T09:08:15.329+08:00 requestId=none  WARN 60056 --- [ai-social-game] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-27T09:08:15.339+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:aisocial]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: AISOCIAL/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-27T09:08:15.956+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-27T09:08:15.993+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-27T09:08:16.108+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-27T09:08:17.693+08:00 requestId=none  WARN 60056 --- [ai-social-game] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-09-27T09:08:18.015+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-09-27T09:08:18.078+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-09-27T09:08:18.080+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@738fb8e8]]
+2026-09-27T09:08:18.081+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-09-27T09:08:18.088+08:00 requestId=none  INFO 60056 --- [ai-social-game] [           main] c.aisocialgame.ReplayArchiveServiceTest  : Started ReplayArchiveServiceTest in 4.541 seconds (process running for 5.073)

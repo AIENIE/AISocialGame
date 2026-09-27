@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/games/{gameId}/rooms/{roomId}")
 public class GamePlayController {
     private final GamePlayService gamePlayService;
+    private final com.aisocialgame.service.GameLogQueryService logs;
 
-    public GamePlayController(GamePlayService gamePlayService) {
+    public GamePlayController(GamePlayService gamePlayService, com.aisocialgame.service.GameLogQueryService logs) {
         this.gamePlayService = gamePlayService;
+        this.logs = logs;
     }
 
     @GetMapping("/state")
@@ -26,6 +28,15 @@ public class GamePlayController {
                                                    @PathVariable String roomId,
                                                    @CurrentUser User user) {
         return ResponseEntity.ok(gamePlayService.state(gameId, roomId, user));
+    }
+
+    @GetMapping("/logs")
+    public ResponseEntity<com.aisocialgame.dto.GameLogPage> logs(@PathVariable String gameId,
+                                                                  @PathVariable String roomId,
+                                                                  @RequestParam(required = false) Long before,
+                                                                  @RequestParam(defaultValue = "100") int size,
+                                                                  @CurrentUser User user) {
+        return ResponseEntity.ok(logs.page(gameId, roomId, user == null ? null : user.getId(), before, size));
     }
 
     @PostMapping("/start")

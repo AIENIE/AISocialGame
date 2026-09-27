@@ -27,6 +27,12 @@ public final class StagingTrustPolicy {
 
     @PostConstruct
     public void validate() {
+        if ("local".equals(runtimeEnvironment)) {
+            LocalGrpcTrustPolicy.require(userTrust);
+            LocalGrpcTrustPolicy.require(billingTrust);
+            LocalGrpcTrustPolicy.require(aiTrust);
+            return;
+        }
         if ("test".equals(runtimeEnvironment)) {
             if (!STAGING_ROOT.equals(userTrust)
                     || !STAGING_ROOT.equals(billingTrust)

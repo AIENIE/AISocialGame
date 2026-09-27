@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "react-i18next";
-import { aiApi, getApiErrorMessage } from "@/services/api";
+import { aiApi, getApiErrorCode, getApiErrorMessage } from "@/services/api";
 import { localizeErrorMessage } from "@/i18n/errors";
 import { AiMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,7 +46,7 @@ const AiChat = () => {
       );
     } catch (error: any) {
       const raw = getApiErrorMessage(error, t("aiChat.failed"));
-      toast.error(localizeErrorMessage(raw, "aiChat.failed"));
+      toast.error(localizeErrorMessage(raw, "aiChat.failed", getApiErrorCode(error)));
       setMessages(nextMessages);
     } finally {
       setSending(false);

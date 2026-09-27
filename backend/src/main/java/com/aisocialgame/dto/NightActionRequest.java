@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public class NightActionRequest {
     @NotBlank
-    @Pattern(regexp = "^(WOLF_KILL|SEER_CHECK|WITCH_SAVE|WITCH_POISON|WEREWOLF|SEER|WITCH)$", message = "夜晚行动类型不支持")
+    @Pattern(regexp = "^(WOLF_KILL|SEER_CHECK|WITCH_SAVE|WITCH_POISON|GUARD_PROTECT|SKIP|WEREWOLF|SEER|WITCH)$", message = "夜晚行动类型不支持")
     private String action;
 
     @Size(max = 128)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import pathlib
@@ -18,6 +19,8 @@ COMPONENT = "ai-social-game"
 PROJECT = "aienie_ai_social_game_production"
 LEDGER = "release/migrations/sql-ledger.json"
 PLAN = "release/migrations/production-plan.json"
+MANIFEST = "release/migrations/migrations.json"
+MANIFEST_MODULE = "release/production_migration_manifest.py"
 ARTIFACT_MANIFEST = "release/production-migration-artifacts.json"
 CONTAINER_ENTRYPOINT = "/app/bin/production-migration-entrypoint.sh"
 DIGEST = re.compile(r"sha256:(?!0{64})[0-9a-f]{64}\Z")
@@ -227,7 +230,7 @@ def validate_platform(root: pathlib.Path) -> dict[str, str]:
         if info.st_size != item.get("size") or digest_file(candidate) != item.get("sha256"):
             raise ContractError("sealed artifact inventory drifted")
     for required in (
-        LEDGER, PLAN, ARTIFACT_MANIFEST, "release/production-migration-executor",
+        LEDGER, PLAN, MANIFEST, MANIFEST_MODULE, ARTIFACT_MANIFEST, "release/production-migration-executor",
         "backend/production-migration-entrypoint.sh",
     ):
         if required not in seen:
@@ -273,16 +276,16 @@ def validate_migration_artifacts(root: pathlib.Path) -> tuple[str, int]:
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         raise ContractError("migration artifact closure is empty")
-    expected_paths = {
-        "backend/app.jar",
-        "backend/production-migration-entrypoint.sh",
-        LEDGER,
-        PLAN,
-        "release/migrations/sql/20260519_performance_stability.sql",
-        "release/migrations/sql/20260810_admin_totp_auth.sql",
-        "release/migrations/sql/schema.sql",
-        "release/production-migration-executor",
-    }
+    # main() has verified the signed inventory before loading any bundle code.
+    regular(root / MANIFEST_MODULE)
+    specification = importlib.util.spec_from_file_location("sealed_migration_manifest", root / MANIFEST_MODULE)
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    try:
+        source_manifest = module.load_manifest(root / MANIFEST)
+    except (ValueError, OSError) as error:
+        raise ContractError("invalid migration source manifest") from error
+    expected_paths = module.artifact_paths(source_manifest)
     observed_paths: set[str] = set()
     for item in artifacts:
         if not isinstance(item, dict) or set(item) != {"mode", "path", "sha256", "size"}:
@@ -311,7 +314,7 @@ def validate_migration_artifacts(root: pathlib.Path) -> tuple[str, int]:
         or ledger.get("schema_version") != "aienie-production-sql-ledger-v2"
         or ledger.get("canonical_component_id") != COMPONENT
         or not isinstance(entries, list)
-        or len(entries) != 3
+        or len(entries) != len(source_manifest["entries"])
         or ledger.get("plan_selection") != "sealed-candidate-file-no-auto-detection"
         or ledger.get("authorization") != {
             "minimum_release_manifest_version": 4,
@@ -320,11 +323,7 @@ def validate_migration_artifacts(root: pathlib.Path) -> tuple[str, int]:
         }
     ):
         raise ContractError("AISocialGame migration ledger drifted")
-    expected_entry_paths = [
-        "release/migrations/sql/schema.sql",
-        "release/migrations/sql/20260519_performance_stability.sql",
-        "release/migrations/sql/20260810_admin_totp_auth.sql",
-    ]
+    expected_entry_paths = [f"release/migrations/sql/{entry['file']}" for entry in source_manifest["entries"]]
     for ordinal, (entry, expected_path) in enumerate(zip(entries, expected_entry_paths, strict=True), 1):
         if (
             not isinstance(entry, dict)
@@ -335,10 +334,7 @@ def validate_migration_artifacts(root: pathlib.Path) -> tuple[str, int]:
             or entry.get("sha256") != digest_file(root / expected_path)
         ):
             raise ContractError("AISocialGame migration ledger entry drifted")
-    if ledger.get("execution_plans") != [
-        {"id": "existing-legacy-schema", "ordinals": [2, 3]},
-        {"id": "fresh-empty-schema", "ordinals": [1]},
-    ]:
+    if ledger.get("execution_plans") != source_manifest["execution_plans"]:
         raise ContractError("AISocialGame execution plan closure drifted")
     plan, _ = strict_json(root / PLAN)
     selected_id = plan.get("selected_execution_plan")

@@ -1,0 +1,11 @@
+[WARN] Unsupported engine: wanted: {"node":"22.23.2"} (current: {"node":"v24.13.0","pnpm":"11.22.0"})
+$ tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json
+
+ RUN  v4.1.11 D:/project/aienie/aienie-projects/AISocialGame/frontend
+
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  09:51:59
+   Duration  20.35s (transform 1.19s, setup 0ms, import 3.44s, tests 153ms, environment 16.04s)
+

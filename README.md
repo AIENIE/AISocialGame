@@ -58,9 +58,9 @@
 本地部署默认不依赖 Consul：
 
 - MySQL / Redis / Qdrant：`localbase.testhut.top:23306 / 26379 / 26333`
-- user-service gRPC：`static://localuserservice.testhut.top:12001`，TLS
-- pay-service gRPC：`static://localpayservice.testhut.top:443`，TLS
-- ai-service gRPC：`static://localaiservice.testhut.top:443`，TLS
+- user-service gRPC：`static://localuserservice.testhut.top:22001`，TLS
+- pay-service gRPC：`static://localpayservice.testhut.top:22021`，TLS
+- ai-service gRPC：`static://localaiservice.testhut.top:22011`，TLS
 - SSO 入口：`https://localuserservice.testhut.top`
 
 MySQL、Redis、Qdrant 由外部环境提供，项目脚本不负责部署、初始化或连通性预检。
@@ -113,9 +113,9 @@ mysql \
 4. 调试进程会读取权限为 `0600` 且未入库的 `../env.local`，未显式提供 `SERVER_PORT` 时会回退到 `BACKEND_PORT`。首次使用前先 `cp env.example env.local && chmod 600 env.local` 并填入真实值。
 5. 启动成功后，可访问 `http://127.0.0.1:11031/actuator/health` 验证服务状态。
 
-### Windows 本机调试启动（localbase WSL）
+### Windows 本机调试启动（共享 localbase）
 
-共享 MySQL、Redis、Qdrant 和 AI/User/Pay 公共服务由 `aienie-wsl` 提供；Windows 原生应用是另一套本地实例。准备好仓库外的 `%LOCALAPPDATA%\Aenie\secrets\aisocialgame.env` 后，一键启动：
+共享 MySQL、Redis、Qdrant 和 AI/User/Pay 公共服务通过规范的 local* 域名访问；产品进程在 Windows 原生运行。准备好仓库外的 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env` 后，一键启动：
 
 ```powershell
 .\scripts\windows\Start-Local.ps1    # 后端+前端一次拉起为受管后台进程，健康检查通过后自动在默认浏览器打开本地域名主页
@@ -149,3 +149,9 @@ mysql \
 - gRPC 集成：`doc/modules/grpc-integration-module.md`
 - 测试与运维：`doc/test/integratedTest.md`
 - Windows 原生按需入口：`doc/operations/windows-native.md`
+
+## 本地 L2 验证记录（2026-09-12）
+
+Windows 根入口为 `start.ps1`，参数为 `-Action Start|Build|Test|Status|Stop`、`-Level L1|L2|L3`、`-Component All|Backend|Frontend`，默认 `Start/L2/All`。本地端口为前端 `11030`、后端 `11031`，主页为 `https://localsocialgame.testhut.top/`。
+
+实际已记录的 L2 结果：后端 Maven 当前报告统计为 `119` 项执行、`0` failure、`0` error、`2` skipped，退出码 `0`（来自当前 `backend/target/surefire-reports/TEST-*.xml`）。前端 L2 为 2 个文件 / 19 项通过，退出码 0。完整启动的健康检查、HTTPS 与基础 API 已通过；本轮根入口双断点验收已完成。VS Code 根入口任务启动仓库根 `start.ps1`；建议在仓库根打开 VS Code，使用根目录 Java attach 与浏览器组合调试配置。

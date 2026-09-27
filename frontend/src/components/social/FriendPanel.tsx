@@ -71,7 +71,7 @@ export const FriendPanel = ({ open, onOpenChange, userKey }: FriendPanelProps) =
                     <Button
                       size="sm"
                       onClick={() => {
-                        friendApi.sendFriendRequest(userKey, candidate);
+                        if (!friendApi.sendFriendRequest(userKey, candidate)) { toast.error(t("errors.localStorageUnavailable")); return; }
                         toast.success(t("friend.requestSent", { name: candidate.displayName }));
                         refresh();
                       }}
@@ -104,7 +104,7 @@ export const FriendPanel = ({ open, onOpenChange, userKey }: FriendPanelProps) =
                         size="sm"
                         className="flex-1"
                         onClick={() => {
-                          friendApi.respondRequest(userKey, request.id, true);
+                          if (!friendApi.respondRequest(userKey, request.id, true)) { toast.error(t("errors.localStorageUnavailable")); return; }
                           toast.success(t("friend.accepted"));
                           refresh();
                         }}
@@ -116,7 +116,7 @@ export const FriendPanel = ({ open, onOpenChange, userKey }: FriendPanelProps) =
                         variant="outline"
                         className="flex-1"
                         onClick={() => {
-                          friendApi.respondRequest(userKey, request.id, false);
+                          if (!friendApi.respondRequest(userKey, request.id, false)) { toast.error(t("errors.localStorageUnavailable")); return; }
                           toast(t("friend.ignored"));
                           refresh();
                         }}
@@ -181,7 +181,7 @@ export const FriendPanel = ({ open, onOpenChange, userKey }: FriendPanelProps) =
                         variant="ghost"
                         className="px-2"
                         onClick={() => {
-                          friendApi.removeFriend(userKey, friend.id);
+                          if (!friendApi.removeFriend(userKey, friend.id)) { toast.error(t("errors.localStorageUnavailable")); return; }
                           toast(t("friend.removed"));
                           refresh();
                         }}

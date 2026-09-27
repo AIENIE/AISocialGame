@@ -15,25 +15,52 @@ import org.springframework.util.StringUtils;
 @Component
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final AuthService authService;
+    private final AuthenticatedSocketRegistry sockets;
+    private final com.aisocialgame.service.RoomAccessPolicy access;
 
-    public WebSocketAuthChannelInterceptor(AuthService authService) {
+    public WebSocketAuthChannelInterceptor(AuthService authService, AuthenticatedSocketRegistry sockets, com.aisocialgame.service.RoomAccessPolicy access) {
+        this.sockets = sockets; this.access = access;
         this.authService = authService;
     }
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-        if (accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null) throw new IllegalArgumentException("Invalid STOMP frame");
+        StompCommand command = accessor.getCommand();
+        if (command == StompCommand.DISCONNECT) return message;
+        try {
+            if (command == StompCommand.CONNECT || command == StompCommand.STOMP) {
+                String token = sanitizeToken(accessor.getFirstNativeHeader("Authorization"));
+                String playerId = resolvePlayerId(token);
+                if (!StringUtils.hasText(playerId)) throw new IllegalArgumentException("WebSocket requires authentication");
+                sockets.bind(accessor.getSessionId(), token, playerId);
+                accessor.setUser(new StompPrincipal(playerId));
+                return message;
+            }
+            if (!sockets.active(accessor.getSessionId()) || accessor.getUser() == null) throw new IllegalArgumentException("Session expired or revoked");
+            String playerId = accessor.getUser().getName();
+            String destination = accessor.getDestination();
+            if (command == StompCommand.SEND) {
+                var route = java.util.regex.Pattern.compile("^/app/room/([A-Za-z0-9_-]{1,64})/(chat|sync)$").matcher(destination == null ? "" : destination);
+                if (!route.matches()) throw new IllegalArgumentException("Client destination denied");
+                if ("chat".equals(route.group(2))) access.requireParticipant(route.group(1), playerId);
+                else access.requireStateSubscription(route.group(1), playerId);
+            } else if (command == StompCommand.SUBSCRIBE) {
+                if (!"/user/queue/private".equals(destination)) {
+                    var route = java.util.regex.Pattern.compile("^/topic/room/([A-Za-z0-9_-]{1,64})/(state|seat|chat)$").matcher(destination == null ? "" : destination);
+                    if (!route.matches()) throw new IllegalArgumentException("Subscription denied");
+                    if ("state".equals(route.group(2))) access.requireStateSubscription(route.group(1), playerId);
+                    else access.requireLobbyRead(route.group(1), playerId);
+                }
+            } else if (command != null && command != StompCommand.UNSUBSCRIBE) {
+                throw new IllegalArgumentException("STOMP command denied");
+            }
             return message;
+        } catch (RuntimeException denied) {
+            sockets.reject(accessor.getSessionId());
+            throw denied;
         }
-
-        String token = sanitizeToken(accessor.getFirstNativeHeader("Authorization"));
-        String resolvedPlayerId = resolvePlayerId(token);
-        if (!StringUtils.hasText(resolvedPlayerId)) {
-            throw new IllegalArgumentException("WebSocket 连接需要登录");
-        }
-        accessor.setUser(new StompPrincipal(resolvedPlayerId));
-        return message;
     }
 
     private String resolvePlayerId(String token) {

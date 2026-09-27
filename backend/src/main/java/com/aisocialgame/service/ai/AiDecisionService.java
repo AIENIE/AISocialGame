@@ -35,6 +35,8 @@ public class AiDecisionService {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
     private final AiGrpcClient aiGrpcClient;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.aisocialgame.service.safety.AiSafetyService callSafety;
     private final AppProperties appProperties;
     private final PromptProperties promptProperties;
     private final PersonaRepository personaRepository;
@@ -191,7 +193,11 @@ public class AiDecisionService {
         long startedAt = System.nanoTime();
         AiChatResult response = null;
         Map<String, Object> rawOutput = Map.of();
-        try {
+        var safetyContext=com.aisocialgame.service.safety.AiSafetyContext.source("LEGACY_AI_PLAYER")
+                .room(asString(context.extra().get("roomId")),context.gameId()).user(context.self().playerId(),context.self().playerId())
+                .persona(asString(context.extra().get("personaId"))).model(appProperties.getAi().getDefaultModel());
+        try (var scope=com.aisocialgame.service.safety.AiCallScope.open(safetyContext)) {
+            if(callSafety!=null)callSafety.requireCallAllowed(safetyContext);
             String userPrompt = buildUserPrompt(context, actionPrompt);
             response = aiGrpcClient.chatCompletions(
                     appProperties.getProjectKey(),
@@ -203,6 +209,7 @@ public class AiDecisionService {
                             new AiChatMessageDto("user", userPrompt)
                     )
             );
+            if(callSafety!=null)callSafety.requireCallAllowed(safetyContext);
             String content = response.content();
             if (!StringUtils.hasText(content)) {
                 content = fallbackText;
@@ -210,6 +217,8 @@ public class AiDecisionService {
             Optional<Map<String, Object>> parsed = parseJsonObject(content);
             rawOutput = parsed.<Map<String, Object>>map(HashMap::new).orElseGet(HashMap::new);
             return new CallResult(parsed, rawOutput, response, elapsedMs(startedAt));
+        } catch (com.aisocialgame.service.safety.AiCallBlockedException blocked) {
+            throw blocked;
         } catch (Exception ex) {
             long latencyMs = elapsedMs(startedAt);
             log.warn("AI decision call failed; using fallback gameId={} actorPlayerId={} action={} latencyMs={} errorType={}",
@@ -244,6 +253,7 @@ public class AiDecisionService {
             }
         }
         Map<String, Object> extra = new HashMap<>();
+        extra.put("roomId",state.getRoomId()); extra.put("personaId",actor.getPersonaId());
         extra.put("persona", persona != null ? persona.getName() + " / " + persona.getTrait() : "中性 AI");
         if (persona != null) {
             extra.put("personaSpeechStyle", persona.getSpeechStyle());
@@ -252,7 +262,7 @@ public class AiDecisionService {
             extra.put("personaMemorySeed", persona.getMemorySeed());
         }
         extra.put("seerResults", visibleSeerResults(state, actor));
-        extra.put("wolfTarget", state.getData().get("wolfTarget"));
+        if ("WITCH".equals(actor.getRole())) extra.put("wolfTarget", state.getData().get("wolfTarget"));
         extra.put("lastNightEvents", events.stream().filter(e -> e.contains("今晚") || e.contains("平安夜") || e.contains("天亮")).toList());
         extra.put("belief", belief);
         extra.put("memory", memory);

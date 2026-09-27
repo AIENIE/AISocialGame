@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { authApi, setAuthToken } from "@/services/api";
 import { AuthResponse, SsoCallbackData, User } from "@/types";
 
@@ -11,7 +12,7 @@ interface AuthContextValue {
   ssoCallback: (payload: SsoCallbackData) => Promise<void>;
   refreshUser: () => Promise<void>;
   updateBalance: (balance: NonNullable<User["balance"]>) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   displayName: string;
   avatar: string;
 }
@@ -21,6 +22,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export const LOCAL_TOKEN_KEY = "aisocialgame_token";
 export const LOCAL_SSO_STATE_KEY = "aisocialgame_sso_state";
 const LOCAL_GUEST_KEY = "aisocialgame_guest_name";
+const readStorage = (kind: "localStorage" | "sessionStorage", key: string) => {
+  try { return window[kind].getItem(key); } catch { return null; }
+};
+const writeStorage = (kind: "localStorage" | "sessionStorage", key: string, value: string | null) => {
+  try { if (value === null) window[kind].removeItem(key); else window[kind].setItem(key, value); } catch { /* This feature stays in memory when storage is denied. */ }
+};
 
 const generateSsoState = () => {
   const bytes = new Uint8Array(24);
@@ -41,26 +48,22 @@ const buildSsoEntryUrl = (entry: "login" | "register", state: string) => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(LOCAL_TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => readStorage("sessionStorage", LOCAL_TOKEN_KEY));
   const [loading, setLoading] = useState<boolean>(!!token);
 
   useEffect(() => {
+    let current = true;
+    setAuthToken(token || undefined);
     if (token) {
-      setAuthToken(token);
-      authApi
-        .me()
-        .then(setUser)
-        .catch(() => {
-          logout();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setAuthToken(undefined);
+      authApi.me().then((value) => { if (current) setUser(value); })
+        .catch(() => { if (current) setUser(null); })
+        .finally(() => { if (current) setLoading(false); });
     }
+    return () => { current = false; };
   }, [token]);
 
   const applyAuthResponse = (res: AuthResponse) => {
-    sessionStorage.setItem(LOCAL_TOKEN_KEY, res.token);
+    writeStorage("sessionStorage", LOCAL_TOKEN_KEY, res.token);
     setToken(res.token);
     setUser(res.user);
   };
@@ -108,8 +111,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.assign(buildSsoEntryUrl("register", state));
   };
 
-  const logout = () => {
-    sessionStorage.removeItem(LOCAL_TOKEN_KEY);
+  const logout = async () => {
+    try { await authApi.logout(); }
+    catch { toast.error("注销失败，请重试"); return; }
+    writeStorage("sessionStorage", LOCAL_TOKEN_KEY, null);
     setUser(null);
     setToken(null);
     setAuthToken(undefined);
@@ -117,10 +122,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const displayName = useMemo(() => {
     if (user?.nickname) return user.nickname;
-    const cached = localStorage.getItem(LOCAL_GUEST_KEY);
+    const cached = readStorage("localStorage", LOCAL_GUEST_KEY);
     if (cached) return cached;
     const guest = `游客${Math.floor(Math.random() * 9000 + 1000)}`;
-    localStorage.setItem(LOCAL_GUEST_KEY, guest);
+    writeStorage("localStorage", LOCAL_GUEST_KEY, guest);
     return guest;
   }, [user]);
 

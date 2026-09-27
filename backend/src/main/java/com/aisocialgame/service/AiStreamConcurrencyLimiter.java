@@ -5,37 +5,36 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class AiStreamConcurrencyLimiter {
-    private final Map<String, AtomicInteger> activeByUser = new ConcurrentHashMap<>();
+    private final Map<String, Integer> activeByUser = new ConcurrentHashMap<>();
     private final int maxPerUser;
 
     public AiStreamConcurrencyLimiter(@Value("${app.ai.stream.max-concurrent-per-user:2}") int maxPerUser) {
         this.maxPerUser = Math.max(1, maxPerUser);
     }
 
-    public boolean tryAcquire(String userId) {
-        AtomicInteger counter = activeByUser.computeIfAbsent(userId, ignored -> new AtomicInteger());
-        while (true) {
-            int current = counter.get();
-            if (current >= maxPerUser) {
-                return false;
-            }
-            if (counter.compareAndSet(current, current + 1)) {
-                return true;
-            }
-        }
+    public Permit tryAcquire(String userId) {
+        AtomicBoolean acquired = new AtomicBoolean();
+        activeByUser.compute(userId, (key, count) -> {
+            int active = count == null ? 0 : count;
+            if (active >= maxPerUser) return count;
+            acquired.set(true);
+            return active + 1;
+        });
+        return acquired.get() ? new Permit(userId) : null;
     }
 
-    public void release(String userId) {
-        AtomicInteger counter = activeByUser.get(userId);
-        if (counter == null) {
-            return;
-        }
-        if (counter.decrementAndGet() <= 0) {
-            activeByUser.remove(userId, counter);
+    public final class Permit implements AutoCloseable {
+        private final String userId;
+        private final AtomicBoolean released = new AtomicBoolean();
+        private Permit(String userId) { this.userId = userId; }
+        @Override public void close() {
+            if (released.compareAndSet(false, true)) {
+                activeByUser.computeIfPresent(userId, (key, count) -> count <= 1 ? null : count - 1);
+            }
         }
     }
 }

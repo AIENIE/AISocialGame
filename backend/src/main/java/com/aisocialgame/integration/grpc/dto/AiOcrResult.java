@@ -5,6 +5,12 @@ public record AiOcrResult(
         String modelKey,
         String outputType,
         String content,
-        String rawJson
+        String rawJson,
+        long promptTokens,
+        long completionTokens,
+        long totalTokens
 ) {
+    public AiOcrResult(String requestId, String modelKey, String outputType, String content, String rawJson) {
+        this(requestId, modelKey, outputType, content, rawJson, 0, 0, 0);
+    }
 }

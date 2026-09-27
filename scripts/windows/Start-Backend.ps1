@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$EnvironmentFile = (Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\secrets\aisocialgame.env')
+    [string]$EnvironmentFile = (Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }) 'Aienie\secrets\aisocialgame.env'),
+    [switch]$EnableBackendDebug
 )
 
 Set-StrictMode -Version Latest
@@ -113,6 +114,10 @@ function Test-PortListening([int]$Port) {
 }
 
 $privateValues = Read-PrivateEnvironment $EnvironmentFile
+. (Join-Path $PSScriptRoot 'LocalGrpcTrust.ps1')
+$localGrpcTrust = Get-LocalGrpcTrustUri
+. (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
+$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile
 $inheritedValues = @{}
 foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) { $inheritedValues[[string]$entry.Key] = [string]$entry.Value }
 Assert-LocalOnlyEnvironment $inheritedValues
@@ -150,18 +155,18 @@ $env:APP_PROJECT_KEY = 'aisocialgame'
 $env:SERVER_ADDRESS = '127.0.0.1'
 $env:SERVER_PORT = '11031'
 $env:VITE_LOCAL_BACKEND_PORT = '11031'
-$env:SPRING_DATASOURCE_URL = 'jdbc:mysql://localbase.testhut.top:23306/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+$env:SPRING_DATASOURCE_URL = $sharedTarget.jdbcUrl
 $env:SPRING_DATA_REDIS_HOST = 'localbase.testhut.top'
 $env:SPRING_DATA_REDIS_PORT = '26379'
 $env:SPRING_DATA_REDIS_SSL_ENABLED = 'false'
 $env:QDRANT_HOST = 'http://localbase.testhut.top'
 $env:QDRANT_PORT = '26333'
-$env:USER_GRPC_ADDR = 'static://localuserservice.testhut.top:12001'
-$env:BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:12021'
-$env:AI_GRPC_ADDR = 'static://localaiservice.testhut.top:12011'
-$env:GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION = ''
-$env:GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION = ''
-$env:GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = ''
+$env:USER_GRPC_ADDR = 'static://localuserservice.testhut.top:22001'
+$env:BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:22021'
+$env:AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'
+$env:GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
+$env:GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
+$env:GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
 $env:USER_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
@@ -174,7 +179,9 @@ $backendPom = Join-Path $repoRoot 'backend\pom.xml'
 $mvn = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
 
 Write-Host 'Starting AISocialGame backend (debug) on http://127.0.0.1:11031 - press Ctrl+C to stop.'
-& $mvn -f $backendPom -q spring-boot:run
+$mavenArgs = @('-f', $backendPom, '-q', 'spring-boot:run')
+if ($EnableBackendDebug) { $mavenArgs += '-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:51031' }
+& $mvn @mavenArgs
 $exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }
 if ($exitCode -ne 0) { Write-Host "Backend exited with code $exitCode." }
 exit $exitCode

@@ -1,0 +1,89 @@
+{
+  "schema_version": "aisocialgame-migrations-v1",
+  "entries": [
+    {
+      "ordinal": 1,
+      "kind": "baseline",
+      "file": "schema.sql",
+      "source": "schema-baseline-v1.sql"
+    },
+    {
+      "ordinal": 2,
+      "kind": "upgrade",
+      "file": "20260519_performance_stability.sql"
+    },
+    {
+      "ordinal": 3,
+      "kind": "upgrade",
+      "file": "20260810_admin_totp_auth.sql"
+    },
+    {
+      "ordinal": 4,
+      "kind": "upgrade",
+      "file": "20260912_game_realism_v2.sql"
+    },
+    {
+      "ordinal": 5,
+      "kind": "upgrade",
+      "file": "20260919_ai_turn_diagnostics.sql"
+    },
+    {
+      "ordinal": 6,
+      "kind": "upgrade",
+      "file": "20260922_milestone_closure.sql"
+    },
+    {
+      "ordinal": 7,
+      "kind": "upgrade",
+      "file": "20260926_audit_access.sql"
+    },
+    {
+      "ordinal": 8,
+      "kind": "upgrade",
+      "file": "20260926_audit_settlement.sql"
+    },
+    {
+      "ordinal": 9,
+      "kind": "upgrade",
+      "file": "20260927_audit_trace_instance.sql"
+    },
+    {
+      "ordinal": 10,
+      "kind": "upgrade",
+      "file": "20260927_audit_public_event_cursor.sql"
+    }
+  ],
+  "execution_plans": [
+    {
+      "id": "existing-legacy-schema",
+      "ordinals": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "id": "fresh-empty-schema",
+      "ordinals": [
+        1,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  ],
+  "baseline_includes": [
+    2,
+    3
+  ]
+}

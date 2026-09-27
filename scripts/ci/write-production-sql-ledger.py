@@ -7,6 +7,8 @@ import pathlib
 import shutil
 import sys
 
+from production_migration_manifest import load_manifest
+
 
 def canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -25,14 +27,12 @@ def main(argv: list[str]) -> int:
     if output.exists() or output.is_symlink():
         raise SystemExit("migration output already exists")
     sql_output.mkdir(parents=True)
-    ordered = (
-        (1, "baseline", "schema.sql"),
-        (2, "upgrade", "20260519_performance_stability.sql"),
-        (3, "upgrade", "20260810_admin_totp_auth.sql"),
-    )
+    manifest = load_manifest(repository / "backend/sql/migrations.json")
+    (output / "migrations.json").write_bytes(canonical(manifest))
     entries = []
-    for ordinal, kind, name in ordered:
-        source = repository / "backend/sql" / name
+    for entry in manifest["entries"]:
+        ordinal, kind, name = entry["ordinal"], entry["kind"], entry["file"]
+        source = repository / "backend/sql" / entry.get("source", name)
         if not source.is_file() or source.is_symlink() or source.resolve(strict=True).parent != repository / "backend/sql":
             raise SystemExit(f"unsafe SQL migration: {name}")
         raw = source.read_bytes()
@@ -54,10 +54,7 @@ def main(argv: list[str]) -> int:
         },
         "canonical_component_id": "ai-social-game",
         "entries": entries,
-        "execution_plans": [
-            {"id": "existing-legacy-schema", "ordinals": [2, 3]},
-            {"id": "fresh-empty-schema", "ordinals": [1]},
-        ],
+        "execution_plans": manifest["execution_plans"],
         "plan_selection": "sealed-candidate-file-no-auto-detection",
         "schema_version": "aienie-production-sql-ledger-v2",
     }
@@ -69,7 +66,7 @@ def main(argv: list[str]) -> int:
         "ledger_sha256": digest(ledger_raw),
         "schema_version": "aienie-production-sql-plan-v1",
         "selected_execution_plan": "fresh-empty-schema",
-        "selected_ordinals": [1],
+        "selected_ordinals": manifest["execution_plans"][1]["ordinals"],
     }
     (output / "production-plan.json").write_bytes(canonical(plan))
     return 0

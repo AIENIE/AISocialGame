@@ -7,12 +7,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 @EnableScheduling
 public class AsyncExecutionConfig {
+
+    @Bean(name = "taskScheduler")
+    public ThreadPoolTaskScheduler taskScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(3);
+        scheduler.setThreadNamePrefix("game-scheduler-");
+        scheduler.initialize();
+        return scheduler;
+    }
 
     @Bean(name = "aiStreamTaskExecutor")
     public TaskExecutor aiStreamTaskExecutor(@Value("${app.ai.stream.core-pool-size:4}") int corePoolSize,

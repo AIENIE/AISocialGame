@@ -8,16 +8,7 @@ import stat
 import sys
 
 
-PATHS = (
-    "backend/app.jar",
-    "backend/production-migration-entrypoint.sh",
-    "release/migrations/production-plan.json",
-    "release/migrations/sql-ledger.json",
-    "release/migrations/sql/20260519_performance_stability.sql",
-    "release/migrations/sql/20260810_admin_totp_auth.sql",
-    "release/migrations/sql/schema.sql",
-    "release/production-migration-executor",
-)
+from production_migration_manifest import MANIFEST, artifact_paths, load_manifest
 
 
 def main(argv: list[str]) -> int:
@@ -28,7 +19,7 @@ def main(argv: list[str]) -> int:
     if output.exists() or output.is_symlink():
         raise SystemExit("migration artifact manifest output already exists")
     artifacts = []
-    for relative in PATHS:
+    for relative in sorted(artifact_paths(load_manifest(root / MANIFEST))):
         path = root / relative
         metadata = path.lstat()
         if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode) or path.resolve(strict=True) != path:

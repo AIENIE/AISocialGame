@@ -9,7 +9,8 @@ public class CommunityPostRequest {
     @NotBlank
     @Size(max = 1024)
     private String content;
-    private List<String> tags;
+    @Size(max = 10)
+    private List<@NotBlank @Size(max = 32) String> tags;
 
     public String getContent() {
         return content;

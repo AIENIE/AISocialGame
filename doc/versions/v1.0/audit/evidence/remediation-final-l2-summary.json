@@ -1,0 +1,17 @@
+{
+  "backend": {
+    "tests": 568,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 30,
+    "passed": 538,
+    "suites": 94
+  },
+  "frontend": {
+    "files": 11,
+    "passed": 69
+  },
+  "lintWarnings": 108,
+  "typecheckNegativeFixturesPassed": true,
+  "log": "remediation-final-l2.log"
+}

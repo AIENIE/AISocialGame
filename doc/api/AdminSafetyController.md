@@ -72,3 +72,16 @@
 ## DELETE /controls/{id}
 
 停用临时控制。
+
+
+## 当前控制契约（2026-09-22）
+
+动作白名单：BLOCK、REDACT、RATE_LIMIT、ESCALATE、MUTE、PAUSE_ROOM、FORCE_OBSERVE、DISABLE_AI。PAUSE_ROOM/FORCE_OBSERVE只接受ROOM或GLOBAL；各范围均需非空targetKey（GLOBAL可用约定标识）；提供的expiresAt必须在未来。非法范围/动作/期限返回400，不静默创建无效控制。
+
+- MUTE 限制公开表达；不拦截私密夜间动作。
+- PAUSE_ROOM 冻结自动推进和倒计时；恢复保留暂停前剩余时间。
+- FORCE_OBSERVE 停AI调用/自动托管、保留真人动作；需要AI主持时等待恢复。
+- DISABLE_AI及严格阻止控制在RPC前生效，在途结果提交前复查。最严格的适用限制优先。
+- 创建/撤销保存操作人及CONTROL_CHANGE审计；ack/close也保存操作人。到期后不再命中。
+
+调用频率与用量统计来自本地 ai_call_usage，不读取 m4_test_* 文本作为生产触发器。被拒请求的审计独立于业务事务；没有新增公开诊断端点。详细阈值、数据库升级和限制见 [收尾报告](../test/m1-m5-closure-20260922.md)。

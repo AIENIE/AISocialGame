@@ -43,6 +43,8 @@ public class User {
     private String nickname;
 
     private String avatar;
+    // Rewards use atomic SQL increments; a detached profile must never overwrite the balance.
+    @Column(updatable = false)
     private int coins;
     private int level;
 

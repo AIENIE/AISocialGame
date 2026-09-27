@@ -8,6 +8,7 @@ import {
   GameState,
   PlayerAchievement,
   ReplayArchive,
+  ReplayDetail,
   ReplayEvent,
   Room,
 } from "@/types";
@@ -24,22 +25,45 @@ type AchievementState = Record<
     wins: number;
     games: number;
     streak: number;
+    processedArchiveIds?: string[];
   }
 >;
 type ReplayState = Record<string, ReplayArchive[]>;
 
-const loadJson = <T,>(key: string, fallback: T): T => {
+const unavailableStores = new Set<string>();
+const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
+const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === "string");
+const count = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+const optionalText = (value: unknown) => value === undefined || typeof value === "string";
+const friend = (v: unknown): v is FriendItem => record(v) && typeof v.id === "string" && typeof v.displayName === "string"
+  && typeof v.online === "boolean" && optionalText(v.avatar) && optionalText(v.currentGameId) && optionalText(v.currentRoomId);
+const friendRequest = (v: unknown): v is FriendRequestItem => record(v) && [v.id, v.fromId, v.fromName, v.createdAt].every(x => typeof x === "string") && optionalText(v.fromAvatar);
+const achievement = (v: unknown): v is PlayerAchievement => record(v) && typeof v.code === "string" && typeof v.unlocked === "boolean" && count(v.progress) && optionalText(v.unlockedAt);
+const friendsValid = (v: unknown): v is FriendStore => record(v) && Object.values(v).every(b => record(b) && Array.isArray(b.friends) && b.friends.every(friend) && Array.isArray(b.requests) && b.requests.every(friendRequest));
+const achievementsValid = (v: unknown): v is AchievementState => record(v) && Object.values(v).every(b => record(b) && Array.isArray(b.list) && b.list.every(achievement)
+  && count(b.games) && count(b.wins) && count(b.streak) && (b.processedArchiveIds === undefined || strings(b.processedArchiveIds)));
+const replayValid = (v: unknown): v is ReplayArchive => record(v) && [v.id, v.gameId, v.roomId, v.roomName, v.result, v.createdAt].every(x => typeof x === "string")
+  && ["GOD", "PLAYER"].includes(String(v.perspective)) && Array.isArray(v.events) && v.events.every(e => record(e) && [e.id, e.timestamp, e.type, e.message].every(x => typeof x === "string"));
+const replaysValid = (v: unknown): v is ReplayState => record(v) && Object.values(v).every(b => Array.isArray(b) && b.every(replayValid));
+
+const loadJson = <T,>(key: string, fallback: T, valid: (value: unknown) => value is T): T => {
   try {
     const text = localStorage.getItem(key);
-    if (!text) return fallback;
-    return JSON.parse(text) as T;
+    const value: unknown = text ? JSON.parse(text) : fallback;
+    if (!valid(value)) throw new Error("Invalid local data shape");
+    unavailableStores.delete(key);
+    return value;
   } catch {
+    unavailableStores.add(key);
     return fallback;
   }
 };
 
-const saveJson = (key: string, value: unknown) => {
-  localStorage.setItem(key, JSON.stringify(value));
+const saveJson = (key: string, value: unknown): boolean => {
+  // Do not replace unreadable historical records with an empty fallback.
+  if (unavailableStores.has(key)) return false;
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch { return false; }
 };
 
 const pickAvatar = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
@@ -53,7 +77,7 @@ const candidatePool = (): FriendItem[] => [
 ];
 
 const ensureFriendBucket = (store: FriendStore, userKey: string) => {
-  if (!store[userKey]) {
+  if (!Object.prototype.hasOwnProperty.call(store, userKey)) {
     store[userKey] = { friends: [], requests: [] };
   }
   return store[userKey];
@@ -84,7 +108,7 @@ const translateDefinition = (def: AchievementDefinition): AchievementDefinition 
 };
 
 const ensureAchievementBucket = (store: AchievementState, userKey: string) => {
-  if (!store[userKey]) {
+  if (!Object.prototype.hasOwnProperty.call(store, userKey)) {
     store[userKey] = {
       list: definitions.map((d) => ({ code: d.code, unlocked: false, progress: 0 })),
       wins: 0,
@@ -112,9 +136,8 @@ const updateAchievement = (bucket: AchievementState[string], code: string, value
 
 export const friendApi = {
   getPanelData(userKey: string): { friends: FriendItem[]; requests: FriendRequestItem[] } {
-    const store = loadJson<FriendStore>(FRIEND_STORE_KEY, {});
+    const store = loadJson(FRIEND_STORE_KEY, {}, friendsValid);
     const bucket = ensureFriendBucket(store, userKey);
-    saveJson(FRIEND_STORE_KEY, store);
     return { friends: bucket.friends, requests: bucket.requests };
   },
 
@@ -132,14 +155,14 @@ export const friendApi = {
   },
 
   sendFriendRequest(userKey: string, target: FriendItem) {
-    const store = loadJson<FriendStore>(FRIEND_STORE_KEY, {});
+    const store = loadJson(FRIEND_STORE_KEY, {}, friendsValid);
     const self = ensureFriendBucket(store, userKey);
     const peer = ensureFriendBucket(store, target.id);
     if (self.friends.some((f) => f.id === target.id)) {
-      return;
+      return true;
     }
     if (peer.requests.some((r) => r.fromId === userKey)) {
-      return;
+      return true;
     }
     peer.requests.unshift({
       id: `req-${Date.now()}`,
@@ -148,14 +171,14 @@ export const friendApi = {
       fromAvatar: pickAvatar(userKey),
       createdAt: new Date().toISOString(),
     });
-    saveJson(FRIEND_STORE_KEY, store);
+    return saveJson(FRIEND_STORE_KEY, store);
   },
 
   respondRequest(userKey: string, requestId: string, accept: boolean) {
-    const store = loadJson<FriendStore>(FRIEND_STORE_KEY, {});
+    const store = loadJson(FRIEND_STORE_KEY, {}, friendsValid);
     const self = ensureFriendBucket(store, userKey);
     const request = self.requests.find((r) => r.id === requestId);
-    if (!request) return;
+    if (!request) return true;
     self.requests = self.requests.filter((r) => r.id !== requestId);
     if (accept) {
       const peerBucket = ensureFriendBucket(store, request.fromId);
@@ -169,16 +192,16 @@ export const friendApi = {
       if (!self.friends.some((f) => f.id === request.fromId)) self.friends.unshift(peerProfile);
       if (!peerBucket.friends.some((f) => f.id === userKey)) peerBucket.friends.unshift(selfProfile);
     }
-    saveJson(FRIEND_STORE_KEY, store);
+    return saveJson(FRIEND_STORE_KEY, store);
   },
 
   removeFriend(userKey: string, friendId: string) {
-    const store = loadJson<FriendStore>(FRIEND_STORE_KEY, {});
+    const store = loadJson(FRIEND_STORE_KEY, {}, friendsValid);
     const self = ensureFriendBucket(store, userKey);
     self.friends = self.friends.filter((f) => f.id !== friendId);
     const peer = ensureFriendBucket(store, friendId);
     peer.friends = peer.friends.filter((f) => f.id !== userKey);
-    saveJson(FRIEND_STORE_KEY, store);
+    return saveJson(FRIEND_STORE_KEY, store);
   },
 };
 
@@ -188,16 +211,20 @@ export const achievementApi = {
   },
 
   listMyAchievements(userKey: string): PlayerAchievement[] {
-    const store = loadJson<AchievementState>(ACHIEVEMENT_STORE_KEY, {});
+    const store = loadJson(ACHIEVEMENT_STORE_KEY, {}, achievementsValid);
     const bucket = ensureAchievementBucket(store, userKey);
-    saveJson(ACHIEVEMENT_STORE_KEY, store);
     return bucket.list;
   },
 
-  applySettlement(userKey: string, didWin: boolean): PlayerAchievement[] {
-    const store = loadJson<AchievementState>(ACHIEVEMENT_STORE_KEY, {});
+  async applySettlement(userKey: string, archiveId: string, didWin: boolean): Promise<{ saved: boolean; unlocked: PlayerAchievement[] }> {
+    if (!archiveId || !navigator.locks) return { saved: false, unlocked: [] };
+    return navigator.locks.request(`aisocial-achievements:${userKey}`, () => {
+    const store = loadJson(ACHIEVEMENT_STORE_KEY, {}, achievementsValid);
     const bucket = ensureAchievementBucket(store, userKey);
     const unlocked: PlayerAchievement[] = [];
+    bucket.processedArchiveIds ??= [];
+    if (bucket.processedArchiveIds.includes(archiveId)) return { saved: true, unlocked };
+    bucket.processedArchiveIds.push(archiveId);
     bucket.games += 1;
     if (didWin) {
       bucket.wins += 1;
@@ -216,19 +243,20 @@ export const achievementApi = {
         .forEach((item) => unlocked.push(item as PlayerAchievement));
     }
 
-    saveJson(ACHIEVEMENT_STORE_KEY, store);
-    return unlocked;
+    const saved = saveJson(ACHIEVEMENT_STORE_KEY, store);
+    return { saved, unlocked: saved ? unlocked : [] };
+    });
   },
 };
 
 const ensureReplayBucket = (store: ReplayState, userKey: string) => {
-  if (!store[userKey]) store[userKey] = [];
+  if (!Object.prototype.hasOwnProperty.call(store, userKey)) store[userKey] = [];
   return store[userKey];
 };
 
 export const replayApi = {
   list(userKey: string): ReplayArchive[] {
-    const store = loadJson<ReplayState>(REPLAY_STORE_KEY, {});
+    const store = loadJson(REPLAY_STORE_KEY, {}, replaysValid);
     const list = ensureReplayBucket(store, userKey);
     return [...list].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
   },
@@ -238,12 +266,13 @@ export const replayApi = {
   },
 
   save(userKey: string, archive: ReplayArchive) {
-    const store = loadJson<ReplayState>(REPLAY_STORE_KEY, {});
+    const store = loadJson(REPLAY_STORE_KEY, {}, replaysValid);
     const list = ensureReplayBucket(store, userKey);
     if (!list.some((x) => x.id === archive.id)) {
       list.unshift(archive);
-      saveJson(REPLAY_STORE_KEY, store);
+      return saveJson(REPLAY_STORE_KEY, store);
     }
+    return true;
   },
 
   fromState(gameId: string, room: Room | undefined, state: GameState): ReplayArchive {
@@ -254,7 +283,7 @@ export const replayApi = {
       timestamp: log.time,
     }));
     return {
-      id: `archive-${state.roomId}-${state.round || 0}-${(state.logs || []).length}`,
+      id: typeof state.extra?.archiveId === "string" ? state.extra.archiveId : `archive-${state.roomId}-${state.round || 0}-${(state.logs || []).length}`,
       gameId,
       roomId: state.roomId,
       roomName: room?.name || i18n.t("v2.replay.roomName", { id: state.roomId }),
@@ -262,6 +291,26 @@ export const replayApi = {
       perspective: "PLAYER",
       createdAt: new Date().toISOString(),
       events,
+    };
+  },
+
+  fromServerDetail(detail: ReplayDetail): ReplayArchive {
+    return {
+      id: detail.archive.id,
+      gameId: detail.archive.gameId,
+      roomId: detail.archive.roomId,
+      roomName: detail.archive.roomName,
+      result: detail.archive.winner || i18n.t("common.undetermined"),
+      perspective: "PLAYER",
+      createdAt: detail.archive.finishedAt || detail.archive.createdAt || new Date().toISOString(),
+      events: detail.events.map(event => ({
+        id: String(event.id),
+        type: event.eventType,
+        message: String(event.data?.message || event.data?.content || event.eventType),
+        timestamp: event.occurredAt || new Date().toISOString(),
+        phase: event.phase,
+        seq: event.seq,
+      })),
     };
   },
 };

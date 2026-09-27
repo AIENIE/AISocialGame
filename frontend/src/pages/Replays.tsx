@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { replayApi } from "@/services/v2Social";
@@ -9,19 +9,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Database, PlayCircle } from "lucide-react";
+import { closureText } from "@/i18n/closureTexts";
+import { Input } from "@/components/ui/input";
+import { isAxiosError } from "axios";
 
 const Replays = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const tr = (text: string) => closureText(i18n.language, text);
+  const [scope, setScope] = useState("my");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [playerId, setPlayerId] = useState("");
+  const [page, setPage] = useState(0);
   const { user, displayName } = useAuth();
   const userKey = useMemo(() => user?.id || `guest:${displayName}`, [user?.id, displayName]);
   const localArchives = replayApi.list(userKey);
   const serverArchives = useQuery({
-    queryKey: ["server-replays"],
-    queryFn: () => serverReplayApi.my({ size: 50 }),
+    queryKey: ["server-replays", user?.id, scope, from, to, playerId, page],
+    queryFn: () => {
+      const params = { size: 20, page, from: from || undefined, to: to || undefined };
+      return scope === "my" ? serverReplayApi.my(params) : serverReplayApi.list({ ...params, playerId: playerId || undefined });
+    },
     retry: 1,
   });
-  const archives = serverArchives.data?.items || [];
-  const usingFallback = serverArchives.isError || archives.length === 0;
+  const denied = isAxiosError(serverArchives.error) && [401, 403].includes(serverArchives.error.response?.status || 0);
+  const archives = denied ? [] : serverArchives.data?.items || [];
+  const usingFallback = serverArchives.isError && !denied;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -30,6 +43,15 @@ const Replays = () => {
         <p className="text-sm text-muted-foreground">{t("replays.subtitle")}</p>
       </div>
 
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-sm">{tr("回放范围")}<select aria-label={tr("回放范围")} className="ml-2 rounded border p-2" value={scope} onChange={e => { setScope(e.target.value); setPage(0); }}><option value="my">{tr("我的回放")}</option><option value="public">{tr("公开回放")}</option></select></label>
+        <label className="text-sm">{tr("开始时间")}<Input type="datetime-local" value={from} onChange={e => { setFrom(e.target.value); setPage(0); }} /></label>
+        <label className="text-sm">{tr("结束时间")}<Input type="datetime-local" value={to} onChange={e => { setTo(e.target.value); setPage(0); }} /></label>
+        {scope === "public" && <label className="text-sm">{tr("参与者 ID")}<Input value={playerId} onChange={e => { setPlayerId(e.target.value); setPage(0); }} /></label>}
+        <Button variant="outline" onClick={() => serverArchives.refetch()}>{tr("重试")}</Button>
+      </div>
+      {denied && <p role="alert">{tr("请登录后查看本人回放；无权读取其他玩家视角。")}</p>}
+      {!usingFallback && <div className="flex items-center gap-3"><Button disabled={page === 0} onClick={() => setPage(p => p - 1)}>{tr("上一页")}</Button><span>{page + 1}</span><Button disabled={(page + 1) * 20 >= (serverArchives.data?.total || 0)} onClick={() => setPage(p => p + 1)}>{tr("下一页")}</Button></div>}
       {!usingFallback && archives.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {archives.map((archive) => (
@@ -71,7 +93,7 @@ const Replays = () => {
             </Card>
           ))}
         </div>
-      ) : localArchives.length === 0 ? (
+      ) : !usingFallback || localArchives.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {serverArchives.isLoading ? t("replays.loading") : t("replays.empty")}

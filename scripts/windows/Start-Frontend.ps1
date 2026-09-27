@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param()
 
+. (Join-Path $PSScriptRoot 'ProjectNode.ps1')
+Invoke-WithProjectNode {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -35,3 +37,5 @@ Write-Host 'Starting AISocialGame frontend (debug) on http://127.0.0.1:11030 - p
 $exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }
 if ($exitCode -ne 0) { Write-Host "Frontend exited with code $exitCode." }
 exit $exitCode
+
+}

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `game_states` (
   `players` LONGTEXT NULL,
   `logs` LONGTEXT NULL,
   `data` LONGTEXT NULL,
+  `version` BIGINT NOT NULL DEFAULT 0,
   `phase_ends_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   `created_at` DATETIME NULL,

@@ -44,6 +44,10 @@ public class AiPersonaMemory {
     private String speechPatterns = "";
 
     private int gamesPlayed;
+    @Column(columnDefinition = "LONGTEXT")
+    private String approvedSummary = "";
+    @Column(length = 24)
+    private String reviewStatus = "PENDING";
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -75,6 +79,8 @@ public class AiPersonaMemory {
     public String getMistakeNotes() { return mistakeNotes; }
     public String getSpeechPatterns() { return speechPatterns; }
     public int getGamesPlayed() { return gamesPlayed; }
+    public String getApprovedSummary() { return approvedSummary; }
+    public String getReviewStatus() { return reviewStatus; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -87,6 +93,8 @@ public class AiPersonaMemory {
     public void setMistakeNotes(String mistakeNotes) { this.mistakeNotes = mistakeNotes; }
     public void setSpeechPatterns(String speechPatterns) { this.speechPatterns = speechPatterns; }
     public void setGamesPlayed(int gamesPlayed) { this.gamesPlayed = gamesPlayed; }
+    public void setApprovedSummary(String approvedSummary) { this.approvedSummary = approvedSummary; }
+    public void setReviewStatus(String reviewStatus) { this.reviewStatus = reviewStatus; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

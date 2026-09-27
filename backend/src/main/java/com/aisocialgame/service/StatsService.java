@@ -17,24 +17,32 @@ import java.util.Set;
 @Transactional
 public class StatsService {
     private final PlayerStatsRepository playerStatsRepository;
-    private final UserRepository userRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
-    public StatsService(PlayerStatsRepository playerStatsRepository, UserRepository userRepository) {
+    public StatsService(PlayerStatsRepository playerStatsRepository, org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.playerStatsRepository = playerStatsRepository;
-        this.userRepository = userRepository;
+        this.jdbc = jdbc;
     }
 
-    public void recordResult(String gameId, List<GamePlayerState> players, Set<String> winnerIds) {
-        Set<String> humanIds = new HashSet<>();
-        for (GamePlayerState player : players) {
-            if (player.isAi() || player.getPlayerId() == null) {
-                continue;
-            }
-            humanIds.add(player.getPlayerId());
-            boolean win = winnerIds.contains(player.getPlayerId());
-            upsertStats(gameId, player, win);
-            upsertStats("total", player, win);
-            rewardCoins(player.getPlayerId(), win);
+    public void recordResult(String archiveId, String gameId, List<GamePlayerState> players, Set<String> winnerIds) {
+        if (archiveId == null || archiveId.isBlank() || "null".equals(archiveId)) throw new IllegalArgumentException("Settlement requires an archive ID");
+        // Historical archives have already been settled; absence of new receipts is not permission to reward again.
+        if (jdbc.queryForObject("SELECT COUNT(*) FROM game_archives WHERE id=?", Long.class, archiveId) > 0) return;
+        var humans = new java.util.TreeMap<String, GamePlayerState>();
+        for (var player : players) if (!player.isAi() && player.getPlayerId() != null) humans.putIfAbsent(player.getPlayerId(), player);
+        for (var entry : humans.entrySet()) {
+            String playerId = entry.getKey();
+            jdbc.update("INSERT INTO player_settlement_locks(player_id) VALUES(?) ON DUPLICATE KEY UPDATE player_id=VALUES(player_id)", playerId);
+            jdbc.queryForObject("SELECT player_id FROM player_settlement_locks WHERE player_id=? FOR UPDATE", String.class, playerId);
+            // Locking/current read avoids an old REPEATABLE READ snapshot during retries.
+            if (!jdbc.queryForList("SELECT player_id FROM player_settlements WHERE archive_id=? AND player_id=? FOR UPDATE", String.class, archiveId, playerId).isEmpty()) continue;
+            boolean won = winnerIds.contains(playerId);
+            int score = won ? 15 : 5;
+            int coins = won ? 30 : 8;
+            jdbc.update("INSERT INTO player_settlements(archive_id,player_id,game_id,won,score_delta,coin_delta,created_at) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)", archiveId, playerId, gameId, won, score, coins);
+            increment(gameId, entry.getValue(), won, score);
+            increment("total", entry.getValue(), won, score);
+            jdbc.update("UPDATE users SET coins=coins+? WHERE id=?", coins, playerId);
         }
     }
 
@@ -42,32 +50,12 @@ public class StatsService {
         return playerStatsRepository.findTop20ByGameIdOrderByScoreDesc(gameId);
     }
 
-    private void upsertStats(String gameId, GamePlayerState player, boolean win) {
-        Optional<PlayerStats> existing = playerStatsRepository.findByPlayerIdAndGameId(player.getPlayerId(), gameId);
-        PlayerStats stats = existing.orElseGet(() -> {
-            PlayerStats ps = new PlayerStats();
-            ps.setId(player.getPlayerId() + ":" + gameId);
-            ps.setPlayerId(player.getPlayerId());
-            ps.setGameId(gameId);
-            return ps;
-        });
-        stats.setDisplayName(player.getDisplayName());
-        stats.setAvatar(player.getAvatar());
-        stats.setGamesPlayed(stats.getGamesPlayed() + 1);
-        if (win) {
-            stats.setWins(stats.getWins() + 1);
-            stats.setScore(stats.getScore() + 15);
-        } else {
-            stats.setScore(stats.getScore() + 5);
-        }
-        playerStatsRepository.save(stats);
-    }
-
-    private void rewardCoins(String playerId, boolean win) {
-        userRepository.findById(playerId).ifPresent(user -> {
-            int bonus = win ? 30 : 8;
-            user.setCoins(user.getCoins() + bonus);
-            userRepository.save(user);
-        });
+    private void increment(String gameId, GamePlayerState player, boolean won, int score) {
+        jdbc.update("""
+                INSERT INTO player_stats(id,player_id,game_id,display_name,avatar,games_played,wins,score,created_at,updated_at)
+                VALUES(?,?,?,?,?,1,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+                ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),avatar=VALUES(avatar),
+                games_played=games_played+1,wins=wins+VALUES(wins),score=score+VALUES(score),updated_at=CURRENT_TIMESTAMP
+                """, player.getPlayerId()+":"+gameId, player.getPlayerId(), gameId, player.getDisplayName(), player.getAvatar(), won?1:0, score);
     }
 }

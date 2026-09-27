@@ -1,0 +1,13 @@
+$ tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json
+$ vitest run
+
+ RUN  v4.1.11 D:/project/aienie/aienie-projects/AISocialGame/frontend
+
+
+ Test Files  11 passed (11)
+      Tests  66 passed (66)
+   Start at  15:32:34
+   Duration  8.70s (transform 209ms, setup 0ms, import 989ms, tests 529ms, environment 6.13s)
+
+$ node scripts/lint.mjs
+Lint passed: no errors or new warnings (108 existing).

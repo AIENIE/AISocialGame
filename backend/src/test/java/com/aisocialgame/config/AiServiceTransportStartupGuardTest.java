@@ -5,20 +5,32 @@ import org.springframework.mock.env.MockEnvironment;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AiServiceTransportStartupGuardTest {
+    private static final String LOCAL_TRUST = localTrust();
+
+    private static String localTrust() {
+        Path root = Path.of("").toAbsolutePath();
+        Path file = root.resolve("scripts/windows/local-trust/localcert-root-ca.crt");
+        if (!Files.isRegularFile(file)) {
+            file = root.resolve("../scripts/windows/local-trust/localcert-root-ca.crt");
+        }
+        return file.normalize().toUri().toString();
+    }
     @Test
     void acceptsCanonicalLocalAndTestTargetsWithTls() {
         MockEnvironment local = environment(
                 AiServiceTransportPolicy.LOCAL_TARGET,
                 "TLS",
-                "");
+                LOCAL_TRUST);
         assertDoesNotThrow(() -> AiServiceTransportStartupGuard.validateBeforeServerCreation(
                 local, raw("local", AiServiceTransportPolicy.LOCAL_TARGET,
-                        "")));
+                        LOCAL_TRUST)));
 
         MockEnvironment test = environment(
                 AiServiceTransportPolicy.TEST_TARGET, "TLS", AiServiceTransportPolicy.STAGING_TRUST);
@@ -30,49 +42,49 @@ class AiServiceTransportStartupGuardTest {
     @Test
     void rejectsOldLocalPortAndFinalOrRawOverrides() {
         Map<String, String> raw = raw("local", AiServiceTransportPolicy.LOCAL_TARGET,
-                "");
+                LOCAL_TRUST);
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(
                         environment("static://localaiservice.testhut.top:443", "TLS",
-                                ""), raw));
+                                LOCAL_TRUST), raw));
 
         Map<String, String> oldPort = new HashMap<>(raw);
         oldPort.put("AI_GRPC_ADDR", "static://localaiservice.testhut.top:443");
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(
                         environment("static://localaiservice.testhut.top:443", "TLS",
-                                ""), oldPort));
+                                LOCAL_TRUST), oldPort));
 
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(
                         environment(AiServiceTransportPolicy.LOCAL_TARGET, "PLAINTEXT",
-                                ""), raw));
+                                LOCAL_TRUST), raw));
     }
 
     @Test
     void rejectsMergedGlobalAndAiSpecificTlsOverrides() {
         Map<String, String> localRaw = raw("local", AiServiceTransportPolicy.LOCAL_TARGET,
-                "");
+                LOCAL_TRUST);
         MockEnvironment globalAuthority = environment(
                 AiServiceTransportPolicy.LOCAL_TARGET,
                 "TLS",
-                "")
-                .withProperty("grpc.client.GLOBAL.security.authority-override", "attacker.invalid");
+                LOCAL_TRUST)
+                .withProperty("spring.grpc.client.channel.ai.override-authority", "attacker.invalid");
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(globalAuthority, localRaw));
 
         MockEnvironment clientKey = environment(
                 AiServiceTransportPolicy.LOCAL_TARGET,
                 "TLS",
-                "")
-                .withProperty("grpc.client.ai.security.private-key", "file:/private/client.key");
+                LOCAL_TRUST)
+                .withProperty("spring.grpc.client.channel.ai.ssl.bundle", "attacker-bundle");
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(clientKey, localRaw));
 
         Map<String, String> testRaw = raw(
                 "test", AiServiceTransportPolicy.TEST_TARGET, AiServiceTransportPolicy.STAGING_TRUST);
         MockEnvironment globalTrust = environment(AiServiceTransportPolicy.TEST_TARGET, "TLS", null)
-                .withProperty("grpc.client.GLOBAL.security.trust-cert-collection", "file:/private/ca.crt");
+                .withProperty("spring.grpc.client.channel.ai.bypass-certificate-validation", "true");
         assertThrows(IllegalStateException.class,
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(globalTrust, testRaw));
     }
@@ -94,10 +106,11 @@ class AiServiceTransportStartupGuardTest {
 
     private static MockEnvironment environment(String address, String negotiationType, String trust) {
         MockEnvironment environment = new MockEnvironment()
-                .withProperty("grpc.client.ai.address", address)
-                .withProperty("grpc.client.ai.negotiationType", negotiationType);
+                .withProperty("spring.grpc.client.channel.ai.target", address)
+                .withProperty("spring.grpc.client.channel.ai.ssl.enabled",
+                        Boolean.toString("TLS".equals(negotiationType)));
         if (trust != null) {
-            environment.withProperty("grpc.client.ai.security.trust-cert-collection", trust);
+            environment.withProperty("app.grpc.ai-trust-cert-collection", trust);
         }
         return environment;
     }

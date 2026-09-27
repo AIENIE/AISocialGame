@@ -1,0 +1,71 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: windows
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 10.0
+[INFO] os.detected.version.major: 10
+[INFO] os.detected.version.minor: 0
+[INFO] os.detected.classifier: windows-x86_64
+[INFO] 
+[INFO] ------------------< com.aisocialgame:ai-social-game >-------------------
+[INFO] Building AI Social Game Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\java
+[INFO] 
+[INFO] --- protobuf:0.6.1:compile-custom (default) @ ai-social-game ---
+[INFO] Compiling 4 proto file(s) to D:\project\aienie\aienie-projects\AISocialGame\backend\target\generated-sources\protobuf\grpc-java
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 7 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from target\generated-resources\closure to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] Copying 4 resources from src\main\proto to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed source code.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 533 source files with javac [debug release 25] to target\classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: ĳЩ�����ļ�ʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/integration/grpc/client/BillingGrpcClient.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\main\java\com\aisocialgame\service\ai\v2\AiPromptProjection.javaʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/main/java/com/aisocialgame/service/ai/v2/AiPromptProjection.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ ai-social-game ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 8 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ ai-social-game ---
+[INFO] Recompiling the module because of changed dependency.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 107 source files with javac [debug release 25] to target\test-classes
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: D:\project\aienie\aienie-projects\AISocialGame\backend\src\test\java\com\aisocialgame\service\ai\v2\AiPromptProjectionTest.javaʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiPromptProjectionTest.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: ĳЩ�����ļ�ʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/project/aienie/aienie-projects/AISocialGame/backend/src/test/java/com/aisocialgame/service/ai/v2/AiConversationScenarios.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ ai-social-game ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.aisocialgame.AiProxyServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.818 s -- in com.aisocialgame.AiProxyServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  12.194 s
+[INFO] Finished at: 2026-09-27T09:43:22+08:00
+[INFO] ------------------------------------------------------------------------

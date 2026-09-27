@@ -46,6 +46,27 @@ public class AiSafetyService {
 
     private final AiSafetyEventRepository eventRepository;
     private final AiSafetyControlRepository controlRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private SafetyAuditWriter auditWriter;
+
+    public List<String> controls(AiSafetyContext context) {
+        return activeControls().stream().filter(c -> matchesControl(c, context)).map(AiSafetyControl::getAction).distinct().toList();
+    }
+    public boolean blocksAutomation(AiSafetyContext context,String turnKind) {
+        var actions=controls(context);
+        return actions.stream().anyMatch(a -> List.of("PAUSE_ROOM","FORCE_OBSERVE","DISABLE_AI","BLOCK","RATE_LIMIT","ESCALATE").contains(a))
+                || actions.contains("MUTE") && List.of("SPEAK","ASK_PLAYER","ANSWER_PLAYER","TURTLE_SOUP_CONTRIBUTION").contains(turnKind);
+    }
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void requireCallAllowed(AiSafetyContext context) {
+        if (controls(context).stream().anyMatch(a -> List.of("BLOCK","RATE_LIMIT","ESCALATE","PAUSE_ROOM","FORCE_OBSERVE","DISABLE_AI").contains(a))) {
+            recordOperational(context,"ADMIN_CONTROL","BLOCK");
+            throw new AiCallBlockedException(AiCallBlockedException.Reason.ADMIN_CONTROL);
+        }
+    }
+    public void recordOperational(AiSafetyContext context, String category, String action) {
+        createEvent("",context,new RuleDecision(action,SEVERITY_HIGH,category,"项目调用治理触发",SAFE_REPLACEMENT));
+    }
 
     public AiSafetyService(AiSafetyEventRepository eventRepository,
                            AiSafetyControlRepository controlRepository) {
@@ -147,20 +168,37 @@ public class AiSafetyService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "控制范围和目标不能为空");
         }
         AiSafetyControl control = new AiSafetyControl();
+        String normalizedScope=scope.trim().toUpperCase(Locale.ROOT);
+        String normalizedAction=StringUtils.hasText(action)?action.trim().toUpperCase(Locale.ROOT):AiSafetyAction.BLOCK;
+        if (!List.of("USER","ROOM","PERSONA","MODEL","GLOBAL").contains(normalizedScope)
+                || !List.of("BLOCK","REDACT","RATE_LIMIT","ESCALATE","MUTE","PAUSE_ROOM","FORCE_OBSERVE","DISABLE_AI").contains(normalizedAction)
+                || (expiresAt!=null && !expiresAt.isAfter(LocalDateTime.now()))) throw new ApiException(HttpStatus.BAD_REQUEST,"控制参数无效");
+        if (List.of("PAUSE_ROOM","FORCE_OBSERVE").contains(normalizedAction) && !List.of("ROOM","GLOBAL").contains(normalizedScope)) throw new ApiException(HttpStatus.BAD_REQUEST,"该控制仅支持房间或全局范围");
         control.setScope(scope.trim().toUpperCase(Locale.ROOT));
         control.setTargetKey(targetKey.trim());
         control.setAction(StringUtils.hasText(action) ? action.trim().toUpperCase(Locale.ROOT) : AiSafetyAction.BLOCK);
         control.setReason(trim(reason, 255));
         control.setExpiresAt(expiresAt);
         control.setCreatedBy(operator);
-        return controlRepository.save(control);
+        var saved=controlRepository.save(control);
+        auditControl(saved,"CREATED",operator);
+        return saved;
     }
 
     public void disableControl(long id) {
+        disableControl(id,"SYSTEM");
+    }
+    public void disableControl(long id,String operator) {
         AiSafetyControl control = controlRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "安全控制不存在"));
         control.setActive(false);
         control.setUpdatedAt(LocalDateTime.now());
         controlRepository.save(control);
+        auditControl(control,"DISABLED",operator);
+    }
+    private void auditControl(AiSafetyControl control,String operation,String operator) {
+        var event=new AiSafetyEvent();event.setSource("ADMIN_CONTROL");event.setCategory("CONTROL_CHANGE");event.setStatus(STATUS_CLOSED);event.setSeverity(SEVERITY_LOW);event.setAction(AiSafetyAction.ALLOW);
+        event.setReason(operation);event.setMetadata(Map.of("controlId",control.getId(),"operation",operation,"operator",operator));
+        eventRepository.save(event);
     }
 
     @Transactional(readOnly = true)
@@ -182,11 +220,13 @@ public class AiSafetyService {
     }
 
     private AiSafetyResult controlResult(String content, AiSafetyContext context) {
-        for (AiSafetyControl control : activeControls()) {
+        for (AiSafetyControl control : activeControls().stream().sorted(java.util.Comparator.comparingInt(c -> "REDACT".equals(c.getAction())?1:0)).toList()) {
             if (!matchesControl(control, context)) {
                 continue;
             }
             String action = StringUtils.hasText(control.getAction()) ? control.getAction() : AiSafetyAction.BLOCK;
+            if (List.of("FORCE_OBSERVE","DISABLE_AI").contains(action) || ("MUTE".equals(action) && "PRIVATE".equals(context.getMetadata().get("visibility")))) continue;
+            if (List.of("MUTE","PAUSE_ROOM").contains(action)) action=AiSafetyAction.BLOCK;
             RuleDecision decision = new RuleDecision(action, SEVERITY_HIGH, "ADMIN_CONTROL", "命中管理员临时控制", SAFE_REPLACEMENT);
             AiSafetyEvent event = createEvent(content, context, decision);
             return new AiSafetyResult(action, SEVERITY_HIGH, "ADMIN_CONTROL", decision.reason(), decision.safeContent(), event);
@@ -211,15 +251,14 @@ public class AiSafetyService {
             return new RuleDecision(AiSafetyAction.ALLOW, SEVERITY_LOW, "NONE", "", content);
         }
         String lower = content.toLowerCase(Locale.ROOT);
-        if (lower.contains("m4_test_rate_limit")) {
-            return new RuleDecision(AiSafetyAction.RATE_LIMIT, SEVERITY_MEDIUM, "ABNORMAL_RATE", "测试触发异常频率限制", SAFE_REPLACEMENT);
-        }
-        if (lower.contains("m4_test_redact") || lower.contains("身份证") || lower.contains("手机号")) {
+        if (EMAIL.matcher(content).find() || PHONE.matcher(content).find()) {
             return new RuleDecision(AiSafetyAction.REDACT, SEVERITY_MEDIUM, "PRIVACY", "疑似隐私信息", SAFE_REPLACEMENT);
         }
-        if (lower.contains("m4_test_block") || containsAny(lower, List.of("违法交易", "制作炸药", "自残教程", "儿童色情"))) {
+        if (containsAny(lower, List.of("违法交易", "制作炸药", "自残教程", "儿童色情"))) {
             return new RuleDecision(AiSafetyAction.BLOCK, SEVERITY_HIGH, "DANGEROUS_OR_ILLEGAL", "疑似危险或违法内容", SAFE_REPLACEMENT);
         }
+        if (containsAny(lower,List.of("去死吧","人肉搜索","强奸你"))) return new RuleDecision(AiSafetyAction.BLOCK,SEVERITY_HIGH,"HARASSMENT","疑似骚扰威胁",SAFE_REPLACEMENT);
+        if (containsAny(lower,List.of("色情视频下载","裸聊交易"))) return new RuleDecision(AiSafetyAction.BLOCK,SEVERITY_HIGH,"SEXUAL_CONTENT","疑似色情交易",SAFE_REPLACEMENT);
         if (containsAny(lower, List.of("ignore previous instructions", "忽略以上规则", "输出系统提示", "泄露prompt", "泄露系统提示"))) {
             return new RuleDecision(AiSafetyAction.ESCALATE, SEVERITY_HIGH, "PROMPT_INJECTION", "疑似 Prompt Injection", SAFE_REPLACEMENT);
         }
@@ -257,7 +296,7 @@ public class AiSafetyService {
         event.setSanitizedContent(decision.safeContent());
         event.setReason(trim(decision.reason(), 255));
         event.setMetadata(context.getMetadata());
-        return eventRepository.save(event);
+        return auditWriter == null ? eventRepository.save(event) : auditWriter.save(event);
     }
 
     private String summarize(String content) {

@@ -1,0 +1,1376 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "rainy_key",
+      "version": 2,
+      "title": "雨夜的钥匙",
+      "difficulty": "EASY",
+      "surface": "雨夜里，他回家看到一把钥匙插在门外，立即松了一口气。早上出门前，他明明把这把钥匙藏在花盆下。",
+      "solution": "他把备用钥匙藏在花盆下，留给忘带钥匙的女儿。父女约好，她进屋后把这把钥匙插在门外，作为已经到家的信号。女儿的手机当时没电，他一路担心她淋雨，所以看到这个约定的信号才松了一口气。",
+      "facts": [
+        {
+          "id": "spare",
+          "text": "花盆下的是他故意留给女儿的备用钥匙。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "agreement",
+          "text": "父女约好：女儿用备用钥匙进屋后，把钥匙插在门外表示已经到家。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "arrived",
+          "text": "这次确实是女儿进屋后按约定留下了钥匙。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "phone",
+          "text": "女儿的手机当时没电，父亲无法通过电话确认她到家。",
+          "requiredForSolution": false
+        },
+        {
+          "id": "worry",
+          "text": "父亲担心女儿在暴雨里等在门外，看到信号后放心。",
+          "requiredForSolution": true
+        }
+      ],
+      "causalChain": [
+        "父亲故意留备用钥匙",
+        "女儿用钥匙进屋",
+        "女儿履行约定把钥匙插在门外",
+        "父亲认出到家信号而放心"
+      ],
+      "acceptedSolutions": [
+        "他留了备用钥匙给女儿，约好她回家后插在门外报平安，所以看见钥匙就知道女儿已到家。",
+        "花盆下的钥匙是给家人的，家人用它进屋后依约放进外侧锁孔，他认出报平安的暗号。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "thief",
+          "text": "没有小偷或陌生人参与。"
+        },
+        {
+          "id": "forgot",
+          "text": "不是父亲忘记拔钥匙。"
+        },
+        {
+          "id": "damage",
+          "text": "门锁没有损坏。"
+        }
+      ],
+      "hints": [
+        "先分清钥匙是谁留下的，以及早上和晚上位置变化意味着什么。",
+        "门外的钥匙是父女事先约定的信号；不只是开门工具。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "钥匙是他故意留下的吗？",
+          "verdict": "YES",
+          "factIds": [
+            "spare"
+          ]
+        },
+        {
+          "question": "那把钥匙是备用的，对吗？",
+          "verdict": "YES",
+          "factIds": [
+            "spare"
+          ]
+        },
+        {
+          "question": "他把钥匙留给家里人使用吗？",
+          "verdict": "YES",
+          "factIds": [
+            "spare"
+          ]
+        },
+        {
+          "question": "是女儿把钥匙插到门外的吗？",
+          "verdict": "YES",
+          "factIds": [
+            "arrived"
+          ]
+        },
+        {
+          "question": "女儿当时已经进屋了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "arrived"
+          ]
+        },
+        {
+          "question": "门外有钥匙是事先说好的信号吗？",
+          "verdict": "YES",
+          "factIds": [
+            "agreement"
+          ]
+        },
+        {
+          "question": "他放心是因为确认女儿已经到家吗？",
+          "verdict": "YES",
+          "factIds": [
+            "worry",
+            "arrived"
+          ]
+        },
+        {
+          "question": "他之前打不通女儿的电话吗？",
+          "verdict": "YES",
+          "factIds": [
+            "phone"
+          ]
+        },
+        {
+          "question": "女儿的手机没电了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "phone"
+          ]
+        },
+        {
+          "question": "钥匙从花盆下移到了锁孔里吗？",
+          "verdict": "YES",
+          "factIds": [
+            "spare",
+            "arrived"
+          ]
+        },
+        {
+          "question": "这是小偷留下的吗？",
+          "verdict": "NO",
+          "factIds": [
+            "thief"
+          ]
+        },
+        {
+          "question": "父亲只是忘了拔自己的钥匙吗？",
+          "verdict": "NO",
+          "factIds": [
+            "forgot"
+          ]
+        },
+        {
+          "question": "门锁坏了才插着钥匙吗？",
+          "verdict": "NO",
+          "factIds": [
+            "damage"
+          ]
+        },
+        {
+          "question": "女儿始终没有进屋，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "arrived"
+          ]
+        },
+        {
+          "question": "父亲并没有提前留下备用钥匙，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "spare"
+          ]
+        },
+        {
+          "question": "是陌生人来过，还是家人回来过？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "钥匙是不是备用的，而且门是不是红色的？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "门是什么颜色的？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "钥匙上有几个齿？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "小偷为什么不把钥匙带走？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "thief"
+          ]
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "他特意把备用钥匙留给女儿，约好她进屋后插在门外报平安；现在女儿照做了，所以他不再担心。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "花盆下的钥匙是给家人的，家人用它进屋后依约放进外侧锁孔，他认出报平安的暗号。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "父亲忘记拔备用钥匙，女儿并未回来，只是他自己觉得安全。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "小偷拿备用钥匙进屋，又故意留下钥匙让家人以为安全。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "女儿回家了，他很高兴。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    },
+    {
+      "id": "quiet_applause",
+      "version": 2,
+      "title": "没有声音的掌声",
+      "difficulty": "EASY",
+      "surface": "她演奏完最后一个音，台下没有响起一声掌声。她看了看观众，却笑着连鞠了三次躬，还说这是自己最热烈的一次谢幕。",
+      "solution": "这是为聋人观众举办的演出。观众正举起双手，在空中转动手腕，用手语的方式鼓掌。她看见了满场无声的赞赏，感到被理解，因此开心地反复鞠躬。",
+      "facts": [
+        {
+          "id": "audience",
+          "text": "这场演出的观众是聋人。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "applause",
+          "text": "观众举起双手转动手腕，以手语方式鼓掌。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "sight",
+          "text": "她看到了观众的手语掌声。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "joy",
+          "text": "她因观众热烈的赞赏而开心谢幕。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "live",
+          "text": "她和观众都在现场，演奏不是录像。",
+          "requiredForSolution": false
+        }
+      ],
+      "causalChain": [
+        "观众使用手语鼓掌",
+        "现场没有普通拍手声",
+        "她看懂满场手势的含义",
+        "她因受到赞赏而反复谢幕"
+      ],
+      "acceptedSolutions": [
+        "台下是聋人观众，大家举手转动手腕鼓掌；她看懂了这种无声赞赏。",
+        "观众在用手语鼓掌，她看见大家热烈举手，所以开心鞠躬。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "empty",
+          "text": "台下并非空无一人。"
+        },
+        {
+          "id": "mockery",
+          "text": "观众不是在嘲笑或驱赶她。"
+        },
+        {
+          "id": "hearing",
+          "text": "她本人没有失去听力。"
+        }
+      ],
+      "hints": [
+        "没有拍手声，不等于观众没有表达赞赏。",
+        "观察观众的双手；他们使用的掌声可以被看见。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "观众在表达赞赏吗？",
+          "verdict": "YES",
+          "factIds": [
+            "applause",
+            "joy"
+          ]
+        },
+        {
+          "question": "掌声是一种能看见的动作吗？",
+          "verdict": "YES",
+          "factIds": [
+            "applause"
+          ]
+        },
+        {
+          "question": "观众举着双手吗？",
+          "verdict": "YES",
+          "factIds": [
+            "applause"
+          ]
+        },
+        {
+          "question": "观众在用手语鼓掌吗？",
+          "verdict": "YES",
+          "factIds": [
+            "applause"
+          ]
+        },
+        {
+          "question": "观众是聋人吗？",
+          "verdict": "YES",
+          "factIds": [
+            "audience"
+          ]
+        },
+        {
+          "question": "她看懂了观众的手势吗？",
+          "verdict": "YES",
+          "factIds": [
+            "sight"
+          ]
+        },
+        {
+          "question": "她是真的开心吗？",
+          "verdict": "YES",
+          "factIds": [
+            "joy"
+          ]
+        },
+        {
+          "question": "演奏和谢幕都发生在现场吗？",
+          "verdict": "YES",
+          "factIds": [
+            "live"
+          ]
+        },
+        {
+          "question": "观众会转动手腕来鼓掌吗？",
+          "verdict": "YES",
+          "factIds": [
+            "applause"
+          ]
+        },
+        {
+          "question": "她反复鞠躬是在感谢观众吗？",
+          "verdict": "YES",
+          "factIds": [
+            "joy"
+          ]
+        },
+        {
+          "question": "现场没有观众吗？",
+          "verdict": "NO",
+          "factIds": [
+            "empty"
+          ]
+        },
+        {
+          "question": "观众是在嘲笑她吗？",
+          "verdict": "NO",
+          "factIds": [
+            "mockery"
+          ]
+        },
+        {
+          "question": "她本人听不见了吗？",
+          "verdict": "NO",
+          "factIds": [
+            "hearing"
+          ]
+        },
+        {
+          "question": "这是播放的录像吗？",
+          "verdict": "NO",
+          "factIds": [
+            "live"
+          ]
+        },
+        {
+          "question": "观众根本没有鼓掌，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "applause"
+          ]
+        },
+        {
+          "question": "她是钢琴家还是小提琴家？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "她演奏了几分钟？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "是她聋了，还是观众在用手语？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "观众是聋人而她也是聋人吗？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "她为什么对空座位鞠躬？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "empty"
+          ]
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "观众是聋人，他们用举起双手转动手腕的手语来鼓掌；她看见满场无声赞赏，开心地谢幕。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "观众在用手语鼓掌，她看见大家热烈举手，所以开心鞠躬。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "观众是聋人，但没有任何动作；她也看不见观众，只是在假装开心。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "她听力失常，把观众的嘲笑当成了手语掌声。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "她在感谢观众。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    },
+    {
+      "id": "midnight_train",
+      "version": 2,
+      "title": "末班车的乘客",
+      "difficulty": "MEDIUM",
+      "surface": "末班车发车前，司机从后视镜看见一个围红围巾的女人，像是坐在最后一排。途中无人下车，到终点时车厢却空无一人。第二天，警方在始发站附近发现了那个女人的遗物。",
+      "solution": "发车前，车停在贴有寻人海报的站台旁。海报上的女人围着红围巾，她其实在发车前已遇难。站台灯光使海报影像映在车窗上，司机又从后视镜看到这层反光，把影像误当成最后一排的乘客。车上从来没有这名女人，所以终点无人，也不需要有人中途下车。",
+      "facts": [
+        {
+          "id": "death",
+          "text": "海报上的女人在末班车发车前已经遇难。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "poster",
+          "text": "站台的寻人海报上有女人围着红围巾的照片。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "reflection",
+          "text": "停车时，站台灯光使海报影像映在车窗上，再被司机通过后视镜看到。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "empty",
+          "text": "女人从未登上这班车，司机把反光误认成了真人。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "before",
+          "text": "司机只在发车前看到了那个影像，没有持续看见她坐在车上。",
+          "requiredForSolution": false
+        },
+        {
+          "id": "belongings",
+          "text": "警方在始发站附近找到的遗物属于海报上的女人。",
+          "requiredForSolution": false
+        }
+      ],
+      "causalChain": [
+        "女人遇难但站台仍贴着寻人海报",
+        "海报中的红围巾照片映在车窗上",
+        "司机从后视镜误认影像为乘客",
+        "车上本就没有女人，因此终点空无一人"
+      ],
+      "acceptedSolutions": [
+        "女人早已遇难，并没上车。司机把站台寻人海报里红围巾女人映在车窗上的影像看成乘客。",
+        "他看到的不是活人，而是站台上红围巾女人照片的车窗倒影；照片中的女子在发车前已遇难。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "ghost",
+          "text": "没有鬼魂或超自然力量。"
+        },
+        {
+          "id": "exit",
+          "text": "没有女乘客在途中秘密下车。"
+        },
+        {
+          "id": "dream",
+          "text": "司机并没有做梦。"
+        }
+      ],
+      "hints": [
+        "司机确实看见了一个形象，但还没证明那是车厢里的真人。",
+        "发车前的站台、车窗反光和红围巾照片共同造成了误认。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "她在发车前已经遇难了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "death"
+          ]
+        },
+        {
+          "question": "司机看见的是影像而不是真人吗？",
+          "verdict": "YES",
+          "factIds": [
+            "reflection",
+            "empty"
+          ]
+        },
+        {
+          "question": "车窗反光是关键吗？",
+          "verdict": "YES",
+          "factIds": [
+            "reflection"
+          ]
+        },
+        {
+          "question": "站台上有她的照片吗？",
+          "verdict": "YES",
+          "factIds": [
+            "poster"
+          ]
+        },
+        {
+          "question": "照片是在寻人海报上吗？",
+          "verdict": "YES",
+          "factIds": [
+            "poster"
+          ]
+        },
+        {
+          "question": "照片里的女人围着红围巾吗？",
+          "verdict": "YES",
+          "factIds": [
+            "poster"
+          ]
+        },
+        {
+          "question": "司机是通过后视镜看到反光的吗？",
+          "verdict": "YES",
+          "factIds": [
+            "reflection"
+          ]
+        },
+        {
+          "question": "这名女人从没上过这班车吗？",
+          "verdict": "YES",
+          "factIds": [
+            "empty"
+          ]
+        },
+        {
+          "question": "只有发车前出现了那个影像吗？",
+          "verdict": "YES",
+          "factIds": [
+            "before"
+          ]
+        },
+        {
+          "question": "找到的遗物确实属于那个女人吗？",
+          "verdict": "YES",
+          "factIds": [
+            "belongings"
+          ]
+        },
+        {
+          "question": "她是中途偷偷下车的吗？",
+          "verdict": "NO",
+          "factIds": [
+            "exit"
+          ]
+        },
+        {
+          "question": "这是鬼魂造成的吗？",
+          "verdict": "NO",
+          "factIds": [
+            "ghost"
+          ]
+        },
+        {
+          "question": "司机睡着做梦了吗？",
+          "verdict": "NO",
+          "factIds": [
+            "dream"
+          ]
+        },
+        {
+          "question": "她发车时还活着并坐在车上，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "death",
+            "empty"
+          ]
+        },
+        {
+          "question": "看到的不是车窗反光，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "reflection"
+          ]
+        },
+        {
+          "question": "当时车窗开着吗？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "车窗玻璃是什么牌子的？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "女人为什么中途下车？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "exit"
+          ]
+        },
+        {
+          "question": "女人是在车上还是站台遇难的？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "有反光而且司机醉酒了吗？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "女人在发车前已遇难，根本没有上车。站台寻人海报上红围巾女人的照片映在车窗上，司机透过后视镜把那层倒影当成了乘客。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "他看到的不是活人，而是站台上红围巾女人照片的车窗倒影；照片中的女子在发车前已遇难。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "她没有死亡，车窗也没有反光，红围巾与此无关，她中途下车了。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "女人在车里遇难，鬼魂披着红围巾用玻璃隐身了。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "司机把车窗的反光当成了乘客。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    },
+    {
+      "id": "empty_stage",
+      "version": 2,
+      "title": "空座位前的返场",
+      "difficulty": "MEDIUM",
+      "surface": "他独自在剧场唱完一首歌，台下的座位全空着。工作人员举起手机给他看了一眼，他立刻要求再唱一遍，还说今晚终于有人坐到了第一排。",
+      "solution": "演出通过舞台前的手机视频连线，专门唱给住院、无法到场的母亲。手机支架放在第一排。母亲刚刚在连线画面里醒来，举手示意还想再听一次。工作人员把画面给他看，他知道母亲已经在远方听见，所以把再唱一遍当成给她的返场。",
+      "facts": [
+        {
+          "id": "remote",
+          "text": "歌曲通过视频连线唱给住院而不能到场的母亲。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "position",
+          "text": "用于视频连线的手机支架放在剧场第一排。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "awake",
+          "text": "母亲刚刚醒来，在连线画面里举手示意想再听一次。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "return",
+          "text": "他看到母亲的实时回应后，高兴地要求返场。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "empty",
+          "text": "剧场座位确实没有真人观众。",
+          "requiredForSolution": false
+        },
+        {
+          "id": "live",
+          "text": "手机显示的是母亲实时的视频，不是旧录像。",
+          "requiredForSolution": false
+        }
+      ],
+      "causalChain": [
+        "母亲无法来剧场，手机放在第一排提供视频视角",
+        "母亲醒来并通过视频举手回应",
+        "工作人员让歌者看到实时画面",
+        "歌者把母亲当作第一排观众，为她返场"
+      ],
+      "acceptedSolutions": [
+        "他在通过第一排的手机给住院母亲唱歌。母亲醒来，在视频里示意再听一次，他看见后便开心返场。",
+        "远在病房的妈妈通过第一排的直播连线听歌，刚醒过来回应了他；他看见实时画面，决定为妈妈再唱一遍。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "ghost",
+          "text": "第一排没有鬼魂。"
+        },
+        {
+          "id": "money",
+          "text": "他没有收到观众打赏，返场与金钱无关。"
+        },
+        {
+          "id": "arrived",
+          "text": "母亲没有亲自来到剧场。"
+        }
+      ],
+      "hints": [
+        "“坐到第一排”可以描述观看的位置，不一定是身体所在的位置。",
+        "工作人员给他看的，是一个不能到场的人刚刚作出的实时回应。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "观众在远处通过视频观看吗？",
+          "verdict": "YES",
+          "factIds": [
+            "remote"
+          ]
+        },
+        {
+          "question": "视频里的观众是他的母亲吗？",
+          "verdict": "YES",
+          "factIds": [
+            "remote"
+          ]
+        },
+        {
+          "question": "母亲在医院吗？",
+          "verdict": "YES",
+          "factIds": [
+            "remote"
+          ]
+        },
+        {
+          "question": "手机支架放在第一排吗？",
+          "verdict": "YES",
+          "factIds": [
+            "position"
+          ]
+        },
+        {
+          "question": "母亲刚刚醒来了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "awake"
+          ]
+        },
+        {
+          "question": "母亲在画面里示意还想再听吗？",
+          "verdict": "YES",
+          "factIds": [
+            "awake"
+          ]
+        },
+        {
+          "question": "工作人员给他看的是实时画面吗？",
+          "verdict": "YES",
+          "factIds": [
+            "live"
+          ]
+        },
+        {
+          "question": "他因看见母亲回应而高兴吗？",
+          "verdict": "YES",
+          "factIds": [
+            "return"
+          ]
+        },
+        {
+          "question": "台下座位真的全空着吗？",
+          "verdict": "YES",
+          "factIds": [
+            "empty"
+          ]
+        },
+        {
+          "question": "这次返场是为母亲再唱一次吗？",
+          "verdict": "YES",
+          "factIds": [
+            "return"
+          ]
+        },
+        {
+          "question": "母亲已经来到剧场了吗？",
+          "verdict": "NO",
+          "factIds": [
+            "arrived"
+          ]
+        },
+        {
+          "question": "他收到了大额打赏吗？",
+          "verdict": "NO",
+          "factIds": [
+            "money"
+          ]
+        },
+        {
+          "question": "他看到的是旧录像吗？",
+          "verdict": "NO",
+          "factIds": [
+            "live"
+          ]
+        },
+        {
+          "question": "第一排有鬼魂吗？",
+          "verdict": "NO",
+          "factIds": [
+            "ghost"
+          ]
+        },
+        {
+          "question": "手机只播放了录音而没有视频，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "live"
+          ]
+        },
+        {
+          "question": "母亲患的是什么病？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "他唱的是哪首歌？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "母亲为什么偷偷坐进剧场？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "arrived"
+          ]
+        },
+        {
+          "question": "是打赏，还是母亲的回应让他返场？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "母亲在医院而手机是蓝色的吗？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "他用放在第一排的手机视频连线给住院母亲唱歌；母亲刚醒来并示意再听一次，他看见实时回应，便高兴地为她返场。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "远在病房的妈妈通过第一排的直播连线听歌，刚醒过来回应了他；他看见实时画面，决定为妈妈再唱一遍。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "母亲已经坐在第一排，剧场根本不是空的，手机只是收到了打赏。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "工作人员播放了母亲去世前的旧录像，他把录像当成了实时回应。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "他在给远处的人唱歌。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    },
+    {
+      "id": "late_postcard",
+      "version": 2,
+      "title": "迟到一年的生日画",
+      "difficulty": "HARD",
+      "surface": "女儿离世一年后，父亲在自己生日当天收到她画的明信片。邮戳是昨天，落款却写着今年的生日。他没有怀疑有人模仿她，反而说：“原来你真的把礼物准备好了。”",
+      "solution": "女儿在一年前参加学校的“寄给未来”绘画活动，提前画好父亲今年的生日明信片，并按活动要求写上预计送达的生日日期。学校一直保管封好的卡片，到约定日期前才统一寄出，所以邮戳是昨天。父亲认出了随信附上的活动说明和女儿当年提过的生日约定，明白这不是近期伪造的画，而是她生前准备的礼物。",
+      "facts": [
+        {
+          "id": "early",
+          "text": "女儿在去世前就画好了这张明信片，距父亲收到礼物约一年。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "school",
+          "text": "她参加学校的“寄给未来”活动，学校保管作品并按约定日期寄出。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "date",
+          "text": "落款写的是预计送达的生日日期，不是作画日期。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "postmark",
+          "text": "学校在昨天寄出保存的卡片，所以邮戳是昨天。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "proof",
+          "text": "信中附有活动说明，父亲也记得女儿生前提过下一年生日的约定。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "gift",
+          "text": "父亲意识到女儿生前已为今年的生日准备礼物。",
+          "requiredForSolution": true
+        }
+      ],
+      "causalChain": [
+        "女儿提前画好未来生日礼物并写送达日期",
+        "学校封存作品直到约定寄出日",
+        "真实的新邮戳与旧画出现在同一封信中",
+        "父亲结合活动说明和旧约定认出礼物"
+      ],
+      "acceptedSolutions": [
+        "女儿生前参加学校给未来寄信的活动，提前画好今年生日的卡，写了送达日期。学校一直保存到昨天才寄，父亲从活动说明和旧约定认出了这份礼物。",
+        "这是女儿早已托学校封存的未来生日画，日期写的是计划送达日；学校近期寄出，说明信让父亲知道女儿生前就准备好了。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "forgery",
+          "text": "明信片不是他人模仿女儿画的。"
+        },
+        {
+          "id": "alive",
+          "text": "女儿没有假死或在近期作画。"
+        },
+        {
+          "id": "time",
+          "text": "没有时间旅行或超自然现象。"
+        }
+      ],
+      "hints": [
+        "邮戳只说明何时寄出，不说明何时完成画作。",
+        "有人替她保存并定时寄出了作品；落款使用的也不是作画日期。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "画在女儿生前已经完成了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "early"
+          ]
+        },
+        {
+          "question": "学校替她保存了这张卡吗？",
+          "verdict": "YES",
+          "factIds": [
+            "school"
+          ]
+        },
+        {
+          "question": "这是寄给未来的活动吗？",
+          "verdict": "YES",
+          "factIds": [
+            "school"
+          ]
+        },
+        {
+          "question": "落款写的是计划送达日期吗？",
+          "verdict": "YES",
+          "factIds": [
+            "date"
+          ]
+        },
+        {
+          "question": "昨天的邮戳是真实的吗？",
+          "verdict": "YES",
+          "factIds": [
+            "postmark"
+          ]
+        },
+        {
+          "question": "作品是学校昨天寄出的，对吗？",
+          "verdict": "YES",
+          "factIds": [
+            "postmark"
+          ]
+        },
+        {
+          "question": "信里附有活动说明吗？",
+          "verdict": "YES",
+          "factIds": [
+            "proof"
+          ]
+        },
+        {
+          "question": "女儿生前提过下一年生日的约定吗？",
+          "verdict": "YES",
+          "factIds": [
+            "proof"
+          ]
+        },
+        {
+          "question": "父亲意识到礼物很早就准备好了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "gift"
+          ]
+        },
+        {
+          "question": "这张画在寄出前被保管了一段时间吗？",
+          "verdict": "YES",
+          "factIds": [
+            "school"
+          ]
+        },
+        {
+          "question": "明信片是别人模仿画的吗？",
+          "verdict": "NO",
+          "factIds": [
+            "forgery"
+          ]
+        },
+        {
+          "question": "女儿在昨天画了它吗？",
+          "verdict": "NO",
+          "factIds": [
+            "early",
+            "alive"
+          ]
+        },
+        {
+          "question": "女儿其实还活着吗？",
+          "verdict": "NO",
+          "factIds": [
+            "alive"
+          ]
+        },
+        {
+          "question": "这是时间旅行吗？",
+          "verdict": "NO",
+          "factIds": [
+            "time"
+          ]
+        },
+        {
+          "question": "落款一定是实际作画日期吗？",
+          "verdict": "NO",
+          "factIds": [
+            "date"
+          ]
+        },
+        {
+          "question": "学校叫什么名字？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "邮票是什么图案？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "模仿女儿的人为什么寄信？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "forgery"
+          ]
+        },
+        {
+          "question": "是女儿昨天寄的，还是学校代寄的？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "学校保存了作品而画是水彩吗？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "女儿生前参加学校寄给未来的活动，提前画好生日卡并写上预计送达日。学校保存到昨天才寄出；父亲结合活动说明和女儿旧时约定，知道这是早已准备的礼物。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "这是女儿早已托学校封存的未来生日画，日期写的是计划送达日；学校近期寄出，说明信让父亲知道女儿生前就准备好了。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "女儿假死后在昨天画了明信片，学校伪造邮戳和送达日期骗父亲。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "学校模仿女儿的画作，假借未来活动冒充她生前的礼物。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "女儿提前画好了，后来才寄到。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    },
+    {
+      "id": "unplugged_lamp",
+      "version": 2,
+      "title": "没有亮过的台灯",
+      "difficulty": "HARD",
+      "surface": "暴雨过后，女孩把一盏拔掉插头、灯泡也坏了的台灯搬到窗口，来回转了几次灯罩。台灯一秒也没亮，河对岸的人却放下望远镜，放心地挥了挥手。",
+      "solution": "暴雨后电话线路中断，河上的便桥也暂时不能通行。女孩与对岸的父亲约好，联系不上时用连续三次反光表示平安。雨停后出了太阳，她利用台灯金属灯罩光亮的内壁反射阳光，向对岸发出约定信号。父亲从望远镜里看见三次反光，确认女儿平安，所以放心地挥手；灯泡和插头都不需要工作。",
+      "facts": [
+        {
+          "id": "isolation",
+          "text": "暴雨后电话线路中断，便桥暂时不能通行。",
+          "requiredForSolution": false
+        },
+        {
+          "id": "sun",
+          "text": "当时雨已经停了，太阳露出来了。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "reflector",
+          "text": "女孩用台灯金属灯罩光亮的内壁反射阳光。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "code",
+          "text": "父女事先约好，联系不上时连续三次反光表示平安。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "father",
+          "text": "河对岸的人是女孩的父亲，他通过望远镜看到了约定的三次反光。",
+          "requiredForSolution": true
+        },
+        {
+          "id": "safe",
+          "text": "父亲因确认女儿平安而放心挥手。",
+          "requiredForSolution": true
+        }
+      ],
+      "causalChain": [
+        "电话和便桥暂时不可用",
+        "雨后阳光照到金属灯罩",
+        "女孩用反光发出事先约定的三次平安信号",
+        "父亲看懂信号后放心"
+      ],
+      "acceptedSolutions": [
+        "女孩用灯罩反射雨后的太阳光，发出父女约好的三次平安信号。对岸父亲用望远镜看懂了，灯泡不用发亮。",
+        "坏台灯充当了反光镜，女孩用太阳光发出约定暗号，父亲看见三次反光确认她平安。"
+      ],
+      "excludedFacts": [
+        {
+          "id": "battery",
+          "text": "台灯没有靠电池或其他电源点亮。"
+        },
+        {
+          "id": "bulb",
+          "text": "灯泡没有发光。"
+        },
+        {
+          "id": "magic",
+          "text": "没有超自然力量。"
+        }
+      ],
+      "hints": [
+        "台灯除了灯泡，还有能改变光线方向的部分。",
+        "光来自太阳；对岸的人看懂的是事先约定的闪光次数。"
+      ],
+      "questionFixtures": [
+        {
+          "question": "当时已经出太阳了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "sun"
+          ]
+        },
+        {
+          "question": "光来自太阳而不是灯泡吗？",
+          "verdict": "YES",
+          "factIds": [
+            "sun",
+            "reflector"
+          ]
+        },
+        {
+          "question": "灯罩内壁可以反光吗？",
+          "verdict": "YES",
+          "factIds": [
+            "reflector"
+          ]
+        },
+        {
+          "question": "女孩在用灯罩反射阳光吗？",
+          "verdict": "YES",
+          "factIds": [
+            "reflector"
+          ]
+        },
+        {
+          "question": "连续三次反光是约定的信号吗？",
+          "verdict": "YES",
+          "factIds": [
+            "code"
+          ]
+        },
+        {
+          "question": "信号表示她平安吗？",
+          "verdict": "YES",
+          "factIds": [
+            "code"
+          ]
+        },
+        {
+          "question": "对岸的人是父亲吗？",
+          "verdict": "YES",
+          "factIds": [
+            "father"
+          ]
+        },
+        {
+          "question": "父亲用望远镜看到了信号吗？",
+          "verdict": "YES",
+          "factIds": [
+            "father"
+          ]
+        },
+        {
+          "question": "电话线路因为暴雨中断了吗？",
+          "verdict": "YES",
+          "factIds": [
+            "isolation"
+          ]
+        },
+        {
+          "question": "父亲因确认女儿安全而放心吗？",
+          "verdict": "YES",
+          "factIds": [
+            "safe"
+          ]
+        },
+        {
+          "question": "台灯是用电池点亮的吗？",
+          "verdict": "NO",
+          "factIds": [
+            "battery"
+          ]
+        },
+        {
+          "question": "坏灯泡突然亮了起来吗？",
+          "verdict": "NO",
+          "factIds": [
+            "bulb"
+          ]
+        },
+        {
+          "question": "她用了超自然力量吗？",
+          "verdict": "NO",
+          "factIds": [
+            "magic"
+          ]
+        },
+        {
+          "question": "灯罩完全没有反射阳光，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "reflector"
+          ]
+        },
+        {
+          "question": "反光只是随机的，没有约定含义，对吗？",
+          "verdict": "NO",
+          "factIds": [
+            "code"
+          ]
+        },
+        {
+          "question": "河有多少米宽？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "台灯是什么品牌？",
+          "verdict": "UNKNOWN",
+          "factIds": []
+        },
+        {
+          "question": "她为什么让坏灯泡发光？",
+          "verdict": "INVALID_PREMISE",
+          "factIds": [
+            "bulb"
+          ]
+        },
+        {
+          "question": "是电池供电，还是灯罩反光？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        },
+        {
+          "question": "有太阳而望远镜是十倍的吗？",
+          "verdict": "NEEDS_CLARIFICATION",
+          "factIds": []
+        }
+      ],
+      "solutionFixtures": [
+        {
+          "solution": "女孩把坏台灯的金属灯罩当反光镜，借雨后阳光发出父女约定的三次平安信号。对岸父亲用望远镜看懂，确认女儿平安，因此放心挥手。",
+          "solved": true,
+          "reason": "完整覆盖核心因果链，且不与已知事实矛盾。"
+        },
+        {
+          "solution": "坏台灯充当了反光镜，女孩用太阳光发出约定暗号，父亲看见三次反光确认她平安。",
+          "solved": true,
+          "reason": "使用合理的同义表达，核心因果关系完整。"
+        },
+        {
+          "solution": "女孩靠隐藏电池让灯泡发光，父亲并不知道三次闪光是什么意思。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "灯罩没有反光，坏灯泡凭超自然力量亮了起来，随意照向对岸。",
+          "solved": false,
+          "reason": "包含与核心事实冲突的断言，不能按关键词凑齐判对。"
+        },
+        {
+          "solution": "她用灯罩反射了太阳光。",
+          "solved": false,
+          "reason": "只说明局部线索，没有还原完整因果链。"
+        }
+      ]
+    }
+  ]
+}

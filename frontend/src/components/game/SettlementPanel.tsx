@@ -65,7 +65,7 @@ export const SettlementPanel = ({ gameId, state, userKey }: SettlementPanelProps
                     avatar: player.avatar,
                     online: false,
                   };
-                  friendApi.sendFriendRequest(userKey, target);
+                  if (!friendApi.sendFriendRequest(userKey, target)) { toast.error(t("errors.localStorageUnavailable")); return; }
                   toast.success(t("settle.friendSent", { name: player.displayName }));
                 }}
               >

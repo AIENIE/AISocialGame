@@ -1,0 +1,45 @@
+[ {
+  "archives" : 1000,
+  "returnedEntities" : 100,
+  "visibleTotal" : 505,
+  "elapsedMs" : 74,
+  "explain" : [ {
+    "select_type" : "PRIMARY",
+    "table" : "a",
+    "type" : "ALL",
+    "possible_keys" : "idx_game_archives_game_finished",
+    "key" : null,
+    "rows" : 1001,
+    "Extra" : "Using where; Using filesort"
+  }, {
+    "select_type" : "DEPENDENT SUBQUERY",
+    "table" : "p",
+    "type" : "eq_ref",
+    "possible_keys" : "PRIMARY,idx_archive_participant_player",
+    "key" : "PRIMARY",
+    "rows" : 1,
+    "Extra" : "Using index"
+  } ]
+}, {
+  "archives" : 100000,
+  "returnedEntities" : 100,
+  "visibleTotal" : 50495,
+  "elapsedMs" : 235,
+  "explain" : [ {
+    "select_type" : "PRIMARY",
+    "table" : "a",
+    "type" : "ref",
+    "possible_keys" : "idx_game_archives_game_finished",
+    "key" : "idx_game_archives_game_finished",
+    "rows" : 50000,
+    "Extra" : "Using where; Backward index scan"
+  }, {
+    "select_type" : "DEPENDENT SUBQUERY",
+    "table" : "p",
+    "type" : "eq_ref",
+    "possible_keys" : "PRIMARY,idx_archive_participant_player",
+    "key" : "PRIMARY",
+    "rows" : 1,
+    "Extra" : "Using index"
+  } ]
+} ]

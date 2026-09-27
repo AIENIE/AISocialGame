@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.stereotype.Component;
-import net.devh.boot.grpc.client.config.GrpcChannelProperties;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -135,16 +134,11 @@ public class PayServiceJwtStartupGuard {
     static void validatePayTransport(ConfigurableEnvironment environment,
                                      Map<String, String> rawEnvironment) {
         PayServiceTransportPolicy.Expected expected = PayServiceTransportPolicy.validateRaw(rawEnvironment);
-        GrpcChannelProperties channel = Binder.get(environment)
-                .bind("grpc.client.billing", Bindable.of(GrpcChannelProperties.class))
-                .orElseThrow(() -> new IllegalStateException(
-                        "Final PayService gRPC transport configuration is unavailable"));
-        String address = channel.getAddress() == null ? "" : channel.getAddress().toString();
-        String negotiationType = channel.getNegotiationType() == null
-                ? "" : channel.getNegotiationType().name();
+        String address = environment.getProperty("spring.grpc.client.channel.billing.target", "");
+        boolean tls = Boolean.TRUE.equals(environment.getProperty(
+                "spring.grpc.client.channel.billing.ssl.enabled", Boolean.class));
         requireBound(rawEnvironment, "BILLING_GRPC_ADDR", address);
-        requireBound(rawEnvironment, "BILLING_GRPC_NEGOTIATION_TYPE", negotiationType);
-        if (!expected.target().equals(address) || !"TLS".equals(negotiationType)) {
+        if (!expected.target().equals(address) || !tls) {
             throw new IllegalStateException("Final PayService gRPC target or TLS mode is not canonical");
         }
         Boolean plaintextEnabled = environment.getProperty(
@@ -154,10 +148,7 @@ public class PayServiceJwtStartupGuard {
         if (Boolean.TRUE.equals(plaintextEnabled)) {
             throw new IllegalStateException("PayService plaintext transport is forbidden");
         }
-        GrpcChannelProperties.Security security = channel.getSecurity();
-        String finalTrust = Binder.get(environment)
-                .bind("grpc.client.billing.security.trust-cert-collection", String.class)
-                .orElse("");
+        String finalTrust = environment.getProperty("app.grpc.billing-trust-cert-collection", "");
         requireOptionalBound(
                 rawEnvironment,
                 "GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION",
@@ -165,21 +156,11 @@ public class PayServiceJwtStartupGuard {
         if (!expected.trust().equals(finalTrust)) {
             throw new IllegalStateException("Final PayService gRPC trust source is not canonical");
         }
-        if (finalTrust.isEmpty() != (security.getTrustCertCollection() == null)) {
-            throw new IllegalStateException(
-                    "Final PayService CA binding is internally inconsistent");
-        }
-        if (security.isClientAuthEnabled()
-                || security.getCertificateChain() != null
-                || security.getPrivateKey() != null
-                || hasText(security.getPrivateKeyPassword())
-                || security.getKeyStore() != null
-                || hasText(security.getKeyStorePassword())
-                || security.getTrustStore() != null
-                || hasText(security.getTrustStorePassword())
-                || hasText(security.getAuthorityOverride())
-                || (security.getCiphers() != null && !security.getCiphers().isEmpty())
-                || (security.getProtocols() != null && security.getProtocols().length != 0)) {
+        if (Boolean.TRUE.equals(environment.getProperty(
+                "spring.grpc.client.channel.billing.bypass-certificate-validation", Boolean.class))
+                || hasText(environment.getProperty("spring.grpc.client.channel.billing.ssl.bundle"))
+                || hasText(environment.getProperty("spring.grpc.client.channel.billing.authority"))
+                || hasText(environment.getProperty("spring.grpc.client.channel.billing.override-authority"))) {
             throw new IllegalStateException("Non-canonical PayService TLS security override is forbidden");
         }
     }

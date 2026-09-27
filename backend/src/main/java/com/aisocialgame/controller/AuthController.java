@@ -43,6 +43,12 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(value = "X-Auth-Token", required = false) String token) {
+        authService.logout(token);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/me")
     public ResponseEntity<AuthUserView> me(@RequestHeader(value = "X-Auth-Token", required = false) String token) {
         return ResponseEntity.ok(authService.currentUserView(token));

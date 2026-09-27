@@ -9,6 +9,7 @@ interface UseGameSocketOptions {
   onPrivate?: (event: PrivateEvent) => void;
   onSeatChange?: (event: SeatEvent) => void;
   onChat?: (event: ChatMessage) => void;
+  onConnected?: () => void;
 }
 
 interface ParsedFrame {
@@ -58,127 +59,133 @@ const parseFrames = (payload: string): ParsedFrame[] => {
     });
 };
 
-export const useGameSocket = ({
-  roomId,
-  playerId,
-  token,
-  onStateChange,
-  onPrivate,
-  onSeatChange,
-  onChat,
-}: UseGameSocketOptions) => {
+export const useGameSocket = (options: UseGameSocketOptions) => {
+  const { roomId, playerId, token } = options;
+  const callbacks = useRef(options);
+  callbacks.current = options;
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<number | null>(null);
-  const reconnectNoticeRef = useRef<number | null>(null);
-  const disconnectedSinceRef = useRef<number | null>(null);
-  const shouldReconnectRef = useRef(true);
   const [connected, setConnected] = useState(false);
   const [showReconnectAction, setShowReconnectAction] = useState(false);
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    if (!roomId || !playerId) {
-      return;
-    }
+    if (!roomId || !playerId || !token) return;
+    let disposed = false;
+    let generation = 0;
+    let failures = 0;
+    let retryTimer: number | undefined;
+    let noticeTimer: number | undefined;
+    let heartbeatTimer: number | undefined;
+    let handshakeTimer: number | undefined;
+    let syncTimer: number | undefined;
+    const clearConnectionTimers = () => {
+      window.clearInterval(heartbeatTimer);
+      window.clearTimeout(handshakeTimer);
+      window.clearTimeout(syncTimer);
+    };
 
     const connect = () => {
+      if (disposed) return;
+      const currentGeneration = ++generation;
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
       wsRef.current = ws;
+      let buffer = "";
+      let lastReceived = Date.now();
+      let lastSent = Date.now();
+      let acknowledged = false;
+      let synchronized = false;
+      const syncNonce = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${currentGeneration}`;
+      const current = () => !disposed && currentGeneration === generation && wsRef.current === ws;
+      const send = (frame: string) => { ws.send(frame); lastSent = Date.now(); };
+      handshakeTimer = window.setTimeout(() => { if (current() && !acknowledged) ws.close(); }, 10_000);
 
       ws.onopen = () => {
+        if (!current()) return;
         setConnected(false);
-        ws.send(
-          buildFrame("CONNECT", {
-            "accept-version": "1.2",
-            host: window.location.host,
-            Authorization: token ? `Bearer ${token}` : "",
-            "X-Room-Id": roomId,
-            "heart-beat": "10000,10000",
-          })
-        );
+        send(buildFrame("CONNECT", {
+          "accept-version": "1.2", host: window.location.host,
+          Authorization: `Bearer ${token}`, "heart-beat": "10000,10000",
+        }));
       };
 
       ws.onmessage = (event) => {
-        const frames = parseFrames(String(event.data || ""));
-        frames.forEach((frame) => {
-          if (frame.command === "CONNECTED") {
-            setConnected(true);
-            disconnectedSinceRef.current = null;
-            setShowReconnectAction(false);
-            if (reconnectNoticeRef.current) {
-              clearTimeout(reconnectNoticeRef.current);
-              reconnectNoticeRef.current = null;
+        if (!current()) return;
+        lastReceived = Date.now();
+        buffer += String(event.data || "");
+        buffer = buffer.replace(/^[\r\n]+/, "");
+        const end = buffer.lastIndexOf("\u0000");
+        if (end < 0) return;
+        const frames = parseFrames(buffer.slice(0, end + 1));
+        buffer = buffer.slice(end + 1);
+        for (const frame of frames) {
+          if (frame.command === "ERROR") { ws.close(); return; }
+          if (frame.command === "CONNECTED" && !acknowledged) {
+            acknowledged = true;
+            window.clearTimeout(handshakeTimer);
+            for (const topic of ["state", "seat", "chat"]) {
+              send(buildFrame("SUBSCRIBE", { id: `${topic}-${roomId}`, destination: `/topic/room/${roomId}/${topic}` }));
             }
-            ws.send(buildFrame("SUBSCRIBE", { id: `state-${roomId}`, destination: `/topic/room/${roomId}/state` }));
-            ws.send(buildFrame("SUBSCRIBE", { id: `seat-${roomId}`, destination: `/topic/room/${roomId}/seat` }));
-            ws.send(buildFrame("SUBSCRIBE", { id: `chat-${roomId}`, destination: `/topic/room/${roomId}/chat` }));
-            ws.send(buildFrame("SUBSCRIBE", { id: `private-${roomId}`, destination: "/user/queue/private" }));
-            return;
+            send(buildFrame("SUBSCRIBE", { id: `private-${roomId}`, destination: "/user/queue/private" }));
+            send(buildFrame("SEND", { destination: `/app/room/${roomId}/sync`, "content-type": "application/json" },
+              JSON.stringify({ nonce: syncNonce })));
+            syncTimer = window.setTimeout(() => { if (current() && !synchronized) ws.close(); }, 10_000);
+            const [serverSend, serverReceive] = (frame.headers["heart-beat"] || "0,0").split(",").map(Number);
+            const sendEvery = Number.isFinite(serverReceive) && serverReceive > 0 ? Math.max(10_000, serverReceive) : 0;
+            const receiveEvery = Number.isFinite(serverSend) && serverSend > 0 ? Math.max(10_000, serverSend) : 0;
+            heartbeatTimer = window.setInterval(() => {
+              if (!current() || ws.readyState !== WebSocket.OPEN) return;
+              if (receiveEvery && Date.now() - lastReceived > receiveEvery * 2.5) { ws.close(); return; }
+              if (sendEvery && Date.now() - lastSent >= sendEvery) send("\n");
+            }, 1000);
+            continue;
           }
-          if (frame.command !== "MESSAGE") {
-            return;
-          }
-
+          if (frame.command !== "MESSAGE") continue;
           const destination = frame.headers.destination || "";
-          if (destination.endsWith("/state")) {
-            onStateChange?.(parseJson(frame.body, { type: "STATE_SYNC", phase: "", round: 0 }));
-            return;
+          if (destination.endsWith("/state")) callbacks.current.onStateChange?.(parseJson(frame.body, { type: "STATE_SYNC", phase: "", round: 0 }));
+          else if (destination.endsWith("/seat")) callbacks.current.onSeatChange?.(parseJson(frame.body, { type: "UNKNOWN", seat: null }));
+          else if (destination.endsWith("/chat")) callbacks.current.onChat?.(parseJson(frame.body, { id: "", roomId, senderId: "", senderName: "", type: "TEXT", content: "", timestamp: Date.now() }));
+          else if (destination.includes("/queue/private")) {
+            const privateEvent = parseJson<PrivateEvent>(frame.body, { type: "UNKNOWN", payload: {} });
+            if (privateEvent.type === "SYNC_READY") {
+              if (!synchronized && privateEvent.payload?.roomId === roomId && privateEvent.payload?.nonce === syncNonce) {
+                synchronized = true;
+                window.clearTimeout(syncTimer);
+                failures = 0;
+                setConnected(true);
+                setShowReconnectAction(false);
+                window.clearTimeout(noticeTimer); noticeTimer = undefined;
+                callbacks.current.onConnected?.();
+              }
+              continue;
+            }
+            callbacks.current.onPrivate?.(privateEvent);
           }
-          if (destination.endsWith("/seat")) {
-            onSeatChange?.(parseJson(frame.body, { type: "UNKNOWN", seat: null as any }));
-            return;
-          }
-          if (destination.endsWith("/chat")) {
-            onChat?.(parseJson(frame.body, { id: "", roomId, senderId: "", senderName: "", type: "TEXT", content: "", timestamp: Date.now() }));
-            return;
-          }
-          if (destination.includes("/queue/private")) {
-            onPrivate?.(parseJson(frame.body, { type: "UNKNOWN", payload: {} }));
-          }
-        });
+        }
       };
 
       ws.onclose = () => {
+        if (!current()) return;
+        ++generation; // Repeated or late events from this socket are now inert.
+        clearConnectionTimers();
         setConnected(false);
-        if (!disconnectedSinceRef.current) {
-          disconnectedSinceRef.current = Date.now();
-        }
-        if (!reconnectNoticeRef.current) {
-          reconnectNoticeRef.current = window.setTimeout(() => {
-            if (disconnectedSinceRef.current && Date.now() - disconnectedSinceRef.current >= 30000) {
-              setShowReconnectAction(true);
-            }
-          }, 30000);
-        }
-        if (!shouldReconnectRef.current) {
-          return;
-        }
-        reconnectTimerRef.current = window.setTimeout(connect, 3000);
+        if (noticeTimer === undefined) noticeTimer = window.setTimeout(() => { if (!disposed) setShowReconnectAction(true); }, 30_000);
+        const delay = Math.min(30_000, 1000 * 2 ** Math.min(failures++, 5) * (0.75 + Math.random() * 0.5));
+        retryTimer = window.setTimeout(connect, delay);
       };
-
-      ws.onerror = () => {
-        setConnected(false);
-      };
+      ws.onerror = () => { if (current()) ws.close(); };
     };
-
-    shouldReconnectRef.current = true;
     connect();
-
     return () => {
-      shouldReconnectRef.current = false;
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
-      if (reconnectNoticeRef.current) {
-        clearTimeout(reconnectNoticeRef.current);
-        reconnectNoticeRef.current = null;
-      }
-      disconnectedSinceRef.current = null;
-      setConnected(false);
-      setShowReconnectAction(false);
+      disposed = true;
+      ++generation;
+      clearConnectionTimers();
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(noticeTimer);
       wsRef.current?.close();
       wsRef.current = null;
+      setConnected(false);
+      setShowReconnectAction(false);
     };
   }, [roomId, playerId, token, nonce]);
 
@@ -203,9 +210,7 @@ export const useGameSocket = ({
   }, [roomId, connected]);
 
   const reconnect = () => {
-    disconnectedSinceRef.current = Date.now();
     setShowReconnectAction(false);
-    wsRef.current?.close();
     setNonce((current) => current + 1);
   };
 

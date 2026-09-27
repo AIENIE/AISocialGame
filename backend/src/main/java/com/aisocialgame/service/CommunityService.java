@@ -23,8 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommunityService {
     private final CommunityPostRepository repository;
     private final AiSafetyService aiSafetyService;
+    private final com.aisocialgame.repository.CommunityLikeRepository likes;
+    private final WriteRateLimiter limiter;
+    @org.springframework.beans.factory.annotation.Value("${app.community.posts-per-minute:5}")
+    private int postsPerMinute = 5;
 
-    public CommunityService(CommunityPostRepository repository, AiSafetyService aiSafetyService) {
+    public CommunityService(CommunityPostRepository repository, AiSafetyService aiSafetyService,
+                            com.aisocialgame.repository.CommunityLikeRepository likes, WriteRateLimiter limiter) {
+        this.likes = likes; this.limiter = limiter;
         this.repository = repository;
         this.aiSafetyService = aiSafetyService;
     }
@@ -33,43 +39,35 @@ public class CommunityService {
         return repository.findTop50ByOrderByCreatedAtDesc();
     }
 
-    public CommunityPost create(CommunityPostRequest request, User user, String guestName) {
+    public CommunityPost create(CommunityPostRequest request, User user) {
+        requireUser(user);
+        if (request.getTags() != null && (request.getTags().size() > 10 || request.getTags().stream().anyMatch(tag -> tag == null || tag.isBlank() || tag.length() > 32))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "标签最多 10 个，每个最多 32 个字符");
+        }
+        limiter.require(user.getId(), List.of(new WriteRateLimiter.Limit("community-post", postsPerMinute)));
         CommunityPost post = new CommunityPost();
-        String normalizedGuestName = normalizeGuestName(guestName);
-        String authorKey = user != null ? user.getId() : (normalizedGuestName == null ? "guest" : "guest:" + normalizedGuestName.trim());
-        String safeContent = aiSafetyService.requireAllowedInput(
-                request.getContent(),
-                AiSafetyContext.source(AiSafetyService.SOURCE_COMMUNITY).user(authorKey, authorKey)
-        );
+        String safeContent = aiSafetyService.requireAllowedInput(request.getContent(),
+                AiSafetyContext.source(AiSafetyService.SOURCE_COMMUNITY).user(user.getId(), user.getId()));
         post.setContent(safeContent.trim());
-        post.setTags(request.getTags() == null ? new ArrayList<>() : request.getTags());
-        if (user != null) {
-            post.setAuthorId(user.getId());
-            post.setAuthorName(user.getNickname());
-            post.setAvatar(user.getAvatar());
-        } else {
-            String name = (normalizedGuestName != null && !normalizedGuestName.isBlank()) ? normalizedGuestName.trim() : "游客" + UUID.randomUUID().toString().substring(0, 6);
-            post.setAuthorName(name);
-            post.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + name.replace(" ", ""));
-        }
+        post.setTags(request.getTags() == null ? new ArrayList<>() : List.copyOf(request.getTags()));
+        post.setAuthorId(user.getId()); post.setAuthorName(user.getNickname()); post.setAvatar(user.getAvatar());
         return repository.save(post);
     }
 
-    public CommunityPost like(String id) {
-        CommunityPost post = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "帖子不存在"));
-        post.setLikes(post.getLikes() + 1);
-        return repository.save(post);
+    public CommunityPost like(String id, User user) {
+        requireUser(user);
+        // Serialize the aggregate update with voter insertion. The composite PK is the persistent idempotency key.
+        CommunityPost post = repository.findByIdForUpdate(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "帖子不存在"));
+        var key = new com.aisocialgame.model.CommunityLike.Key(id, user.getId());
+        if (!likes.existsById(key)) {
+            likes.save(new com.aisocialgame.model.CommunityLike(id, user.getId()));
+            post.setLikes(Math.addExact(post.getLikes(), 1));
+            repository.save(post);
+        }
+        return post;
     }
 
-    private String normalizeGuestName(String guestName) {
-        if (guestName == null || guestName.isBlank()) {
-            return null;
-        }
-        String trimmed = guestName.trim();
-        try {
-            return URLDecoder.decode(trimmed, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException ex) {
-            return trimmed;
-        }
+    private void requireUser(User user) {
+        if (user == null || user.getId() == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
     }
 }

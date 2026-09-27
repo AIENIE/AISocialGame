@@ -6,6 +6,9 @@ public class ReplayDetailResponse {
     private final ReplayArchiveView archive;
     private final String viewMode;
     private final List<ReplayEventView> events;
+    private List<String> availableViews = List.of("PUBLIC");
+    public List<String> getAvailableViews() { return availableViews; }
+    public void setAvailableViews(List<String> views) { availableViews = List.copyOf(views); }
 
     public ReplayDetailResponse(ReplayArchiveView archive, String viewMode, List<ReplayEventView> events) {
         this.archive = archive;

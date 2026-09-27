@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 D:/project/aienie/aienie-projects/AISocialGame/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  09:15:58
+   Duration  14.48s (transform 1.33s, setup 0ms, import 1.43s, tests 18ms, environment 12.42s)
+

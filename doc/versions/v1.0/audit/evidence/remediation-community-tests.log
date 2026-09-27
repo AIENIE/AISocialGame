@@ -1,0 +1,45 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.14)
+
+2026-09-26T14:54:46.636+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.aisocialgame.RoomServiceTest         : Starting RoomServiceTest using Java 25.0.3 with PID 57084 (started by duwei in D:\project\aienie\aienie-projects\AISocialGame\backend)
+2026-09-26T14:54:46.639+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.aisocialgame.RoomServiceTest         : The following 1 profile is active: "test"
+2026-09-26T14:54:47.408+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-26T14:54:47.409+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-26T14:54:47.532+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 116 ms. Found 21 JPA repository interfaces.
+2026-09-26T14:54:47.816+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-09-26T14:54:47.846+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.49.Final
+2026-09-26T14:54:47.865+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-09-26T14:54:47.960+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-26T14:54:47.974+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-26T14:54:48.069+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:aisocial user=SA
+2026-09-26T14:54:48.070+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-26T14:54:48.080+08:00 requestId=none  WARN 57084 --- [ai-social-game] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-09-26T14:54:48.090+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-26T14:54:48.650+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-26T14:54:48.689+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by io.grpc.netty.shaded.io.netty.util.internal.PlatformDependent0$4 (file:/C:/Users/duwei/.m2/repository/io/grpc/grpc-netty-shaded/1.63.0/grpc-netty-shaded-1.63.0.jar)
+WARNING: Please consider reporting this to the maintainers of class io.grpc.netty.shaded.io.netty.util.internal.PlatformDependent0$4
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+2026-09-26T14:54:49.006+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] n.d.b.g.c.a.GrpcClientAutoConfiguration  : Detected grpc-netty-shaded: Creating ShadedNettyChannelFactory + InProcessChannelFactory
+2026-09-26T14:54:49.231+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-26T14:54:50.201+08:00 requestId=none  WARN 57084 --- [ai-social-game] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-09-26T14:54:50.570+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-26T14:54:50.605+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-09-26T14:54:50.606+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@2413efce]]
+2026-09-26T14:54:50.607+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-09-26T14:54:50.616+08:00 requestId=none  INFO 57084 --- [ai-social-game] [           main] com.aisocialgame.RoomServiceTest         : Started RoomServiceTest in 4.176 seconds (process running for 4.958)

@@ -1,5 +1,12 @@
 # GameEngine 插件化模块
 
+## 当前版本（2026-09-22）
+
+当前新局由 V2GameService 和 GameRuleSet 执行。各规则通过 definition() 提供人数、配置、阶段/角色与版本，GameConfiguration 通用校验及 validateStart() 规则校验；GameMetadataV2 和 RoomService 读取同源定义。observationRules() 白名单投影公共配置，confirmedFacts()/privateConfirmed()/isPlayerClaim() 定义本玩法来源；公共层只组装通用分类。第四测试插件验证全链路扩展。GameRuntimeSupport 仅承担旧规则兼容，旧 API 保留。
+
+当前测试、限制及数据迁移见 [M1～M5 收尾报告](../test/m1-m5-closure-20260922.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
+
+
 ## 模块作用
 
 M3 将玩法规则从 `GamePlayService` 中拆出为可注册的 `GameEngine`。当前目标是让新增玩法先拥有稳定扩展点，同时保持狼人杀、谁是卧底的现有 API、状态结构、回放和 AI 质检行为不回退。

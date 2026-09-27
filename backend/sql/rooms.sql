@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `password` VARCHAR(255) NULL,
   `comm_mode` VARCHAR(64) NULL,
   `config` LONGTEXT NULL,
+  `host_user_id` VARCHAR(36) NULL,
+  `private_config` LONGTEXT NULL,
   `seats` LONGTEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,

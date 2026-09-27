@@ -24,6 +24,10 @@ public class AiDecisionTrace {
     @Column(length = 64)
     private String roomId;
 
+    /** Archive instance, rather than room, owns a trace. Null means historical attribution is unknown. */
+    @Column(length = 96)
+    private String instanceId;
+
     @Column(nullable = false, length = 64)
     private String gameId;
 
@@ -94,6 +98,7 @@ public class AiDecisionTrace {
 
     public Long getId() { return id; }
     public String getRoomId() { return roomId; }
+    public String getInstanceId() { return instanceId; }
     public String getGameId() { return gameId; }
     public String getPhase() { return phase; }
     public int getRoundNumber() { return roundNumber; }
@@ -121,6 +126,7 @@ public class AiDecisionTrace {
 
     public void setId(Long id) { this.id = id; }
     public void setRoomId(String roomId) { this.roomId = roomId; }
+    public void setInstanceId(String instanceId) { this.instanceId = instanceId; }
     public void setGameId(String gameId) { this.gameId = gameId; }
     public void setPhase(String phase) { this.phase = phase; }
     public void setRoundNumber(int roundNumber) { this.roundNumber = roundNumber; }

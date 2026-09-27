@@ -59,9 +59,9 @@ AISocialGame/
 ## 关键配置约束
 
 - gRPC 地址默认走静态域名：
-  - `USER_GRPC_ADDR=static://localuserservice.testhut.top:12001`
-  - `BILLING_GRPC_ADDR=static://localpayservice.testhut.top:443`
-  - `AI_GRPC_ADDR=static://localaiservice.testhut.top:443`
+  - `USER_GRPC_ADDR=static://localuserservice.testhut.top:22001`
+  - `BILLING_GRPC_ADDR=static://localpayservice.testhut.top:22021`
+  - `AI_GRPC_ADDR=static://localaiservice.testhut.top:22011`
   - `USER_GRPC_NEGOTIATION_TYPE=TLS`、`BILLING_GRPC_NEGOTIATION_TYPE=TLS`、`AI_GRPC_NEGOTIATION_TYPE=TLS`
 - SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量在本地调试时通过权限为 `0600` 且未入库的 `env.local`（VS Code F5）或 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env`（Windows 调试脚本）注入；发版环境由 config-center 在部署侧注入。`env.example` 只保留占位符清单。
