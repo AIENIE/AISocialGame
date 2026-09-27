@@ -1,5 +1,5 @@
-# Aienie-approved multi-platform source pins; tags remain only for human readability.
-FROM maven:3.9.16-eclipse-temurin-25-alpine@sha256:af1e0b9de1a3617dc13eaff61b7ff92118c0051855eac223d8d3d9acb9848d4f AS builder
+# protoc's Linux native executable needs a glibc Maven builder; pin the multi-platform index.
+FROM maven:3.9.16-eclipse-temurin-25@sha256:93b8a14ea2f412782e4e842651273b4d903e35cc496284f178fbbe2d67d00976 AS builder
 WORKDIR /app
 COPY pom.xml ./
 COPY src ./src

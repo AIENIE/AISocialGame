@@ -93,7 +93,7 @@ aienie_ci_assert_runtime_toolchain_contract() {
   local dockerfile="$AIENIE_CI_REPO_ROOT/backend/Dockerfile"
   local compose="$AIENIE_CI_REPO_ROOT/scripts/ci/aisocialgame-runtime-compose.yml"
   local start="$AIENIE_CI_REPO_ROOT/backend/start-backend.sh"
-  local builder='FROM maven:3.9.16-eclipse-temurin-25-alpine@sha256:af1e0b9de1a3617dc13eaff61b7ff92118c0051855eac223d8d3d9acb9848d4f AS builder'
+  local builder='FROM maven:3.9.16-eclipse-temurin-25@sha256:93b8a14ea2f412782e4e842651273b4d903e35cc496284f178fbbe2d67d00976 AS builder'
   local runtime='FROM eclipse-temurin:25.0.3_9-jre-alpine-3.23@sha256:28db6fdf60e38945e43d840c0333aeaec66c15943070104f7586fd3c9d1665b0'
   local ca_source='        source: /etc/aienie-staging-pki/root.pem'
   local ca_block
