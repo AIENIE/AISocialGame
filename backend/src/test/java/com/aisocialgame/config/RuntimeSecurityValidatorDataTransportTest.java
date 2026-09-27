@@ -11,7 +11,7 @@ class RuntimeSecurityValidatorDataTransportTest {
 
     private static final String STAGING_MYSQL =
             "jdbc:mysql://base.testhut.top:13306/aisocialgame"
-                    + "?sslMode=DISABLED&allowPublicKeyRetrieval=false";
+                    + "?sslMode=REQUIRED&allowPublicKeyRetrieval=false";
 
     @Test
     void stagingAcceptsOnlyRebaselinedCanonicalDataEndpoints() {
@@ -28,6 +28,14 @@ class RuntimeSecurityValidatorDataTransportTest {
                 "http://192.168.1.3", 16333, true))
                 .anyMatch(value -> value.contains("test Qdrant"));
         assertThat(validate("test", STAGING_MYSQL + "&allowPublicKeyRetrieval=true",
+                "base.testhut.top", 16379, false, "", "http://base.testhut.top", 16333, true))
+                .anyMatch(value -> value.contains("test MySQL"));
+        for (String insecureMode : List.of("DISABLED", "PREFERRED")) {
+            assertThat(validate("test", STAGING_MYSQL.replace("sslMode=REQUIRED", "sslMode=" + insecureMode),
+                    "base.testhut.top", 16379, false, "", "http://base.testhut.top", 16333, true))
+                    .anyMatch(value -> value.contains("test MySQL"));
+        }
+        assertThat(validate("test", STAGING_MYSQL + "&sslMode=DISABLED",
                 "base.testhut.top", 16379, false, "", "http://base.testhut.top", 16333, true))
                 .anyMatch(value -> value.contains("test MySQL"));
         assertThat(validate("test", STAGING_MYSQL, "base.testhut.top", 16379, false, "fake-secret",

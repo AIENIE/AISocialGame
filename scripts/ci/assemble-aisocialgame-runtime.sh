@@ -22,7 +22,7 @@ install_exact() {
 
 install_exact "$repo_root/backend/start-backend.sh" "$output_dir/backend/start-backend.sh" 0555
 install_exact "$repo_root/backend/runtime-process-environment.sh" "$output_dir/backend/runtime-process-environment.sh" 0444
-install_exact "$repo_root/scripts/docker/staging-load-env-file.sh" "$output_dir/docker/staging-load-env-file.sh" 0555
+install_exact "$repo_root/scripts/docker/staging-load-env-file.sh" "$output_dir/scripts/docker/staging-load-env-file.sh" 0555
 install_exact "$repo_root/frontend/nginx.conf" "$output_dir/frontend/nginx.conf" 0444
 install_exact "$repo_root/scripts/ci/aisocialgame-runtime-compose.yml" "$output_dir/docker-compose.yml" 0444
 install_exact "$repo_root/scripts/ci/staging-oci-role-contract.json" "$output_dir/release/staging-oci-role-contract.json" 0444

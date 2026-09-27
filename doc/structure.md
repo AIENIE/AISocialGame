@@ -65,7 +65,7 @@ AISocialGame/
   - `USER_GRPC_NEGOTIATION_TYPE=TLS`、`BILLING_GRPC_NEGOTIATION_TYPE=TLS`、`AI_GRPC_NEGOTIATION_TYPE=TLS`
 - SSO HTTP 入口通过 `SSO_USER_SERVICE_BASE_URL` 配置。
 - 三服务 gRPC 鉴权变量在本地调试时通过权限为 `0600` 且未入库的 `env.local`（VS Code F5）或 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env`（Windows 调试脚本）注入；发版环境由 config-center 在部署侧注入。`env.example` 只保留占位符清单。
-- 非 test profile 会校验弱口令、MySQL TLS 和 gRPC 明文配置，详见 `doc/modules/security-hardening-module.md`。
+- 非本地环境会校验弱口令、MySQL TLS 和 gRPC 明文配置；预生产 MySQL 固定为 `sslMode=REQUIRED&allowPublicKeyRetrieval=false`，生产要求 `VERIFY_IDENTITY&allowPublicKeyRetrieval=false`，详见 `doc/modules/security-hardening-module.md`。
 - 发版链路（`scripts/ci/build-release.sh`）只负责依赖解析、构建、测试与运行时包组装，不登录管理员、不执行特权迁移，也不自动执行 Playwright；构建产物不含运行时配置与秘密。
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
 - 本地开箱即用数据由 `DemoSeedService` 管理，只有显式设置 `APP_DEMO_SEED_ENABLED=true` 时才会开启；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。

@@ -31,7 +31,7 @@
 ## 运行配置
 
 - `env.example` 是无敏感值模板；本地调试的真实值只放在权限为 `0600` 且未入库的 `env.local`（VS Code F5）或 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env`（Windows 调试脚本）中，发版环境的运行时配置由 config-center 在部署侧注入。
-- 非 test profile 启动时会 fail-fast 校验：
+- 非本地环境启动时会 fail-fast 校验；`ENV=test` 的固定 MySQL 入口要求 `sslMode=REQUIRED&allowPublicKeyRetrieval=false`，`ENV=production` 仍要求 `VERIFY_IDENTITY&allowPublicKeyRetrieval=false`。本地隔离调试可使用独立的明文夹具。其余校验包括：
   - `APP_ADMIN_PASSWORD_HASH` 必须为 BCrypt 摘要，`SPRING_DATASOURCE_PASSWORD` 必须存在。
   - 管理认证只接受严格 OS `ENV`/`AUTH_MODE` 四种组合；TOTP 模式必须配置有效 32 字节版本化 keyring。
   - 不允许默认弱口令。

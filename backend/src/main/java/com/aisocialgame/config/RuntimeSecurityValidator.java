@@ -150,9 +150,9 @@ public class RuntimeSecurityValidator {
         }
         if (AdminAuthPolicy.ENV_TEST.equals(runtimeEnv)) {
             if (!hasMysqlEndpoint(datasourceUrl, "base.testhut.top", 13306)
-                    || !hasOnlyQueryValue(datasourceUrl, "sslMode", "DISABLED")
+                    || !hasOnlyQueryValue(datasourceUrl, "sslMode", "REQUIRED")
                     || !hasOnlyQueryValue(datasourceUrl, "allowPublicKeyRetrieval", "false")) {
-                violations.add("test MySQL must use base.testhut.top:13306, sslMode=DISABLED, and allowPublicKeyRetrieval=false");
+                violations.add("test MySQL must use base.testhut.top:13306, sslMode=REQUIRED, and allowPublicKeyRetrieval=false");
             }
             if (!"base.testhut.top".equalsIgnoreCase(redisHost)
                     || redisPort != 16379 || redisSslEnabled

@@ -30,7 +30,7 @@ services:
         bind:
           create_host_path: false
       - type: bind
-        source: ./docker/staging-load-env-file.sh
+        source: ./scripts/docker/staging-load-env-file.sh
         target: /app/bin/staging-load-env-file.sh
         read_only: true
         bind:

@@ -1,9 +1,9 @@
 # build stage
-FROM node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3 AS builder
+FROM node:22.23.2-bookworm-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS builder
 WORKDIR /app
 ENV NODE_ENV=development
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate && pnpm install --frozen-lockfile --prod=false
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate && pnpm install --frozen-lockfile --prod=false
 COPY . .
 RUN pnpm exec vite --version && pnpm build
 

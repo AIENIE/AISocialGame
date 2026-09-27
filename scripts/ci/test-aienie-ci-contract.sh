@@ -131,7 +131,7 @@ fi
   && -x "$AIENIE_CI_OUTPUT_DIR/backend/start-backend.sh" \
   && -f "$AIENIE_CI_OUTPUT_DIR/backend/runtime-process-environment.sh" \
   && -f "$AIENIE_CI_OUTPUT_DIR/frontend/dist/index.html" \
-  && -x "$AIENIE_CI_OUTPUT_DIR/docker/staging-load-env-file.sh" ]] || {
+  && -x "$AIENIE_CI_OUTPUT_DIR/scripts/docker/staging-load-env-file.sh" ]] || {
   echo 'Positive offline Build did not produce the complete runtime payload plus protected manifest.' >&2
   exit 1
 }
