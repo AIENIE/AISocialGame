@@ -2,7 +2,7 @@
 FROM node:22.23.2-bookworm-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS builder
 WORKDIR /app
 ENV NODE_ENV=development
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable && corepack prepare pnpm@11.22.0 --activate && pnpm install --frozen-lockfile --prod=false
 COPY . .
 RUN pnpm exec vite --version && pnpm build
