@@ -14,7 +14,7 @@ $root=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $workspace=Get-AienieWorkspaceRoot
 $invalid=@()
 try {
-    & (Join-Path $workspace 'aienie-runtime/infrastructure/windows/Test-AienieSystemMatrix.ps1') `
+    & (Join-Path $workspace 'aienie-infra/infrastructure/windows/Test-AienieSystemMatrix.ps1') `
         -OperationsDocumentPath (Join-Path $workspace 'aienie-doc/system-matrix/system-matrix-operations.md') `
         -IntegrationDocumentPath (Join-Path $workspace 'aienie-doc/system-matrix/system-matrix-integration.md') `
         -DiagramDirectoryPath (Join-Path $workspace 'aienie-doc/system-matrix/diagrams') | Out-Null
@@ -22,6 +22,6 @@ try {
 $jar=Get-ChildItem (Join-Path $root 'backend/target') -Filter '*.jar' | Where-Object Name -NotLike '*.original' | Select-Object -First 1
 $options=@();if($AccountsFile){$options=@('--accounts',$AccountsFile)}
 & python.exe (Join-Path $PSScriptRoot 'support/closure_preflight.py') --root $root `
-    --matrix (Join-Path $workspace 'aienie-runtime/infrastructure/catalog/environment-matrix.yaml') `
+    --matrix (Join-Path $workspace 'aienie-infra/infrastructure/catalog/environment-matrix.yaml') `
     --environment $EnvironmentFile --ledger $BudgetFile --manifest $ManifestFile --jar $jar.FullName --output $EvidenceDirectory @options @invalid
 if($LASTEXITCODE -ne 0){throw 'Read-only preflight failed. No execution authorization was produced.'}
