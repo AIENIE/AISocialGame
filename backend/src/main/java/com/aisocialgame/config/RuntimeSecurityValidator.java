@@ -149,19 +149,19 @@ public class RuntimeSecurityValidator {
             return;
         }
         if (AdminAuthPolicy.ENV_TEST.equals(runtimeEnv)) {
-            if (!hasMysqlEndpoint(datasourceUrl, "base.testhut.top", 13306)
+            if (!hasMysqlEndpoint(datasourceUrl, "mysql.testhut.top", 13306)
                     || !hasOnlyQueryValue(datasourceUrl, "sslMode", "REQUIRED")
                     || !hasOnlyQueryValue(datasourceUrl, "allowPublicKeyRetrieval", "false")) {
-                violations.add("test MySQL must use base.testhut.top:13306, sslMode=REQUIRED, and allowPublicKeyRetrieval=false");
+                violations.add("test MySQL must use mysql.testhut.top:13306, sslMode=REQUIRED, and allowPublicKeyRetrieval=false");
             }
-            if (!"base.testhut.top".equalsIgnoreCase(redisHost)
+            if (!"redis.testhut.top".equalsIgnoreCase(redisHost)
                     || redisPort != 16379 || redisSslEnabled
                     || StringUtils.hasText(redisUsername) || StringUtils.hasText(redisPassword)) {
-                violations.add("test Redis must use unauthenticated plaintext base.testhut.top:16379 exactly as rebaselined");
+                violations.add("test Redis must use unauthenticated plaintext redis.testhut.top:16379 exactly as rebaselined");
             }
-            if (qdrantEnabled && (!("http://base.testhut.top").equalsIgnoreCase(qdrantHost)
+            if (qdrantEnabled && (!("http://qdrant.testhut.top").equalsIgnoreCase(qdrantHost)
                     || qdrantPort != 16333 || StringUtils.hasText(qdrantApiKey))) {
-                violations.add("test Qdrant must use unauthenticated http://base.testhut.top:16333 exactly as rebaselined");
+                violations.add("test Qdrant must use unauthenticated http://qdrant.testhut.top:16333 exactly as rebaselined");
             }
             return;
         }
