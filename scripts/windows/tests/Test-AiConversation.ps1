@@ -9,12 +9,13 @@ try{
  foreach($name in @('manifest','bundle','ledger','proof')){'{}' | Set-Content -LiteralPath (Join-Path $testRoot "$name.json")}
  '{"callerId":"synthetic-only"}' | Set-Content -LiteralPath (Join-Path $testRoot 'grant.json')
  @('ENV=local','AI_GRPC_ADDR=static://localaiservice.testhut.top:22011','AI_GRPC_NEGOTIATION_TYPE=TLS','APP_AI_DEFAULT_MODEL=deepseek-flash','APP_EXTERNAL_AISERVICE_HMAC_CALLER=synthetic-only','GRPC_SHARED_SECRET=synthetic-no-secret') | Set-Content -LiteralPath (Join-Path $testRoot 'test.env')
+ "app:`n  external:`n    aiservice-hmac-caller: synthetic-only`n  ai:`n    default-model: deepseek-flash" | Set-Content -LiteralPath (Join-Path $testRoot 'test.env.application.yml')
  $env:APP_CONVERSATION_SENTINEL='restore-me';$env:AI_CONVERSATION_REAL='must-be-restored'
  $global:AiConversationTestCalls=@{python=0;maven=0}
  function python.exe {$global:AiConversationTestCalls.python++;$global:LASTEXITCODE=0;'{"status":"SYNTHETIC_GATE"}'}
  function mvn.cmd {
   $global:AiConversationTestCalls.maven++
-  if($env:AI_CONVERSATION_REAL -cne '1' -or $env:APP_CONVERSATION_SENTINEL -or $env:APP_EXTERNAL_AISERVICE_HMAC_CALLER -cne 'synthetic-only'){throw 'Isolation failed'}
+  if($env:AI_CONVERSATION_REAL -cne '1' -or $env:APP_CONVERSATION_SENTINEL -or $env:APP_EXTERNAL_AISERVICE_HMAC_CALLER -cne 'synthetic-only' -or $env:APP_AI_BUDGET_ENABLED -cne 'true' -or $env:SPRING_PROFILES_ACTIVE -cne 'local' -or -not $env:AIENIE_APPLICATION_FILE){throw 'Isolation or persistent-credit wiring failed'}
   $global:LASTEXITCODE=1
  }
  $failed=$false
@@ -30,6 +31,6 @@ try{
  [Environment]::SetEnvironmentVariable('APP_EXTERNAL_AISERVICE_HMAC_CALLER',$oldCaller,'Process')
  Remove-Variable -Name AiConversationTestCalls -Scope Global -ErrorAction SilentlyContinue
  # Only individually named synthetic files are removed; no recursive computed deletion.
- foreach($name in @('manifest.json','bundle.json','ledger.json','proof.json','grant.json','test.env')){Remove-Item -LiteralPath (Join-Path $testRoot $name) -ErrorAction SilentlyContinue}
+ foreach($name in @('manifest.json','bundle.json','ledger.json','proof.json','grant.json','test.env','test.env.application.yml')){Remove-Item -LiteralPath (Join-Path $testRoot $name) -ErrorAction SilentlyContinue}
  Remove-Item -LiteralPath $testRoot -ErrorAction SilentlyContinue
 }

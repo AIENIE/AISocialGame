@@ -59,10 +59,23 @@ foreach($line in [IO.File]::ReadAllLines($validationEnv)){
  if([string]::IsNullOrWhiteSpace($line) -or $line.TrimStart().StartsWith('#')){continue}
  if($line -notmatch '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$'){throw 'Expected literal NAME=value entries.'}
  $key=$Matches[1];$value=$Matches[2]
+ if($key -match '^(SPRING_CONFIG_|JAVA_TOOL_OPTIONS$|JDK_JAVA_OPTIONS$|_JAVA_OPTIONS$|MAVEN_OPTS$|MAVEN_ARGS$|PATH$|PSMODULEPATH$|COMSPEC$)'){throw 'Private environment cannot override process control settings.'}
  if($validationValues.ContainsKey($key)){throw 'Duplicate setting.'}
  if($value.Length -ge 2 -and (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'")))){$value=$value.Substring(1,$value.Length-2)}
  $validationValues[$key]=$value
 }
+. (Join-Path $validationRoot 'scripts/config-pair/ConfigurationPair.ps1')
+$validationYaml=Read-ConfigPairValues -ProjectRoot $validationRoot -EnvironmentFile $validationEnv
+foreach($key in $validationYaml.Keys){$validationValues[$key]=$validationYaml[$key]}
+if(-not (Test-Path -LiteralPath ($validationEnv+'.application.yml') -PathType Leaf)){throw 'Persistent acceptance requires the private local configuration pair.'}
+$validationValues.AIENIE_APPLICATION_FILE=([Uri][IO.Path]::GetFullPath($validationEnv+'.application.yml')).AbsoluteUri
+foreach($entry in $validationValues.GetEnumerator()) {
+ if(-not $validationCanonical.ContainsKey($entry.Key)){$validationCanonical[$entry.Key]=[string]$entry.Value}
+}
+$validationCanonical.SPRING_PROFILES_ACTIVE='local'
+$validationCanonical.APP_AI_BUDGET_ENABLED='true'
+$validationCanonical.APP_AI_BUDGET_MAX_OUTPUT_TOKENS='1024'
+$validationCanonical.APP_AI_VALIDATION_CALL_LIMIT='0'
 foreach($key in @('ENV','AI_GRPC_ADDR','AI_GRPC_NEGOTIATION_TYPE','APP_AI_DEFAULT_MODEL')){if($validationValues[$key] -cne $validationCanonical[$key]){throw 'Noncanonical environment, model or TLS target.'}}
 $validationApproved=Get-Content -LiteralPath $validationGrant -Raw | ConvertFrom-Json -AsHashtable
 if($validationValues.APP_EXTERNAL_AISERVICE_HMAC_CALLER -cne $validationApproved.callerId -or [string]::IsNullOrWhiteSpace($validationValues.GRPC_SHARED_SECRET)){throw 'Original caller credentials do not match the grant.'}
@@ -71,7 +84,7 @@ $validationCanonical.GRPC_SHARED_SECRET=$validationValues.GRPC_SHARED_SECRET
 $validationPrevious=@{}
 try{
  foreach($name in @([Environment]::GetEnvironmentVariables('Process').Keys)){
-  if([string]$name -match '^(APP_|AI_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|QDRANT_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')){
+  if([string]$name -match '^(APP_|AI_|AIENIE_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|QDRANT_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')){
    $validationPrevious[$name]=[Environment]::GetEnvironmentVariable($name,'Process');[Environment]::SetEnvironmentVariable($name,$null,'Process')
   }
  }
@@ -79,9 +92,9 @@ try{
   if(-not $validationPrevious.ContainsKey($entry.Key)){$validationPrevious[$entry.Key]=[Environment]::GetEnvironmentVariable($entry.Key,'Process')}
   [Environment]::SetEnvironmentVariable($entry.Key,[string]$entry.Value,'Process')
  }
- & mvn.cmd -q -f (Join-Path $validationRoot 'backend/pom.xml') '-Dtest=ConversationValidationRealIntegrationTest' '-DdisableXmlReport=true' '-Dsurefire.useFile=false' '-Dmaven.test.redirectTestOutputToFile=false' test *> $null
+ & mvn.cmd -q -f (Join-Path $validationRoot 'backend/pom.xml') '-Dtest=ConversationValidationRealIntegrationTest#collectWithFrozenInputsOriginalJournalAndExplicitGrant' '-DdisableXmlReport=true' '-Dsurefire.useFile=false' '-Dmaven.test.redirectTestOutputToFile=false' test *> $null
  if($LASTEXITCODE -or -not (Test-Path -LiteralPath $validationOutput)){throw 'Collection stopped or skipped; preserve evidence and journal. No automatic retry.'}
- Write-Host 'Evidence requires review. Stop the authorized original caller and verify OFFLINE before closing this run.'
+ Write-Host 'Evidence requires review and durable credit reconciliation. Shared caller state remains unchanged.'
 }finally{
  foreach($entry in $validationPrevious.GetEnumerator()){[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')}
 }
