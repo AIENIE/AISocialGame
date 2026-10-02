@@ -57,6 +57,11 @@ class ConversationValidationTests(unittest.TestCase):
         self.assertFalse(measure(self.m,self.b,self.e,self.r,"synthetic-hash",True)["algorithmPassed"])
     def test_unapproved_proposal_cannot_authorize(self):
         with self.assertRaises(ValueError):grant_check(self.m,dict(authorizationStatus="NOT_AUTHORIZED"),"unused","unused","unused","hash",74,"PILOT")
+    def test_empty_batch_has_zero_actual_attempts_without_fabricated_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            p=Path(directory)/'new.jsonl';p.write_bytes(b'')
+            self.assertEqual(conversation_ledger(p),dict(consumed=0,sha256=sha(p)))
+            self.assertEqual(p.read_bytes(),b'')
     def test_authorization_binds_artifacts_prefix_cap_expiry_and_caller_operations(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);journal=root/'journal.jsonl';manifest=root/'manifest.json';bundle=root/'bundle.json'

@@ -19,6 +19,12 @@ SCENARIOS = {
 PILOTS = {"undercover:direct_question", "werewolf:counterevidence", "turtle_soup:human_prepares_question"}
 PERSONAS = ("ai1", "ai2", "ai3", "ai4")
 
+def conversation_ledger(path):
+    # An explicitly authorized new run has no historical entries to fabricate.
+    if Path(path).read_bytes()==b"":
+        return dict(consumed=0,sha256=sha(path))
+    return ledger(path)
+
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -137,6 +143,7 @@ def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phas
     require(g.get("manifestSha256")==sha(manifest_path) and g.get("bundleSha256")==sha(bundle_path) and g.get("artifactSha256")==jar_hash,"GRANT_ARTIFACT_MISMATCH")
     base=g.get("baselineConsumed");cap=g.get("cumulativeComparisonLimit")
     require(type(base) is int and type(cap) is int and 0<=base<=consumed<cap<=base+192,"GRANT_LIMIT_INVALID")
+    require(base!=0 or g.get("ledgerOrigin")=="NEW_AUTHORIZED_BATCH","NEW_LEDGER_AUTHORIZATION_REQUIRED")
     lines=Path(ledger_path).read_bytes().splitlines(keepends=True)
     require(hashlib.sha256(b"".join(lines[:base])).hexdigest()==g.get("baselineLedgerSha256"),"LEDGER_PREFIX_CHANGED")
     variant=SET+":"+m["batchId"]
@@ -157,7 +164,7 @@ def main():
         return 0 if result["qualityPassed"] else 2
     actual=artifact(Path(args.root),Path(args.jar),verify=True)
     require(all(m[k]==actual[k] for k in ("sourceFingerprint","buildId")),"CURRENT_BUILD_MISMATCH")
-    summary=ledger(args.ledger);g=None
+    summary=conversation_ledger(args.ledger);g=None
     if args.mode=="gate":
         require(m["evidenceKind"]=="REAL_MODEL","REAL_MANIFEST_REQUIRED")
         g=grant_check(m,load_json(args.grant),args.ledger,args.manifest,args.bundle,actual["artifactSha256"],summary["consumed"],args.phase)
