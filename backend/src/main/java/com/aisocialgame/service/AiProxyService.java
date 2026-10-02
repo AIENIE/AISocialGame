@@ -19,15 +19,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Charged AI calls stay closed until ai-service provides a durable bounded
- * execution and this project can reserve and reconcile credit atomically.
- * The old call-then-debit path has been removed so a gate change cannot
- * accidentally restore it.
+ * Chat uses the durable budget/escrow path. Unsupported paid capabilities remain closed.
  */
 @Service
 public class AiProxyService {
     private final AiGrpcClient aiGrpcClient;
     private final AppProperties appProperties;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.aisocialgame.service.safety.AiSafetyService safety;
 
     public AiProxyService(AiGrpcClient aiGrpcClient, AppProperties appProperties) {
         this.aiGrpcClient = aiGrpcClient;
@@ -46,31 +45,44 @@ public class AiProxyService {
 
     public AiChatResult chat(AiChatRequest request, User user) {
         requireChargedCallReady(user);
-        throw budgetUnavailable();
+        return chatByIdentity(request, requireExternalUserId(user), user.getSessionId());
     }
 
     public AiChatResult chatByIdentity(AiChatRequest request, long userId, String sessionId) {
-        throw budgetUnavailable();
+        aiGrpcClient.requireChatReady();
+        if (userId <= 0) throw new ApiException(HttpStatus.UNAUTHORIZED, "未登录");
+        String model = request.getModel();
+        if (model == null || model.isBlank()) model = appProperties.getAi().getDefaultModel();
+        if (model == null || model.isBlank()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI 模型未配置");
+        var context = com.aisocialgame.service.safety.AiCallScope.context(userId, model);
+        var messages = request.getMessages().stream().map(message ->
+                new com.aisocialgame.integration.grpc.dto.AiChatMessageDto(message.getRole(),
+                        safety == null ? message.getContent() : safety.requireAllowedInput(message.getContent(), context))).toList();
+        var response = aiGrpcClient.chatCompletions(appProperties.getProjectKey(), userId, sessionId, model, messages);
+        return safety == null ? response : new AiChatResult(safety.safeOutput(response.content(), context),
+                response.modelKey(), response.promptTokens(), response.completionTokens());
     }
 
     public AiChatResult chatByIdentity(AiChatRequest request, long userId, String sessionId, AiSafetyContext context) {
-        throw budgetUnavailable();
+        try (var scope = com.aisocialgame.service.safety.AiCallScope.open(context)) {
+            return chatByIdentity(request, userId, sessionId);
+        }
     }
 
     public AiEmbeddingsResult embeddings(AiEmbeddingsRequest request, User user) {
-        requireChargedCallReady(user);
+        requireExternalUserId(user);
         throw budgetUnavailable();
     }
 
     public AiOcrResult ocrParse(AiOcrRequest request, User user) {
-        requireChargedCallReady(user);
+        requireExternalUserId(user);
         throw budgetUnavailable();
     }
 
     /** Synchronous admission keeps SSE's HTTP error code stable before headers commit. */
     public void requireChargedCallReady(User user) {
         requireExternalUserId(user);
-        throw budgetUnavailable();
+        aiGrpcClient.requireChatReady();
     }
 
     private ApiException budgetUnavailable() {

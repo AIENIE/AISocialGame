@@ -33,6 +33,15 @@ public class AiGrpcClient {
     // field by reflection only to test gRPC cancellation and TLS mechanics.
     private boolean isolatedTransportFixture;
 
+    @Autowired(required = false)
+    private com.aisocialgame.service.credit.BoundedAiClient boundedClient;
+
+    public void requireChatReady() {
+        if (isolatedTransportFixture) return;
+        if (boundedClient == null) requireBoundedBudget();
+        boundedClient.requireReady();
+    }
+
     @Autowired
     private AiGatewayServiceGrpc.AiGatewayServiceBlockingStub aiStub;
 
@@ -73,7 +82,7 @@ public class AiGrpcClient {
     public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, String model,
                                         List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
         AppProperties.requireCanonicalProjectKey(projectKey);
-        requireBoundedBudget();
+        requireChatReady();
         if (admission!=null) admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model));
         boolean answered=false;
         try {
@@ -94,9 +103,10 @@ public class AiGrpcClient {
                             .build());
                 }
             }
-            if (callBudget != null) callBudget.consume();
+            if (isolatedTransportFixture && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
-            var response = stub.chatCompletions(builder.build());
+            var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
+                    : boundedClient.chat(builder.build(), deadlineSeconds);
             if (admission!=null) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
             return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens());

@@ -61,6 +61,7 @@ class AiProxyServiceTest {
         lenient().when(aiSafetyService.requireAllowedInput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(aiSafetyService.safeOutput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
         aiProxyService = new AiProxyService(aiGrpcClient, appProperties);
+        org.mockito.Mockito.lenient().doThrow(new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "budget unavailable", "BUDGET_UNAVAILABLE", java.util.Map.of())).when(aiGrpcClient).requireChatReady();
     }
 
     @Test
@@ -74,7 +75,8 @@ class AiProxyServiceTest {
 
         ApiException error = assertThrows(ApiException.class, () -> aiProxyService.embeddings(request, user));
         assertEquals("BUDGET_UNAVAILABLE", error.getCode());
-        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
+        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     @Test
@@ -88,7 +90,8 @@ class AiProxyServiceTest {
 
         ApiException error = assertThrows(ApiException.class, () -> aiProxyService.ocrParse(request, user));
         assertEquals("BUDGET_UNAVAILABLE", error.getCode());
-        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
+        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     @Test
@@ -96,21 +99,23 @@ class AiProxyServiceTest {
         AiChatRequest request = buildChatRequest(null, "hello");
         ApiException error = assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "session"));
         assertEquals("BUDGET_UNAVAILABLE", error.getCode());
-        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
+        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     @Test
     void explicitModelStillRejectsBeforeAnyUpstreamCall() {
         AiChatRequest request = buildChatRequest("invalid-model", "请回复ok");
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
-        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient);
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     @Test
     void chatDoesNotRunSafetyOrProviderWhenBudgetIsUnavailable() {
         AiChatRequest request = buildChatRequest(null, "M4_TEST_BLOCK");
         assertThrows(ApiException.class, () -> aiProxyService.chatByIdentity(request, 1001L, "sess-1"));
-        org.mockito.Mockito.verifyNoInteractions(aiGrpcClient, projectCreditService);
+        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
+        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     private AiChatRequest buildChatRequest(String model, String content) {

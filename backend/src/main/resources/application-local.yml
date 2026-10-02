@@ -10,8 +10,6 @@ spring:
     username: aisocialgame
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      connection-test-query: SELECT 1
   jpa:
     hibernate:
       ddl-auto: validate
@@ -163,11 +161,11 @@ runtime:
     ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:}
     ADMIN_TOTP_SECRET: ${ADMIN_TOTP_SECRET:}
     AIENIE_RUNTIME_PLANE: windows-local
-    AI_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    AI_GRPC_NEGOTIATION_TYPE: TLS
     AI_SERVICE_BASE_URL: https://localaiservice.testhut.top
-    BILLING_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    BILLING_GRPC_NEGOTIATION_TYPE: TLS
     PAY_SERVICE_BASE_URL: https://localpayservice.testhut.top
-    USER_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    USER_GRPC_NEGOTIATION_TYPE: TLS
     USER_SERVICE_BASE_URL: https://localuserservice.testhut.top
     APP_ENV: local
 ENV: ${runtime.configuration.ENV}
