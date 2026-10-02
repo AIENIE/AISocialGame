@@ -62,9 +62,8 @@ public class AuthService {
         this.projectCreditService = projectCreditService;
         this.appProperties = appProperties;
         this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
+        this.httpClient = com.aisocialgame.config.SsoHttpClientFactory.create(
+                appProperties.getSso().getTrustCertCollection());
     }
 
     public String buildSsoLoginRedirectUrl(String state) {

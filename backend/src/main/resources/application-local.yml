@@ -87,6 +87,7 @@ app:
     billing-trust-cert-collection: ''
     ai-trust-cert-collection: ''
   sso:
+    trust-cert-collection: ${app.grpc.user-trust-cert-collection:}
     user-service-base-url: https://localuserservice.testhut.top
     callback-url: https://localsocialgame.testhut.top/sso/callback
     login-path: /sso/login

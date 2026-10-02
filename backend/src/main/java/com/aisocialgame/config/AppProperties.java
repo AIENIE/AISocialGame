@@ -112,6 +112,11 @@ public class AppProperties {
     }
 
     public static class Sso {
+        private String trustCertCollection = "";
+
+        public String getTrustCertCollection() { return trustCertCollection; }
+        public void setTrustCertCollection(String value) { trustCertCollection = value; }
+
         private String userServiceBaseUrl = "https://localuserservice.testhut.top";
         private String callbackUrl = "https://localsocialgame.testhut.top/sso/callback";
         private String loginPath = "/sso/login";
