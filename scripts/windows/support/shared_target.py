@@ -46,9 +46,9 @@ def component(catalog, name):
 
 def resolve(catalog, values, matrix_hash):
     result = dict(status="UNKNOWN", reason="TARGET_NOT_CONFIRMED", matrixSha256=matrix_hash,
-                  environment="local", componentId="shared-mysql", database="aisocialgame")
+                  environment="develop", componentId="shared-mysql", database="aisocialgame")
     db = component(catalog, "shared-mysql")
-    local = db["endpoints"]["local"]
+    local = db["endpoints"]["develop"]
     listener = [x for x in local.get("listeners", [])
                 if x.get("name") == "mysql" and x.get("protocol") == "mysql"]
     if len(listener) != 1 or not local.get("host_ref") or listener[0].get("bind_scope") != "lan-private":

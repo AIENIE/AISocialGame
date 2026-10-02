@@ -160,4 +160,4 @@ Windows 根入口为 `start.ps1`，参数为 `-Action Start|Build|Test|Status|St
 
 ## 公共服务 gRPC 共享密钥（2026-10-02）
 
-同一环境的三个公共服务及所有调用项目共用 env.txt 中的 `GRPC_SHARED_SECRET`，YAML 的客户端秘密属性统一引用 `${GRPC_SHARED_SECRET}`。local/develop 使用开发密钥，staging 和 production 各有独立值。此项不合并登录 JWT、管理员、TOTP、CAP、数据库或 Firefly 主站/Studio 内部密钥。新制品携带 `grpc-shared-key-v1` 能力标记；保存配置不表示服务已经发布，切换需协调服务端与调用方。
+同一环境的三个公共服务及所有调用项目共用 env.txt 中的 `GRPC_SHARED_SECRET`，YAML 的客户端秘密属性统一引用 `${GRPC_SHARED_SECRET}`。develop 使用开发密钥，staging 和 production 各有独立值。此项不合并登录 JWT、管理员、TOTP、CAP、数据库或 Firefly 主站/Studio 内部密钥。新制品携带 `grpc-shared-key-v1` 能力标记；保存配置不表示服务已经发布，切换需协调服务端与调用方。

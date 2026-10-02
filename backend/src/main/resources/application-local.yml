@@ -59,7 +59,7 @@ management:
     tags:
       component: ai-social-game
       service: backend
-      environment: local
+      environment: develop
       release_id: unknown
       release_version: unknown
   endpoint:

@@ -168,7 +168,7 @@ def network(catalog):
     # TLS handshakes only, never HTTP login, HMAC/RPC, cookies or request bodies.
     trust=Path(__file__).resolve().parents[1]/"local-trust"/"localcert-root-ca.crt"
     for name in ("ai-service","user-service"):
-        c=component(catalog,name); local=c["endpoints"]["local"]
+        c=component(catalog,name); local=c["endpoints"]["develop"]
         host=local["canonical_domain"]
         ports={x["port"] for x in local.get("listeners",[]) if x.get("protocol") in ("https","grpc-tls") and x.get("port")}
         for port in sorted(ports):

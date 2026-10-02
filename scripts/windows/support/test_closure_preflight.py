@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parents[3]
 
 class PreflightTest(unittest.TestCase):
     def setUp(self):
-        self.catalog={"components":[dict(canonical_component_id="shared-mysql",runtime=dict(host="aienie-6",plane="staging-shared-data",listeners=[dict(protocol="mysql",port=13306)]),endpoints=dict(local=dict(canonical_domain="localbase.testhut.top",host_ref="local-services-aienie-devvm",listeners=[dict(name="mysql",protocol="mysql",port=23306,bind_scope="lan-private")])),state=dict(current="verified-running",verified_at="2026-09-22"),data=dict(authority="authoritative"),security=dict(tls="disabled-in-verified-staging"))]}
+        self.catalog={"components":[dict(canonical_component_id="shared-mysql",runtime=dict(host="aienie-6",plane="staging-shared-data",listeners=[dict(protocol="mysql",port=13306)]),endpoints=dict(develop=dict(canonical_domain="localbase.testhut.top",host_ref="local-services-aienie-devvm",listeners=[dict(name="mysql",protocol="mysql",port=23306,bind_scope="lan-private")])),state=dict(current="verified-running",verified_at="2026-09-22"),data=dict(authority="authoritative"),security=dict(tls="disabled-in-verified-staging"))]}
         self.values=dict(ENV="local",AIENIE_RUNTIME_PLANE="windows-local",SPRING_DATASOURCE_URL="jdbc:mysql://localbase.testhut.top:23306/aisocialgame?useSSL=false")
 
     def test_matching_target_and_conflicts_never_use_a_fallback(self):
@@ -29,10 +29,10 @@ class PreflightTest(unittest.TestCase):
                 run.assert_not_called()
         self.assertEqual("UNKNOWN",resolve(self.catalog,{**self.values,"ENV":"production"},"a"*64)["status"])
         no_local_ref=copy.deepcopy(self.catalog)
-        del no_local_ref["components"][0]["endpoints"]["local"]["host_ref"]
+        del no_local_ref["components"][0]["endpoints"]["develop"]["host_ref"]
         self.assertEqual("UNKNOWN",resolve(no_local_ref,self.values,"a"*64)["status"])
         wrong_local_listener=copy.deepcopy(self.catalog)
-        wrong_local_listener["components"][0]["endpoints"]["local"]["listeners"][0]["port"]=13306
+        wrong_local_listener["components"][0]["endpoints"]["develop"]["listeners"][0]["port"]=13306
         self.assertEqual("UNKNOWN",resolve(wrong_local_listener,self.values,"a"*64)["status"])
         staging_changed=copy.deepcopy(self.catalog)
         staging_changed["components"][0]["runtime"]["listeners"][0]["port"]=3306
@@ -44,7 +44,7 @@ class PreflightTest(unittest.TestCase):
         for name,port in (("ai-service",22011),("user-service",22001)):
             catalog["components"].append(dict(canonical_component_id=name,
                 runtime=dict(listeners=[dict(protocol="grpc",ingress_port=12011)]),
-                endpoints=dict(local=dict(canonical_domain="local"+name.replace("-", "")+".testhut.top",
+                endpoints=dict(develop=dict(canonical_domain="local"+name.replace("-", "")+".testhut.top",
                     listeners=[dict(protocol="https",port=443),dict(protocol="grpc-tls",port=port)]))))
         tcp=Mock();tcp.__enter__=Mock(return_value=tcp);tcp.__exit__=Mock(return_value=False)
         tls=Mock();tls.__enter__=Mock(return_value=tls);tls.__exit__=Mock(return_value=False)
