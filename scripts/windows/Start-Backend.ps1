@@ -96,7 +96,7 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
         throw 'APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS must be an integer between 30 and 900.'
     }
 
-    $secret = Read-Value 'APP_EXTERNAL_USERSERVICE_JWT_SECRET'
+    $secret = Read-Value 'GRPC_SHARED_SECRET'
     $secretBytes = [Text.Encoding]::UTF8.GetByteCount($secret)
     $normalized = $secret.ToUpperInvariant()
     if ($secretBytes -lt 32 -or $secretBytes -gt 4096 -or $secret -cne $secret.Trim() -or
@@ -104,7 +104,7 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
             $normalized.Contains('CHANGE_ME') -or $normalized.Contains('CHANGE-ME') -or
             $normalized.Contains('CHANGEME') -or
             $normalized.Contains('PLACEHOLDER') -or $normalized.StartsWith('<') -or $normalized.EndsWith('>')) {
-        throw 'APP_EXTERNAL_USERSERVICE_JWT_SECRET must contain 32..4096 non-placeholder UTF-8 bytes without boundary whitespace or controls.'
+        throw 'GRPC_SHARED_SECRET must contain 32..4096 non-placeholder UTF-8 bytes without boundary whitespace or controls.'
     }
 }
 
@@ -114,6 +114,9 @@ function Test-PortListening([int]$Port) {
 }
 
 $privateValues = Read-PrivateEnvironment $EnvironmentFile
+. (Join-Path $repoRoot 'scripts\config-pair\ConfigurationPair.ps1')
+$yamlValues = Read-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
+foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
 . (Join-Path $PSScriptRoot 'LocalGrpcTrust.ps1')
 $localGrpcTrust = Get-LocalGrpcTrustUri
 . (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
@@ -131,7 +134,7 @@ if (Test-PortListening 11031) {
 foreach ($name in @('JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS', 'MAVEN_OPTS', 'SPRING_APPLICATION_JSON',
         'APP_EXTERNAL_GRPC_AUTH_REQUIRED', 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN',
         'APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID', 'APP_EXTERNAL_USERSERVICE_JWT_ISSUER',
-        'APP_EXTERNAL_USERSERVICE_JWT_SECRET', 'APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE',
+        'GRPC_SHARED_SECRET', 'APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE',
         'APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS', 'APP_EXTERNAL_USERSERVICE_JWT_SCOPES')) {
     if ($null -ne [Environment]::GetEnvironmentVariable($name, 'Process')) {
         Write-Verbose "Removing inherited '$name' before applying the environment file."
@@ -146,34 +149,15 @@ foreach ($name in @([Environment]::GetEnvironmentVariables('Process').Keys)) {
 }
 foreach ($entry in $privateValues.GetEnumerator()) { [Environment]::SetEnvironmentVariable([string]$entry.Key, [string]$entry.Value, 'Process') }
 
-$env:ENV = 'local'
 $env:APP_ENV = 'local'
+Import-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
 $env:SPRING_PROFILES_ACTIVE = 'local'
 $env:AIENIE_RUNTIME_PLANE = 'windows-local'
-$env:AUTH_MODE = 'password'
-$env:APP_PROJECT_KEY = 'aisocialgame'
 $env:SERVER_ADDRESS = '127.0.0.1'
-$env:SERVER_PORT = '11031'
 $env:VITE_LOCAL_BACKEND_PORT = '11031'
-$env:SPRING_DATASOURCE_URL = $sharedTarget.jdbcUrl
-$env:SPRING_DATA_REDIS_HOST = 'localbase.testhut.top'
-$env:SPRING_DATA_REDIS_PORT = '26379'
-$env:SPRING_DATA_REDIS_SSL_ENABLED = 'false'
-$env:QDRANT_HOST = 'http://localbase.testhut.top'
-$env:QDRANT_PORT = '26333'
-$env:USER_GRPC_ADDR = 'static://localuserservice.testhut.top:22001'
-$env:BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:22021'
-$env:AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'
-$env:GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
-$env:GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
-$env:GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
 $env:USER_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
-$env:BILLING_GRPC_PLAINTEXT_ENABLED = 'false'
-$env:APP_SECURITY_ALLOW_PLAINTEXT_GRPC = 'false'
-$env:SSO_USER_SERVICE_BASE_URL = 'https://localuserservice.testhut.top'
-$env:SSO_CALLBACK_URL = 'https://localsocialgame.testhut.top/sso/callback'
 
 $backendPom = Join-Path $repoRoot 'backend\pom.xml'
 $mvn = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path

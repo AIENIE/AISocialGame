@@ -23,7 +23,7 @@ public final class RuntimeConfigurationStartupGuard {
     @PostConstruct
     public void validate() {
         if (testAuthorization.getIfAvailable() == null) {
-            validateBeforeServerCreation(environment, System.getenv());
+            validateBeforeServerCreation(environment, com.aienie.configpair.RuntimeConfiguration.getenv());
         }
     }
 

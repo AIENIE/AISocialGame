@@ -1,3 +1,5 @@
+配置文件管理说明：[`application.yml` 与 `env.txt`](scripts/config-pair/README.md)。
+
 # AISocialGame
 
 基于 Spring Boot + React 的社交推理游戏平台。
@@ -33,13 +35,13 @@
 
 - `APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID=aisocialgame`
 - `APP_EXTERNAL_USERSERVICE_JWT_ISSUER=aisocialgame`
-- `APP_EXTERNAL_USERSERVICE_JWT_SECRET`（独立、至少 32 UTF-8 字节）
+- `GRPC_SHARED_SECRET`（当前环境共享、至少 32 UTF-8 字节）
 - `APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE=aienie-userservice-grpc`
 - `APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS=300`
 - `APP_EXTERNAL_USERSERVICE_JWT_SCOPES=user.auth.session.read,user.directory.read,user.ban.read,user.ban.write`
-- `APP_EXTERNAL_PAYSERVICE_JWT`
+- `GRPC_SHARED_SECRET`
 - `APP_EXTERNAL_AISERVICE_HMAC_CALLER`
-- `APP_EXTERNAL_AISERVICE_HMAC_SECRET`
+- `GRPC_SHARED_SECRET`
 
 缺失任一变量时，后端会在启动期 fail-fast。
 旧的 `APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN` 必须缺失或为空；任何非空值都会被 Java、Linux
@@ -57,7 +59,7 @@
 
 本地部署默认不依赖 Consul：
 
-- MySQL / Redis / Qdrant：`localbase.testhut.top:23306 / 26379 / 26333`
+- MySQL / Redis / Qdrant：`localmysql.testhut.top:23306 / 26379 / 26333`
 - user-service gRPC：`static://localuserservice.testhut.top:22001`，TLS
 - pay-service gRPC：`static://localpayservice.testhut.top:22021`，TLS
 - ai-service gRPC：`static://localaiservice.testhut.top:22011`，TLS
@@ -155,3 +157,7 @@ mysql \
 Windows 根入口为 `start.ps1`，参数为 `-Action Start|Build|Test|Status|Stop`、`-Level L1|L2|L3`、`-Component All|Backend|Frontend`，默认 `Start/L2/All`。本地端口为前端 `11030`、后端 `11031`，主页为 `https://localsocialgame.testhut.top/`。
 
 实际已记录的 L2 结果：后端 Maven 当前报告统计为 `119` 项执行、`0` failure、`0` error、`2` skipped，退出码 `0`（来自当前 `backend/target/surefire-reports/TEST-*.xml`）。前端 L2 为 2 个文件 / 19 项通过，退出码 0。完整启动的健康检查、HTTPS 与基础 API 已通过；本轮根入口双断点验收已完成。VS Code 根入口任务启动仓库根 `start.ps1`；建议在仓库根打开 VS Code，使用根目录 Java attach 与浏览器组合调试配置。
+
+## 公共服务 gRPC 共享密钥（2026-10-02）
+
+同一环境的三个公共服务及所有调用项目共用 env.txt 中的 `GRPC_SHARED_SECRET`，YAML 的客户端秘密属性统一引用 `${GRPC_SHARED_SECRET}`。local/develop 使用开发密钥，staging 和 production 各有独立值。此项不合并登录 JWT、管理员、TOTP、CAP、数据库或 Firefly 主站/Studio 内部密钥。新制品携带 `grpc-shared-key-v1` 能力标记；保存配置不表示服务已经发布，切换需协调服务端与调用方。

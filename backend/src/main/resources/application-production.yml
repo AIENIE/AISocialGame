@@ -1,0 +1,51 @@
+runtime:
+  configuration:
+    SERVER_ADDRESS: 0.0.0.0
+    USER_GRPC_NEGOTIATION_TYPE: TLS
+    BILLING_GRPC_NEGOTIATION_TYPE: TLS
+    AI_GRPC_NEGOTIATION_TYPE: TLS
+    APP_LOG_DIR: /app/logs
+    APP_RECORD_DIR: /app/records
+server:
+  port: '20030'
+spring:
+  datasource:
+    url: jdbc:mysql://base.seekerhut.com:13306/aisocialgame?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: base.seekerhut.com
+      port: '16379'
+      ssl:
+        enabled: true
+  grpc:
+    client:
+      channel:
+        user:
+          target: static://userservice.seekerhut.com:12001
+        billing:
+          target: static://payservice.seekerhut.com:12021
+        ai:
+          target: static://aiservice.seekerhut.com:12011
+qdrant:
+  host: https://base.seekerhut.com
+  http-port: '16333'
+app:
+  sso:
+    user-service-base-url: https://userservice.seekerhut.com
+    callback-url: https://socialgame.seekerhut.com/sso/callback
+  cors:
+    allowed-origins: https://socialgame.seekerhut.com
+  security:
+    allow-weak-runtime-defaults: false
+    allow-plaintext-grpc: false
+  demo-seed:
+    enabled: false
+  external:
+    userservice-jwt:
+      secret: ${GRPC_SHARED_SECRET}
+    payservice-jwt:
+      secret: ${GRPC_SHARED_SECRET}
+    aiservice-hmac-secret: ${GRPC_SHARED_SECRET}

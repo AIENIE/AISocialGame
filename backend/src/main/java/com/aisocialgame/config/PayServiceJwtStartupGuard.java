@@ -32,12 +32,12 @@ public class PayServiceJwtStartupGuard {
         boolean testAuthorized = testAuthorization.getIfAvailable() != null;
         validateFinalConfiguration(
                 appProperties,
-                System.getenv(),
+                com.aienie.configpair.RuntimeConfiguration.getenv(),
                 environment.getActiveProfiles(),
                 environment.getDefaultProfiles(),
                 testAuthorized);
         if (!testAuthorized) {
-            validatePayTransport(environment, System.getenv());
+            validatePayTransport(environment, com.aienie.configpair.RuntimeConfiguration.getenv());
         }
     }
 
@@ -93,7 +93,7 @@ public class PayServiceJwtStartupGuard {
         requireBound(rawEnvironment, PREFIX + "CALLER_ID", jwt.getCallerId());
         requireBound(rawEnvironment, PREFIX + "ISSUER", jwt.getIssuer());
         requireBound(rawEnvironment, PREFIX + "SERVICE", jwt.getService());
-        requireBound(rawEnvironment, PREFIX + "SECRET", jwt.getSecret());
+        requireBound(rawEnvironment, "GRPC_SHARED_SECRET", jwt.getSecret());
         requireBound(rawEnvironment, PREFIX + "AUDIENCE", jwt.getAudience());
         requireBound(rawEnvironment, PREFIX + "ROLE", jwt.getRole());
         requireBound(rawEnvironment, PREFIX + "TTL_SECONDS", Long.toString(jwt.getTtlSeconds()));

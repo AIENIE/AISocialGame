@@ -10,7 +10,7 @@ $oldFailure = $env:AIENIE_ENTRY_TEST_FAIL
 $stub = @'
 [CmdletBinding()]
 param([string]$Component,[string]$Service,[string]$Level,[string]$EnvironmentFile,[string]$EnvFile,
-      [string]$AdminFile,[string]$StudioEnvironmentFile,[string]$StudioAdminFile,[string]$CapEnvironmentFile,
+      [string]$StudioEnvironmentFile,
       [string]$TrustCertificatePath,[string]$PythonVenvRoot,[int]$StartupTimeoutSeconds,[int]$DebugPort,
       [switch]$NoBrowser,[switch]$EnableBackendDebug,[switch]$NoTrustCertificate,[string]$PreserveProcessIds)
 $values=@{}

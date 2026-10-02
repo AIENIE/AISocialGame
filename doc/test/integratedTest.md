@@ -73,7 +73,7 @@
 ## 6. 常见失败信号
 
 - `POST /api/auth/sso-callback` 返回 `401 Invalid token`
-  - 常见根因：`APP_EXTERNAL_PAYSERVICE_JWT` 过期
+  - 常见根因：`GRPC_SHARED_SECRET` 过期
   - 处置：按 pay-service 鉴权约束重签服务 JWT，再通过发版中心重新发布
 
 - 对局流程卡住（未推进到结算）

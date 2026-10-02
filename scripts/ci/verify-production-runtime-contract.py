@@ -33,13 +33,13 @@ if value.get("platform_injected_digest_fields") != [
     raise SystemExit("platform digest closure drifted")
 expected_overlay = {
     "schema_version": "aienie-production-protected-config-overlay-contract-v1",
-    "allowed_files": [{
+    "allowed_files": [{"target_path": "application.yml", "file_mode": "0444", "owner": "runtime_identity", "consumers": ["backend-runtime", "production-migration-executor"]}, {
         "target_path": "env.txt",
         "file_mode": "0600",
         "owner": "runtime_identity",
         "consumers": ["backend-runtime", "production-migration-executor"],
     }],
-    "forbidden_exact_paths": ["docker-compose.yml", "application.yml", "prompt.yml"],
+    "forbidden_exact_paths": ["docker-compose.yml", "prompt.yml"],
     "forbidden_prefixes": ["backend/", "frontend/", "release/"],
     "artifact_override_policy": "deny",
     "unlisted_path_policy": "deny",
@@ -92,6 +92,12 @@ if value.get("preactivation_authority") != expected_preactivation:
     raise SystemExit("AISocialGame signed preactivation authority contract drifted")
 compose = compose_path.read_text(encoding="utf-8")
 runtime = compose + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in runtime_paths)
+sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1 if pathlib.Path(__file__).parent.name == "ci" and pathlib.Path(__file__).parent.parent.name == "fireflyChat" else 2]/"scripts/config-pair"))
+from read_configuration import read
+configuration_root = pathlib.Path(__file__).resolve().parents[1 if pathlib.Path(__file__).parent.parent.name == "fireflyChat" else 2]
+configuration_values = read(configuration_root, "production")
+runtime += "\n" + "\n".join(key+"="+value for key,value in configuration_values.items())
+
 for forbidden in (
     ".testhut.top", ".aienie.com", ".localhut.com", "localhost", "extra_hosts",
     "host-gateway", "/etc/aienie", "env_file:", "build:", "container_name:"
@@ -159,7 +165,7 @@ for filename in authority_files:
 if "source: ./.aienie-platform, target: /run/aienie/release-authority" in compose:
     raise SystemExit("signed preactivation authority directory mounts are forbidden")
 launcher = runtime_paths[0].read_text(encoding="utf-8")
-if "SPRING_JPA_HIBERNATE_DDL_AUTO=validate" not in launcher:
+if configuration_values.get("SPRING_JPA_HIBERNATE_DDL_AUTO") != "validate":
     raise SystemExit("long-running backend must only validate schema")
 executor, entrypoint, ledger_path, plan_path = runtime_paths[1:]
 if executor.name != "production-migration-executor" or entrypoint.name != "production-migration-entrypoint.sh":

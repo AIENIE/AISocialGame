@@ -3,7 +3,7 @@ spring:
     url: jdbc:h2:mem:aisocial;DB_CLOSE_DELAY=-1;MODE=MySQL
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: null
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -12,7 +12,7 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   autoconfigure:
     exclude:
-      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+    - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
   grpc:
     client:
       channel:
@@ -43,3 +43,9 @@ app:
     session-minutes: 60
   external:
     grpc-auth-required: false
+    userservice-jwt:
+      secret: 0123456789abcdefABCDEFGHIJKLMNOPQRSTUVWXYZuvwxyz
+    payservice-jwt:
+      secret: 0123456789abcdefABCDEFGHIJKLMNOPQRSTUVWXYZuvwxyz
+    aiservice-hmac-secret: 0123456789abcdefABCDEFGHIJKLMNOPQRSTUVWXYZuvwxyz
+GRPC_SHARED_SECRET: 0123456789abcdefABCDEFGHIJKLMNOPQRSTUVWXYZuvwxyz

@@ -45,9 +45,9 @@
 默认 `APP_EXTERNAL_GRPC_AUTH_REQUIRED=true`，并要求：
 
 - `APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID/ISSUER/SECRET/AUDIENCE/TTL_SECONDS/SCOPES`
-- `APP_EXTERNAL_PAYSERVICE_JWT`
+- `GRPC_SHARED_SECRET`
 - `APP_EXTERNAL_AISERVICE_HMAC_CALLER`
-- `APP_EXTERNAL_AISERVICE_HMAC_SECRET`
+- `GRPC_SHARED_SECRET`
 
 启动期由 `ExternalGrpcAuthValidator` 进行 fail-fast 校验。UserService caller 固定为
 `aisocialgame`，audience 固定为 `aienie-userservice-grpc`，scope 精确限制为会话读取、目录读取、
@@ -56,7 +56,7 @@ identity/audience 或 TTL 越界均拒绝启动。
 
 ### pay-service JWT 时效要求
 
-- `APP_EXTERNAL_PAYSERVICE_JWT` 为服务间 Bearer JWT，必须包含：
+- `GRPC_SHARED_SECRET` 为服务间 Bearer JWT，必须包含：
   - `iss=aienie-services`
   - `aud=aienie-payservice-grpc`
   - `role=SERVICE`

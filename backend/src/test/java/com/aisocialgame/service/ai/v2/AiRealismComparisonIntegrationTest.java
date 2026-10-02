@@ -57,7 +57,7 @@ import static org.mockito.Mockito.doAnswer;
         "spring.grpc.client.channel.ai.ssl.enabled=true",
         "app.grpc.ai-trust-cert-collection=",
         "app.external.aiservice-hmac-caller=${APP_EXTERNAL_AISERVICE_HMAC_CALLER:}",
-        "app.external.aiservice-hmac-secret=${APP_EXTERNAL_AISERVICE_HMAC_SECRET:}",
+        "app.external.aiservice-hmac-secret=${GRPC_SHARED_SECRET:}",
         "app.ai.default-model=${APP_AI_DEFAULT_MODEL:}",
         "app.ai.system-user-id=${APP_AI_SYSTEM_USER_ID:1}",
         "app.ai.validation-call-limit=90",
@@ -100,7 +100,7 @@ class AiRealismComparisonIntegrationTest {
     void collectThirtyScenarioComparisonsWithinNinetyCallCeiling() throws Exception {
         requireEnvironment("AI_GRPC_ADDR");
         requireEnvironment("APP_EXTERNAL_AISERVICE_HMAC_CALLER");
-        requireEnvironment("APP_EXTERNAL_AISERVICE_HMAC_SECRET");
+        requireEnvironment("GRPC_SHARED_SECRET");
         requireEnvironment("APP_AI_SYSTEM_USER_ID");
         assertTrue(System.getProperty("os.name", "").startsWith("Windows"), "This acceptance adapter is Windows-local only");
         assertEquals("local", requireEnvironment("ENV"), "Only the local gateway is authorized");

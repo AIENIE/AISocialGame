@@ -8,7 +8,7 @@ $oldCaller=[Environment]::GetEnvironmentVariable('APP_EXTERNAL_AISERVICE_HMAC_CA
 try{
  foreach($name in @('manifest','bundle','ledger','proof')){'{}' | Set-Content -LiteralPath (Join-Path $testRoot "$name.json")}
  '{"callerId":"synthetic-only"}' | Set-Content -LiteralPath (Join-Path $testRoot 'grant.json')
- @('ENV=local','AI_GRPC_ADDR=static://localaiservice.testhut.top:22011','AI_GRPC_NEGOTIATION_TYPE=TLS','APP_AI_DEFAULT_MODEL=deepseek-flash','APP_EXTERNAL_AISERVICE_HMAC_CALLER=synthetic-only','APP_EXTERNAL_AISERVICE_HMAC_SECRET=synthetic-no-secret') | Set-Content -LiteralPath (Join-Path $testRoot 'test.env')
+ @('ENV=local','AI_GRPC_ADDR=static://localaiservice.testhut.top:22011','AI_GRPC_NEGOTIATION_TYPE=TLS','APP_AI_DEFAULT_MODEL=deepseek-flash','APP_EXTERNAL_AISERVICE_HMAC_CALLER=synthetic-only','GRPC_SHARED_SECRET=synthetic-no-secret') | Set-Content -LiteralPath (Join-Path $testRoot 'test.env')
  $env:APP_CONVERSATION_SENTINEL='restore-me';$env:AI_CONVERSATION_REAL='must-be-restored'
  $global:AiConversationTestCalls=@{python=0;maven=0}
  function python.exe {$global:AiConversationTestCalls.python++;$global:LASTEXITCODE=0;'{"status":"SYNTHETIC_GATE"}'}

@@ -65,9 +65,9 @@ foreach($line in [IO.File]::ReadAllLines($validationEnv)){
 }
 foreach($key in @('ENV','AI_GRPC_ADDR','AI_GRPC_NEGOTIATION_TYPE','APP_AI_DEFAULT_MODEL')){if($validationValues[$key] -cne $validationCanonical[$key]){throw 'Noncanonical environment, model or TLS target.'}}
 $validationApproved=Get-Content -LiteralPath $validationGrant -Raw | ConvertFrom-Json -AsHashtable
-if($validationValues.APP_EXTERNAL_AISERVICE_HMAC_CALLER -cne $validationApproved.callerId -or [string]::IsNullOrWhiteSpace($validationValues.APP_EXTERNAL_AISERVICE_HMAC_SECRET)){throw 'Original caller credentials do not match the grant.'}
+if($validationValues.APP_EXTERNAL_AISERVICE_HMAC_CALLER -cne $validationApproved.callerId -or [string]::IsNullOrWhiteSpace($validationValues.GRPC_SHARED_SECRET)){throw 'Original caller credentials do not match the grant.'}
 $validationCanonical.APP_EXTERNAL_AISERVICE_HMAC_CALLER=$validationValues.APP_EXTERNAL_AISERVICE_HMAC_CALLER
-$validationCanonical.APP_EXTERNAL_AISERVICE_HMAC_SECRET=$validationValues.APP_EXTERNAL_AISERVICE_HMAC_SECRET
+$validationCanonical.GRPC_SHARED_SECRET=$validationValues.GRPC_SHARED_SECRET
 $validationPrevious=@{}
 try{
  foreach($name in @([Environment]::GetEnvironmentVariables('Process').Keys)){

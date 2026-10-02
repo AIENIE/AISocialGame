@@ -5,26 +5,69 @@
   "environment": "production",
   "public_origin": "https://socialgame.seekerhut.com",
   "compose_path": "docker-compose.yml",
-  "release_unit": ["backend", "frontend"],
-  "listeners": ["127.0.0.1:11030:11030", "127.0.0.1:11031:20030"],
+  "release_unit": [
+    "backend",
+    "frontend"
+  ],
+  "listeners": [
+    "127.0.0.1:11030:11030",
+    "127.0.0.1:11031:20030"
+  ],
   "dependencies": [
-    {"id": "mysql", "authority": "base.seekerhut.com:13306", "tls_required": true},
-    {"id": "redis", "authority": "base.seekerhut.com:16379", "tls_required": true},
-    {"id": "qdrant", "authority": "base.seekerhut.com:16333", "tls_required": true},
-    {"id": "user-service", "authority": "userservice.seekerhut.com:12001", "tls_required": true},
-    {"id": "pay-service", "authority": "payservice.seekerhut.com:12021", "tls_required": true},
-    {"id": "ai-service", "authority": "aiservice.seekerhut.com:12011", "tls_required": true}
+    {
+      "id": "mysql",
+      "authority": "base.seekerhut.com:13306",
+      "tls_required": true
+    },
+    {
+      "id": "redis",
+      "authority": "base.seekerhut.com:16379",
+      "tls_required": true
+    },
+    {
+      "id": "qdrant",
+      "authority": "base.seekerhut.com:16333",
+      "tls_required": true
+    },
+    {
+      "id": "user-service",
+      "authority": "userservice.seekerhut.com:12001",
+      "tls_required": true
+    },
+    {
+      "id": "pay-service",
+      "authority": "payservice.seekerhut.com:12021",
+      "tls_required": true
+    },
+    {
+      "id": "ai-service",
+      "authority": "aiservice.seekerhut.com:12011",
+      "tls_required": true
+    }
   ],
   "persistent_bindings": [
-    {"source": "/srv/aienie-products/ai-social-game/logs", "target": "/app/logs", "purpose": "operational-log"},
-    {"source": "/srv/aienie-products/ai-social-game/records", "target": "/app/records", "purpose": "audit-records"}
+    {
+      "source": "/srv/aienie-products/ai-social-game/logs",
+      "target": "/app/logs",
+      "purpose": "operational-log"
+    },
+    {
+      "source": "/srv/aienie-products/ai-social-game/records",
+      "target": "/app/records",
+      "purpose": "audit-records"
+    }
   ],
   "backup": {
     "schema_version": "aienie-production-backup-contract-v1",
     "nightly": {
-      "include": ["/srv/aienie-products/ai-social-game/records"],
+      "include": [
+        "/srv/aienie-products/ai-social-game/records"
+      ],
       "exclude": [
-        {"source": "/srv/aienie-products/ai-social-game/logs", "classification": "operational-log"}
+        {
+          "source": "/srv/aienie-products/ai-social-game/logs",
+          "classification": "operational-log"
+        }
       ]
     }
   },
@@ -32,18 +75,41 @@
     "schema_version": "aienie-production-protected-config-overlay-contract-v1",
     "allowed_files": [
       {
+        "target_path": "application.yml",
+        "file_mode": "0444",
+        "owner": "runtime_identity",
+        "consumers": [
+          "backend-runtime",
+          "production-migration-executor"
+        ]
+      },
+      {
         "target_path": "env.txt",
         "file_mode": "0600",
         "owner": "runtime_identity",
-        "consumers": ["backend-runtime", "production-migration-executor"]
+        "consumers": [
+          "backend-runtime",
+          "production-migration-executor"
+        ]
       }
     ],
-    "forbidden_exact_paths": ["docker-compose.yml", "application.yml", "prompt.yml"],
-    "forbidden_prefixes": ["backend/", "frontend/", "release/"],
+    "forbidden_exact_paths": [
+      "docker-compose.yml",
+      "prompt.yml"
+    ],
+    "forbidden_prefixes": [
+      "backend/",
+      "frontend/",
+      "release/"
+    ],
     "artifact_override_policy": "deny",
     "unlisted_path_policy": "deny"
   },
-  "ownership": {"uid_source": "AIENIE_RUNTIME_UID", "gid_source": "AIENIE_RUNTIME_GID", "must_match": true},
+  "ownership": {
+    "uid_source": "AIENIE_RUNTIME_UID",
+    "gid_source": "AIENIE_RUNTIME_GID",
+    "must_match": true
+  },
   "artifact_mount_policy": "release-root-relative-read-only",
   "migration": {
     "mode": "explicit-sql-ledger",
@@ -69,7 +135,9 @@
   },
   "preactivation_authority": {
     "schema_version": "aienie-production-preactivation-authority-v1",
-    "required_for": ["backend-runtime"],
+    "required_for": [
+      "backend-runtime"
+    ],
     "container_root": "/run/aienie/release-authority",
     "files": [
       "production-release-manifest-v4.json",
@@ -84,6 +152,23 @@
     "signature": "double-ed25519-canonical-json-raw64",
     "startup_policy": "fail-closed-before-production-b0"
   },
-  "authorization": {"minimum_release_manifest_version": 4, "policy": "signed-v4-only", "outer_signature_required": true},
-  "platform_injected_digest_fields": ["source_commit", "config_digest", "artifact_digest", "image_digests"]
+  "authorization": {
+    "minimum_release_manifest_version": 4,
+    "policy": "signed-v4-only",
+    "outer_signature_required": true
+  },
+  "platform_injected_digest_fields": [
+    "source_commit",
+    "config_digest",
+    "artifact_digest",
+    "image_digests"
+  ],
+  "configuration_pair": {
+    "format": "application-yaml-env-v1",
+    "files": [
+      "application.yml",
+      "env.txt"
+    ],
+    "grpc_auth_format": "grpc-shared-key-v1"
+  }
 }

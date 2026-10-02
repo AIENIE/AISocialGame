@@ -20,20 +20,15 @@ if [ "$#" -gt 0 ]; then
     exit 1
   }
   # shellcheck source=/dev/null
-  . /app/bin/staging-load-env-file.sh "$@"
+  . /app/bin/staging-load-env-file.sh
+  load_one_env_file "$@"
 fi
 
 JAVA_HOME=/opt/java/openjdk
 PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export JAVA_HOME PATH
 clear_process_overrides
-[ "${ENV:-}" = test ] || {
-  echo 'AISocialGame reviewed launcher is staging-only; production remains frozen' >&2
-  exit 1
-}
-export SERVER_ADDRESS=0.0.0.0 SERVER_PORT=20030
-export QDRANT_HOST=http://base.testhut.top QDRANT_PORT=16333
-export GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION=file:/run/aienie/trust/staging-root.pem
-export GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION=file:/run/aienie/trust/staging-root.pem
-export GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION=file:/run/aienie/trust/staging-root.pem
+
+[ -f /app/application.yml ] || { echo "runtime application.yml is missing" >&2; exit 1; }
+export SPRING_CONFIG_ADDITIONAL_LOCATION=file:/app/application.yml
 exec /opt/java/openjdk/bin/java -jar /app/app.jar

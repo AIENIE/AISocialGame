@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest(classes = AiSocialGameApplication.class, properties = {
         "spring.grpc.client.channel.ai.target=${AI_GRPC_ADDR:static://127.0.0.1:19003}",
         "app.external.aiservice-hmac-caller=${APP_EXTERNAL_AISERVICE_HMAC_CALLER:}",
-        "app.external.aiservice-hmac-secret=${APP_EXTERNAL_AISERVICE_HMAC_SECRET:}",
+        "app.external.aiservice-hmac-secret=${GRPC_SHARED_SECRET:}",
         "app.ai.default-model=${APP_AI_DEFAULT_MODEL:}",
         "app.ai.system-user-id=${APP_AI_SYSTEM_USER_ID:1}"
 })
@@ -39,7 +39,7 @@ class AiDecisionRealIntegrationTest {
         Assumptions.assumeTrue("1".equals(System.getenv("REAL_AI_INTEGRATION")), "REAL_AI_INTEGRATION=1 not set");
         Assumptions.assumeTrue(hasText(System.getenv("AI_GRPC_ADDR")), "AI_GRPC_ADDR not set");
         Assumptions.assumeTrue(hasText(System.getenv("APP_EXTERNAL_AISERVICE_HMAC_CALLER")), "AI HMAC caller not set");
-        Assumptions.assumeTrue(hasText(System.getenv("APP_EXTERNAL_AISERVICE_HMAC_SECRET")), "AI HMAC secret not set");
+        Assumptions.assumeTrue(hasText(System.getenv("GRPC_SHARED_SECRET")), "AI HMAC secret not set");
 
         GameState state = new GameState("real-ai-room", "undercover", "DESCRIPTION");
         state.setPlayers(List.of(

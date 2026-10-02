@@ -31,3 +31,17 @@ for p in r.rglob('*'):
 v=json.loads(m.read_text(encoding='utf-8')) if m.exists() else {'format':2,'project_key':'AISocialGame'};v['files']=sorted(p.relative_to(r).as_posix() for p in r.rglob('*') if p.is_file() and p!=m);m.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
 PY
 chmod 0444 "$out/.project-manifest.json";echo 'Assembled signed-v4-only AISocialGame production bundle.'
+
+mkdir -p "$out/scripts/config-pair"
+cp -R "$repo/scripts/config-pair/." "$out/scripts/config-pair/"
+install -m 0444 "$repo/scripts/config-pair/runtime-config-format" "$out/.aienie-runtime-config-format"
+install -m 0444 "$repo/scripts/config-pair/runtime-grpc-auth-format" "$out/.aienie-runtime-grpc-auth-format"
+
+python3 - "$out" <<'PYCONFIGMANIFEST'
+import json,pathlib,sys
+root=pathlib.Path(sys.argv[1]);path=root/'.project-manifest.json'
+if path.exists():
+ value=json.loads(path.read_text(encoding='utf-8'))
+ value['files']=sorted(p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p!=path)
+ path.chmod(0o600);path.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');path.chmod(0o444)
+PYCONFIGMANIFEST

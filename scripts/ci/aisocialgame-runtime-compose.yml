@@ -42,6 +42,12 @@ services:
         bind:
           create_host_path: false
       - type: bind
+        source: ./application.yml
+        target: /app/application.yml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
         source: /etc/aienie-staging-pki/root.pem
         target: /run/aienie/trust/staging-root.pem
         read_only: true

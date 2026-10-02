@@ -12,7 +12,7 @@
 
 1. 测试/正式环境通过发版中心发布：入口为 `scripts/ci/build-release.sh`（两阶段 Resolve/Build 契约，见 `scripts/ci/README.md`）；构建产物不包含运行时配置、秘密或证书。
 2. Linux 服务器运行时配置（数据库、管理员 BCrypt 哈希、TOTP keyring、三服务 gRPC 鉴权变量）由 config-center 在部署侧注入，不使用仓库本地配置。
-3. 确认 `APP_EXTERNAL_PAYSERVICE_JWT` 未过期（推荐每次发布前重新生成）。
+3. 确认 `GRPC_SHARED_SECRET` 未过期（推荐每次发布前重新生成）。
 4. 启动前先幂等执行并核验 `backend/sql/20260810_admin_totp_auth.sql`；既有环境还应确认更早的日期迁移均已应用。
 5. 发布完成后仅代表部署完成，测试需执行第 7 节真人验收流程；发版链路不登录管理员，也不执行任何特权迁移。
 
@@ -90,7 +90,7 @@
 ## 8. 常见故障与处置
 
 1. 现象：`/api/auth/sso-callback` 返回 `401 Invalid token`。
-2. 根因：`APP_EXTERNAL_PAYSERVICE_JWT` 过期，导致后端调用 pay-service gRPC 认证失败。
+2. 根因：`GRPC_SHARED_SECRET` 过期，导致后端调用 pay-service gRPC 认证失败。
 3. 处理：
    - 用 pay-service 的 `JWT_SECRET` 重新签发服务 JWT（`iss=aienie-services`，`aud=aienie-payservice-grpc`，`role=SERVICE`，`scopes=[billing.balance.read,billing.balance.convert,billing.onboarding.write,billing.checkin.read,billing.checkin.write,billing.redeem.write,billing.ledger.read]`）。
    - 重新通过发版中心发布。

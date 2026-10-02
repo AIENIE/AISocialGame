@@ -1,0 +1,263 @@
+{
+  "format": "application-yaml-env-v1",
+  "component": "ai-social-game",
+  "bindings": {
+    "SPRING_APPLICATION_NAME": [
+      "spring.application.name"
+    ],
+    "SPRING_DATASOURCE_URL": [
+      "spring.datasource.url"
+    ],
+    "SPRING_DATASOURCE_USERNAME": [
+      "spring.datasource.username"
+    ],
+    "SPRING_DATASOURCE_PASSWORD": [
+      "spring.datasource.password"
+    ],
+    "SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY": [
+      "spring.datasource.hikari.connection-test-query"
+    ],
+    "SPRING_JPA_HIBERNATE_DDL_AUTO": [
+      "spring.jpa.hibernate.ddl-auto"
+    ],
+    "SPRING_DATA_REDIS_HOST": [
+      "spring.data.redis.host"
+    ],
+    "SPRING_DATA_REDIS_PORT": [
+      "spring.data.redis.port"
+    ],
+    "SPRING_DATA_REDIS_USERNAME": [
+      "spring.data.redis.username"
+    ],
+    "SPRING_DATA_REDIS_PASSWORD": [
+      "spring.data.redis.password"
+    ],
+    "SPRING_DATA_REDIS_SSL_ENABLED": [
+      "spring.data.redis.ssl.enabled"
+    ],
+    "USER_GRPC_ADDR": [
+      "spring.grpc.client.channel.user.target"
+    ],
+    "BILLING_GRPC_ADDR": [
+      "spring.grpc.client.channel.billing.target"
+    ],
+    "AI_GRPC_ADDR": [
+      "spring.grpc.client.channel.ai.target"
+    ],
+    "SERVER_PORT": [
+      "server.port"
+    ],
+    "DEPLOYMENT_ENVIRONMENT": [
+      "management.metrics.tags.environment"
+    ],
+    "RELEASE_ID": [
+      "management.metrics.tags.release_id"
+    ],
+    "RELEASE_VERSION": [
+      "management.metrics.tags.release_version"
+    ],
+    "LOGGING_FILE_NAME": [
+      "logging.file.name"
+    ],
+    "LOGGING_MAX_FILE_SIZE": [
+      "logging.logback.rollingpolicy.max-file-size"
+    ],
+    "LOGGING_MAX_HISTORY": [
+      "logging.logback.rollingpolicy.max-history"
+    ],
+    "LOGGING_TOTAL_SIZE_CAP": [
+      "logging.logback.rollingpolicy.total-size-cap"
+    ],
+    "LOGGING_CLEAN_HISTORY_ON_START": [
+      "logging.logback.rollingpolicy.clean-history-on-start"
+    ],
+    "LOGGING_LEVEL_ROOT": [
+      "logging.level.root"
+    ],
+    "LOGGING_LEVEL_APP": [
+      "logging.level.com.aisocialgame"
+    ],
+    "APP_PROJECT_KEY": [
+      "app.project-key"
+    ],
+    "GRPC_CLIENT_USER_SECURITY_TRUST_CERT_COLLECTION": [
+      "app.grpc.user-trust-cert-collection"
+    ],
+    "GRPC_CLIENT_BILLING_SECURITY_TRUST_CERT_COLLECTION": [
+      "app.grpc.billing-trust-cert-collection"
+    ],
+    "GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION": [
+      "app.grpc.ai-trust-cert-collection"
+    ],
+    "SSO_USER_SERVICE_BASE_URL": [
+      "app.sso.user-service-base-url"
+    ],
+    "SSO_CALLBACK_URL": [
+      "app.sso.callback-url"
+    ],
+    "SSO_LOGIN_PATH": [
+      "app.sso.login-path"
+    ],
+    "SSO_REGISTER_PATH": [
+      "app.sso.register-path"
+    ],
+    "APP_AUTH_TOKEN_TTL_HOURS": [
+      "app.auth.token-ttl-hours"
+    ],
+    "APP_REDIS_TOKEN_KEY_PREFIX": [
+      "app.redis.token-key-prefix"
+    ],
+    "APP_AI_DEFAULT_MODEL": [
+      "app.ai.default-model"
+    ],
+    "APP_AI_SYSTEM_USER_ID": [
+      "app.ai.system-user-id"
+    ],
+    "APP_CREDIT_CHECKIN_GRANT_TOKENS": [
+      "app.credit.checkin-grant-tokens"
+    ],
+    "APP_CREDIT_TEMP_EXPIRY_DAYS": [
+      "app.credit.temp-expiry-days"
+    ],
+    "APP_CREDIT_EXCHANGE_DAILY_LIMIT": [
+      "app.credit.exchange-daily-limit"
+    ],
+    "APP_CREDIT_REDEEM_FAILURE_LIMIT_PER_DAY": [
+      "app.credit.redeem-failure-limit-per-day"
+    ],
+    "APP_WEBSOCKET_ENABLED": [
+      "app.websocket.enabled"
+    ],
+    "APP_CORS_ALLOWED_ORIGINS": [
+      "app.cors.allowed-origins"
+    ],
+    "APP_ADMIN_USERNAME": [
+      "app.admin.username"
+    ],
+    "APP_ADMIN_PASSWORD_HASH": [
+      "app.admin.password-hash"
+    ],
+    "APP_ADMIN_DISPLAY_NAME": [
+      "app.admin.display-name"
+    ],
+    "APP_ADMIN_OPERATOR_USER_ID": [
+      "app.admin.operator-user-id"
+    ],
+    "ADMIN_TOTP_ENCRYPTION_KEYS": [
+      "app.admin.totp-encryption-keys"
+    ],
+    "ADMIN_TOTP_ACTIVE_KEY_VERSION": [
+      "app.admin.totp-active-key-version"
+    ],
+    "APP_ADMIN_SESSION_MINUTES": [
+      "app.admin.session-minutes"
+    ],
+    "APP_ADMIN_SESSION_IDLE_MINUTES": [
+      "app.admin.session-idle-minutes"
+    ],
+    "APP_ADMIN_RECOVERY_SESSION_MINUTES": [
+      "app.admin.recovery-session-minutes"
+    ],
+    "APP_ADMIN_RECOVERY_SESSION_IDLE_MINUTES": [
+      "app.admin.recovery-session-idle-minutes"
+    ],
+    "APP_ADMIN_COOKIE_SECURE": [
+      "app.admin.cookie-secure"
+    ],
+    "APP_SECURITY_ALLOW_WEAK_RUNTIME_DEFAULTS": [
+      "app.security.allow-weak-runtime-defaults"
+    ],
+    "APP_SECURITY_ALLOW_PLAINTEXT_GRPC": [
+      "app.security.allow-plaintext-grpc"
+    ],
+    "APP_DEMO_SEED_ENABLED": [
+      "app.demo-seed.enabled"
+    ],
+    "BILLING_GRPC_PLAINTEXT_ENABLED": [
+      "app.external.payservice-plaintext-enabled"
+    ],
+    "APP_EXTERNAL_GRPC_AUTH_REQUIRED": [
+      "app.external.grpc-auth-required"
+    ],
+    "APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID": [
+      "app.external.userservice-jwt.caller-id"
+    ],
+    "APP_EXTERNAL_USERSERVICE_JWT_ISSUER": [
+      "app.external.userservice-jwt.issuer"
+    ],
+    "APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE": [
+      "app.external.userservice-jwt.audience"
+    ],
+    "APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS": [
+      "app.external.userservice-jwt.ttl-seconds"
+    ],
+    "APP_EXTERNAL_USERSERVICE_JWT_SCOPES": [
+      "app.external.userservice-jwt.scopes"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_CALLER_ID": [
+      "app.external.payservice-jwt.caller-id"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_ISSUER": [
+      "app.external.payservice-jwt.issuer"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_SERVICE": [
+      "app.external.payservice-jwt.service"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_AUDIENCE": [
+      "app.external.payservice-jwt.audience"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_ROLE": [
+      "app.external.payservice-jwt.role"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_TTL_SECONDS": [
+      "app.external.payservice-jwt.ttl-seconds"
+    ],
+    "APP_EXTERNAL_PAYSERVICE_JWT_SCOPES": [
+      "app.external.payservice-jwt.scopes"
+    ],
+    "APP_EXTERNAL_AISERVICE_HMAC_CALLER": [
+      "app.external.aiservice-hmac-caller"
+    ],
+    "QDRANT_HOST": [
+      "qdrant.host"
+    ],
+    "QDRANT_PORT": [
+      "qdrant.http-port"
+    ],
+    "QDRANT_ENABLED": [
+      "qdrant.enabled"
+    ],
+    "QDRANT_API_KEY": [
+      "qdrant.api-key"
+    ],
+    "APP_CONNECTION_DISCONNECT_THRESHOLD_SECONDS": [
+      "connection.disconnect-threshold-seconds"
+    ],
+    "ENV": [
+      "runtime.configuration.ENV"
+    ],
+    "AUTH_MODE": [
+      "runtime.configuration.AUTH_MODE"
+    ],
+    "ADMIN_USERNAME": [
+      "runtime.configuration.ADMIN_USERNAME"
+    ],
+    "ADMIN_PASSWORD": [
+      "runtime.configuration.ADMIN_PASSWORD"
+    ],
+    "ADMIN_PASSWORD_HASH": [
+      "runtime.configuration.ADMIN_PASSWORD_HASH"
+    ],
+    "ADMIN_TOTP_SECRET": [
+      "runtime.configuration.ADMIN_TOTP_SECRET"
+    ],
+    "SPRING_PROFILES_ACTIVE": [
+      "spring.profiles.active"
+    ],
+    "GRPC_SHARED_SECRET": [
+      "app.external.userservice-jwt.secret",
+      "app.external.payservice-jwt.secret",
+      "app.external.aiservice-hmac-secret"
+    ]
+  }
+}

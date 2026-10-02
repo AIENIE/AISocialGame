@@ -22,7 +22,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
     "spring.grpc.client.channel.ai.target=${AI_GRPC_ADDR:static://127.0.0.1:19003}","spring.grpc.client.channel.ai.ssl.enabled=true",
     "app.grpc.ai-trust-cert-collection=",
     "app.external.aiservice-hmac-caller=${APP_EXTERNAL_AISERVICE_HMAC_CALLER:}",
-    "app.external.aiservice-hmac-secret=${APP_EXTERNAL_AISERVICE_HMAC_SECRET:}",
+    "app.external.aiservice-hmac-secret=${GRPC_SHARED_SECRET:}",
     "app.ai.default-model=${APP_AI_DEFAULT_MODEL:}","app.ai.system-user-id=${APP_AI_SYSTEM_USER_ID:1}",
     "app.game.scheduler-enabled=false","app.ai.validation-call-limit=0"
 })

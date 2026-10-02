@@ -24,6 +24,7 @@ public final class StrictHttpHealthProbe {
     }
 
     public static void main(String[] args) {
+        com.aienie.configpair.RuntimeConfiguration.initialize(args);
         if (args.length != 1 || !isHealthy(args[0])) System.exit(1);
     }
 

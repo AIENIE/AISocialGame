@@ -1,12 +1,14 @@
 spring:
   config:
     import: classpath:prompt.yml
+    activate:
+      on-profile: local
   application:
     name: ai-social-game
   datasource:
-    url: ''
+    url: jdbc:mysql://localmysql.testhut.top:23306/aisocialgame?serverTimezone=UTC&useSSL=false
     username: aisocialgame
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       connection-test-query: SELECT 1
@@ -18,7 +20,7 @@ spring:
         format_sql: false
   data:
     redis:
-      host: ''
+      host: localredis.testhut.top
       port: 26379
       username: ''
       password: ${SPRING_DATA_REDIS_PASSWORD:}
@@ -28,15 +30,15 @@ spring:
     client:
       channel:
         user:
-          target: ''
+          target: static://localuserservice.testhut.top:22001
           ssl:
             enabled: true
         billing:
-          target: ''
+          target: static://localpayservice.testhut.top:22021
           ssl:
             enabled: true
         ai:
-          target: ''
+          target: static://localaiservice.testhut.top:22011
           ssl:
             enabled: true
 server:
@@ -87,8 +89,8 @@ app:
     billing-trust-cert-collection: ''
     ai-trust-cert-collection: ''
   sso:
-    user-service-base-url: ''
-    callback-url: ''
+    user-service-base-url: https://localuserservice.testhut.top
+    callback-url: https://localsocialgame.testhut.top/sso/callback
     login-path: /sso/login
     register-path: /register
   auth:
@@ -106,13 +108,13 @@ app:
   websocket:
     enabled: true
   cors:
-    allowed-origins: ''
+    allowed-origins: https://localsocialgame.testhut.top
   admin:
     username: admin
-    password-hash: ${APP_ADMIN_PASSWORD_HASH:}
+    password-hash: ${APP_ADMIN_PASSWORD_HASH}
     display-name: 系统管理员
     operator-user-id: 1
-    totp-encryption-keys: ${ADMIN_TOTP_ENCRYPTION_KEYS:}
+    totp-encryption-keys: v1:${ADMIN_TOTP_ENCRYPTION_KEY_V1}
     totp-active-key-version: v1
     session-minutes: 120
     session-idle-minutes: 30
@@ -120,8 +122,8 @@ app:
     recovery-session-idle-minutes: 10
     cookie-secure: true
   security:
-    allow-weak-runtime-defaults: false
-    allow-plaintext-grpc: false
+    allow-weak-runtime-defaults: true
+    allow-plaintext-grpc: true
   demo-seed:
     enabled: false
   external:
@@ -143,10 +145,10 @@ app:
       role: SERVICE
       ttl-seconds: 300
       scopes: billing.balance.read,billing.checkin.write,billing.checkin.read,billing.ledger.read,billing.balance.convert,billing.onboarding.write,billing.redeem.write
-    aiservice-hmac-caller: ''
+    aiservice-hmac-caller: integration-test
     aiservice-hmac-secret: ${GRPC_SHARED_SECRET}
 qdrant:
-  host: ''
+  host: http://localqdrant.testhut.top
   http-port: 26333
   enabled: true
   api-key: ${QDRANT_API_KEY:}
@@ -154,11 +156,19 @@ connection:
   disconnect-threshold-seconds: 60
 runtime:
   configuration:
-    ENV: ''
-    AUTH_MODE: ''
+    ENV: local
+    AUTH_MODE: password
     ADMIN_USERNAME: ''
     ADMIN_PASSWORD: ${ADMIN_PASSWORD:}
     ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:}
     ADMIN_TOTP_SECRET: ${ADMIN_TOTP_SECRET:}
+    AIENIE_RUNTIME_PLANE: windows-local
+    AI_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    AI_SERVICE_BASE_URL: https://localaiservice.testhut.top
+    BILLING_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    PAY_SERVICE_BASE_URL: https://localpayservice.testhut.top
+    USER_GRPC_NEGOTIATION_TYPE: PLAINTEXT
+    USER_SERVICE_BASE_URL: https://localuserservice.testhut.top
+    APP_ENV: local
 ENV: ${runtime.configuration.ENV}
 AUTH_MODE: ${runtime.configuration.AUTH_MODE}

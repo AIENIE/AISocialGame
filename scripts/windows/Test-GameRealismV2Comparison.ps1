@@ -163,7 +163,7 @@ foreach ($settings in @($comparisonInherited, $comparisonValues)) {
         throw 'BudgetFile differs from the already configured cumulative ledger. Reuse the same ledger; changing it would reset accounting.'
     }
 }
-foreach ($name in @('APP_EXTERNAL_AISERVICE_HMAC_CALLER', 'APP_EXTERNAL_AISERVICE_HMAC_SECRET')) {
+foreach ($name in @('APP_EXTERNAL_AISERVICE_HMAC_CALLER', 'GRPC_SHARED_SECRET')) {
     $value = [string]$comparisonValues[$name]
     if ([string]::IsNullOrWhiteSpace($value) -or $value -cne $value.Trim() -or
             $value -match '[\x00-\x1F\x7F]' -or [Text.Encoding]::UTF8.GetByteCount($value) -gt 4096) {
@@ -183,7 +183,7 @@ $comparisonCanonical = [ordered]@{
     AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'; AI_GRPC_NEGOTIATION_TYPE = 'TLS'
     GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust
     APP_EXTERNAL_AISERVICE_HMAC_CALLER = [string]$comparisonValues['APP_EXTERNAL_AISERVICE_HMAC_CALLER']
-    APP_EXTERNAL_AISERVICE_HMAC_SECRET = [string]$comparisonValues['APP_EXTERNAL_AISERVICE_HMAC_SECRET']
+    GRPC_SHARED_SECRET = [string]$comparisonValues['GRPC_SHARED_SECRET']
     APP_AI_DEFAULT_MODEL = $comparisonModel; APP_AI_SYSTEM_USER_ID = '85'
     APP_GAME_SCHEDULER_ENABLED = 'false'; APP_DEMO_SEED_ENABLED = 'false'; QDRANT_ENABLED = 'false'
     LOGGING_FILE_NAME = ''; LOGGING_LEVEL_ROOT = 'OFF'; LOGGING_LEVEL_APP = 'OFF'

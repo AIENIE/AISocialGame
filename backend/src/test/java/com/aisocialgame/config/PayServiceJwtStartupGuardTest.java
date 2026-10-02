@@ -147,7 +147,7 @@ class PayServiceJwtStartupGuardTest {
                         properties, canonicalEnvironment(), new String[]{"test"}, new String[]{"default"}, false));
 
         Map<String, String> mismatched = canonicalEnvironment();
-        mismatched.put("APP_EXTERNAL_PAYSERVICE_JWT_SECRET", "different-pay-secret-value-with-32-bytes");
+        mismatched.put("GRPC_SHARED_SECRET", "different-pay-secret-value-with-32-bytes");
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validateFinalConfiguration(
                         properties, mismatched, new String[0], new String[]{"default"}, false));
@@ -188,7 +188,7 @@ class PayServiceJwtStartupGuardTest {
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_CALLER_ID", "aisocialgame");
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_ISSUER", "aisocialgame");
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_SERVICE", "aisocialgame");
-        values.put("APP_EXTERNAL_PAYSERVICE_JWT_SECRET", PAY_SECRET);
+        values.put("GRPC_SHARED_SECRET", PAY_SECRET);
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_AUDIENCE", "aienie-payservice-grpc");
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_ROLE", "SERVICE");
         values.put("APP_EXTERNAL_PAYSERVICE_JWT_TTL_SECONDS", "300");

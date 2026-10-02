@@ -10,13 +10,17 @@ import org.springframework.core.env.ConfigurableEnvironment;
 @SpringBootApplication
 public class AiSocialGameApplication {
     public static void main(String[] args) {
+        com.aienie.configpair.RuntimeConfiguration.initialize(args);
         SpringApplication application = new SpringApplication(AiSocialGameApplication.class);
         application.addInitializers(context -> {
             ConfigurableEnvironment environment = (ConfigurableEnvironment) context.getEnvironment();
-            RuntimeConfigurationStartupGuard.validateBeforeServerCreation(environment, System.getenv());
-            PayServiceJwtStartupGuard.validateBeforeServerCreation(environment, System.getenv());
-            AiServiceTransportStartupGuard.validateBeforeServerCreation(environment, System.getenv());
+            RuntimeConfigurationStartupGuard.validateBeforeServerCreation(environment, com.aienie.configpair.RuntimeConfiguration.getenv());
+            PayServiceJwtStartupGuard.validateBeforeServerCreation(environment, com.aienie.configpair.RuntimeConfiguration.getenv());
+            AiServiceTransportStartupGuard.validateBeforeServerCreation(environment, com.aienie.configpair.RuntimeConfiguration.getenv());
         });
+        application.setEnvironment(com.aienie.configpair.RuntimeConfiguration.springEnvironment());
+        application.setEnvironment(com.aienie.configpair.RuntimeConfiguration.springEnvironment());
+        application.setEnvironment(com.aienie.configpair.RuntimeConfiguration.springEnvironment());
         application.run(args);
     }
 }

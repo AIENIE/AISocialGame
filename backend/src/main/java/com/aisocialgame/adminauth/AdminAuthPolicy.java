@@ -44,7 +44,7 @@ public record AdminAuthPolicy(String environment, String authMode) {
         @Bean
         @Profile("!test")
         AdminAuthPolicy systemAdminAuthPolicy() {
-            return fromEnvironment(System.getenv());
+            return fromEnvironment(com.aienie.configpair.RuntimeConfiguration.getenv());
         }
 
         @Bean

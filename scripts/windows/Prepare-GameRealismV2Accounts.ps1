@@ -89,14 +89,14 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
             [Globalization.CultureInfo]::InvariantCulture, [ref]$ttl) -or $ttl -lt 30 -or $ttl -gt 900) {
         throw 'APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS must be an integer between 30 and 900.'
     }
-    $secret = Read-Value 'APP_EXTERNAL_USERSERVICE_JWT_SECRET'
+    $secret = Read-Value 'GRPC_SHARED_SECRET'
     $bytes = [Text.Encoding]::UTF8.GetByteCount($secret)
     $normalized = $secret.ToUpperInvariant()
     if ($bytes -lt 32 -or $bytes -gt 4096 -or $secret -cne $secret.Trim() -or $secret -match '[\x00-\x1F\x7F]' -or
             $normalized.Contains('REPLACE') -or $normalized.Contains('CHANGE_ME') -or $normalized.Contains('CHANGE-ME') -or
             $normalized.Contains('CHANGEME') -or $normalized.Contains('PLACEHOLDER') -or
             $normalized.StartsWith('<') -or $normalized.EndsWith('>')) {
-        throw 'APP_EXTERNAL_USERSERVICE_JWT_SECRET must contain 32..4096 non-placeholder UTF-8 bytes without boundary whitespace or controls.'
+        throw 'GRPC_SHARED_SECRET must contain 32..4096 non-placeholder UTF-8 bytes without boundary whitespace or controls.'
     }
 }
 
@@ -121,8 +121,8 @@ $canonical = [ordered]@{
     AUTH_MODE = 'password'; APP_PROJECT_KEY = 'aisocialgame'; SERVER_ADDRESS = '127.0.0.1'; SERVER_PORT = '11031'
     SPRING_DATASOURCE_URL = $sharedTarget.jdbcUrl
     SPRING_JPA_HIBERNATE_DDL_AUTO = 'validate'
-    SPRING_DATA_REDIS_HOST = 'localbase.testhut.top'; SPRING_DATA_REDIS_PORT = '26379'; SPRING_DATA_REDIS_SSL_ENABLED = 'false'
-    QDRANT_HOST = 'http://localbase.testhut.top'; QDRANT_PORT = '26333'
+    SPRING_DATA_REDIS_HOST = 'localredis.testhut.top'; SPRING_DATA_REDIS_PORT = '26379'; SPRING_DATA_REDIS_SSL_ENABLED = 'false'
+    QDRANT_HOST = 'http://localqdrant.testhut.top'; QDRANT_PORT = '26333'
     USER_GRPC_ADDR = 'static://localuserservice.testhut.top:22001'
     BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:22021'
     AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'

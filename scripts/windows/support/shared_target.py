@@ -23,6 +23,12 @@ def environment(path):
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
         values[match[1]] = value
+    import sys
+    config_root = Path(__file__).resolve().parents[3]
+    sys.path.insert(0, str(config_root / 'scripts/config-pair'))
+    from read_configuration import read
+    companion = Path(str(path) + '.application.yml')
+    values.update(read(config_root, 'local', companion if companion.exists() else None))
     return values
 
 

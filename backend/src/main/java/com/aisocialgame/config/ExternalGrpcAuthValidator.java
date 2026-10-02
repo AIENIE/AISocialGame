@@ -43,7 +43,7 @@ public class ExternalGrpcAuthValidator {
             missing.add("APP_EXTERNAL_AISERVICE_HMAC_CALLER");
         }
         if (!StringUtils.hasText(external.getAiserviceHmacSecret())) {
-            missing.add("APP_EXTERNAL_AISERVICE_HMAC_SECRET");
+            missing.add("GRPC_SHARED_SECRET");
         }
 
         if (!missing.isEmpty()) {

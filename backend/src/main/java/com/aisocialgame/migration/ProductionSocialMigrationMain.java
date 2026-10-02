@@ -63,6 +63,7 @@ public final class ProductionSocialMigrationMain {
     }
 
     public static void main(String[] args) {
+        com.aienie.configpair.RuntimeConfiguration.initialize(args);
         PrintStream receiptOutput = System.out;
         System.setOut(System.err);
         try {
@@ -121,17 +122,13 @@ public final class ProductionSocialMigrationMain {
     }
 
     private static Connection openConnection() throws SQLException {
-        String host = required("APP_MYSQL_HOST");
-        String port = required("APP_MYSQL_PORT");
-        String database = required("APP_MYSQL_DATABASE");
-        String username = required("APP_MYSQL_USERNAME");
-        String password = required("APP_MYSQL_PASSWORD");
-        String params = required("APP_MYSQL_PARAMS");
-        if (!"base.seekerhut.com".equals(host) || !"13306".equals(port) || !"aisocialgame".equals(database)
-                || !MYSQL_PARAMS.equals(params)) {
+        String url = required("SPRING_DATASOURCE_URL");
+        String username = required("SPRING_DATASOURCE_USERNAME");
+        String password = required("SPRING_DATASOURCE_PASSWORD");
+        String database = "aisocialgame";
+        if (!("jdbc:mysql://base.seekerhut.com:13306/" + database + "?" + MYSQL_PARAMS).equals(url)) {
             throw new IllegalStateException("production database authority drifted");
         }
-        String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?" + params;
         Connection connection = DriverManager.getConnection(url, username, password);
         try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery("SELECT DATABASE()")) {
             if (!result.next() || !database.equals(result.getString(1)) || result.next()) {
@@ -142,7 +139,7 @@ public final class ProductionSocialMigrationMain {
     }
 
     private static String required(String key) {
-        String value = System.getenv(key);
+        String value = com.aienie.configpair.RuntimeConfiguration.getenv(key);
         if (value == null || value.isBlank() || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
             throw new IllegalStateException("required environment value is unavailable");
         }
