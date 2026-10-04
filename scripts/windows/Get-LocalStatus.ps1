@@ -1,7 +1,7 @@
 [CmdletBinding()]
-param([switch]$AsJson)
+param([switch]$AsJson, [ValidateRange(1024,65535)][int]$BackendPort=11031, [ValidateRange(1024,65535)][int]$FrontendPort=11030)
 Set-StrictMode -Version Latest
-$rows = foreach($spec in @(@{Name='Backend';Port=11031;Url='http://127.0.0.1:11031/actuator/health'},@{Name='Frontend';Port=11030;Url='http://127.0.0.1:11030/'})) {
+$rows = foreach($spec in @(@{Name='Backend';Port=$BackendPort;Url="http://127.0.0.1:$BackendPort/actuator/health"},@{Name='Frontend';Port=$FrontendPort;Url="http://127.0.0.1:$FrontendPort/"})) {
     $tcp = $false
     try { $c=[Net.Sockets.TcpClient]::new(); $t=$c.ConnectAsync('127.0.0.1',$spec.Port); $tcp=$t.Wait(1000)-and$c.Connected; $c.Dispose() } catch { $tcp=$false }
     $healthy=$false

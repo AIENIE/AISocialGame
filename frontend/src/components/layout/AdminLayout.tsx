@@ -7,6 +7,7 @@ const navItems = [
   { path: "/admin/users", label: "用户管理" },
   { path: "/admin/billing", label: "积分查询" },
   { path: "/admin/ai", label: "AI 质检" },
+  { path: "/admin/security", label: "认证安全" },
   { path: "/admin/safety", label: "安全运营" },
   { path: "/admin/integration", label: "服务联通" },
 ];
@@ -18,6 +19,8 @@ const AdminLayout = () => {
   if (!loading && !admin) {
     return <Navigate to="/admin/login" replace />;
   }
+
+  if (!loading && admin?.sessionScope === "RECOVERY_REBIND_ONLY") return <Navigate to="/admin/login" replace />;
 
   return (
     <div className="min-h-screen bg-slate-100">

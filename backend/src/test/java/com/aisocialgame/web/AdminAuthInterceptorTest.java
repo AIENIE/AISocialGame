@@ -77,6 +77,18 @@ class AdminAuthInterceptorTest {
         assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
     }
 
+    @Test
+    void recoverySessionCannotFetchCodesAndAuthenticationErrorsAreNeverCached() {
+        var auth=mock(AdminAuthService.class);
+        var interceptor=interceptor(auth,new AdminAuthPolicy("local","totp"));
+        var request=request("POST","/api/admin/auth/recovery-codes/get");
+        var principal=new AdminAuthService.AdminPrincipal("admin","recovery","RECOVERY_REBIND_ONLY",AdminAuthService.AUTHORITY,"totp",Instant.now(),null,Instant.now().plusSeconds(600));
+        when(auth.authenticate(request)).thenReturn(principal);
+        var response=mock(HttpServletResponse.class);
+        assertThrows(ApiException.class, () -> interceptor.preHandle(request,response,new Object()));
+        verify(response).setHeader("Cache-Control","no-store");
+    }
+
     private AdminAuthInterceptor interceptor(AdminAuthService auth, AdminAuthPolicy policy) {
         AppProperties properties = new AppProperties();
         properties.getCors().setAllowedOrigins(List.of(ORIGIN));

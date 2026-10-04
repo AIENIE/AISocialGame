@@ -118,7 +118,7 @@ app:
     totp-active-key-version: v1
     session-minutes: 120
     session-idle-minutes: 30
-    recovery-session-minutes: 15
+    recovery-session-minutes: 10
     recovery-session-idle-minutes: 10
     cookie-secure: true
   security:

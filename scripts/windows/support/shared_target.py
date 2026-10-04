@@ -44,9 +44,14 @@ def component(catalog, name):
     return matches[0]
 
 
-def resolve(catalog, values, matrix_hash):
+def resolve(catalog, values, matrix_hash, acceptance_database=None):
+    database = "aisocialgame"
+    if acceptance_database is not None:
+        if acceptance_database != "aienie_emergency_20261004_social":
+            raise ValueError("UNAPPROVED_ACCEPTANCE_DATABASE")
+        database = acceptance_database
     result = dict(status="UNKNOWN", reason="TARGET_NOT_CONFIRMED", matrixSha256=matrix_hash,
-                  environment="develop", componentId="shared-mysql", database="aisocialgame")
+                  environment="develop", componentId="shared-mysql", database=database)
     db = component(catalog, "shared-mysql")
     local = db["endpoints"]["develop"]
     listener = [x for x in local.get("listeners", [])
@@ -69,7 +74,7 @@ def resolve(catalog, values, matrix_hash):
         result["reason"] = "INVALID_RUNTIME_URL"
         return result
     result["configuredTarget"] = dict(host=uri.hostname, port=uri.port, database=uri.path[1:])
-    if (uri.hostname, uri.port, uri.path) != (host, port, "/aisocialgame"):
+    if (uri.hostname, uri.port, uri.path) != (host, port, "/" + database):
         result["reason"] = "MATRIX_RUNTIME_TARGET_CONFLICT"
         return result
     if values.get("ENV") != "local" or values.get("AIENIE_RUNTIME_PLANE") != "windows-local":
@@ -83,15 +88,16 @@ def resolve(catalog, values, matrix_hash):
         result["reason"] = "UNSUPPORTED_JDBC_OPTIONS"
         return result
     result.update(status="PASS", reason="MATRIX_AND_EXPLICIT_LOCAL_CONFIGURATION_MATCH",
-                  jdbcUrl=f"jdbc:mysql://{host}:{port}/aisocialgame?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=30000")
+                  jdbcUrl=f"jdbc:mysql://{host}:{port}/{database}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=30000")
     return result
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("matrix"); parser.add_argument("environment")
+    parser.add_argument("--acceptance-database", choices=["aienie_emergency_20261004_social"])
     args = parser.parse_args()
     try:
-        print(json.dumps(resolve(matrix(args.matrix), environment(args.environment), sha(args.matrix))))
+        print(json.dumps(resolve(matrix(args.matrix), environment(args.environment), sha(args.matrix), args.acceptance_database)))
     except Exception:
         print(json.dumps(dict(status="UNKNOWN", reason="TARGET_INPUT_UNREADABLE_OR_INVALID")))

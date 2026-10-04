@@ -23,7 +23,8 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             "/api/admin/auth/enrollment/start",
             "/api/admin/auth/enrollment/confirm",
             "/api/admin/auth/totp/verify",
-            "/api/admin/auth/recovery/verify"
+            "/api/admin/auth/recovery/verify",
+            "/api/admin/auth/recovery/challenge"
     );
 
     private final AdminAuthService auth;
@@ -42,6 +43,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         if (!path.startsWith("/api/admin/")) {
             return true;
         }
+        if (path.startsWith("/api/admin/auth/")) response.setHeader("Cache-Control", "no-store");
         if (isUnsafe(request.getMethod())) {
             requireTrustedOrigin(request);
         }

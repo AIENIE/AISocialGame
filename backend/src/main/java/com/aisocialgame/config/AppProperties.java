@@ -159,7 +159,7 @@ public class AppProperties {
         private String totpActiveKeyVersion = "v1";
         private int sessionMinutes = 120;
         private int sessionIdleMinutes = 30;
-        private int recoverySessionMinutes = 15;
+        private int recoverySessionMinutes = 10;
         private int recoverySessionIdleMinutes = 10;
         private boolean cookieSecure = true;
 

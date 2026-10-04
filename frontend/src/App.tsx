@@ -7,6 +7,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import { AdminAuthProvider } from "./hooks/useAdminAuth";
 import AdminLayout from "./components/layout/AdminLayout";
 import AdminNotFound from "./pages/admin/AdminNotFound";
+import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminLogin from "./pages/admin/AdminLogin";
 import Dashboard from "./pages/admin/Dashboard";
 import UserAdmin from "./pages/admin/UserAdmin";
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/admin/users" element={<UserAdmin />} />
                 <Route path="/admin/billing" element={<BillingAdmin />} />
                 <Route path="/admin/ai" element={<AiAdmin />} />
+                <Route path="/admin/security" element={<AdminSecurity />} />
                 <Route path="/admin/safety" element={<SafetyAdmin />} />
                 <Route path="/admin/integration" element={<IntegrationAdmin />} />
               </Route>

@@ -347,6 +347,12 @@ export const adminApi = {
     const res = await adminApiClient.post("/admin/auth/login", { username, password });
     return res.data;
   },
+  async recoveryChallenge(username: string, password: string): Promise<AdminLoginResult> {
+    return (await adminApiClient.post("/admin/auth/recovery/challenge", { username, password })).data;
+  },
+  async getRecoveryCodes(code: string): Promise<{ recoveryCodes: string[]; generatedCount: number; remaining: number }> {
+    return (await adminApiClient.post("/admin/auth/recovery-codes/get", { code })).data;
+  },
   async me(): Promise<AdminAuthResponse> {
     const res = await adminApiClient.get("/admin/auth/me");
     return res.data;

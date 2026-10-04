@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$EnvironmentFile = (Join-Path 'D:\project\aienie\aienie-runtime\private\app-secrets' 'aisocialgame.env'),
+    [ValidateRange(1024,65535)][int]$BackendPort = 11031,
+    [switch]$IsolatedAcceptance,
     [switch]$EnableBackendDebug
 )
 
@@ -120,14 +122,14 @@ foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
 . (Join-Path $PSScriptRoot 'LocalGrpcTrust.ps1')
 $localGrpcTrust = Get-LocalGrpcTrustUri
 . (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
-$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile
+$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile -IsolatedAcceptance:$IsolatedAcceptance
 $inheritedValues = @{}
 foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) { $inheritedValues[[string]$entry.Key] = [string]$entry.Value }
 Assert-LocalOnlyEnvironment $inheritedValues
 Assert-LocalOnlyEnvironment $privateValues
 Assert-UserServiceJwtEnvironment $privateValues
 
-if (Test-PortListening 11031) {
+if (Test-PortListening $BackendPort) {
     throw 'Port 11031 is already listening. Stop the owning process before starting the debug backend.'
 }
 
@@ -154,7 +156,8 @@ Import-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
 $env:SPRING_PROFILES_ACTIVE = 'local'
 $env:AIENIE_RUNTIME_PLANE = 'windows-local'
 $env:SERVER_ADDRESS = '127.0.0.1'
-$env:VITE_LOCAL_BACKEND_PORT = '11031'
+$env:VITE_LOCAL_BACKEND_PORT = [string]$BackendPort
+$env:SERVER_PORT = [string]$BackendPort
 $env:USER_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
@@ -162,7 +165,7 @@ $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
 $backendPom = Join-Path $repoRoot 'backend\pom.xml'
 $mvn = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
 
-Write-Host 'Starting AISocialGame backend (debug) on http://127.0.0.1:11031 - press Ctrl+C to stop.'
+Write-Host "Starting AISocialGame backend (debug) on http://127.0.0.1:$BackendPort - press Ctrl+C to stop."
 $mavenArgs = @('-f', $backendPom, '-q', 'spring-boot:run')
 if ($EnableBackendDebug) { $mavenArgs += '-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:51031' }
 & $mvn @mavenArgs

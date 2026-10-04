@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { adminApi, getApiErrorMessage } from "@/services/api";
 import { AdminAuthPolicy, AdminEnrollmentStart } from "@/types";
+import RecoveryCodeList from "@/components/admin/RecoveryCodeList";
 import { toast } from "sonner";
 
 type Stage = "PASSWORD" | "TOTP" | "ENROLL" | "RECOVERY" | "REBIND" | "CODES";
@@ -14,6 +15,7 @@ type Stage = "PASSWORD" | "TOTP" | "ENROLL" | "RECOVERY" | "REBIND" | "CODES";
 const AdminLogin = () => {
   const navigate = useNavigate();
   const auth = useAdminAuth();
+  const { startRebind } = auth;
   const [policy, setPolicy] = useState<AdminAuthPolicy | null>(null);
   const [stage, setStage] = useState<Stage>("PASSWORD");
   const [username, setUsername] = useState("admin");
@@ -22,11 +24,23 @@ const AdminLogin = () => {
   const [challengeId, setChallengeId] = useState("");
   const [enrollment, setEnrollment] = useState<AdminEnrollmentStart | null>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     adminApi.policy().then(setPolicy).catch(() => setPolicy(null));
   }, []);
+
+  useEffect(() => {
+    if (!auth.loading && auth.admin?.sessionScope === "RECOVERY_REBIND_ONLY" && stage === "PASSWORD") {
+      let active = true;
+      void startRebind().then(next => {
+        if (!active) return;
+        setEnrollment(next); setChallengeId(next.challengeId); setStage("REBIND");
+      }).catch(() => toast.error("恢复授权已过期，请重新登录"));
+      return () => { active = false; };
+    }
+  }, [auth.loading, auth.admin?.sessionScope, stage, startRebind]);
 
   const run = async (action: () => Promise<void>) => {
     setLoading(true);
@@ -40,7 +54,7 @@ const AdminLogin = () => {
   };
 
   const submitPassword = () => run(async () => {
-    const result = await auth.login(username, password);
+    const result = passwordRecovery ? await adminApi.recoveryChallenge(username, password) : await auth.login(username, password);
     setPassword("");
     if (result.state === "AUTHENTICATED") {
       navigate("/admin");
@@ -53,7 +67,7 @@ const AdminLogin = () => {
       setEnrollment(await auth.startEnrollment(result.challengeId));
       setStage("ENROLL");
     } else {
-      setStage("TOTP");
+      setStage(passwordRecovery ? "RECOVERY" : "TOTP");
     }
   });
 
@@ -65,6 +79,7 @@ const AdminLogin = () => {
   const submitEnrollment = () => run(async () => {
     const result = await auth.confirmEnrollment(challengeId, code);
     setRecoveryCodes(result.recoveryCodes ?? []);
+    setEnrollment(null); setCode(""); setChallengeId("");
     setStage("CODES");
   });
 
@@ -80,8 +95,8 @@ const AdminLogin = () => {
 
   const submitRebind = () => run(async () => {
     const result = await auth.confirmRebind(challengeId, code);
-    setRecoveryCodes(result.recoveryCodes ?? []);
-    setStage("CODES");
+    setCode(""); setEnrollment(null); setRecoveryCodes([]);
+    if (result.state === "AUTHENTICATED") navigate("/admin/security");
   });
 
   const submit = (event: React.FormEvent) => {
@@ -105,9 +120,7 @@ const AdminLogin = () => {
         <CardContent className="space-y-4">
           {stage === "CODES" ? (
             <div className="space-y-4">
-              <p className="text-sm font-medium">恢复码仅显示一次，请保存到受保护的位置。</p>
-              <pre className="max-h-56 overflow-auto rounded bg-slate-950 p-3 text-sm text-white">{recoveryCodes.join("\n")}</pre>
-              <Button className="w-full" onClick={() => navigate("/admin")}>我已安全保存</Button>
+              <RecoveryCodeList codes={recoveryCodes} onClose={() => { setRecoveryCodes([]); setEnrollment(null); setCode(""); navigate("/admin/security"); }} />
             </div>
           ) : (
             <form className="space-y-4" onSubmit={submit}>
@@ -116,11 +129,12 @@ const AdminLogin = () => {
                 <div className="space-y-2"><Label htmlFor="password">密码</Label><Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
               </> : <>
                 {(stage === "ENROLL" || stage === "REBIND") && enrollment && <div className="space-y-2 rounded border p-3 text-sm"><p>请在验证器中添加以下密钥：</p><code className="break-all">{enrollment.manualKey}</code></div>}
-                <div className="space-y-2"><Label htmlFor="code">{stage === "RECOVERY" ? "恢复码" : "6 位动态验证码"}</Label><Input id="code" inputMode={stage === "RECOVERY" ? "text" : "numeric"} autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} required /></div>
+                <div className="space-y-2"><Label htmlFor="code">{stage === "RECOVERY" ? "紧急码" : "6 位动态验证码"}</Label><Input id="code" inputMode={stage === "RECOVERY" ? "text" : "numeric"} autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} required /></div>
               </>}
               <Button type="submit" className="w-full" disabled={loading}>{loading ? "验证中..." : stage === "PASSWORD" ? "继续" : "验证"}</Button>
-              {stage === "TOTP" && <Button type="button" variant="ghost" className="w-full" onClick={() => { setCode(""); setStage("RECOVERY"); }}>使用恢复码</Button>}
-              {stage !== "PASSWORD" && <Button type="button" variant="outline" className="w-full" onClick={() => { setStage("PASSWORD"); setCode(""); setChallengeId(""); setEnrollment(null); }}>重新登录</Button>}
+              {stage === "PASSWORD" && policy?.authMode === "password" && <Button type="button" variant="ghost" onClick={() => setPasswordRecovery(!passwordRecovery)}>{passwordRecovery ? "返回密码登录" : "丢失动态码，使用紧急码"}</Button>}
+              {stage === "TOTP" && <Button type="button" variant="ghost" className="w-full" onClick={() => { setCode(""); setStage("RECOVERY"); }}>丢失动态码，使用紧急码</Button>}
+              {stage !== "PASSWORD" && <Button type="button" variant="outline" className="w-full" onClick={() => void run(async () => { await auth.logout().catch(() => undefined); setStage("PASSWORD"); setCode(""); setChallengeId(""); setEnrollment(null); setRecoveryCodes([]); setPasswordRecovery(false); })}>取消并重新登录</Button>}
             </form>
           )}
         </CardContent>

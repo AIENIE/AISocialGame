@@ -19,9 +19,22 @@ public class AdminAuthStore {
         this.jdbc = jdbc;
     }
 
+    public void lockSubject(String subject) {
+        jdbc.update("insert into admin_auth_subject_locks(subject_id) values(?) on duplicate key update subject_id=subject_id", subject);
+        jdbc.queryForObject("select subject_id from admin_auth_subject_locks where subject_id=? for update", String.class, subject);
+    }
+
+    public Optional<Credential> credentialLocked(String subject) {
+        return readCredential(subject, " for update");
+    }
+
     public Optional<Credential> credential(String subject) {
+        return readCredential(subject, "");
+    }
+
+    private Optional<Credential> readCredential(String subject, String lock) {
         return jdbc.query("select encrypted_secret,nonce,key_version,last_accepted_timestep,credential_version "
-                        + "from admin_totp_credentials where subject_id=?",
+                        + "from admin_totp_credentials where subject_id=?" + lock,
                 (rs, row) -> new Credential(rs.getString(1), rs.getBytes(2), rs.getString(3),
                         (Long) rs.getObject(4), rs.getLong(5)), subject).stream().findFirst();
     }
@@ -46,7 +59,7 @@ public class AdminAuthStore {
                         + "last_accepted_timestep=?,credential_version=credential_version+1,enabled_at=? where subject_id=?",
                 encrypted.ciphertext(), encrypted.nonce(), encrypted.keyVersion(), acceptedTimestep,
                 Timestamp.from(now), subject);
-        Long version = jdbc.queryForObject("select credential_version from admin_totp_credentials where subject_id=?",
+        Long version = jdbc.queryForObject("select credential_version from admin_totp_credentials where subject_id=? for update",
                 Long.class, subject);
         return version == null ? 0L : version;
     }
@@ -72,15 +85,26 @@ public class AdminAuthStore {
                 pendingSecret == null ? null : pendingSecret.nonce(),
                 pendingSecret == null ? null : pendingSecret.keyVersion(), Timestamp.from(expiresAt), 0,
                 Timestamp.from(Instant.now()));
+        long version = credentialLocked(subject).map(Credential::credentialVersion).orElse(0L);
+        jdbc.update("insert into admin_emergency_challenge_versions(challenge_hash,credential_version) values(?,?)", hash, version);
     }
 
     public Optional<Challenge> challenge(String hash) {
+        return readChallenge(hash, "");
+    }
+
+    public Optional<Challenge> challengeLocked(String hash) {
+        return readChallenge(hash, " for update");
+    }
+
+    private Optional<Challenge> readChallenge(String hash, String lock) {
         return jdbc.query("select subject_id,purpose,session_hash,password_authenticated_at,encrypted_secret,nonce,key_version,"
-                        + "expires_at,attempt_count,consumed_at from admin_auth_challenges where challenge_hash=?",
+                        + "expires_at,attempt_count,consumed_at,coalesce(v.credential_version,-1) from admin_auth_challenges c "
+                        + "left join admin_emergency_challenge_versions v using(challenge_hash) where c.challenge_hash=?" + lock,
                 (rs, row) -> new Challenge(hash, rs.getString(1), rs.getString(2), rs.getString(3),
                         rs.getTimestamp(4) == null ? null : rs.getTimestamp(4).toInstant(), rs.getString(5),
                         rs.getBytes(6), rs.getString(7), rs.getTimestamp(8).toInstant(), rs.getInt(9),
-                        rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant()), hash).stream().findFirst();
+                        rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant(), rs.getLong(11)), hash).stream().findFirst();
     }
 
     public boolean setPendingSecret(String challengeHash, AdminAuthCrypto.EncryptedValue secret) {
@@ -103,30 +127,37 @@ public class AdminAuthStore {
                 Timestamp.from(Instant.now()), hash, Timestamp.from(Instant.now())) == 1;
     }
 
-    public void replaceRecoveryCodes(String subject, List<String> hashes, Instant now) {
-        jdbc.update("update admin_recovery_codes set replaced_at=? where subject_id=? and used_at is null and replaced_at is null",
-                Timestamp.from(now), subject);
-        for (String hash : hashes) {
-            jdbc.update("insert into admin_recovery_codes(subject_id,code_hash,created_at) values(?,?,?)",
-                    subject, hash, Timestamp.from(now));
-        }
+    public void insertRecoveryCode(String subject, String recordId, String hash, AdminAuthCrypto.EncryptedValue encrypted) {
+        jdbc.update("insert into admin_emergency_codes(record_id,subject_id,code_hash,ciphertext,nonce,key_version,created_at) values(?,?,?,?,?,?,?)",
+                recordId, subject, hash, encrypted.ciphertext(), encrypted.nonce(), encrypted.keyVersion(), Timestamp.from(Instant.now()));
     }
 
-    public List<String> activeRecoveryHashes(String subject) {
-        return jdbc.query("select code_hash from admin_recovery_codes where subject_id=? and used_at is null "
-                + "and replaced_at is null", (rs, row) -> rs.getString(1), subject);
+    public List<RecoveryCode> activeRecoveryCodes(String subject) {
+        return jdbc.query("select record_id,code_hash,ciphertext,nonce,key_version from admin_emergency_codes where subject_id=? and used_at is null order by created_at,record_id for update",
+                (rs, row) -> new RecoveryCode(rs.getString(1), rs.getString(2), rs.getString(3), rs.getBytes(4), rs.getString(5)), subject);
+    }
+
+    public void rotateRecoveryCode(String recordId, AdminAuthCrypto.EncryptedValue encrypted) {
+        jdbc.update("update admin_emergency_codes set ciphertext=?,nonce=?,key_version=? where record_id=? and used_at is null",
+                encrypted.ciphertext(), encrypted.nonce(), encrypted.keyVersion(), recordId);
     }
 
     public boolean consumeRecoveryHash(String subject, String hash) {
-        return jdbc.update("update admin_recovery_codes set used_at=? where subject_id=? and code_hash=? "
-                        + "and used_at is null and replaced_at is null",
+        return jdbc.update("update admin_emergency_codes set used_at=? where subject_id=? and code_hash=? and used_at is null",
                 Timestamp.from(Instant.now()), subject, hash) == 1;
     }
 
     public int activeRecoveryCount(String subject) {
-        Integer count = jdbc.queryForObject("select count(*) from admin_recovery_codes where subject_id=? "
-                + "and used_at is null and replaced_at is null", Integer.class, subject);
+        Integer count = jdbc.queryForObject("select count(*) from admin_emergency_codes where subject_id=? and used_at is null", Integer.class, subject);
         return count == null ? 0 : count;
+    }
+
+    public void revokeAuthenticationState(String subject) {
+        revokeAll(subject);
+        Timestamp now = Timestamp.from(Instant.now());
+        jdbc.update("update admin_auth_challenges set consumed_at=? where subject_id=? and consumed_at is null", now, subject);
+        jdbc.update("update admin_operation_challenges set consumed_at=? where subject_id=? and consumed_at is null", now, subject);
+        jdbc.update("update admin_operation_proofs set consumed_at=? where subject_id=? and consumed_at is null", now, subject);
     }
 
     public void insertSession(String sessionHash, String subject, String scope, AdminAuthPolicy policy,
@@ -144,10 +175,18 @@ public class AdminAuthStore {
 
     public Optional<Session> activeSession(String sessionHash, AdminAuthPolicy policy, String passwordCredentialHash,
                                            int sessionIdleMinutes, int recoverySessionIdleMinutes) {
+        return readActiveSession(sessionHash, policy, passwordCredentialHash, sessionIdleMinutes, recoverySessionIdleMinutes, "");
+    }
+
+    public Optional<Session> activeSessionLocked(String hash, AdminAuthPolicy policy, String passwordHash, int idle, int recoveryIdle) {
+        return readActiveSession(hash, policy, passwordHash, idle, recoveryIdle, " for update");
+    }
+
+    private Optional<Session> readActiveSession(String sessionHash, AdminAuthPolicy policy, String passwordCredentialHash, int sessionIdleMinutes, int recoverySessionIdleMinutes, String lock) {
         Instant now = Instant.now();
         List<Session> found = jdbc.query("select subject_id,scope,assurance,password_authenticated_at,totp_authenticated_at,"
                         + "credential_version,expires_at from admin_sessions where session_hash=? and environment=? and auth_mode=? "
-                        + "and password_credential_hash=? and revoked_at is null and expires_at>? and idle_expires_at>?",
+                        + "and password_credential_hash=? and revoked_at is null and expires_at>? and idle_expires_at>?" + lock,
                 (rs, row) -> new Session(sessionHash, rs.getString(1), rs.getString(2), rs.getString(3),
                         rs.getTimestamp(4) == null ? null : rs.getTimestamp(4).toInstant(),
                         rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant(), rs.getLong(6),
@@ -238,6 +277,7 @@ public class AdminAuthStore {
         Timestamp timestamp = Timestamp.from(cutoff);
         jdbc.update("delete from admin_operation_proofs where expires_at<?", timestamp);
         jdbc.update("delete from admin_operation_challenges where expires_at<?", timestamp);
+        jdbc.update("delete from admin_emergency_challenge_versions where challenge_hash in (select challenge_hash from admin_auth_challenges where expires_at<?)", timestamp);
         jdbc.update("delete from admin_auth_challenges where expires_at<?", timestamp);
         jdbc.update("delete from admin_sessions where expires_at<?", timestamp);
     }
@@ -249,13 +289,17 @@ public class AdminAuthStore {
                 event, subject, sessionHash, source, result, reason, Timestamp.from(Instant.now()));
     }
 
+    public record RecoveryCode(String recordId, String hash, String ciphertext, byte[] nonce, String keyVersion) {
+        @Override public String toString() { return "RecoveryCode[redacted]"; }
+    }
+
     public record Credential(String encryptedSecret, byte[] nonce, String keyVersion,
                              Long lastAcceptedTimestep, long credentialVersion) {
     }
 
     public record Challenge(String hash, String subject, String purpose, String sessionHash, Instant passwordAt,
                             String encryptedSecret, byte[] nonce, String keyVersion, Instant expiresAt,
-                            int attempts, Instant consumedAt) {
+                            int attempts, Instant consumedAt, long credentialVersion) {
     }
 
     public record Session(String hash, String subject, String scope, String assurance, Instant passwordAt,

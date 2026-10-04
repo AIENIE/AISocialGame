@@ -37,6 +37,11 @@ public class AdminAuthController {
         return loginResponse(auth.login(body.username(), body.password(), source(request)));
     }
 
+    @PostMapping("/recovery/challenge")
+    public ResponseEntity<?> recoveryChallenge(@Valid @RequestBody LoginRequest body, HttpServletRequest request) {
+        return loginResponse(auth.recoveryLogin(body.username(), body.password(), source(request)));
+    }
+
     @PostMapping("/enrollment/start")
     public ResponseEntity<?> enrollmentStart(@Valid @RequestBody ChallengeRequest body,
                                              HttpServletRequest request) {
@@ -83,10 +88,9 @@ public class AdminAuthController {
                 source(request)));
     }
 
-    @PostMapping("/recovery-codes/regenerate")
+    @PostMapping({"/recovery-codes/get", "/recovery-codes/regenerate"})
     public ResponseEntity<?> regenerate(@Valid @RequestBody TotpRequest body, HttpServletRequest request) {
-        return noStore(Map.of("recoveryCodes", auth.regenerateRecoveryCodes(
-                auth.currentPrincipal(request), body.code(), source(request))));
+        return noStore(auth.getRecoveryCodes(auth.currentPrincipal(request), body.code(), source(request)));
     }
 
     @PostMapping("/operation/verify")
@@ -134,7 +138,7 @@ public class AdminAuthController {
     public record RecoveryRequest(@NotBlank String challengeId, @NotBlank String recoveryCode) {
     }
 
-    public record TotpRequest(@NotBlank String code) {
+    public record TotpRequest(String code) {
     }
 
     public record AuthenticatedResponse(String state, String username, String displayName, String sessionScope,

@@ -4,6 +4,10 @@ param(
     [ValidateRange(30, 600)][int]$StartupTimeoutSeconds = 240,
     [ValidateSet('All','Backend','Frontend')][string]$Component = 'All',
     [switch]$EnableBackendDebug,
+    [switch]$IsolatedAcceptance,
+    [ValidatePattern("^[a-z0-9-]{1,40}$")][string]$InstanceName = "default",
+    [ValidateRange(1024,65535)][int]$BackendPort = 11031,
+    [ValidateRange(1024,65535)][int]$FrontendPort = 11030,
     # -NoBrowser skips opening the project homepage after a successful start.
     [switch]$NoBrowser
 )
@@ -37,6 +41,8 @@ if ($PSVersionTable.PSEdition -ne 'Core' -or $PSVersionTable.PSVersion.Major -lt
     exit $LASTEXITCODE
 }
 
+if (($IsolatedAcceptance -or $BackendPort -ne 11031 -or $FrontendPort -ne 11030) -and $InstanceName -eq 'default') { throw 'Isolated acceptance and custom ports require a named instance.' }
+if ($BackendPort -eq $FrontendPort) { throw 'Backend and frontend ports must differ.' }
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 
 # The existing Start-Backend.ps1 / Start-Frontend.ps1 scripts own all env
@@ -44,11 +50,12 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 # hidden background processes, waits for health, and records process
 # identities for Stop-Local.ps1.
 $components = @(
-    [pscustomobject]@{ Name = 'Backend'; Script = (Join-Path $PSScriptRoot 'Start-Backend.ps1'); Port = 11031; HealthPath = '/actuator/health'; HealthKind = 'JsonUp' },
-    [pscustomobject]@{ Name = 'Frontend'; Script = (Join-Path $PSScriptRoot 'Start-Frontend.ps1'); Port = 11030; HealthPath = '/'; HealthKind = 'Http200' }
+    [pscustomobject]@{ Name = 'Backend'; Script = (Join-Path $PSScriptRoot 'Start-Backend.ps1'); Port = $BackendPort; HealthPath = '/actuator/health'; HealthKind = 'JsonUp' },
+    [pscustomobject]@{ Name = 'Frontend'; Script = (Join-Path $PSScriptRoot 'Start-Frontend.ps1'); Port = $FrontendPort; HealthPath = '/'; HealthKind = 'Http200' }
 )
 if ($Component -ne 'All') { $components = @($components | Where-Object Name -eq $Component) }
 $stateRoot = Join-Path 'D:\project\aienie\aienie-runtime\local-services\direct-runs\native-runs' 'aisocialgame'
+if ($InstanceName -ne 'default') { $stateRoot = Join-Path $stateRoot $InstanceName }
 $statePath = Join-Path $stateRoot 'processes.json'
 $logsRoot = Join-Path $stateRoot 'logs'
 
@@ -144,9 +151,11 @@ function Start-Component {
     New-Item -ItemType Directory -Path $logsRoot -Force | Out-Null
     $argumentList = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', (Convert-LaunchArgument -Value $Spec.Script))
     if ($Spec.Name -eq 'Backend') {
-        $argumentList += @('-EnvironmentFile', (Convert-LaunchArgument -Value $EnvironmentFile))
+        $argumentList += @('-EnvironmentFile', (Convert-LaunchArgument -Value $EnvironmentFile), '-BackendPort', [string]$BackendPort)
         if ($EnableBackendDebug) { $argumentList += '-EnableBackendDebug' }
+        if ($IsolatedAcceptance) { $argumentList += '-IsolatedAcceptance' }
     }
+    if ($Spec.Name -eq 'Frontend') { $argumentList += @('-FrontendPort', [string]$FrontendPort, '-BackendPort', [string]$BackendPort) }
     $launcher = (Get-Process -Id $PID).Path
     $process = Start-Process -FilePath $launcher -ArgumentList $argumentList -WorkingDirectory $repoRoot -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $logsRoot "$($Spec.Name.ToLowerInvariant()).stdout.log") `
@@ -208,7 +217,7 @@ foreach ($spec in $components) {
     $existing = @($liveRecords | Where-Object Name -eq $spec.Name)
     if ($existing.Count -gt 0) {
         if (-not (Test-HttpEndpoint -Port $spec.Port -Path $spec.HealthPath -HealthKind $spec.HealthKind)) { throw "Recorded AISocialGame $($spec.Name) instance is not healthy." }
-        if ($EnableBackendDebug -and $spec.Name -eq 'Backend') { Assert-LocalDebugListener 11031 51031 }
+        if ($EnableBackendDebug -and $spec.Name -eq 'Backend') { Assert-LocalDebugListener $BackendPort 51031 }
         Write-Output "AISocialGame $($spec.Name) already running (PID $($existing[0].ProcessId)); skipping start."
         continue
     }
@@ -233,13 +242,13 @@ $stackReady = $true
 
 Write-Output ''
 Write-Output 'AISocialGame local stack is up:'
-Write-Output '  Backend : http://127.0.0.1:11031/actuator/health'
-Write-Output '  Frontend: http://127.0.0.1:11030/'
+Write-Output "  Backend : http://127.0.0.1:$BackendPort/actuator/health"
+Write-Output "  Frontend: http://127.0.0.1:$FrontendPort/"
 Write-Output '  Domain  : https://localsocialgame.testhut.top/ (requires the Windows nginx ingress)'
 Write-Output 'Stop    : .\scripts\windows\Stop-Local.ps1'
 
 if (-not $NoBrowser) {
-    $homepage = 'https://localsocialgame.testhut.top/'
+    $homepage = if ($InstanceName -eq 'default') { 'https://localsocialgame.testhut.top/' } else { "http://127.0.0.1:$FrontendPort/" }
     Write-Output "Opening the project homepage in the default browser: $homepage"
     Start-Process -FilePath $homepage
 }

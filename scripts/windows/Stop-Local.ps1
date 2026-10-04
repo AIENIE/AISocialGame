@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('All','Backend','Frontend')][string]$Component = 'All', [ValidatePattern('^(\d+(,\d+)*)?$')][string]$PreserveProcessIds='')
+param([ValidatePattern("^[a-z0-9-]{1,40}$")][string]$InstanceName="default", [ValidateRange(1024,65535)][int]$BackendPort=11031, [ValidateRange(1024,65535)][int]$FrontendPort=11030, [ValidateSet('All','Backend','Frontend')][string]$Component = 'All', [ValidatePattern('^(\d+(,\d+)*)?$')][string]$PreserveProcessIds='')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -16,12 +16,15 @@ if ($PSVersionTable.PSEdition -ne 'Core' -or $PSVersionTable.PSVersion.Major -lt
     if ($null -eq $pwsh) {
         throw 'PowerShell 7 (pwsh) is required. Install it from https://aka.ms/powershell and re-run this script.'
     }
-    & $pwsh.Source -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $PSCommandPath
+    $forward = @()
+    foreach ($entry in $PSBoundParameters.GetEnumerator()) { $forward += "-$($entry.Key)"; $forward += [string]$entry.Value }
+    & $pwsh.Source -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $PSCommandPath @forward
     exit $LASTEXITCODE
 }
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $stateRoot = Join-Path 'D:\project\aienie\aienie-runtime\local-services\direct-runs\native-runs' 'aisocialgame'
+if ($InstanceName -ne 'default') { $stateRoot = Join-Path $stateRoot $InstanceName }
 $statePath = Join-Path $stateRoot 'processes.json'
 
 function Test-RecordedProcess {
@@ -70,7 +73,7 @@ foreach ($record in @($state.processes)) {
 }
 if ($remaining.Count -eq 0) { Remove-Item -LiteralPath $statePath -Force -ErrorAction SilentlyContinue } else { $state.processes = $remaining; $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding utf8NoBOM }
 
-foreach ($port in @(11031, 11030)) {
+foreach ($port in @($BackendPort, $FrontendPort)) {
     $listeners = @(
         [Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() |
             Where-Object { $_.Port -eq $port }
