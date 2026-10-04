@@ -153,6 +153,8 @@ qdrant:
 connection:
   disconnect-threshold-seconds: 60
 runtime:
+  acceptance:
+    admin-emergency-codes: false
   configuration:
     ENV: ''
     AUTH_MODE: ''

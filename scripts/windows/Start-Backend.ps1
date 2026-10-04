@@ -123,6 +123,8 @@ foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
 $localGrpcTrust = Get-LocalGrpcTrustUri
 . (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
 $sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile -IsolatedAcceptance:$IsolatedAcceptance
+. (Join-Path $PSScriptRoot 'AdminEmergencyAcceptance.ps1')
+Assert-AdminEmergencyAcceptance -Values $privateValues -YamlValues $yamlValues -SharedTarget $sharedTarget -BackendPort $BackendPort -IsolatedAcceptance:$IsolatedAcceptance
 $inheritedValues = @{}
 foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) { $inheritedValues[[string]$entry.Key] = [string]$entry.Value }
 Assert-LocalOnlyEnvironment $inheritedValues

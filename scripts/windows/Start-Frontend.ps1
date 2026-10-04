@@ -18,11 +18,11 @@ function Test-PortListening([int]$Port) {
     try { $task = $client.ConnectAsync('127.0.0.1', $Port); return $task.Wait(1000) -and $client.Connected } catch { return $false } finally { $client.Dispose() }
 }
 
-$pnpm = (Get-Command -Name 'pnpm.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
+$corepack = (Get-Command -Name 'corepack.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
 
 if (-not (Test-Path -LiteralPath (Join-Path $frontendDirectory 'node_modules') -PathType Container)) {
     Write-Host 'frontend dependencies are missing; running pnpm install --frozen-lockfile ...'
-    & $pnpm --dir $frontendDirectory install --frozen-lockfile
+    & $corepack "pnpm@$($spec.Pnpm)" --dir $frontendDirectory install --frozen-lockfile
     if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed.' }
 }
 
@@ -33,7 +33,7 @@ if (Test-PortListening $FrontendPort) {
 $env:VITE_LOCAL_BACKEND_PORT = [string]$BackendPort
 
 Write-Host "Starting AISocialGame frontend (debug) on http://127.0.0.1:$FrontendPort - press Ctrl+C to stop."
-& $pnpm --dir $frontendDirectory exec vite --host 127.0.0.1 --port $FrontendPort --strictPort
+& $corepack "pnpm@$($spec.Pnpm)" --dir $frontendDirectory exec vite --host 127.0.0.1 --port $FrontendPort --strictPort
 $exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }
 if ($exitCode -ne 0) { Write-Host "Frontend exited with code $exitCode." }
 exit $exitCode

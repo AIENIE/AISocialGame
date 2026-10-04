@@ -42,6 +42,7 @@ if ($PSVersionTable.PSEdition -ne 'Core' -or $PSVersionTable.PSVersion.Major -lt
 }
 
 if (($IsolatedAcceptance -or $BackendPort -ne 11031 -or $FrontendPort -ne 11030) -and $InstanceName -eq 'default') { throw 'Isolated acceptance and custom ports require a named instance.' }
+if ($IsolatedAcceptance -and ($BackendPort -ne 12031 -or $FrontendPort -ne 12030)) { throw 'Admin emergency acceptance only permits ports 12031 and 12030.' }
 if ($BackendPort -eq $FrontendPort) { throw 'Backend and frontend ports must differ.' }
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 

@@ -258,6 +258,12 @@
       "app.external.userservice-jwt.secret",
       "app.external.payservice-jwt.secret",
       "app.external.aiservice-hmac-secret"
+    ],
+    "SERVER_ADDRESS": [
+      "server.address"
+    ],
+    "AIENIE_ADMIN_EMERGENCY_ACCEPTANCE": [
+      "runtime.acceptance.admin-emergency-codes"
     ]
   }
 }
