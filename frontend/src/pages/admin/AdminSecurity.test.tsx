@@ -25,3 +25,19 @@ it("clears displayed codes when closed, on failed retrieval and when leaving", a
   await act(async () => root.render(<div>left</div>)); expect(container.textContent).not.toContain("TEST_EMERGENCY_SECRET");
   expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0);
 });
+
+function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
+it("ignores late codes from a hidden page generation and accepts a fresh request after pageshow", async () => {
+  await act(async () => root.render(<AdminSecurity />));
+  const old = deferred<{ recoveryCodes: string[]; generatedCount: number; remaining: number }>();
+  state.get.mockReturnValueOnce(old.promise);
+  await click("获取紧急码");
+  await act(async () => { window.dispatchEvent(new Event("pagehide")); window.dispatchEvent(new Event("pageshow")); });
+  await act(async () => old.resolve({ recoveryCodes: ["OLD_HIDDEN_SECRET"], generatedCount: 1, remaining: 10 }));
+  expect(container.textContent).not.toContain("OLD_HIDDEN_SECRET");
+  state.get.mockResolvedValue({ recoveryCodes: ["FRESH_VISIBLE_SECRET"], generatedCount: 1, remaining: 10 });
+  await click("获取紧急码");
+  expect(container.textContent).toContain("FRESH_VISIBLE_SECRET");
+  await act(async () => window.dispatchEvent(new Event("admin-auth-reset")));
+  expect(container.textContent).not.toContain("FRESH_VISIBLE_SECRET");
+});
