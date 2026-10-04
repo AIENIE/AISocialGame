@@ -36,3 +36,7 @@ HTTP 方法、目标路径、查询串和请求体摘要；绑定不匹配时拒
 Windows 隔离验收可使用 `Start-Local.ps1 -InstanceName admin-emergency-codes -IsolatedAcceptance -BackendPort 12031 -FrontendPort 12030 -EnvironmentFile <仓库外配置> -NoBrowser`。该开关仍校验系统矩阵共享 MySQL 主机和端口，仅允许 `aienie_emergency_20261004_social`；状态文件按实例隔离。状态/停止传入同样端口，停止还需同样 InstanceName，不影响默认实例。
 
 隔离启动需要双重显式启用：仓库外 YAML 设置 `runtime.acceptance.admin-emergency-codes: true`、`server.address: 127.0.0.1`、`server.port: 12031`、`runtime.configuration.ENV: local`、`runtime.configuration.AUTH_MODE: totp`、`runtime.configuration.AIENIE_RUNTIME_PLANE: windows-local`；启动入口同时传 `-IsolatedAcceptance`。仅允许 Windows 原生 `local` profile、自有 `aienie_emergency_20261004_social` schema、系统矩阵当前共享 MySQL 的 `localmysql.testhut.top:23306`、可用 AES TOTP keyring。验收前端端口固定 12030，后台固定 12031。普通环境变量、命令行 selector 覆盖、其他环境/profile/schema/主机/端口都会拒绝；默认本地/生产 11031 与测试 20030 规则保持。结束后停止隔离实例，撤销整份验收 overlay 并恢复默认本地密码模式；不修改原始私有配置。
+
+原生入口导出的 Hikari 单字段环境名为 `SPRING_DATASOURCE_HIKARI_CONNECTIONTESTQUERY`（移除属性连字符）。旧拼写 `SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY` 会被 Spring 解释为嵌套属性，可能在绑定完成前调用 `getConnection()` 并封存连接池；私有配置应使用 YAML `spring.datasource.hikari.connection-test-query`。隔离入口拒绝替代 JNDI/driver datasource 属性，并在 Boot 最终绑定完成、首次连接之前核验实际 Hikari JDBC URL，禁止自定义 connection details 把隔离实例重定向到其他数据库。
+
+现有 `credit_ledger_entries.metadata_json` 的 schema 定义为 `LONGTEXT`；实体显式使用同一类型，避免 Hibernate 7 将不带长度的 `@Lob` 推导为 `tinytext` 而拒绝已迁移数据库。此调整不修改表或数据。

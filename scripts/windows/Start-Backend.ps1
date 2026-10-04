@@ -116,6 +116,9 @@ function Test-PortListening([int]$Port) {
 }
 
 $privateValues = Read-PrivateEnvironment $EnvironmentFile
+if ($privateValues.ContainsKey('SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY')) {
+    throw 'Configure Hikari connection-test-query in the companion YAML; the ambiguous legacy environment spelling is unsupported.'
+}
 . (Join-Path $repoRoot 'scripts\config-pair\ConfigurationPair.ps1')
 $yamlValues = Read-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
 foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
@@ -136,6 +139,7 @@ if (Test-PortListening $BackendPort) {
 }
 
 foreach ($name in @('JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS', 'MAVEN_OPTS', 'SPRING_APPLICATION_JSON',
+        'SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY',
         'APP_EXTERNAL_GRPC_AUTH_REQUIRED', 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN',
         'APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID', 'APP_EXTERNAL_USERSERVICE_JWT_ISSUER',
         'GRPC_SHARED_SECRET', 'APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE',

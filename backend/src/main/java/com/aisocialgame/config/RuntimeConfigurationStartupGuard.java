@@ -73,6 +73,20 @@ public final class RuntimeConfigurationStartupGuard {
         requireExact("server.address", "127.0.0.1", environment.getProperty("server.address"));
         requireExact("server.port", "12031", environment.getProperty("server.port"));
         validateAcceptanceDatabase(environment.getProperty("spring.datasource.url"));
+        for (String property : java.util.List.of("spring.datasource.jndi-name", "spring.datasource.hikari.jdbc-url",
+                "spring.datasource.hikari.data-source-class-name", "spring.datasource.hikari.data-source-jndi")) {
+            if (environment.containsProperty(property))
+                throw new IllegalStateException("Emergency acceptance rejects an alternate datasource property");
+        }
+        for (var source : environment.getPropertySources()) {
+            if (source instanceof org.springframework.core.env.EnumerablePropertySource<?> enumerable) {
+                for (String name : enumerable.getPropertyNames()) {
+                    String normalized = name.replaceAll("[^A-Za-z0-9]", "").toLowerCase(java.util.Locale.ROOT);
+                    if (normalized.startsWith("springdatasourcehikaridatasourceproperties"))
+                        throw new IllegalStateException("Emergency acceptance rejects alternate datasource properties");
+                }
+            }
+        }
         AppProperties properties = new AppProperties();
         properties.getAdmin().setTotpEncryptionKeys(environment.getProperty("app.admin.totp-encryption-keys", ""));
         properties.getAdmin().setTotpActiveKeyVersion(environment.getProperty("app.admin.totp-active-key-version", ""));

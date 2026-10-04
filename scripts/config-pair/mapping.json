@@ -14,7 +14,7 @@
     "SPRING_DATASOURCE_PASSWORD": [
       "spring.datasource.password"
     ],
-    "SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY": [
+    "SPRING_DATASOURCE_HIKARI_CONNECTIONTESTQUERY": [
       "spring.datasource.hikari.connection-test-query"
     ],
     "SPRING_JPA_HIBERNATE_DDL_AUTO": [

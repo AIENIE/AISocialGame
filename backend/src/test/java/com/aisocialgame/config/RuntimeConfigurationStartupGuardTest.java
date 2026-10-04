@@ -148,6 +148,20 @@ class RuntimeConfigurationStartupGuardTest {
         for(String env:java.util.List.of("local","production")) assertDoesNotThrow(() -> RuntimeConfigurationStartupGuard.validateBeforeServerCreation(canonicalEnvironment().withProperty("server.address","127.0.0.1").withProperty("server.port","11031"),Map.of("APP_PROJECT_KEY",AppProperties.CANONICAL_PROJECT_KEY,"ENV",env)));
     }
 
+    @Test
+    void rejectsAlternateDatasourcePropertiesBeforeAnyDependencyIsCreated() {
+        for (String property : java.util.List.of("spring.datasource.jndi-name", "spring.datasource.hikari.jdbc-url",
+                "spring.datasource.hikari.data-source-class-name", "spring.datasource.hikari.data-source-jndi",
+                "spring.datasource.hikari.data-source-properties.databaseName")) {
+            var environment = acceptanceEnvironment().withProperty(property, "alternate-target");
+            assertThrows(IllegalStateException.class, () -> RuntimeConfigurationStartupGuard.validateBeforeServerCreation(environment, acceptanceRaw()));
+        }
+        var environment = acceptanceEnvironment();
+        environment.getPropertySources().addFirst(new org.springframework.core.env.SystemEnvironmentPropertySource(
+                "alternateEnvironment", Map.of("SPRING_DATASOURCE_HIKARI_DATASOURCEPROPERTIES_DATABASENAME", "aisocialgame")));
+        assertThrows(IllegalStateException.class, () -> RuntimeConfigurationStartupGuard.validateBeforeServerCreation(environment, acceptanceRaw()));
+    }
+
     private static Map<String,String> acceptanceRaw() {
         return Map.of("APP_PROJECT_KEY",AppProperties.CANONICAL_PROJECT_KEY,"ENV","local","AUTH_MODE","totp","AIENIE_RUNTIME_PLANE","windows-local","AIENIE_ADMIN_EMERGENCY_ACCEPTANCE","true");
     }

@@ -23,6 +23,10 @@ if($source -match 'exec vite -- --host' -or $source -notmatch 'corepack\.cmd' -o
 $repoRoot=(Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 $defaultValues=Read-ConfigPairValues -ProjectRoot $repoRoot
 if($defaultValues['AIENIE_ADMIN_EMERGENCY_ACCEPTANCE'] -cne 'false' -or $defaultValues['SERVER_PORT'] -cne '11031'){throw 'Default YAML listener and disabled selector must remain canonical.'}
+if($defaultValues.ContainsKey('SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY') -or
+   $defaultValues['SPRING_DATASOURCE_HIKARI_CONNECTIONTESTQUERY'] -cne 'SELECT 1') {
+ throw 'Hikari connection-test-query must use the flat Spring environment spelling before pool startup.'
+}
 $fixturePair=Join-Path ([IO.Path]::GetTempPath()) ('social-acceptance-' + [guid]::NewGuid().ToString('N') + '.env')
 $fixtureYaml=$fixturePair+'.application.yml'
 try {
@@ -41,4 +45,4 @@ server:
  $mapped=Read-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $fixturePair
  Assert-AdminEmergencyAcceptance -Values $mapped -YamlValues $mapped -SharedTarget $target -BackendPort 12031 -IsolatedAcceptance
 } finally { Remove-Item -LiteralPath $fixtureYaml -ErrorAction SilentlyContinue }
-Write-Output 'PASS explicit isolated startup acceptance, canonical defaults, rejection cases, real YAML mapping and pinned frontend forwarding (17 checks).'
+Write-Output 'PASS explicit isolated startup acceptance, canonical defaults, rejection cases, real YAML mapping, Hikari spelling and pinned frontend forwarding (18 checks).'
