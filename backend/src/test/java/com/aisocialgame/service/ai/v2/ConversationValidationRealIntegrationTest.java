@@ -36,12 +36,17 @@ class ConversationValidationRealIntegrationTest {
     @Autowired com.aisocialgame.service.credit.BoundedAiClient bounded;
     String currentSample;String fatal;
     ConversationValidation collector;
+    List<Map<String,Object>> verifyHistoricalHold() throws Exception {
+        var grant = ConversationValidation.read(external("AI_CONVERSATION_GRANT", true));
+        return ConversationHistoricalHold.verify(grant.get("historicalHoldException"), jdbc.queryForList(
+                "select id,budget_id,request_id,project_key,user_id,state,reserved_temp,reserved_permanent from ai_credit_reservations where user_id=85 and project_key='aisocialgame' and state='HELD'"));
+    }
     @Test void verifyRuntimeWithoutInference()throws Exception {
         assertTrue(System.getProperty("os.name").startsWith("Windows"));assertEquals("local",System.getenv("ENV"));
         try(var connection=Objects.requireNonNull(jdbc.getDataSource()).getConnection()) {
             assertTrue(connection.getMetaData().getURL().startsWith("jdbc:mysql://localmysql.testhut.top:23306/aisocialgame?"),"Only the canonical develop credit database is allowed");
         }
-        assertEquals(0,jdbc.queryForObject("select count(*) from ai_credit_reservations where user_id=85 and state='HELD'",Integer.class),"Reconcile existing holds before paid collection");
+        verifyHistoricalHold();
         assertEquals("static://localaiservice.testhut.top:22011",System.getenv("AI_GRPC_ADDR"));assertEquals("TLS",System.getenv("AI_GRPC_NEGOTIATION_TYPE"));assertEquals("deepseek-flash",System.getenv("APP_AI_DEFAULT_MODEL"));
         bounded.requireReady();
         assertFalse(client.listModels(85).isEmpty(),"Authenticated model catalog must be readable");
@@ -72,11 +77,14 @@ class ConversationValidationRealIntegrationTest {
                 return decision;
             });
             collector.document.put("manifestSha256",ConversationValidation.sha(manifest));collector.document.put("artifactSha256",ConversationValidation.sha(jar));
+            collector.document.put("historicalUnresolvedHolds", verifyHistoricalHold());
+            collector.document.put("historicalBillingPassed", false);
             if(priorPath!=null)collector.document.put("parentEvidenceSha256",ConversationValidation.sha(priorPath));
             collector.document.put("ledgerSha256Before",ledger.sha256());collector.document.put("cumulativeReservedCallsBefore",ledger.consumed());
             doAnswer(invocation->{
                 String request=invocation.getArgument(5);
                 try{
+                    verifyHistoricalHold();
                     int count=budget.reserve(currentSample,request);
                     var row=collector.rows.get(currentSample);var receipts=new ArrayList<>(maps(row.get("reservations")));
                     receipts.add(Map.of("comparisonAttempt",count,"requestId",request));row.put("reservations",receipts);

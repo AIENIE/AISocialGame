@@ -133,6 +133,7 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
     return dict(algorithmPassed=not errors,qualityPassed=not errors and m["evidenceKind"]=="REAL_MODEL",L4Passed=False,groups=groups,measurements=measurements,problems=sorted(set(errors)),reviewType="CODING_AGENT_NOT_INDEPENDENT_HUMAN_BLIND_REVIEW")
 
 def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phase):
+    historical_hold_check(g.get("historicalHoldException"))
     require(g.get("authorizationStatus")=="APPROVED" and all(nonblank(g.get(k)) for k in ("approvedBy","approvalReference","callerId")),"EXPLICIT_GRANT_REQUIRED")
     require(g.get("callerLifecycle")=="SHARED" and g.get("enableOriginalCaller") is False and g.get("disableCallerOnExit") is False,"SHARED_CALLER_MUST_REMAIN_UNCHANGED")
     require(type(g.get("callerRecordId")) is int and g["callerRecordId"]>0,"VALID_CALLER_RECORD_REQUIRED")
@@ -150,6 +151,14 @@ def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phas
     pilot_calls=sum(1 for line in lines[base:] if (row:=json.loads(line)).get("variant")==variant and row.get("scenarioId") in m["pilotIds"])
     require(phase!="PILOT" or pilot_calls<24,"PILOT_LIMIT_EXHAUSTED")
     return g
+
+def historical_hold_check(hold):
+    if hold is None: return
+    fields={"id","budget_id","request_id","project_key","user_id","state","reserved_temp","reserved_permanent"}
+    require(isinstance(hold,dict) and set(hold)==fields,"INVALID_HISTORICAL_HOLD")
+    require(all(nonblank(hold[k]) for k in ("id","budget_id","request_id")),"INVALID_HISTORICAL_HOLD_IDENTITY")
+    require(hold["project_key"]=="aisocialgame" and type(hold["user_id"]) is int and hold["user_id"]==85 and hold["state"]=="HELD","INVALID_HISTORICAL_HOLD_SCOPE")
+    require(type(hold["reserved_temp"]) is int and hold["reserved_temp"]>=0 and type(hold["reserved_permanent"]) is int and hold["reserved_permanent"]>0,"INVALID_HISTORICAL_HOLD_AMOUNT")
 
 def main():
     p=argparse.ArgumentParser()

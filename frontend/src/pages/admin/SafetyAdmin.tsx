@@ -1,5 +1,3 @@
-import { useTranslation } from "react-i18next";
-import { closureText } from "@/i18n/closureTexts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adminApi } from "@/services/api";
 import { AiSafetyControl, AiSafetyEvent, AiSafetySummary } from "@/types";
@@ -16,8 +14,6 @@ import { toast } from "sonner";
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString() : "-";
 
 const SafetyAdmin = () => {
-  const { i18n } = useTranslation();
-  const tr = (text: string) => closureText(i18n.language, text);
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
@@ -31,11 +27,11 @@ const SafetyAdmin = () => {
   const [loading, setLoading] = useState(false);
 
   const stats = useMemo(() => [
-    { label: tr("未处理高危"), value: summary?.openHighRiskEvents ?? 0, icon: ShieldAlert },
-    { label: tr("24h 拦截/替换"), value: summary?.blockedLast24h ?? 0, icon: Ban },
-    { label: tr("成本异常"), value: summary?.costAnomaliesLast24h ?? 0, icon: AlertTriangle },
-    { label: tr("活跃控制"), value: summary?.activeControls ?? 0, icon: PauseCircle },
-  ], [summary, i18n.language]);
+    { label: "未处理高危", value: summary?.openHighRiskEvents ?? 0, icon: ShieldAlert },
+    { label: "24h 拦截/替换", value: summary?.blockedLast24h ?? 0, icon: Ban },
+    { label: "成本异常", value: summary?.costAnomaliesLast24h ?? 0, icon: AlertTriangle },
+    { label: "活跃控制", value: summary?.activeControls ?? 0, icon: PauseCircle },
+  ], [summary]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -61,7 +57,7 @@ const SafetyAdmin = () => {
         setSelected(fresh || selected);
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("加载安全运营数据失败"));
+      toast.error(error?.response?.data?.message || "加载安全运营数据失败");
     } finally {
       setLoading(false);
     }
@@ -75,10 +71,10 @@ const SafetyAdmin = () => {
     try {
       const updated = await adminApi.ackSafetyEvent(event.id);
       setSelected(updated);
-      toast.success(tr("已确认安全事件"));
+      toast.success("已确认安全事件");
       loadAll();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("确认失败"));
+      toast.error(error?.response?.data?.message || "确认失败");
     }
   };
 
@@ -86,37 +82,37 @@ const SafetyAdmin = () => {
     try {
       const updated = await adminApi.closeSafetyEvent(event.id, "admin_closed");
       setSelected(updated);
-      toast.success(tr("已关闭安全事件"));
+      toast.success("已关闭安全事件");
       loadAll();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("关闭失败"));
+      toast.error(error?.response?.data?.message || "关闭失败");
     }
   };
 
   const createControl = async () => {
     if (savingRef.current) return;
     if (!controlForm.targetKey.trim()) {
-      toast.error(tr("请输入控制目标"));
+      toast.error("请输入控制目标");
       return;
     }
     try {
       savingRef.current = true; setSaving(true);
       await adminApi.createSafetyControl({ ...controlForm, expiresAt: expiresAt || undefined });
       setControlForm((prev) => ({ ...prev, targetKey: "", reason: "" }));
-      toast.success(tr("临时控制已创建"));
+      toast.success("临时控制已创建");
       loadAll();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("创建控制失败"));
+      toast.error(error?.response?.data?.message || "创建控制失败");
     } finally { savingRef.current = false; setSaving(false); }
   };
 
   const disableControl = async (id: number) => {
     try {
       await adminApi.disableSafetyControl(id);
-      toast.success(tr("控制已停用"));
+      toast.success("控制已停用");
       loadAll();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("停用失败"));
+      toast.error(error?.response?.data?.message || "停用失败");
     }
   };
 
@@ -124,7 +120,7 @@ const SafetyAdmin = () => {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">{tr("AI 安全与应急运营")}</h2>
+          <h2 className="text-lg font-semibold">{"AI 安全与应急运营"}</h2>
           <p className="text-sm text-slate-500">监控风险内容、确认事件并下发用户、房间、Persona、模型或全局临时控制。</p>
         </div>
         <Button variant="outline" onClick={loadAll} disabled={loading}>
@@ -146,11 +142,11 @@ const SafetyAdmin = () => {
       <Card className="border-slate-200">
         <CardContent className="grid grid-cols-1 gap-3 pt-6 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
           <div className="space-y-2">
-            <Label>{tr("状态")}</Label>
+            <Label>{"状态"}</Label>
             <Select value={filters.status || "ALL"} onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value === "ALL" ? "" : value }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">{tr("全部")}</SelectItem>
+                <SelectItem value="ALL">{"全部"}</SelectItem>
                 <SelectItem value="OPEN">OPEN</SelectItem>
                 <SelectItem value="ACKED">ACKED</SelectItem>
                 <SelectItem value="CLOSED">CLOSED</SelectItem>
@@ -162,15 +158,15 @@ const SafetyAdmin = () => {
             <Input value={filters.severity} onChange={(e) => setFilters((prev) => ({ ...prev, severity: e.target.value }))} placeholder="HIGH / MEDIUM" />
           </div>
           <div className="space-y-2">
-            <Label>{tr("来源")}</Label>
+            <Label>{"来源"}</Label>
             <Input value={filters.source} onChange={(e) => setFilters((prev) => ({ ...prev, source: e.target.value }))} placeholder="ROOM_CHAT / AI_PLAYER" />
           </div>
           <div className="space-y-2">
-            <Label>{tr("房间")}</Label>
+            <Label>{"房间"}</Label>
             <Input value={filters.roomId} onChange={(e) => setFilters((prev) => ({ ...prev, roomId: e.target.value }))} placeholder="room id" />
           </div>
           <div className="flex items-end">
-            <Button onClick={loadAll} className="w-full">{tr("查询")}</Button>
+            <Button onClick={loadAll} className="w-full">{"查询"}</Button>
           </div>
         </CardContent>
       </Card>
@@ -191,35 +187,35 @@ const SafetyAdmin = () => {
                   <span className="text-xs text-slate-500">{formatDate(event.createdAt)}</span>
                 </div>
                 <div className="text-sm font-medium text-slate-900">{event.category} · {event.reason || "-"}</div>
-                <div className="break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">{event.contentSummary || tr("无内容摘要")}</div>
+                <div className="break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">{event.contentSummary || "无内容摘要"}</div>
               </CardContent>
             </Card>
           ))}
-          {!events.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">{tr("暂无安全事件。")}</div>}
+          {!events.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">{"暂无安全事件。"}</div>}
         </div>
 
         <div className="space-y-4">
           <Card className="border-slate-200">
-            <CardHeader><CardTitle className="text-base">{tr("事件详情")}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{"事件详情"}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {!selected && <div className="text-sm text-slate-500">{tr("选择左侧事件查看详情。")}</div>}
+              {!selected && <div className="text-sm text-slate-500">{"选择左侧事件查看详情。"}</div>}
               {selected && (
                 <>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div><span className="text-slate-500">ID</span><div>{selected.id}</div></div>
-                    <div><span className="text-slate-500">{tr("状态")}</span><div>{selected.status}</div></div>
-                    <div><span className="text-slate-500">{tr("房间")}</span><div className="break-all">{selected.roomId || "-"}</div></div>
-                    <div><span className="text-slate-500">{tr("用户")}</span><div className="break-all">{selected.userId || selected.playerId || "-"}</div></div>
+                    <div><span className="text-slate-500">{"状态"}</span><div>{selected.status}</div></div>
+                    <div><span className="text-slate-500">{"房间"}</span><div className="break-all">{selected.roomId || "-"}</div></div>
+                    <div><span className="text-slate-500">{"用户"}</span><div className="break-all">{selected.userId || selected.playerId || "-"}</div></div>
                     <div><span className="text-slate-500">Persona</span><div>{selected.personaId || "-"}</div></div>
-                    <div><span className="text-slate-500">{tr("模型")}</span><div>{selected.modelKey || "-"}</div></div>
+                    <div><span className="text-slate-500">{"模型"}</span><div>{selected.modelKey || "-"}</div></div>
                   </div>
                   <Textarea readOnly value={selected.sanitizedContent || ""} className="min-h-[90px]" />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => ack(selected)} disabled={selected.status !== "OPEN"}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" /> {tr("确认")}
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> {"确认"}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => close(selected)} disabled={selected.status === "CLOSED"}>
-                      <XCircle className="mr-2 h-4 w-4" /> {tr("关闭")}
+                      <XCircle className="mr-2 h-4 w-4" /> {"关闭"}
                     </Button>
                   </div>
                 </>
@@ -228,7 +224,7 @@ const SafetyAdmin = () => {
           </Card>
 
           <Card className="border-slate-200">
-            <CardHeader><CardTitle className="text-base">{tr("临时控制")}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{"临时控制"}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <Select value={controlForm.scope} onValueChange={(value) => setControlForm((prev) => ({ ...prev, scope: value }))}>
@@ -245,18 +241,18 @@ const SafetyAdmin = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BLOCK">BLOCK</SelectItem>
-                    <SelectItem value="MUTE">{tr("禁言")}</SelectItem>
-                    <SelectItem value="PAUSE_ROOM">{tr("暂停房间")}</SelectItem>
-                    <SelectItem value="FORCE_OBSERVE">{tr("人工观察")}</SelectItem>
-                    <SelectItem value="DISABLE_AI">{tr("禁用 AI")}</SelectItem>
+                    <SelectItem value="MUTE">{"禁言"}</SelectItem>
+                    <SelectItem value="PAUSE_ROOM">{"暂停房间"}</SelectItem>
+                    <SelectItem value="FORCE_OBSERVE">{"人工观察"}</SelectItem>
+                    <SelectItem value="DISABLE_AI">{"禁用 AI"}</SelectItem>
                     <SelectItem value="RATE_LIMIT">RATE_LIMIT</SelectItem>
                     <SelectItem value="ESCALATE">ESCALATE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Input value={controlForm.targetKey} onChange={(e) => setControlForm((prev) => ({ ...prev, targetKey: e.target.value }))} placeholder={tr("用户/房间/Persona/模型，GLOBAL 用 *")} />
-              <Input value={controlForm.reason} onChange={(e) => setControlForm((prev) => ({ ...prev, reason: e.target.value }))} placeholder={tr("原因")} />
-              <label className="block text-sm">{tr("到期时间")}<Input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} /></label>
+              <Input value={controlForm.targetKey} onChange={(e) => setControlForm((prev) => ({ ...prev, targetKey: e.target.value }))} placeholder={"用户/房间/Persona/模型，GLOBAL 用 *"} />
+              <Input value={controlForm.reason} onChange={(e) => setControlForm((prev) => ({ ...prev, reason: e.target.value }))} placeholder={"原因"} />
+              <label className="block text-sm">{"到期时间"}<Input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} /></label>
               <Button disabled={saving} onClick={createControl} className="w-full"><ShieldCheck className="mr-2 h-4 w-4" /> 创建控制</Button>
               <div className="space-y-2">
                 {controls.map((control) => (
@@ -265,10 +261,10 @@ const SafetyAdmin = () => {
                       <div className="truncate font-medium">{control.scope}:{control.targetKey}</div>
                       <div className="text-xs text-slate-500">{control.action} · {control.reason || "-"} · {control.createdBy || "-"} · {control.expiresAt || "-"}</div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => disableControl(control.id)}>{tr("停用")}</Button>
+                    <Button size="sm" variant="outline" onClick={() => disableControl(control.id)}>{"停用"}</Button>
                   </div>
                 ))}
-                {!controls.length && <div className="text-sm text-slate-500">{tr("暂无活跃控制。")}</div>}
+                {!controls.length && <div className="text-sm text-slate-500">{"暂无活跃控制。"}</div>}
               </div>
             </CardContent>
           </Card>

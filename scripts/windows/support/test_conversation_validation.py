@@ -57,6 +57,12 @@ class ConversationValidationTests(unittest.TestCase):
         self.assertFalse(measure(self.m,self.b,self.e,self.r,"synthetic-hash",True)["algorithmPassed"])
     def test_unapproved_proposal_cannot_authorize(self):
         with self.assertRaises(ValueError):grant_check(self.m,dict(authorizationStatus="NOT_AUTHORIZED"),"unused","unused","unused","hash",74,"PILOT")
+    def test_historical_exception_is_singular_explicit_and_integral(self):
+        hold=dict(id="reservation",budget_id="budget",request_id="request",project_key="aisocialgame",user_id=85,state="HELD",reserved_temp=0,reserved_permanent=1049600)
+        historical_hold_check(None)
+        historical_hold_check(hold)
+        for invalid in ([hold],dict(hold,user_id=86),dict(hold,project_key="other"),dict(hold,state="SETTLED"),dict(hold,reserved_permanent=1.5),dict(hold,reserved_temp=True),dict(hold,request_id=""),dict(hold,ignoreAll=True)):
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):historical_hold_check(invalid)
     def test_empty_batch_has_zero_actual_attempts_without_fabricated_history(self):
         with tempfile.TemporaryDirectory() as directory:
             p=Path(directory)/'new.jsonl';p.write_bytes(b'')

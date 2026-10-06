@@ -45,6 +45,7 @@ $validationCanonical=@{
  AI_CONVERSATION_MANIFEST=$validationManifest;AI_CONVERSATION_BUNDLE=$validationBundle;AI_CONVERSATION_GRANT=$validationGrant
  AI_CONVERSATION_OUTPUT=$validationOutput;AI_CONVERSATION_PHASE=$Phase.ToUpperInvariant();AI_CONVERSATION_JAR=$validationJar[0].FullName
  AI_CONVERSATION_PREREQUISITES=$validationProof;AI_REALISM_BUDGET_FILE=$validationLedger
+ APP_GAME_AI_WORKERS='3'
 }
 if($PriorEvidenceFile){$validationCanonical.AI_CONVERSATION_PRIOR=Private-Path $PriorEvidenceFile;$validationArguments+=@('--prior',$validationCanonical.AI_CONVERSATION_PRIOR)}
 if($Phase -eq 'Remaining'){
@@ -94,7 +95,7 @@ try{
  }
  & mvn.cmd -q -f (Join-Path $validationRoot 'backend/pom.xml') '-Dtest=ConversationValidationRealIntegrationTest#collectWithFrozenInputsOriginalJournalAndExplicitGrant' '-DdisableXmlReport=true' '-Dsurefire.useFile=false' '-Dmaven.test.redirectTestOutputToFile=false' test *> $null
  if($LASTEXITCODE -or -not (Test-Path -LiteralPath $validationOutput)){throw 'Collection stopped or skipped; preserve evidence and journal. No automatic retry.'}
- Write-Host 'Evidence requires review and durable credit reconciliation. Shared caller state remains unchanged.'
+ Write-Host 'Evidence requires review and durable credit reconciliation. The grant binds any historical hold exception; new holds still stop collection. Shared caller state remains unchanged.'
 }finally{
  foreach($entry in $validationPrevious.GetEnumerator()){[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')}
 }
