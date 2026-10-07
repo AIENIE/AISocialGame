@@ -1,0 +1,416 @@
+[
+  {
+    "table": "community_posts",
+    "match": {
+      "id": "demo-post-ai-quality"
+    },
+    "expected": {
+      "author_id": null,
+      "author_name": "AI 质检观察员",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-post-ai-quality",
+      "content": "本地演示：AI 发言、投票和夜晚行动都会生成服务端 trace，运营可以在管理台查看质量标记和 Persona 记忆。",
+      "tags": [
+        "AI质检",
+        "本地演示"
+      ],
+      "likes": 18,
+      "comments": 3
+    }
+  },
+  {
+    "table": "community_posts",
+    "match": {
+      "id": "demo-post-undercover"
+    },
+    "expected": {
+      "author_id": null,
+      "author_name": "卧底房主",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-post-undercover",
+      "content": "本地演示：谁是卧底房间已经预置，可以直接加入、补 AI 并开局。",
+      "tags": [
+        "谁是卧底",
+        "开箱即用"
+      ],
+      "likes": 12,
+      "comments": 1
+    }
+  },
+  {
+    "table": "community_posts",
+    "match": {
+      "id": "demo-post-werewolf"
+    },
+    "expected": {
+      "author_id": null,
+      "author_name": "狼人杀复盘员",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-post-werewolf",
+      "content": "本地演示：狼人杀等待房支持 6 人快速开局，适合验收 AI 夜晚行动和白天投票。",
+      "tags": [
+        "狼人杀",
+        "复盘"
+      ],
+      "likes": 9,
+      "comments": 2
+    }
+  },
+  {
+    "table": "player_stats",
+    "match": {
+      "id": "demo-rank-luna-total:total"
+    },
+    "expected": {
+      "player_id": "demo-rank-luna-total",
+      "game_id": "total",
+      "display_name": "露娜观察员",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-rank-luna-total",
+      "games_played": 42,
+      "wins": 23,
+      "score": 735
+    }
+  },
+  {
+    "table": "player_stats",
+    "match": {
+      "id": "demo-rank-sherlock-total:total"
+    },
+    "expected": {
+      "player_id": "demo-rank-sherlock-total",
+      "game_id": "total",
+      "display_name": "福尔摩斯搭档",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-rank-sherlock-total",
+      "games_played": 38,
+      "wins": 21,
+      "score": 690
+    }
+  },
+  {
+    "table": "player_stats",
+    "match": {
+      "id": "demo-rank-watson-total:total"
+    },
+    "expected": {
+      "player_id": "demo-rank-watson-total",
+      "game_id": "total",
+      "display_name": "华生队友",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-rank-watson-total",
+      "games_played": 31,
+      "wins": 16,
+      "score": 520
+    }
+  },
+  {
+    "table": "player_stats",
+    "match": {
+      "id": "demo-rank-undercover-a:undercover"
+    },
+    "expected": {
+      "player_id": "demo-rank-undercover-a",
+      "game_id": "undercover",
+      "display_name": "卧底推理手",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-rank-undercover-a",
+      "games_played": 18,
+      "wins": 11,
+      "score": 315
+    }
+  },
+  {
+    "table": "player_stats",
+    "match": {
+      "id": "demo-rank-werewolf-a:werewolf"
+    },
+    "expected": {
+      "player_id": "demo-rank-werewolf-a",
+      "game_id": "werewolf",
+      "display_name": "银月猎人",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-rank-werewolf-a",
+      "games_played": 20,
+      "wins": 12,
+      "score": 340
+    }
+  },
+  {
+    "table": "ai_persona_memories",
+    "match": {
+      "persona_id": "ai1",
+      "game_id": "undercover",
+      "role_key": "UNDERCOVER"
+    },
+    "expected": {
+      "memory_summary": "保持冷静短句，优先复述可验证细节，避免一开始暴露词义边界。",
+      "strategy_notes": "先观察两个相邻玩家描述是否同属一个词域，再决定跟随或制造轻微分歧。",
+      "mistake_notes": "曾在首轮给出过于精确的物品属性，后续应改为类别描述。",
+      "speech_patterns": "常用“我先保留”“这个描述范围偏窄”等克制表达。",
+      "games_played": 7,
+      "approved_summary": "",
+      "review_status": "PENDING"
+    }
+  },
+  {
+    "table": "ai_persona_memories",
+    "match": {
+      "persona_id": "ai3",
+      "game_id": "werewolf",
+      "role_key": "SEER"
+    },
+    "expected": {
+      "memory_summary": "作为预言家时先给验人结论，再说明查验顺序，语气温和但要明确站边。",
+      "strategy_notes": "优先查验强带节奏位；若被对跳，要求对方给出完整警徽流。",
+      "mistake_notes": "曾遗漏夜晚查验结果，应在白天第一轮主动报信息。",
+      "speech_patterns": "多用解释型句式，帮助新玩家理解投票理由。",
+      "games_played": 5,
+      "approved_summary": "",
+      "review_status": "PENDING"
+    }
+  },
+  {
+    "table": "credit_redeem_codes",
+    "match": {
+      "code": "DEMO-LOCAL-1000"
+    },
+    "expected": {
+      "credit_type": "CREDIT_TYPE_PERMANENT",
+      "tokens": 1000,
+      "max_redemptions": 1000
+    }
+  },
+  {
+    "table": "credit_redeem_codes",
+    "match": {
+      "code": "DEMO-LOCAL-TEMP-300"
+    },
+    "expected": {
+      "credit_type": "CREDIT_TYPE_TEMP",
+      "tokens": 300,
+      "max_redemptions": 1000
+    }
+  },
+  {
+    "table": "rooms",
+    "match": {
+      "id": "demo-undercover-room"
+    },
+    "expected": {
+      "game_id": "undercover",
+      "name": "demo-谁是卧底-开箱即用房",
+      "status": "WAITING",
+      "max_players": 6,
+      "is_private": false,
+      "password": null,
+      "comm_mode": "text",
+      "host_user_id": null,
+      "private_config": {},
+      "config": {
+        "playerCount": 6,
+        "spyMode": "auto",
+        "hasBlank": false,
+        "wordPack": "daily",
+        "speakTime": 60
+      },
+      "seats": [
+        {
+          "seatNumber": 0,
+          "playerId": "demo-player-undercover-host",
+          "displayName": "演示房主",
+          "ai": false,
+          "personaId": null,
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-player-undercover-host",
+          "ready": true,
+          "host": true
+        },
+        {
+          "seatNumber": 1,
+          "playerId": "demo-ai1-1",
+          "displayName": "福尔摩斯",
+          "ai": true,
+          "personaId": "ai1",
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ai1",
+          "ready": true,
+          "host": false
+        },
+        {
+          "seatNumber": 2,
+          "playerId": "demo-ai2-2",
+          "displayName": "小丑",
+          "ai": true,
+          "personaId": "ai2",
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ai2",
+          "ready": true,
+          "host": false
+        }
+      ],
+      "seat_count": 3
+    }
+  },
+  {
+    "table": "rooms",
+    "match": {
+      "id": "demo-werewolf-room"
+    },
+    "expected": {
+      "game_id": "werewolf",
+      "name": "demo-狼人杀-标准演示房",
+      "status": "WAITING",
+      "max_players": 6,
+      "is_private": false,
+      "password": null,
+      "comm_mode": "text",
+      "host_user_id": null,
+      "private_config": {},
+      "config": {
+        "playerCount": 6,
+        "template": "standard",
+        "witchRule": "first_night",
+        "winCondition": "side",
+        "speechTime": 90,
+        "hasLastWords": "first_night"
+      },
+      "seats": [
+        {
+          "seatNumber": 0,
+          "playerId": "demo-player-werewolf-host",
+          "displayName": "演示预言家",
+          "ai": false,
+          "personaId": null,
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=demo-player-werewolf-host",
+          "ready": true,
+          "host": true
+        },
+        {
+          "seatNumber": 1,
+          "playerId": "demo-ai1-1",
+          "displayName": "福尔摩斯",
+          "ai": true,
+          "personaId": "ai1",
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ai1",
+          "ready": true,
+          "host": false
+        },
+        {
+          "seatNumber": 2,
+          "playerId": "demo-ai2-2",
+          "displayName": "小丑",
+          "ai": true,
+          "personaId": "ai2",
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ai2",
+          "ready": true,
+          "host": false
+        },
+        {
+          "seatNumber": 3,
+          "playerId": "demo-ai3-3",
+          "displayName": "华生",
+          "ai": true,
+          "personaId": "ai3",
+          "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ai3",
+          "ready": true,
+          "host": false
+        }
+      ],
+      "seat_count": 4
+    }
+  },
+  {
+    "table": "ai_decision_traces",
+    "match": {
+      "room_id": "demo-ai-quality-room",
+      "action": "SPEAK",
+      "persona_id": "ai1"
+    },
+    "expected": {
+      "room_id": "demo-ai-quality-room",
+      "instance_id": null,
+      "round_number": 1,
+      "model_key": "demo-model",
+      "prompt_tokens": 1200,
+      "completion_tokens": 180,
+      "fallback": false,
+      "valid_decision": true,
+      "night_action": null,
+      "game_id": "undercover",
+      "phase": "DESCRIPTION",
+      "action": "SPEAK",
+      "actor_player_id": "demo-ai1",
+      "persona_id": "ai1",
+      "role_key": "UNDERCOVER",
+      "target_player_id": null,
+      "latency_ms": 620,
+      "confidence": 0.78,
+      "reason": "根据前两位玩家描述都偏向饮品口感，选择给出模糊但一致的描述。",
+      "input_summary": "第1轮描述阶段，已听到2条玩家发言，身份为卧底。",
+      "output_summary": "给出与饮品相关但不暴露差异词的描述。",
+      "belief_snapshot": {
+        "suspects": [
+          "seat4"
+        ],
+        "selfRisk": "medium"
+      },
+      "memory_snapshot": {
+        "persona": "冷静短句",
+        "recentLesson": "避免过精确"
+      },
+      "quality": {
+        "flags": [
+          "demo_sample"
+        ],
+        "score": 0.86,
+        "notes": "表达有依据且未泄露隐藏词。"
+      },
+      "raw_output": {
+        "content": "我先说一个比较宽的感受：它更像日常会入口的东西，重点在口感而不是外形。"
+      }
+    }
+  },
+  {
+    "table": "ai_decision_traces",
+    "match": {
+      "room_id": "demo-ai-quality-room",
+      "action": "VOTE",
+      "persona_id": "ai3"
+    },
+    "expected": {
+      "room_id": "demo-ai-quality-room",
+      "instance_id": null,
+      "round_number": 1,
+      "model_key": "demo-model",
+      "prompt_tokens": 1200,
+      "completion_tokens": 180,
+      "fallback": false,
+      "valid_decision": true,
+      "night_action": null,
+      "game_id": "werewolf",
+      "phase": "DAY_VOTE",
+      "action": "VOTE",
+      "actor_player_id": "demo-ai3",
+      "persona_id": "ai3",
+      "role_key": "SEER",
+      "target_player_id": "demo-player-wolf",
+      "latency_ms": 710,
+      "confidence": 0.82,
+      "reason": "目标玩家先后发言对夜晚信息解释不一致，且回避投票理由。",
+      "input_summary": "第2天投票阶段，场上6人存活，已出现两组对跳信息。",
+      "output_summary": "投向发言矛盾且缺少验人链的玩家。",
+      "belief_snapshot": {
+        "trusted": [
+          "demo-human-1"
+        ],
+        "suspects": [
+          "demo-player-wolf"
+        ]
+      },
+      "memory_snapshot": {
+        "strategy": "先给结论再给查验顺序"
+      },
+      "quality": {
+        "flags": [
+          "demo_sample",
+          "evidence_based"
+        ],
+        "score": 0.9
+      },
+      "raw_output": {
+        "targetPlayerId": "demo-player-wolf",
+        "reason": "前后视角不一致"
+      }
+    }
+  }
+]

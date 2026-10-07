@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
+@org.springframework.context.annotation.Import(com.aisocialgame.fixture.DemoSeedFixture.class)
 @SpringBootTest(classes = AiSocialGameApplication.class)
 @ActiveProfiles("test")
 @TestPropertySource(properties = "app.demo-seed.enabled=true")

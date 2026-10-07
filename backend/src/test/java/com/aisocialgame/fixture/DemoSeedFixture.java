@@ -1,4 +1,4 @@
-package com.aisocialgame.service;
+package com.aisocialgame.fixture;
 
 import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.model.AiDecisionTrace;
@@ -17,7 +17,7 @@ import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.credit.CreditRedeemCodeRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
-public class DemoSeedService implements ApplicationRunner {
+@TestComponent
+public class DemoSeedFixture implements ApplicationRunner {
     private static final String DEMO_UNDERCOVER_ROOM_ID = "demo-undercover-room";
     private static final String DEMO_WEREWOLF_ROOM_ID = "demo-werewolf-room";
     private static final String DEMO_AI_ROOM_ID = "demo-ai-quality-room";
@@ -40,7 +40,7 @@ public class DemoSeedService implements ApplicationRunner {
     private final AiPersonaMemoryRepository aiPersonaMemoryRepository;
     private final AiDecisionTraceRepository aiDecisionTraceRepository;
 
-    public DemoSeedService(AppProperties appProperties,
+    public DemoSeedFixture(AppProperties appProperties,
                            CommunityPostRepository communityPostRepository,
                            RoomRepository roomRepository,
                            PlayerStatsRepository playerStatsRepository,
