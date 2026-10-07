@@ -172,6 +172,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
             phase(state, "RESPONSE", player(state, action.getTargetPlayerId()).getSeatNumber(), 20, now);
         } else {
             String target = "ANSWER_PLAYER".equals(type) ? text(map(state.getData().get("activeQuestion")).get("actorId")) : null;
+            if ("ANSWER_PLAYER".equals(type)) data.put("questionEventId", text(map(state.getData().get("activeQuestion")).get("eventId")));
             event(state, type, actorId, target, actor.getDisplayName() + "：" + content, data);
             completeCurrentSpeech(state, now);
         }

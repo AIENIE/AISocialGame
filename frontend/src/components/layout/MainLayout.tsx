@@ -52,6 +52,10 @@ const MainLayout = () => {
   const onlineTotal = games.reduce((acc, item) => acc + (item.onlineCount || 0), 0);
   const isGameRoute = /^\/(room|spectate)\//.test(location.pathname);
 
+  if (/^\/room\/(undercover|werewolf|turtle_soup)\//.test(location.pathname)) {
+    return <main className="room-route"><Outlet /></main>;
+  }
+
   const isActive = (path: string) => {
     return location.pathname.startsWith(path) ? "text-primary" : "text-muted-foreground";
   };

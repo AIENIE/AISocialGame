@@ -157,7 +157,7 @@ public class V2GameService {
             GamePlayerState player = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId) && p.isAlive()).findFirst().orElse(null);
             if (player == null || Set.of("NIGHT", "DEATH_ACTION", "SETTLEMENT").contains(state.getPhase())) return false;
             safety.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH).room(roomId, state.getGameId()).user(actorId, actorId));
-            RuleSupport.event(state, "reaction", actorId, null, player.getDisplayName() + "：" + content, Map.of("reactionType", type));
+            RuleSupport.event(state, "reaction", actorId, null, player.getDisplayName() + "：" + content, Map.of("reactionType", type, "content", content));
             persist(room, state, rules(state.getGameId()), false); return true;
         }));
     }
@@ -293,6 +293,13 @@ public class V2GameService {
             GameEvent event = recorder.record(state, RuleSupport.text(e.get("type")), (String) e.get("actorId"), (String) e.get("targetId"),
                     GameEventVisibility.valueOf(RuleSupport.text(e.get("visibility"))), RuleSupport.strings(e.get("visibleTo")), data);
             event.setPhase(RuleSupport.text(e.get("phase"))); event.setRoundNumber(RuleSupport.number(e.get("round"), state.getRoundNumber()));
+            if (event.getVisibility() == GameEventVisibility.PUBLIC) {
+                state.getLogs().stream().filter(log -> Objects.equals(log.getMetadata().get("eventId"), e.get("eventId"))).findFirst().ifPresent(log -> {
+                    log.setMetadata(com.aisocialgame.model.PublicLogMetadata.project(event.getEventType(), data,
+                            RuleSupport.text(e.get("eventId")), event.getPublicSeq()));
+                    log.setTime(event.getOccurredAt());
+                });
+            }
             publicChanged |= "PUBLIC".equals(e.get("visibility"));
             if ("PRIVATE".equals(e.get("visibility"))) privateRecipients.addAll(RuleSupport.strings(e.get("visibleTo")));
         }

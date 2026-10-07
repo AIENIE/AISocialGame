@@ -67,9 +67,21 @@ export const useGameSocket = (options: UseGameSocketOptions) => {
   const [connected, setConnected] = useState(false);
   const [showReconnectAction, setShowReconnectAction] = useState(false);
   const [nonce, setNonce] = useState(0);
+  const [online, setOnline] = useState(() => navigator.onLine);
 
   useEffect(() => {
-    if (!roomId || !playerId || !token) return;
+    const offline = () => { setConnected(false); setOnline(false); };
+    const restored = () => setOnline(true);
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", restored);
+    return () => {
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", restored);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!roomId || !playerId || !token || !online) return;
     let disposed = false;
     let generation = 0;
     let failures = 0;
@@ -187,7 +199,7 @@ export const useGameSocket = (options: UseGameSocketOptions) => {
       setConnected(false);
       setShowReconnectAction(false);
     };
-  }, [roomId, playerId, token, nonce]);
+  }, [roomId, playerId, token, nonce, online]);
 
   const sendChat = useMemo(() => {
     return (type: "TEXT" | "EMOJI" | "QUICK_PHRASE", content: string) => {

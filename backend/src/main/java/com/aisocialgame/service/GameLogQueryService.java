@@ -75,10 +75,8 @@ public class GameLogQueryService {
         log.setRoundNumber(event.getRoundNumber());
         log.setPhase(event.getPhase());
         log.setTime(event.getOccurredAt());
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        if (data.get("eventId") != null) metadata.put("eventId", data.get("eventId"));
-        if (data.get("presentation") != null) metadata.put("presentation", data.get("presentation"));
-        log.setMetadata(metadata);
+        log.setMetadata(com.aisocialgame.model.PublicLogMetadata.project(event.getEventType(), data,
+                RuleSupport.text(data.get("eventId")), event.getPublicSeq()));
         return log;
     }
 }

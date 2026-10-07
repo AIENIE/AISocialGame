@@ -91,8 +91,7 @@ public final class RuleSupport {
         if ("PUBLIC".equals(visibility) && message != null && !message.isBlank()) {
             GameLogEntry log = new GameLogEntry(type, message);
             log.setActorId(actorId); log.setTargetId(targetId); log.setRoundNumber(state.getRoundNumber()); log.setPhase(state.getPhase());
-            log.setMetadata(new LinkedHashMap<>(Map.of("eventId", id)));
-            if (data != null && data.containsKey("presentation")) log.getMetadata().put("presentation", data.get("presentation"));
+            log.setMetadata(com.aisocialgame.model.PublicLogMetadata.project(type, data, id, null));
             state.getLogs().add(log);
         }
     }

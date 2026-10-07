@@ -36,7 +36,7 @@ beforeEach(() => {
   container = document.createElement("div"); root = createRoot(container);
   options = { roomId: "room", playerId: "user", token: "token", onConnected: vi.fn(), onStateChange: vi.fn() };
 });
-afterEach(() => { act(() => root.unmount()); expect(vi.getTimerCount()).toBe(0); vi.unstubAllGlobals(); vi.useRealTimers(); container.remove(); });
+afterEach(() => { act(() => root.unmount()); expect(vi.getTimerCount()).toBe(0); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); container.remove(); });
 
 it("subscribes and requests snapshots on every connection, ignoring old callbacks", () => {
   act(() => root.render(<Probe />));
@@ -84,4 +84,35 @@ it("token changes and logout invalidate callbacks from the previous connection",
   options = { ...options, token: null }; act(() => root.render(<Probe />));
   act(() => { second.onclose?.(); vi.advanceTimersByTime(60_000); });
   expect(FakeSocket.instances).toHaveLength(2); expect(socket.connected).toBe(false);
+});
+
+it("immediately disconnects while offline and requires fresh sync after reconnecting", () => {
+  act(() => root.render(<Probe />));
+  const first = FakeSocket.instances[0];
+  act(() => { first.connect(); first.sync(); });
+  expect(socket.connected).toBe(true);
+  act(() => window.dispatchEvent(new Event("offline")));
+  expect(socket.connected).toBe(false);
+  expect(first.readyState).toBe(3);
+  expect(socket.sendChat("TEXT", "offline message")).toBe(false);
+  act(() => { first.sync(); vi.advanceTimersByTime(60_000); socket.reconnect(); });
+  expect(FakeSocket.instances).toHaveLength(1);
+  expect(socket.connected).toBe(false);
+  act(() => window.dispatchEvent(new Event("online")));
+  const second = FakeSocket.instances[1];
+  act(() => second.connect());
+  expect(socket.connected).toBe(false);
+  act(() => second.sync());
+  expect(socket.connected).toBe(true);
+  expect(options.onConnected).toHaveBeenCalledTimes(2);
+});
+
+it("waits for online before opening a socket when the room mounts offline", () => {
+  vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  act(() => root.render(<Probe />));
+  act(() => vi.advanceTimersByTime(60_000));
+  expect(FakeSocket.instances).toHaveLength(0);
+  expect(socket.connected).toBe(false);
+  act(() => window.dispatchEvent(new Event("online")));
+  expect(FakeSocket.instances).toHaveLength(1);
 });

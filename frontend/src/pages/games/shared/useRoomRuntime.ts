@@ -27,8 +27,6 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const playerId = user?.id || null;
   const [selectedAiId, setSelectedAiId] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [showTransition, setShowTransition] = useState(false);
-  const prevPhaseRef = useRef<string | undefined>();
   const settlementSnapshotRef = useRef<string | null>(null);
   const replayCacheAttemptRef = useRef<string | null>(null);
   const joinAttemptedRoomRef = useRef<string | null>(null);
@@ -42,11 +40,12 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
 
   const personas = personaQuery.data ?? [];
 
-  const { data: room } = useQuery({
+  const roomQuery = useQuery({
     queryKey: ["room", roomId],
     queryFn: () => roomApi.detail(effectiveGameId, roomId || ""),
     enabled: !!roomId && !!effectiveGameId,
   });
+  const room = roomQuery.data;
 
   const { stateQuery, startMutation, actionMutation } = useGameEngine(effectiveGameId, user ? roomId : undefined);
   const { refetch: refetchState } = stateQuery;
@@ -83,8 +82,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
       }
       invalidateSocketVersion(event);
     },
-    onChat: (msg) => setChatMessages((prev) => [...prev.slice(-99), msg]),
+    onChat: (msg) => setChatMessages((prev) => prev.some(item => item.id === msg.id) ? prev : [...prev.slice(-99), msg]),
   });
+
+  useEffect(() => { setChatMessages([]); }, [roomId, playerId]);
 
   useEffect(() => {
     if (playerId && roomId) {
@@ -99,17 +100,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   }, [personas, selectedAiId]);
 
   useEffect(() => {
-    const phase = stateQuery.data?.phase;
-    if (!phase) {
-      return;
+    if (stateQuery.data?.phase === "SETTLEMENT") {
+      void queryClient.invalidateQueries({ queryKey: ["room", roomId] });
     }
-    if (phase !== prevPhaseRef.current && phase !== "WAITING") {
-      setShowTransition(true);
-      const timer = window.setTimeout(() => setShowTransition(false), 1800);
-      prevPhaseRef.current = phase;
-      return () => clearTimeout(timer);
-    }
-  }, [stateQuery.data?.phase]);
+  }, [stateQuery.data?.phase, roomId, queryClient]);
 
   const allRecoverableMessages = useMemo(
     () => [...DEFAULT_RECOVERABLE_MESSAGES, ...recoverableMessages],
@@ -216,6 +210,9 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     roomId,
     gameId: effectiveGameId,
     room,
+    roomQuery,
+    authLoading: loading,
+    joinMutation,
     state,
     players,
     alivePlayers,
@@ -229,7 +226,6 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     isHost,
     chatMessages,
     socket,
-    showTransition,
     userKey,
     stateQuery,
     startMutation,

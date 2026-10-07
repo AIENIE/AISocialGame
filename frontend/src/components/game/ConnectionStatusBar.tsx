@@ -15,7 +15,7 @@ export const ConnectionStatusBar = ({ connected, showReconnectAction, onReconnec
   }
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-[80] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm text-white">
+    <div role="status" className="relative z-[60] flex shrink-0 items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm text-white">
       {showReconnectAction ? (
         <>
           <WifiOff className="h-4 w-4" />
@@ -26,7 +26,7 @@ export const ConnectionStatusBar = ({ connected, showReconnectAction, onReconnec
         </>
       ) : (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
           <span>{t("game.conn.auto")}</span>
         </>
       )}

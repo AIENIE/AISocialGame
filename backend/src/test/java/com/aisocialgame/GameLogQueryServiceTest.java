@@ -51,6 +51,9 @@ class GameLogQueryServiceTest {
         assertEquals(List.of("second", "third"), newest.items().stream().map(item -> item.getMessage()).toList());
         assertEquals(2L, newest.nextCursor());
         assertTrue(newest.hasMore());
+        assertEquals(2L, newest.items().getFirst().getMetadata().get("publicSeq"));
+        assertEquals("second", newest.items().getFirst().getMetadata().get("content"));
+        assertFalse(newest.items().getFirst().getMetadata().containsKey("privateNote"));
         var older = logs.page("undercover", roomId, hostId, newest.nextCursor(), 100);
         assertEquals(List.of("first"), older.items().stream().map(item -> item.getMessage()).toList());
         assertFalse(older.hasMore());
@@ -71,7 +74,7 @@ class GameLogQueryServiceTest {
         event.setPublicSeq(publicSeq);
         event.setEventType("speech");
         event.setVisibility(visibility);
-        event.setData(Map.of("message", message, "eventId", UUID.randomUUID().toString()));
+        event.setData(Map.of("message", message, "eventId", UUID.randomUUID().toString(), "content", message, "privateNote", "not for display"));
         return event;
     }
 }

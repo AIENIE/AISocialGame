@@ -614,7 +614,7 @@ public class WerewolfRuleSet implements GameRuleSet {
     private void applySpeech(GameState state, GamePlayerState actor, PlayerAction action, LocalDateTime now) {
         if (!SKIP.equals(action.getType())) {
             String content = requireContent(action, 300);
-            event(state, "SPEECH", actor.getPlayerId(), null, actor.getDisplayName() + "：" + content, Map.of("statement", "PLAYER_CLAIM"));
+            event(state, "SPEECH", actor.getPlayerId(), null, actor.getDisplayName() + "：" + content, Map.of("statement", "PLAYER_CLAIM", "content", content));
         } else event(state, "SPEECH_SKIPPED", actor.getPlayerId(), null, actor.getDisplayName() + "结束了本轮发言。", Map.of());
         Map<String, Object> data = data(state);
         List<String> spoken = new ArrayList<>(strings(data.get("spokenPlayers")));
@@ -661,7 +661,7 @@ public class WerewolfRuleSet implements GameRuleSet {
         if (!text(data.get("questionTarget")).isBlank()) {
             if (!SKIP.equals(action.getType())) {
                 event(state, "ANSWER_PLAYER", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "：" + requireContent(action, 120),
-                        Map.of("questionEventId", text(data.get("questionEventId")), "statement", "PLAYER_CLAIM"));
+                        Map.of("questionEventId", text(data.get("questionEventId")), "statement", "PLAYER_CLAIM", "content", requireContent(action, 120)));
             } else event(state, "ANSWER_SKIPPED", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "暂时没有补充。", Map.of());
             List<String> answered = new ArrayList<>(strings(data.get("answeredPlayers")));
             answered.add(actor.getPlayerId());
@@ -695,7 +695,7 @@ public class WerewolfRuleSet implements GameRuleSet {
         }
         String question = requireContent(action, 60);
         String target = action.getTargetPlayerId();
-        event(state, "ASK_PLAYER", actor.getPlayerId(), target, actor.getDisplayName() + "向" + player(state, target).getDisplayName() + "提问：" + question, Map.of("statement", "PLAYER_CLAIM"));
+        event(state, "ASK_PLAYER", actor.getPlayerId(), target, actor.getDisplayName() + "向" + player(state, target).getDisplayName() + "提问：" + question, Map.of("statement", "PLAYER_CLAIM", "content", question));
         data.put("questionActor", actor.getPlayerId());
         data.put("questionTarget", target);
         data.put("question", question);
@@ -867,7 +867,7 @@ public class WerewolfRuleSet implements GameRuleSet {
     }
 
     private void applyLastWords(GameState state, GamePlayerState actor, PlayerAction action, LocalDateTime now) {
-        if (!SKIP.equals(action.getType())) event(state, "LAST_WORDS", actor.getPlayerId(), null, actor.getDisplayName() + "的遗言：" + requireContent(action, 120), Map.of("statement", "PLAYER_CLAIM"));
+        if (!SKIP.equals(action.getType())) event(state, "LAST_WORDS", actor.getPlayerId(), null, actor.getDisplayName() + "的遗言：" + requireContent(action, 120), Map.of("statement", "PLAYER_CLAIM", "content", requireContent(action, 120)));
         Map<String, Object> data = data(state);
         List<String> done = new ArrayList<>(strings(data.get("lastWordsDone")));
         done.add(actor.getPlayerId());

@@ -1,117 +1,51 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChatMessage } from "@/types";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Send } from "lucide-react";
+import type { ChatMessage } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Send } from "lucide-react";
-
-const QUICK_EMOJIS = ["👍", "🤔", "😂", "😱", "😡", "😭", "😎", "💀"];
-const QUICK_PHRASE_KEYS = [
-  "game.chat.quick.0",
-  "game.chat.quick.1",
-  "game.chat.quick.2",
-  "game.chat.quick.3",
-  "game.chat.quick.4",
-  "game.chat.quick.5",
-];
 
 interface ChatPanelProps {
   messages: ChatMessage[];
   myPlayerId?: string;
-  onSend: (type: "TEXT" | "EMOJI" | "QUICK_PHRASE", content: string) => void;
+  onSend: (type: "TEXT" | "EMOJI" | "QUICK_PHRASE", content: string) => void | boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  className?: string;
 }
 
-export const ChatPanel = ({ messages, myPlayerId, onSend }: ChatPanelProps) => {
+export const ChatPanel = ({ messages, myPlayerId, onSend, readOnly, disabled, className = "" }: ChatPanelProps) => {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
-  const endRef = useRef<HTMLDivElement | null>(null);
-
+  const scroll = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const [unread, setUnread] = useState(false);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (following.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+    else setUnread(true);
   }, [messages]);
-
-  const recent = useMemo(() => messages.slice(-100), [messages]);
-
-  return (
-    <Card className="flex h-full min-h-[420px] flex-col">
-      <div className="border-b px-3 py-2 text-sm font-medium flex items-center gap-2">
-        <MessageSquare className="h-4 w-4" /> {t("game.chat.title")}
-      </div>
-
-      <ScrollArea className="flex-1 px-3 py-2">
-        <div className="space-y-2">
-          {recent.map((msg) => {
-            const isMe = myPlayerId && msg.senderId === myPlayerId;
-            const isEmoji = msg.type === "EMOJI";
-            return (
-              <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-                <Avatar className="h-6 w-6 shrink-0">
-                  <AvatarImage src={msg.senderAvatar} />
-                  <AvatarFallback>{msg.senderName?.[0] || "?"}</AvatarFallback>
-                </Avatar>
-                <div className={`max-w-[72%] ${isMe ? "text-right" : ""}`}>
-                  <div className="mb-0.5 text-[10px] text-muted-foreground">{msg.senderName}</div>
-                  {isEmoji ? (
-                    <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-2xl">{msg.content}</span>
-                  ) : (
-                    <span className={`inline-block rounded-2xl px-3 py-1.5 text-sm ${isMe ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-900"}`}>
-                      {msg.content}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          <div ref={endRef} />
-          {recent.length === 0 && <div className="text-sm text-muted-foreground">{t("game.chat.empty")}</div>}
-        </div>
-      </ScrollArea>
-
-      <div className="border-t px-3 py-2">
-        <div className="mb-2 flex gap-1 overflow-x-auto pb-1">
-          {QUICK_EMOJIS.map((emoji) => (
-            <Button key={emoji} variant="ghost" size="sm" className="h-8 w-8 p-0 text-lg" onClick={() => onSend("EMOJI", emoji)}>
-              {emoji}
-            </Button>
-          ))}
-        </div>
-
-        <div className="mb-2 flex flex-wrap gap-1">
-          {QUICK_PHRASE_KEYS.map((key) => (
-            <Button key={key} variant="outline" size="sm" className="h-7 text-xs" onClick={() => onSend("QUICK_PHRASE", t(key))}>
-              {t(key)}
-            </Button>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t("game.chat.placeholder")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && input.trim()) {
-                onSend("TEXT", input.trim());
-                setInput("");
-              }
-            }}
-          />
-          <Button
-            size="icon"
-            disabled={!input.trim()}
-            onClick={() => {
-              if (!input.trim()) return;
-              onSend("TEXT", input.trim());
-              setInput("");
-            }}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
+  const send = () => {
+    if (disabled || readOnly || !input.trim()) return;
+    if (onSend("TEXT", input.trim()) !== false) setInput("");
+  };
+  return <section className={`room-chat-panel ${className}`} aria-label={t("game.chat.title")} data-testid="room-chat-panel">
+    <h2 className="border-b px-4 py-2 text-sm font-medium">{t("game.chat.title")}</h2>
+    <div ref={scroll} className="room-chat-messages" onScroll={() => {
+      if (!scroll.current) return;
+      following.current = scroll.current.scrollHeight - scroll.current.scrollTop - scroll.current.clientHeight < 40;
+      if (following.current) setUnread(false);
+    }}>
+      {messages.slice(-100).map(message => <div key={message.id} className={`room-message ${message.senderId === myPlayerId ? "room-message-mine" : ""}`}>
+        <Avatar className="h-7 w-7 shrink-0"><AvatarImage src={message.senderAvatar} alt="" /><AvatarFallback>{message.senderName?.[0] || "?"}</AvatarFallback></Avatar>
+        <div className="room-message-body"><div className="room-message-byline">{message.senderName}</div><p className="room-bubble whitespace-pre-wrap break-words">{message.content}</p></div>
+      </div>)}
+      {!messages.length && <p className="py-6 text-center text-sm text-muted-foreground">{t("game.chat.empty")}</p>}
+    </div>
+    {unread && <Button size="sm" variant="ghost" onClick={() => { following.current = true; setUnread(false); if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight; }}>↓ {t("game.live")}</Button>}
+    {!readOnly && <form className="room-chat-composer" onSubmit={event => { event.preventDefault(); send(); }}>
+      <Input value={input} maxLength={1000} aria-label={t("game.chat.placeholder")} onChange={event => setInput(event.target.value)} disabled={disabled} placeholder={t("game.chat.placeholder")} />
+      <Button type="submit" size="icon" disabled={disabled || !input.trim()} aria-label={t("game.submitSpeak")}><Send className="h-4 w-4" /></Button>
+    </form>}
+  </section>;
 };

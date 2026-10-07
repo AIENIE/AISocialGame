@@ -1,0 +1,97 @@
+import { useTranslation } from "react-i18next";
+
+const messages = {
+  players: ["玩家", "玩家", "Players"], history: ["对局历史", "對局歷史", "Game history"],
+  details: ["我的信息", "我的資訊", "My information"], rules: ["本局规则", "本局規則", "Room rules"],
+  back: ["返回房间列表", "返回房間列表", "Back to rooms"], more: ["房间菜单", "房間選單", "Room menu"],
+  live: ["对局现场", "對局現場", "Live game"], round: ["第 {n} 轮", "第 {n} 輪", "Round {n}"],
+  seat: ["{n} 号", "{n} 號", "Seat {n}"], me: ["我", "我", "You"],
+  waiting: ["等待其他玩家行动", "等待其他玩家行動", "Waiting for the other players"],
+  listening: ["正在听 {name} 发言", "正在聽 {name} 發言", "Listening to {name}"],
+  yourTurn: ["轮到你了", "輪到你了", "Your turn"], submitted: ["已提交，等待下一步", "已提交，等待下一步", "Submitted · waiting for the next move"],
+  choose: ["选择玩家", "選擇玩家", "Choose a player"], target: ["已选 {name}", "已選 {name}", "Selected: {name}"],
+  confirmTarget: ["{action} · {name}", "{action} · {name}", "{action} · {name}"],
+  confirm: ["确认提交", "確認提交", "Confirm"], cancel: ["取消", "取消", "Cancel"],
+  send: ["提交发言并结束本次发言", "提交發言並結束本次發言", "Submit and end this speaking turn"],
+  sending: ["正在提交…", "正在提交…", "Submitting…"], draft: ["说说你的想法…", "說說你的想法…", "Share your thoughts…"],
+  note: ["补充理由（可选）", "補充理由（可選）", "Add a reason (optional)"],
+  speak: ["发言", "發言", "Speak"], askPlayer: ["向玩家提问", "向玩家提問", "Ask a player"],
+  answer: ["回应问题", "回應問題", "Answer"], discuss: ["讨论", "討論", "Discuss"],
+  askHost: ["向主持提问", "向主持提問", "Ask the host"], solution: ["提交解答", "提交解答", "Submit answer"],
+  vote: ["投票", "投票", "Vote"], abstain: ["弃票", "棄票", "Abstain"],
+  skip: ["跳过本次行动", "跳過本次行動", "Skip this move"], hint: ["请求提示", "請求提示", "Request hint"],
+  reveal: ["揭晓汤底", "揭曉湯底", "Reveal the story"], wolfKill: ["选择刀口", "選擇刀口", "Choose wolves’ target"],
+  seerCheck: ["查验", "查驗", "Inspect"], guard: ["守护", "守護", "Protect"],
+  heal: ["使用解药", "使用解藥", "Use antidote"], poison: ["使用毒药", "使用毒藥", "Use poison"],
+  shoot: ["开枪", "開槍", "Shoot"], private: ["仅自己可见", "僅自己可見", "Only you can see this"],
+  team: ["狼队可见", "狼隊可見", "Visible to the wolf team"],
+  dead: ["已出局", "已出局", "Eliminated"], deadWait: ["你已出局，可以继续观看对局", "你已出局，可以繼續觀看對局", "You are out. You can keep watching."],
+  host: ["主持", "主持", "Host"], author: ["出题主持", "出題主持", "Question author"], blank: ["白板 · 没有词语", "白板 · 沒有詞語", "Blank · no word"],
+  unknownWord: ["等待发词", "等待發詞", "Waiting for your word"],
+  wordNote: ["根据大家的发言判断阵营，不要直接说出词语。", "根據大家的發言判斷陣營，不要直接說出詞語。", "Infer your faction from the conversation. Do not reveal your word."],
+  roomChat: ["房间聊天", "房間聊天", "Room chat"], readOnly: ["局中仅供查看", "局中僅供查看", "Read-only during the game"],
+  unread: ["{n} 条新消息", "{n} 則新訊息", "{n} new messages"], newEvents: ["有新发言 · 回到最新", "有新發言 · 回到最新", "New messages · Jump to latest"],
+  older: ["查看更早记录", "查看更早紀錄", "Load earlier events"], retry: ["重试", "重試", "Retry"],
+  empty: ["对局开始后，大家的发言会显示在这里。", "對局開始後，大家的發言會顯示在這裡。", "The conversation will appear here when the game starts."],
+  historyError: ["记录加载失败，当前对局仍可继续。", "紀錄載入失敗，目前對局仍可繼續。", "Could not load history. You can keep playing."],
+  reconnect: ["连接中断，恢复连接后再操作", "連線中斷，恢復連線後再操作", "Disconnected. Reconnect to take your turn."],
+  loading: ["正在进入房间…", "正在進入房間…", "Entering the room…"],
+  unavailable: ["暂时无法读取房间，请重试。", "暫時無法讀取房間，請重試。", "Unable to load this room. Please retry."],
+  noAccess: ["你暂时没有权限进入这个房间。", "你暫時沒有權限進入這個房間。", "You do not have access to this room."],
+  signIn: ["请先登录后进入房间", "請先登入後進入房間", "Sign in to enter the room"],
+  goodWin: ["好人阵营", "好人陣營", "Good team"], solved: ["推理成功", "推理成功", "Mystery solved"],
+  failed: ["未能解开谜题", "未能解開謎題", "Mystery unsolved"], draw: ["平局", "平局", "Draw"],
+  phaseChanged: ["回合已更新，请按当前提示操作", "回合已更新，請按目前提示操作", "The turn changed. Follow the current prompt."],
+  addSeat: ["邀请 / 添加 AI", "邀請 / 加入 AI", "Invite / Add AI"], invite: ["复制邀请链接", "複製邀請連結", "Copy invite link"],
+  copied: ["邀请链接已复制", "邀請連結已複製", "Invite link copied"], copyFailed: ["无法复制，请复制浏览器地址邀请朋友", "無法複製，請複製瀏覽器網址邀請朋友", "Copy the browser address to invite a friend"],
+  prepare: ["等大家入座，就可以开始了", "等大家入座，就可以開始了", "Take your seats and get ready"],
+  needPlayers: ["还差 {n} 名玩家", "還差 {n} 名玩家", "Waiting for {n} more players"],
+  hostStarts: ["等待房主开始", "等待房主開始", "Waiting for the host to start"],
+  restart: ["再来一局", "再來一局", "Play again"], nextSetup: ["下一局设置", "下一局設定", "Next game setup"],
+  replay: ["查看复盘", "查看復盤", "View replay"],
+  voted: ["已投票", "已投票", "Voted"], votes: ["{n} 票", "{n} 票", "{n} votes"], voteTo: ["投给 {name}", "投給 {name}", "Voted for {name}"],
+  lastBallot: ["上次揭票", "上次揭票", "Last revealed ballot"],
+  connected: ["在线", "在線", "Online"], disconnected: ["离线", "離線", "Offline"], managed: ["AI 托管", "AI 託管", "AI takeover"],
+  speaking: ["发言中", "發言中", "Speaking"],
+  currentQuestion: ["正在回应的问题", "正在回應的問題", "Question being answered"], reply: ["回应", "回應", "Reply"],
+  surface: ["汤面", "湯面", "The mystery"], clues: ["已确认的线索", "已確認的線索", "Confirmed clues"],
+  thinking: ["主持正在确认答案…", "主持正在確認答案…", "The host is checking the answer…"],
+  budget: ["提问 / 试答 {n}/{max}", "提問 / 試答 {n}/{max}", "Questions / attempts {n}/{max}"],
+  hintBudget: ["提示 {n}/{max}", "提示 {n}/{max}", "Hints {n}/{max}"],
+  cost: ["主持确认有效后消耗 1 次", "主持確認有效後消耗 1 次", "Costs 1 turn after the host confirms"],
+  hintCost: ["消耗 1 次探索机会", "消耗 1 次探索機會", "Costs 1 exploration turn"],
+  freeDiscuss: ["讨论不消耗提问次数", "討論不消耗提問次數", "Discussion does not use a question"],
+  finalWarning: ["这是最后一次共同解答，答错将结束本局。", "這是最後一次共同解答，答錯將結束本局。", "This is the team’s last answer. A wrong answer ends the game."],
+  revealWarning: ["揭晓后将结束本局，所有玩家都会看到汤底。", "揭曉後將結束本局，所有玩家都會看到湯底。", "Revealing the story ends this game for everyone."],
+  councilEmpty: ["本夜还没有队友建议", "本夜還沒有隊友建議", "No team suggestions this night yet"],
+  noChecks: ["尚无查验记录", "尚無查驗紀錄", "No inspections yet"], good: ["好人", "好人", "Good"],
+  lastGuard: ["上夜守护：{name}", "上夜守護：{name}", "Last protected: {name}"], none: ["无", "無", "None"],
+  nightTarget: ["今晚刀口：{name}", "今晚刀口：{name}", "Tonight’s target: {name}"],
+  undercoverRules: ["依次描述，再进行定向质疑与回应。平票者辩解后复投；再次平票则无人出局。连续三轮无人出局则平局。", "依次描述，再進行定向質疑與回應。平票者辯解後複投；再次平票則無人出局。連續三輪無人出局則平局。", "Describe in turn, then ask and answer questions. Tied candidates defend before a runoff; another tie eliminates nobody. Three rounds without elimination end in a draw."],
+  authorRules: ["出题者只主持、不参赛；自定义词库对局不计入排行榜。", "出題者只主持、不參賽；自訂詞庫對局不計入排行榜。", "The author hosts without playing. Custom word games do not count toward rankings."],
+  blankRules: ["白板没有词语，存活到最后两人时独自获胜。", "白板沒有詞語，存活到最後兩人時獨自獲勝。", "The blank player has no word and wins alone by surviving to the last two."],
+  soupRules: ["共同讨论、向主持提问，还原故事。提问和试答按有效答复计次，最后一次解答需由真人提交。", "共同討論、向主持提問，還原故事。提問和試答按有效答覆計次，最後一次解答需由真人提交。", "Discuss together and question the host to reconstruct the story. Confirmed questions and attempts use turns. A human submits the final answer."],
+  reaction: ["表情互动", "表情互動", "Reactions"], close: ["关闭", "關閉", "Close"],
+} satisfies Record<string, [string, string, string]>;
+
+export type RoomTextKey = keyof typeof messages;
+export type RoomText = (key: RoomTextKey, values?: Record<string, string | number>) => string;
+export function roomText(language: string): RoomText {
+  const index = language.startsWith("en") ? 2 : /TW|HK|Hant/i.test(language) ? 1 : 0;
+  return (key, values = {}) => messages[key][index].replace(/\{(\w+)\}/g, (match, token) => String(values[token] ?? match));
+}
+export function useRoomText() { return roomText(useTranslation().i18n.language); }
+
+const phases: Record<string, [string, string, string]> = {
+  WAITING: ["准备中", "準備中", "Getting ready"], DESCRIPTION: ["描述", "描述", "Descriptions"],
+  CHALLENGE: ["质疑", "質疑", "Questions"], RESPONSE: ["回应", "回應", "Responses"],
+  VOTING: ["投票", "投票", "Voting"], TIE_DEFENSE: ["平票辩解", "平票辯解", "Tied defense"],
+  RUNOFF: ["复投", "複投", "Runoff"], NIGHT: ["夜晚", "夜晚", "Night"],
+  DAY_DISCUSS: ["白天发言", "白天發言", "Day discussion"], DAY_INTERACTION: ["定向问答", "定向問答", "Questions & answers"],
+  DAY_VOTE: ["放逐投票", "放逐投票", "Exile vote"], DEATH_ACTION: ["离场行动", "離場行動", "Final action"],
+  LAST_WORDS: ["遗言", "遺言", "Last words"], QUESTIONING: ["推理中", "推理中", "Solving the mystery"],
+  FINAL_ANSWER: ["最后解答", "最後解答", "Final answer"], SETTLEMENT: ["本局结束", "本局結束", "Game finished"],
+};
+export function roomPhase(phase: string, language: string) {
+  return phases[phase]?.[language.startsWith("en") ? 2 : /TW|HK|Hant/i.test(language) ? 1 : 0] || phase;
+}

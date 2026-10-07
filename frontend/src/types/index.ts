@@ -382,7 +382,14 @@ export interface GameLogEntry {
   targetId?: string;
   phase?: string;
   roundNumber?: number;
-  metadata?: Record<string, unknown> & { presentation?: AiPresentation; eventId?: string };
+  metadata?: Record<string, unknown> & {
+    presentation?: AiPresentation;
+    eventId?: string;
+    publicSeq?: number;
+    content?: string;
+    correlationId?: string;
+    voteResult?: { votes: Record<string, string>; tally: Record<string, number> };
+  };
 }
 
 export interface GameLogPage {
