@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import axios from "axios";
-import { HttpApiError } from "@/services/apiError";
+import { DataState } from "@/components/DataState";
 import { BookOpen, History, LockKeyhole, MessageSquare, MoreHorizontal, Play, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -33,11 +32,8 @@ export function RoomExperience({ gameId }: { gameId: string }) {
   const runtime = useRoomRuntime({ defaultGameId: gameId, recoverableMessages: RECOVERABLE });
   const copy = useRoomText();
   const error = runtime.roomQuery.error || runtime.stateQuery.error || runtime.joinMutation.error;
-  const status = error instanceof HttpApiError ? error.status : axios.isAxiosError(error) ? error.response?.status : undefined;
-  const failure = status === 403 ? "noAccess" : status === 401 ? "signIn" : "unavailable";
   if (error || !runtime.room || !runtime.state) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-    <p role={error ? "alert" : "status"}>{copy(error ? failure : "loading")}</p>
-    {(runtime.roomQuery.isError || runtime.stateQuery.isError) && <Button onClick={() => { void runtime.roomQuery.refetch(); void runtime.stateQuery.refetch(); }}>{copy("retry")}</Button>}
+    <DataState loading={runtime.roomQuery.isPending || runtime.stateQuery.isPending} error={error} onRetry={() => { void runtime.roomQuery.refetch(); void runtime.stateQuery.refetch(); }} />
     <Button asChild variant="ghost"><Link to={`/game/${gameId}`}>{copy("back")}</Link></Button>
   </div>;
   return <RoomScene key={`${runtime.room.id}:${runtime.state.extra?.archiveId || "waiting"}:${runtime.userKey}`} runtime={runtime} room={runtime.room} state={runtime.state} />;

@@ -107,7 +107,7 @@ public class AdminOpsService {
         try {
             modelCount = aiProxyService.listModelsForSystem().size();
         } catch (Exception e) {
-            modelCount = 0;
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "模型列表暂时无法读取，请重试");
         }
         var safety = aiSafetyService.summary();
         return new AdminDashboardSummaryResponse(

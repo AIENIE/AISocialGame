@@ -12,6 +12,8 @@ export function safeReturnTo(value: string | null | undefined): string {
   if (decoded.startsWith("//") || hasUnsafeCharacters(decoded)) return "/";
   const url = new URL(value, window.location.origin);
   if (url.origin !== window.location.origin || /^\/(sso|admin)(\/|$)/.test(new URL(decoded, window.location.origin).pathname)) return "/";
+  const path = new URL(decoded, window.location.origin).pathname;
+  if (!/^\/(?:$|guide\/?$|profile\/?$|community\/?$|ai-chat\/?$|rankings\/?$|achievements\/?$|replays\/?$|(?:game|create|replay)\/[^/]+\/?$|(?:room|spectate)\/[^/]+\/[^/]+\/?$)/.test(path)) return "/";
   return `${url.pathname}${url.search}${url.hash}`;
 }
 export function consumeReturnTo() { const path = safeReturnTo(readStorage(LOCAL_RETURN_TO_KEY)); writeStorage(LOCAL_RETURN_TO_KEY, null); return path; }

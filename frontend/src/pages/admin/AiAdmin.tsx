@@ -40,9 +40,8 @@ const AiAdmin = () => {
   const traceStats = useMemo(() => {
     const fallbackCount = traces.filter((trace) => trace.fallback).length;
     const invalidCount = traces.filter((trace) => !trace.validDecision).length;
-    const avgConfidence = traces
-      .filter((trace) => typeof trace.confidence === "number")
-      .reduce((sum, trace, _, arr) => sum + (trace.confidence || 0) / arr.length, 0);
+    const confidences = traces.flatMap(trace => typeof trace.confidence === "number" ? [trace.confidence] : []);
+    const avgConfidence = confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : undefined;
     return { fallbackCount, invalidCount, avgConfidence };
   }, [traces]);
 
@@ -167,15 +166,15 @@ const AiAdmin = () => {
         </Card>
         <Card className="border-slate-200">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-500"><AlertTriangle className="h-4 w-4" /> 异常/兜底</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-500"><AlertTriangle className="h-4 w-4" /> 本页异常/兜底</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">{traceStats.invalidCount}/{traceStats.fallbackCount}</CardContent>
         </Card>
         <Card className="border-slate-200">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-500"><ShieldCheck className="h-4 w-4" /> 平均置信度</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-500"><ShieldCheck className="h-4 w-4" /> 本页平均置信度</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{traceStats.avgConfidence ? traceStats.avgConfidence.toFixed(2) : "-"}</CardContent>
+          <CardContent className="text-2xl font-semibold">{traceStats.avgConfidence !== undefined ? traceStats.avgConfidence.toFixed(2) : "暂无置信度数据"}</CardContent>
         </Card>
       </div>
 

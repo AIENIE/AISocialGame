@@ -1,4 +1,4 @@
-import { closureText } from "@/i18n/closureTexts";
+import { DataState } from "@/components/DataState";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,10 +33,11 @@ const CreateRoom = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { user, redirectToSsoLogin } = useAuth();
-  const { data: game, isError: gameError, refetch: reloadGame } = useQuery<Game | undefined>({
+  const { data: game, isPending: gamePending, error: gameError, refetch: reloadGame } = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
     enabled: !!gameId,
+    retry: false,
   });
   
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -119,8 +120,7 @@ const CreateRoom = () => {
     return !["template", "playerCount"].includes(id);
   };
 
-  if (gameError) return <div className="p-8 text-center">{closureText(i18n.language,"配置加载失败，暂不能创建房间")}<Button onClick={() => reloadGame()}>{closureText(i18n.language,"重新加载")}</Button></div>;
-  if (!game) return <div className="p-8 text-center">{t("common.gameNotFound")}</div>;
+  if (gamePending || gameError || !game) return <DataState loading={gamePending} error={gameError} onRetry={() => void reloadGame()} />;
 
   return (
     <div className="max-w-6xl mx-auto pb-24 md:pb-8 px-4">
@@ -177,14 +177,8 @@ const CreateRoom = () => {
 
               <div className="space-y-2">
                 <Label>{t("create.commMode")}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant={formData.commMode === "text" ? "default" : "outline"}
-                    className={cn(formData.commMode === "text" ? "bg-blue-600 hover:bg-blue-700" : "text-slate-500")}
-                    onClick={() => handleInputChange("commMode", "text")}
-                  >
-                    <Keyboard className="mr-2 h-4 w-4" /> {t("create.text")}
-                  </Button>
+                <div className="flex items-center rounded-md border px-3 py-2 text-sm text-slate-600">
+                  <Keyboard className="mr-2 h-4 w-4" /> {t("create.text")}
                 </div>
               </div>
             </CardContent>
@@ -341,17 +335,12 @@ const CreateRoom = () => {
             <div className="font-bold text-slate-900 flex gap-2 items-center">
               <span>{t("create.playersGame", { count: formData.playerCount })}</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              <span>{formData.commMode === 'voice' ? t('create.voiceShort') : t('create.textShort')}</span>
+              <span>{t('create.textShort')}</span>
               <span className="w-1 h-1 bg-slate-300 rounded-full" />
               <span>{formData.template ? gameOptionLabel(gameId, "template", formData.template, formData.template) : gameName(game.id, game.name)}</span>
             </div>
           </div>
           <div className="flex-1 md:flex-none flex gap-4 justify-end">
-             <div className="flex items-center gap-1 md:mr-4">
-                <span className="text-sm text-slate-500">{t("create.cost")}</span>
-                <span className="text-xl font-bold text-blue-600">50</span>
-                <span className="text-xs text-slate-400">{t("create.coins")}</span>
-             </div>
              <Button size="lg" disabled={createMutation.isPending} className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200" onClick={handleCreate}>
               <Zap className="mr-2 h-5 w-5 fill-current" />
               {gameId === "undercover" && formData.wordPack === "custom" ? (english ? "Create and host" : "创建并主持") : t("create.createAndSeat")}

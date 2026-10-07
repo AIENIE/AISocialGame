@@ -11,7 +11,7 @@ import type { Locale } from "./config";
  *                    GAME_DISPLAY_KEYS 以稳定 game.id 映射到这些 key。
  * - game.phaseText.* 对局内阶段文本片段，由房间页面拼接。
  * - errors.*         后端 raw 中文错误消息的本地化通用映射（见 i18n/errors.ts）。
- * - v2.*             services/v2Social.ts 中展示给用户的 mock 成就/房间/回放文案。
+ * - v2.*             services/v2Social.ts 中真实快速匹配的房间名。
  */
 export const resources: Record<Locale, { translation: Record<string, string> }> = {
   "zh-CN": {
@@ -26,7 +26,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.community": "社区广场",
       "nav.aiChat": "AI 对话",
       "nav.rankings": "排行榜",
-      "nav.achievements": "成就",
       "nav.replays": "回放",
       "nav.guide": "百科",
 
@@ -37,10 +36,8 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "common.undetermined": "未判定",
 
       "header.onlinePlayers": "在线玩家 {{count}}",
-      "header.friendRequests": "好友请求 {{count}}",
       "header.inviteNotices": "邀请通知 {{count}}",
       "header.more": "更多",
-      "header.notifications": "通知",
       "header.wallet": "钱包",
 
       "user.profile": "个人中心",
@@ -269,13 +266,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "rankings.rankTitle": "{{game}} 排行",
 
       // ---- 成就 ----
-      "achievements.title": "成就中心",
-      "achievements.subtitle": "完成对局和关键目标即可解锁徽章并领取金币奖励。",
-      "achievements.progress": "进度 {{progress}}/{{target}}",
-      "achievements.reward": "奖励 {{count}} 金币",
-      "achievements.rarity.COMMON": "普通",
-      "achievements.rarity.RARE": "稀有",
-      "achievements.rarity.EPIC": "史诗",
 
       // ---- 回放列表 ----
       "replays.title": "对局回放",
@@ -460,10 +450,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "game.phase.werewolf.SETTLEMENT.subtitle": "胜负已分",
       "game.tutorial.werewolf.0": "你当前处于狼人杀房间，顶部显示阶段与倒计时。",
       "game.tutorial.werewolf.1": "白天讨论后进入投票，点击头像可快速选择并确认目标。",
-      "game.tutorial.werewolf.2": "结算后可直接添加好友并在回放中心复盘。",
+      "game.tutorial.werewolf.2": "结算后可在回放中心复盘对局。",
       "game.tutorial.undercover.0": "这是房间主视图，左侧展示玩家与阶段。",
       "game.tutorial.undercover.1": "轮到你时可提交发言，投票阶段点击头像完成投票。",
-      "game.tutorial.undercover.2": "结算后可添加好友并在回放中心复盘。",
+      "game.tutorial.undercover.2": "结算后可在回放中心复盘对局。",
       "game.tutorial.turtle_soup.0": "阅读汤面后用是/否问题缩小范围。",
       "game.tutorial.turtle_soup.1": "AI 玩家会在开启辅助时自动补充追问。",
       "game.tutorial.turtle_soup.2": "确认汤底后提交最终解答，结算页会揭示完整真相。",
@@ -473,8 +463,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "settle.summary": "{{game}} 对局结束，获胜方：{{winner}}",
       "settle.settling": "结算中",
       "settle.alive": "存活",
-      "settle.addFriend": "加好友",
-      "settle.friendSent": "已向 {{name}} 发送好友请求",
 
       // ---- 新手引导 ----
       "tutorial.title": "新手引导 {{current}}/{{total}}",
@@ -483,26 +471,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "tutorial.done": "完成",
 
       // ---- 好友面板 ----
-      "friend.title": "好友",
-      "friend.desc": "管理好友关系、处理好友请求，并可一键邀请或观战。",
-      "friend.searchPlaceholder": "搜索可添加用户...",
-      "friend.noResults": "没有可添加结果",
-      "friend.add": "添加",
-      "friend.requestSent": "已发送好友请求给 {{name}}",
-      "friend.requests": "好友请求",
-      "friend.noRequests": "暂无待处理请求",
-      "friend.requestsYou": " 请求添加你为好友",
-      "friend.accept": "通过",
-      "friend.ignore": "忽略",
-      "friend.accepted": "已通过好友请求",
-      "friend.ignored": "已忽略该请求",
-      "friend.myFriends": "我的好友",
-      "friend.noFriends": "尚未添加好友",
-      "friend.online": "在线",
-      "friend.offline": "离线",
-      "friend.invited": "已向 {{name}} 发送房间邀请",
-      "friend.spectate": "观战",
-      "friend.removed": "已删除好友",
 
       // ---- 快速匹配 ----
       "quickMatch.title": "快速匹配",
@@ -562,7 +530,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tutorialSteps.0": "点击头像可查看玩家状态，轮到你时可在操作区提交发言。",
       "guide.tutorialSteps.1": "进入投票阶段后，先选择目标，再确认投票。",
       "guide.tutorialSteps.2": "夜晚阶段仅特定角色可操作，其余玩家等待天亮。",
-      "guide.tutorialSteps.3": "结算阶段会展示胜负与关键事件，可直接发起加好友。",
+      "guide.tutorialSteps.3": "结算阶段会展示胜负与关键事件，可在回放中心复盘。",
       "guide.roleTitle": "角色说明",
       "guide.role.seer": "预言家",
       "guide.role.seer.desc": "夜晚可查验一名玩家身份，白天需谨慎发言引导票型。",
@@ -611,18 +579,8 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "error.boundary.desc": "错误已捕获，请刷新后重试。",
       "error.boundary.retry": "刷新页面",
 
-      // ---- v2Social mock 数据展示文案 ----
-      "v2.achievement.first_game.name": "初出茅庐",
-      "v2.achievement.first_game.desc": "完成 1 局对战",
-      "v2.achievement.ten_games.name": "久经沙场",
-      "v2.achievement.ten_games.desc": "累计完成 10 局对战",
-      "v2.achievement.first_win.name": "首胜",
-      "v2.achievement.first_win.desc": "拿下第一场胜利",
-      "v2.achievement.win_streak_3.name": "连胜节奏",
-      "v2.achievement.win_streak_3.desc": "达成 3 连胜",
-      "v2.replay.roomName": "房间 {{id}}",
+      // ---- 真实快速匹配房间名 ----
       "v2.quickMatch.roomName": "[快速匹配] {{name}} #{{seq}}",
-      "v2.achievement.unlocked": "成就解锁：{{name}}",
     },
   },
   "zh-TW": {
@@ -637,7 +595,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.community": "社區廣場",
       "nav.aiChat": "AI 對話",
       "nav.rankings": "排行榜",
-      "nav.achievements": "成就",
       "nav.replays": "回放",
       "nav.guide": "百科",
 
@@ -648,10 +605,8 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "common.undetermined": "未判定",
 
       "header.onlinePlayers": "在線玩家 {{count}}",
-      "header.friendRequests": "好友請求 {{count}}",
       "header.inviteNotices": "邀請通知 {{count}}",
       "header.more": "更多",
-      "header.notifications": "通知",
       "header.wallet": "錢包",
 
       "user.profile": "個人中心",
@@ -871,13 +826,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "rankings.empty": "暫無數據，完成一局對戰後自動更新",
       "rankings.rankTitle": "{{game}} 排行",
 
-      "achievements.title": "成就中心",
-      "achievements.subtitle": "完成對局和關鍵目標即可解鎖徽章並領取金幣獎勵。",
-      "achievements.progress": "進度 {{progress}}/{{target}}",
-      "achievements.reward": "獎勵 {{count}} 金幣",
-      "achievements.rarity.COMMON": "普通",
-      "achievements.rarity.RARE": "稀有",
-      "achievements.rarity.EPIC": "史詩",
 
       "replays.title": "對局回放",
       "replays.subtitle": "查看服務端歸檔的歷史對局，復盤關鍵節點、投票過程和 AI 質檢摘要。",
@@ -1058,10 +1006,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "game.phase.werewolf.SETTLEMENT.subtitle": "勝負已分",
       "game.tutorial.werewolf.0": "你當前處於狼人殺房間，頂部顯示階段與倒計時。",
       "game.tutorial.werewolf.1": "白天討論後進入投票，點擊頭像可快速選擇並確認目標。",
-      "game.tutorial.werewolf.2": "結算後可直接添加好友並在回放中心復盤。",
+      "game.tutorial.werewolf.2": "結算後可在回放中心復盤對局。",
       "game.tutorial.undercover.0": "這是房間主視圖，左側展示玩家與階段。",
       "game.tutorial.undercover.1": "輪到你時可提交發言，投票階段點擊頭像完成投票。",
-      "game.tutorial.undercover.2": "結算後可添加好友並在回放中心復盤。",
+      "game.tutorial.undercover.2": "結算後可在回放中心復盤對局。",
       "game.tutorial.turtle_soup.0": "閱讀湯面後用是/否問題縮小範圍。",
       "game.tutorial.turtle_soup.1": "AI 玩家會在開啟輔助時自動補充追問。",
       "game.tutorial.turtle_soup.2": "確認湯底後提交最終解答，結算頁會揭示完整真相。",
@@ -1070,34 +1018,12 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "settle.summary": "{{game}} 對局結束，獲勝方：{{winner}}",
       "settle.settling": "結算中",
       "settle.alive": "存活",
-      "settle.addFriend": "加好友",
-      "settle.friendSent": "已向 {{name}} 發送好友請求",
 
       "tutorial.title": "新手引導 {{current}}/{{total}}",
       "tutorial.skip": "跳過",
       "tutorial.next": "下一步",
       "tutorial.done": "完成",
 
-      "friend.title": "好友",
-      "friend.desc": "管理好友關係、處理好友請求，並可一鍵邀請或觀戰。",
-      "friend.searchPlaceholder": "搜索可添加用戶...",
-      "friend.noResults": "沒有可添加結果",
-      "friend.add": "添加",
-      "friend.requestSent": "已發送好友請求給 {{name}}",
-      "friend.requests": "好友請求",
-      "friend.noRequests": "暫無待處理請求",
-      "friend.requestsYou": " 請求添加你為好友",
-      "friend.accept": "通過",
-      "friend.ignore": "忽略",
-      "friend.accepted": "已通過好友請求",
-      "friend.ignored": "已忽略該請求",
-      "friend.myFriends": "我的好友",
-      "friend.noFriends": "尚未添加好友",
-      "friend.online": "在線",
-      "friend.offline": "離線",
-      "friend.invited": "已向 {{name}} 發送房間邀請",
-      "friend.spectate": "觀戰",
-      "friend.removed": "已刪除好友",
 
       "quickMatch.title": "快速匹配",
       "quickMatch.desc": "一鍵加入可用房間，必要時自動創建房間並補齊 AI。",
@@ -1154,7 +1080,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tutorialSteps.0": "點擊頭像可查看玩家狀態，輪到你時可在操作區提交發言。",
       "guide.tutorialSteps.1": "進入投票階段後，先選擇目標，再確認投票。",
       "guide.tutorialSteps.2": "夜晚階段僅特定角色可操作，其餘玩家等待天亮。",
-      "guide.tutorialSteps.3": "結算階段會展示勝負與關鍵事件，可直接發起加好友。",
+      "guide.tutorialSteps.3": "結算階段會展示勝負與關鍵事件，可在回放中心復盤。",
       "guide.roleTitle": "角色說明",
       "guide.role.seer": "預言家",
       "guide.role.seer.desc": "夜晚可查驗一名玩家身份，白天需謹慎發言引導票型。",
@@ -1200,17 +1126,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "error.boundary.desc": "錯誤已捕獲，請刷新後重試。",
       "error.boundary.retry": "刷新頁面",
 
-      "v2.achievement.first_game.name": "初出茅廬",
-      "v2.achievement.first_game.desc": "完成 1 局對戰",
-      "v2.achievement.ten_games.name": "久經沙場",
-      "v2.achievement.ten_games.desc": "累計完成 10 局對戰",
-      "v2.achievement.first_win.name": "首勝",
-      "v2.achievement.first_win.desc": "拿下第一場勝利",
-      "v2.achievement.win_streak_3.name": "連勝節奏",
-      "v2.achievement.win_streak_3.desc": "達成 3 連勝",
-      "v2.replay.roomName": "房間 {{id}}",
       "v2.quickMatch.roomName": "[快速匹配] {{name}} #{{seq}}",
-      "v2.achievement.unlocked": "成就解鎖：{{name}}",
     },
   },
   en: {
@@ -1225,7 +1141,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.community": "Community",
       "nav.aiChat": "AI Chat",
       "nav.rankings": "Rankings",
-      "nav.achievements": "Achievements",
       "nav.replays": "Replays",
       "nav.guide": "Guide",
 
@@ -1236,10 +1151,8 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "common.undetermined": "Undetermined",
 
       "header.onlinePlayers": "{{count}} players online",
-      "header.friendRequests": "{{count}} friend requests",
       "header.inviteNotices": "{{count}} invite notifications",
       "header.more": "More",
-      "header.notifications": "Notifications",
       "header.wallet": "Wallet",
 
       "user.profile": "Profile",
@@ -1460,13 +1373,6 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "rankings.empty": "No data yet — it updates after your first match",
       "rankings.rankTitle": "{{game}} Rankings",
 
-      "achievements.title": "Achievement Center",
-      "achievements.subtitle": "Complete matches and key goals to unlock badges and earn coin rewards.",
-      "achievements.progress": "Progress {{progress}}/{{target}}",
-      "achievements.reward": "Reward: {{count}} coins",
-      "achievements.rarity.COMMON": "Common",
-      "achievements.rarity.RARE": "Rare",
-      "achievements.rarity.EPIC": "Epic",
 
       "replays.title": "Match Replays",
       "replays.subtitle": "Browse archived matches from the server — review key moments, voting and AI quality summaries.",
@@ -1647,10 +1553,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "game.phase.werewolf.SETTLEMENT.subtitle": "Winner decided",
       "game.tutorial.werewolf.0": "You are in the Werewolf room; the phase and countdown are at the top.",
       "game.tutorial.werewolf.1": "Voting starts after the day discussion — click a player to select your target.",
-      "game.tutorial.werewolf.2": "After settlement you can add friends and review in the replay center.",
+      "game.tutorial.werewolf.2": "Review the game in the replay center after settlement.",
       "game.tutorial.undercover.0": "This is the main room view; players and phase are on the left.",
       "game.tutorial.undercover.1": "Submit your description when it's your turn; click avatars to vote.",
-      "game.tutorial.undercover.2": "After settlement you can add friends and review replays.",
+      "game.tutorial.undercover.2": "Review the game in the replay center after settlement.",
       "game.tutorial.turtle_soup.0": "Read the story, then narrow it down with yes/no questions.",
       "game.tutorial.turtle_soup.1": "AI players ask follow-up questions when assist is enabled.",
       "game.tutorial.turtle_soup.2": "Once you've figured it out, submit your answer — the settlement reveals the full truth.",
@@ -1659,34 +1565,12 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "settle.summary": "{{game}} match ended — winner: {{winner}}",
       "settle.settling": "Settling",
       "settle.alive": "Alive",
-      "settle.addFriend": "Add friend",
-      "settle.friendSent": "Friend request sent to {{name}}",
 
       "tutorial.title": "Tutorial {{current}}/{{total}}",
       "tutorial.skip": "Skip",
       "tutorial.next": "Next",
       "tutorial.done": "Done",
 
-      "friend.title": "Friends",
-      "friend.desc": "Manage friends and requests; invite or spectate with one click.",
-      "friend.searchPlaceholder": "Search users to add...",
-      "friend.noResults": "No results",
-      "friend.add": "Add",
-      "friend.requestSent": "Friend request sent to {{name}}",
-      "friend.requests": "Friend Requests",
-      "friend.noRequests": "No pending requests",
-      "friend.requestsYou": " wants to add you as a friend",
-      "friend.accept": "Accept",
-      "friend.ignore": "Ignore",
-      "friend.accepted": "Friend request accepted",
-      "friend.ignored": "Request ignored",
-      "friend.myFriends": "My Friends",
-      "friend.noFriends": "No friends yet",
-      "friend.online": "Online",
-      "friend.offline": "Offline",
-      "friend.invited": "Room invite sent to {{name}}",
-      "friend.spectate": "Spectate",
-      "friend.removed": "Friend removed",
 
       "quickMatch.title": "Quick Match",
       "quickMatch.desc": "Join an open room instantly; creates one and fills AI seats when needed.",
@@ -1743,7 +1627,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tutorialSteps.0": "Click a player avatar to see their status; submit your speech in the actions area when it's your turn.",
       "guide.tutorialSteps.1": "When voting starts, pick a target first, then confirm your vote.",
       "guide.tutorialSteps.2": "Only specific roles act at night; everyone else waits for dawn.",
-      "guide.tutorialSteps.3": "The settlement shows the outcome and key events, and lets you send friend requests.",
+      "guide.tutorialSteps.3": "Settlement shows the outcome and key events. Review the game in the replay center.",
       "guide.roleTitle": "Roles",
       "guide.role.seer": "Seer",
       "guide.role.seer.desc": "Check one player's identity at night; speak carefully during the day.",
@@ -1789,17 +1673,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "error.boundary.desc": "An error was caught. Please refresh and try again.",
       "error.boundary.retry": "Refresh",
 
-      "v2.achievement.first_game.name": "Rookie",
-      "v2.achievement.first_game.desc": "Play 1 match",
-      "v2.achievement.ten_games.name": "Seasoned",
-      "v2.achievement.ten_games.desc": "Play 10 matches in total",
-      "v2.achievement.first_win.name": "First Win",
-      "v2.achievement.first_win.desc": "Win your first match",
-      "v2.achievement.win_streak_3.name": "Win Streak",
-      "v2.achievement.win_streak_3.desc": "Win 3 matches in a row",
-      "v2.replay.roomName": "Room {{id}}",
       "v2.quickMatch.roomName": "[Quick Match] {{name}} #{{seq}}",
-      "v2.achievement.unlocked": "Achievement unlocked: {{name}}",
     },
   },
 };

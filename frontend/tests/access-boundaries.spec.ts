@@ -62,3 +62,24 @@ test("管理校验完成前不调用业务接口，失败显示重试", async ({
   await expect(page.getByText("数据读取失败，请重试。")).toBeVisible(); expect(calls).toBe(1);
   await expect(page.getByText("本地用户数")).toHaveCount(0);
 });
+
+test("创建页显示真实读取状态，不展示封面操作或固定费用", async ({ page }) => {
+  await session(page);
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/games/undercover", async route => { await pending; await route.fulfill({ status: 404, json: {} }); });
+  await page.goto("/create/undercover");
+  await expect(page.getByText("正在读取数据…")).toBeVisible();
+  await expect(page.getByText("游戏不存在")).toHaveCount(0);
+  release();
+  await expect(page.getByText("内容不存在或已移除。")).toBeVisible();
+  await page.unroute("**/api/games/undercover");
+  await page.route("**/api/games/undercover", route => route.fulfill({ json: {
+    id: "undercover", name: "谁是卧底", minPlayers: 4, maxPlayers: 6, configSchema: [],
+  } }));
+  await page.getByRole("button", { name: "重试", exact: true }).click();
+  await expect(page.getByRole("button", { name: "创建并入座" })).toBeVisible();
+  await expect(page.getByText("50", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/更换封面/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "文字模式" })).toHaveCount(0);
+});

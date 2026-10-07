@@ -31,7 +31,7 @@ const Index = () => {
     queryKey: ["games"],
     queryFn: gameApi.list,
   });
-  const games = catalog.filter(game => String(game.status).toLowerCase() === "active" && gameRoomComponents[game.id]);
+  const games = (error ? [] : catalog).filter(game => String(game.status).toLowerCase() === "active" && gameRoomComponents[game.id]);
 
   const quickStart = async (gameId: string) => {
     if (!user) {
