@@ -10,6 +10,7 @@ test("SSO 回调、钱包操作、AI 流式聊天", async ({ page }) => {
     email: "tester@example.com",
     avatar: "https://example.com/avatar.png",
     coins: 1200,
+    balanceAvailable: true,
     level: 3,
     balance: {
       publicPermanentTokens: 300,
@@ -39,11 +40,12 @@ test("SSO 回调、钱包操作、AI 流式聊天", async ({ page }) => {
   await page.route("**/api/wallet/balance", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(user.balance) });
   });
+  let checkedIn = false;
   await page.route("**/api/wallet/checkin-status", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ checkedInToday: false, tokensGrantedToday: 0 }),
+      body: JSON.stringify({ checkedInToday: checkedIn, tokensGrantedToday: 0 }),
     });
   });
   await page.route("**/api/wallet/usage-records**", async (route) => {
@@ -85,6 +87,7 @@ test("SSO 回调、钱包操作、AI 流式聊天", async ({ page }) => {
     });
   });
   await page.route("**/api/wallet/checkin", async (route) => {
+    checkedIn = true; user.balance.projectPermanentTokens += 100; user.balance.totalTokens += 100;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -132,7 +135,7 @@ test("SSO 回调、钱包操作、AI 流式聊天", async ({ page }) => {
   await page.addInitScript((state) => {
     window.sessionStorage.setItem("aisocialgame_sso_state", state);
   }, ssoState);
-  await page.goto(`/sso/callback#access_token=remote-token&user_id=1001&username=tester&session_id=session-1&state=${ssoState}`);
+  await page.goto(`/sso/callback?code=fixture-code&state=${ssoState}`);
   await expect
     .poll(() => page.evaluate(() => sessionStorage.getItem("aisocialgame_token")))
     .toBe("token-1");

@@ -1,3 +1,4 @@
+import { AdminDataState } from "@/components/admin/AdminDataState";
 import { useState } from "react";
 import { adminApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -16,18 +17,21 @@ const BillingAdmin = () => {
   const [reverseRequestId, setReverseRequestId] = useState("");
   const [reverseReason, setReverseReason] = useState("");
   const [redeemCodeInput, setRedeemCodeInput] = useState("");
-  const [redeemTokens, setRedeemTokens] = useState("1234");
+  const [redeemTokens, setRedeemTokens] = useState("");
   const [redeemCreditType, setRedeemCreditType] = useState("CREDIT_TYPE_PERMANENT");
   const [redeemMaxRedemptions, setRedeemMaxRedemptions] = useState("1");
   const [createdRedeemCode, setCreatedRedeemCode] = useState<any>(null);
   const [migrateAllResult, setMigrateAllResult] = useState<any>(null);
 
+  const [readError, setReadError] = useState<unknown>();
+  const [reading, setReading] = useState(false);
   const load = async () => {
     const id = Number(userId);
     if (!id) {
       toast.error("请输入用户 ID");
       return;
     }
+    setBalance(null); setLedger(null); setReadError(undefined); setReading(true);
     try {
       const [balanceRes, ledgerRes] = await Promise.all([
         adminApi.balance(id),
@@ -36,8 +40,8 @@ const BillingAdmin = () => {
       setBalance(balanceRes);
       setLedger(ledgerRes);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "加载积分信息失败");
-    }
+      setReadError(error);
+    } finally { setReading(false); }
   };
 
   const parseUserId = (): number | null => {
@@ -152,6 +156,7 @@ const BillingAdmin = () => {
         <Button onClick={load}>查询余额与流水</Button>
       </div>
 
+      {(reading || readError) && <AdminDataState loading={reading} error={readError} retry={() => void load()} />}
       <Card>
         <CardHeader>
           <CardTitle>客服补发/扣回</CardTitle>

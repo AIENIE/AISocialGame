@@ -72,4 +72,10 @@ class WalletServiceTest {
         user.setNickname("tester");
         return user;
     }
+    @Test
+    void walletDisplayUsesStrictBalanceRead() {
+        when(balanceService.getDisplayBalance(1001L)).thenThrow(new IllegalStateException("unavailable"));
+        Assertions.assertThrows(IllegalStateException.class, () -> walletService.getBalance(mockUser(1001L)));
+    }
+
 }

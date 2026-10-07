@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft, Users, Plus } from "lucide-react";
+import { DataState } from "@/components/DataState";
 import { useQuery } from "@tanstack/react-query";
 import { gameApi, roomApi } from "@/services/api";
 import { localizeErrorMessage } from "@/i18n/errors";
@@ -20,17 +20,19 @@ const RoomList = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { displayName, user, redirectToSsoLogin } = useAuth();
-  const { data: game } = useQuery<Game | undefined>({
+  const gameQuery = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
     enabled: !!gameId,
   });
 
-  const { data: roomPage, isLoading } = useQuery({
+  const roomQuery = useQuery({
     queryKey: ["rooms", gameId],
     queryFn: () => roomApi.list(gameId || "", { page: 1, size: 30, status: "WAITING" }),
     enabled: !!gameId,
   });
+  const { data: game } = gameQuery;
+  const { data: roomPage, isLoading } = roomQuery;
   const rooms: Room[] = roomPage?.items || [];
 
   const templateOptions = game?.configSchema.find((f) => f.id === "template")?.options || [];
@@ -60,7 +62,7 @@ const RoomList = () => {
     return tags;
   };
 
-  if (!game) return <div>{t("common.gameNotFound")}</div>;
+  if (gameQuery.isPending || gameQuery.error || !game) return <DataState loading={gameQuery.isPending} error={gameQuery.error} onRetry={() => void gameQuery.refetch()} />;
 
   const quickStart = async () => {
     if (!gameId) return;
@@ -89,10 +91,6 @@ const RoomList = () => {
           <p className="text-slate-500 mt-1">{t("roomList.subtitle")}</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-            <Input placeholder={t("roomList.searchPlaceholder")} className="pl-9 bg-slate-50 border-slate-200 focus:bg-white" />
-          </div>
           <Button onClick={() => navigate(`/create/${gameId}`)} className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200/50">
             <Plus className="mr-2 h-4 w-4" /> {t("roomList.create")}
           </Button>
@@ -104,8 +102,8 @@ const RoomList = () => {
 
       {/* Room Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading && <div className="text-slate-500">{t("roomList.loading")}</div>}
-        {!isLoading && rooms.map((room) => (
+        {(isLoading || roomQuery.error || !rooms.length) && <DataState loading={isLoading} error={roomQuery.error} empty={!rooms.length} onRetry={() => void roomQuery.refetch()} />}
+        {!isLoading && !roomQuery.error && rooms.map((room) => (
             <Card key={room.id} className="group hover:shadow-md transition-all duration-200 border-slate-200 bg-white">
               <CardHeader className="pb-3 border-b border-slate-50">
                 <div className="flex justify-between items-start">

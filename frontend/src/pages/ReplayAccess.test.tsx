@@ -25,9 +25,9 @@ it.each([401, 403])("never shows cached data or local fallback after %s", status
   render(); expect(container.textContent).not.toMatch(/LOCAL_SECRET|CACHED_SECRET/);
   render(true); expect(container.textContent).not.toMatch(/LOCAL_SECRET|CACHED_SECRET/); expect(state.local).not.toHaveBeenCalled();
 });
-it("uses local fallback only after a non-auth server failure, not an empty server list", () => {
+it("never uses local storage after server failure or an empty list", () => {
   state.query = { data: { items: [], total: 0 } }; render(); expect(container.textContent).not.toContain("LOCAL_SECRET");
-  state.query = { isError: true, error: new Error("network") }; render(); expect(container.textContent).toContain("LOCAL_SECRET");
+  state.query = { isError: true, error: new Error("network") }; render(); expect(container.textContent).not.toContain("LOCAL_SECRET"); expect(container.textContent).toContain("data.failed");
 });
 it("renders only authorized views and reveals settlement text only at its timeline position", () => {
   state.query = { data: { archive: { id: "a", roomName: "archive" }, availableViews: ["PUBLIC", "PLAYER"], events: [
@@ -41,4 +41,11 @@ it("renders only authorized views and reveals settlement text only at its timeli
 it.each(["zh-CN", "zh-TW", "en"])("localizes replay filters in %s", language => {
   state.language = language; render(); expect(container.querySelectorAll('input[type="datetime-local"]')).toHaveLength(2);
   expect(container.textContent).toContain(language === "en" ? "Replay scope" : language === "zh-TW" ? "回放範圍" : "回放范围");
+});
+
+it("does not fabricate events or timestamps for an empty archive", () => {
+  state.query = { data: { archive: { id: "empty", roomName: "Empty" }, events: [], availableViews: ["PUBLIC"] } };
+  render(true); expect(container.textContent).toContain("0/0"); expect(container.textContent).not.toContain("Invalid Date");
+  const step = Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("replay.step"));
+  expect(step?.disabled).toBe(true);
 });

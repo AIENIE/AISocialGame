@@ -57,6 +57,8 @@ async function roomFixture(page: Page, gameId: string) {
 }
 
 async function contained(page: Page) {
+  // visualViewport resize notifications arrive after setViewportSize resolves.
+  await expect.poll(async () => page.getByTestId("game-room").evaluate(element => element.getBoundingClientRect().height <= window.innerHeight)).toBe(true);
   const dimensions = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
   expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.height + 1);

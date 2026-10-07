@@ -13,6 +13,7 @@ public class AuthUserView {
     private int level;
     private long coins;
     private BalanceView balance;
+    private boolean balanceAvailable;
 
     public AuthUserView(User user, BalanceSnapshot balanceSnapshot) {
         this.id = user.getId();
@@ -22,8 +23,9 @@ public class AuthUserView {
         this.email = user.getEmail();
         this.avatar = user.getAvatar();
         this.level = user.getLevel();
-        this.coins = balanceSnapshot.projectTempTokens() + balanceSnapshot.projectPermanentTokens();
-        this.balance = new BalanceView(balanceSnapshot);
+        this.balanceAvailable = balanceSnapshot != null;
+        this.coins = balanceAvailable ? balanceSnapshot.projectTempTokens() + balanceSnapshot.projectPermanentTokens() : 0;
+        this.balance = balanceAvailable ? new BalanceView(balanceSnapshot) : null;
     }
 
     public String getId() {
@@ -57,6 +59,8 @@ public class AuthUserView {
     public long getCoins() {
         return coins;
     }
+
+    public boolean isBalanceAvailable() { return balanceAvailable; }
 
     public BalanceView getBalance() {
         return balance;

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, Zap, Mic, Keyboard, Lock, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Sparkles, Zap, Keyboard, Lock, Globe, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -138,14 +138,6 @@ const CreateRoom = () => {
               <CardDescription>{t("create.basicDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Room Cover Preview (Mock) */}
-              <div className="aspect-video rounded-lg bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-200 relative overflow-hidden group cursor-pointer">
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 opacity-80" />
-                <div className="relative z-10 text-center text-white">
-                  <span className="text-sm font-medium">{t("create.coverChange")}</span>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="roomName">{t("create.roomName")}</Label>
                 <Input 
@@ -186,13 +178,6 @@ const CreateRoom = () => {
               <div className="space-y-2">
                 <Label>{t("create.commMode")}</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant={formData.commMode === "voice" ? "default" : "outline"}
-                    className={cn(formData.commMode === "voice" ? "bg-blue-600 hover:bg-blue-700" : "text-slate-500")}
-                    onClick={() => handleInputChange("commMode", "voice")}
-                  >
-                    <Mic className="mr-2 h-4 w-4" /> {t("create.voice")}
-                  </Button>
                   <Button 
                     variant={formData.commMode === "text" ? "default" : "outline"}
                     className={cn(formData.commMode === "text" ? "bg-blue-600 hover:bg-blue-700" : "text-slate-500")}

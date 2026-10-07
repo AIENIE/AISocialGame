@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { adminApi } from "@/services/api";
-import { closureText } from "@/i18n/closureTexts";
 import type { ReplayDetail } from "@/types";
 import { Button } from "@/components/ui/button";
 
 export function AdminReplayEvidence({ archiveId, eventIds = [] }: { archiveId: string; eventIds?: string[] }) {
-  const { i18n } = useTranslation();
-  const tr = (s: string) => closureText(i18n.language, s);
+  const tr = (s: string) => s;
   const [data, setData] = useState<ReplayDetail>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);

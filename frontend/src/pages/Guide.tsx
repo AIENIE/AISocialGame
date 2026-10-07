@@ -17,7 +17,7 @@ const Guide = () => {
     t("guide.tutorialSteps.0"),
     t("guide.tutorialSteps.1"),
     t("guide.tutorialSteps.2"),
-    t("guide.tutorialSteps.3"),
+    t("data.settlementGuide"),
   ];
 
   const roleGuide = [
@@ -38,7 +38,7 @@ const Guide = () => {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="tutorial">{t("guide.tab.tutorial")}</TabsTrigger>
           <TabsTrigger value="rules">{t("guide.tab.rules")}</TabsTrigger>
-          <TabsTrigger value="practice">{t("guide.tab.practice")}</TabsTrigger>
+          <TabsTrigger value="practice">{t("data.createGame")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tutorial">
@@ -82,10 +82,10 @@ const Guide = () => {
         <TabsContent value="practice">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t("guide.practiceTitle")}</CardTitle>
+              <CardTitle className="text-base">{t("data.createGame")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t("guide.practiceDesc")}</p>
+              <p className="text-sm text-muted-foreground">{t("data.createGameDesc")}</p>
               <div className="flex gap-2">
                 <Button variant={selectedGame === "werewolf" ? "default" : "outline"} onClick={() => setSelectedGame("werewolf")}>
                   {gameName("werewolf")}
@@ -96,7 +96,7 @@ const Guide = () => {
               </div>
               <Button onClick={() => navigate(selectedGame === "werewolf" ? "/create/werewolf" : "/create/undercover")}>
                 <Sparkles className="mr-2 h-4 w-4" />
-                {t("guide.practiceGo")}
+                {t("data.createGame")}
               </Button>
             </CardContent>
           </Card>

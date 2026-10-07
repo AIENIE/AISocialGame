@@ -13,6 +13,8 @@ import { Game } from "@/types";
 import { quickMatchApi } from "@/services/v2Social";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { DataState } from "@/components/DataState";
+import { gameRoomComponents } from "./games/registry";
 
 // Helper to render dynamic icons based on string name
 const IconMap: Record<string, any> = {
@@ -24,15 +26,16 @@ const IconMap: Record<string, any> = {
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { displayName, user, redirectToSsoLogin } = useAuth();
-  const { data: games = [], isLoading } = useQuery<Game[]>({
+  const { displayName, user, loading } = useAuth();
+  const { data: catalog = [], isLoading, error, refetch } = useQuery<Game[]>({
     queryKey: ["games"],
     queryFn: gameApi.list,
   });
+  const games = catalog.filter(game => String(game.status).toLowerCase() === "active" && gameRoomComponents[game.id]);
 
   const quickStart = async (gameId: string) => {
     if (!user) {
-      await redirectToSsoLogin();
+      navigate(`/game/${gameId}`);
       return;
     }
     try {
@@ -56,9 +59,9 @@ const Index = () => {
             {t("index.heroSubtitle")}
           </p>
           <div className="pt-4 flex justify-center">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 shadow-sm px-8" onClick={() => quickStart("werewolf")}>
+            {games.length > 0 && <Button size="lg" disabled={loading} className="bg-blue-600 hover:bg-blue-700 shadow-sm px-8" onClick={() => quickStart(games[0].id)}>
               {t("common.quickStart")}
-            </Button>
+            </Button>}
           </div>
         </div>
         
@@ -70,11 +73,10 @@ const Index = () => {
       <section>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">{t("index.hotGames")}</h2>
-          <Button variant="link" className="text-slate-500 hover:text-blue-600">{t("index.viewAll")}</Button>
         </div>
 
-        {isLoading ? (
-          <div className="text-slate-500">{t("index.loadingGames")}</div>
+        {isLoading || error || games.length === 0 ? (
+          <DataState loading={isLoading} error={error} empty={games.length === 0} onRetry={() => void refetch()} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {games.map((game) => {
@@ -92,12 +94,6 @@ const Index = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h3 className="font-bold text-xl text-slate-900">{gameName(game.id, game.name)}</h3>
-                        {isActive && (
-                          <div className="flex items-center text-xs text-emerald-600 font-medium bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-                            {t("index.online", { count: game.onlineCount })}
-                          </div>
-                        )}
                       </div>
                       <p className="text-sm text-slate-500 line-clamp-2 h-10 leading-relaxed">
                         {gameDescription(game.id, game.description)}

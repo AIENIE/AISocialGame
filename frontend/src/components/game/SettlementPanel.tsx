@@ -2,12 +2,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FriendItem, GameState } from "@/types";
-import { friendApi } from "@/services/v2Social";
-import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { GameState } from "@/types";
 import { gameName } from "@/i18n/gameTexts";
 import { roleName } from "@/pages/games/shared/roomIdentity";
 import { useRoomText } from "@/pages/games/shared/roomText";
@@ -15,10 +11,9 @@ import { useRoomText } from "@/pages/games/shared/roomText";
 interface SettlementPanelProps {
   gameId?: string;
   state: GameState;
-  userKey: string;
 }
 
-export const SettlementPanel = ({ gameId, state, userKey }: SettlementPanelProps) => {
+export const SettlementPanel = ({ gameId, state }: SettlementPanelProps) => {
   const { t, i18n } = useTranslation();
   const cards = useMemo(() => state.players || [], [state.players]);
   const copy = useRoomText();
@@ -59,26 +54,7 @@ export const SettlementPanel = ({ gameId, state, userKey }: SettlementPanelProps
               {player.role && <Badge variant="outline">{roleName(player.role, i18n.language)}</Badge>}
               {player.word && <Badge variant="outline">{player.word}</Badge>}
             </div>
-            {player.playerId !== state.myPlayerId && !player.ai && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-3 w-full"
-                onClick={() => {
-                  const target: FriendItem = {
-                    id: player.playerId,
-                    displayName: player.displayName,
-                    avatar: player.avatar,
-                    online: false,
-                  };
-                  if (!friendApi.sendFriendRequest(userKey, target)) { toast.error(t("errors.localStorageUnavailable")); return; }
-                  toast.success(t("settle.friendSent", { name: player.displayName }));
-                }}
-              >
-                <UserPlus className="mr-1 h-3 w-3" />
-                {t("settle.addFriend")}
-              </Button>
-            )}
+
           </div>
         ))}
       </div>

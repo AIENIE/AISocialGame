@@ -52,7 +52,35 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const adminExpiredListeners = new Set<() => void>();
+export const subscribeAdminAuthExpired = (listener: () => void) => { adminExpiredListeners.add(listener); return () => { adminExpiredListeners.delete(listener); }; };
+const authExpiredListeners = new Set<() => void>();
+let sessionRequests = new AbortController();
+api.interceptors.request.use(config => {
+  if (!config.url?.startsWith("/admin")) config.signal = config.signal
+    ? AbortSignal.any([config.signal as AbortSignal, sessionRequests.signal]) : sessionRequests.signal;
+  return config;
+});
+export const subscribeAuthExpired = (listener: () => void) => {
+  authExpiredListeners.add(listener);
+  return () => { authExpiredListeners.delete(listener); };
+};
+const expireToken = (token: unknown) => {
+  if (token && token === api.defaults.headers.common["X-Auth-Token"]) authExpiredListeners.forEach(listener => listener());
+};
+api.interceptors.response.use(response => response, error => {
+  if (error.response?.status === 401) {
+    if (error.config?.url?.startsWith("/admin")) adminExpiredListeners.forEach(listener => listener());
+    else expireToken(error.config?.headers?.["X-Auth-Token"]);
+  }
+  return Promise.reject(error);
+});
+
 export const setAuthToken = (token?: string) => {
+  if (token !== api.defaults.headers.common["X-Auth-Token"]) {
+    sessionRequests.abort();
+    sessionRequests = new AbortController();
+  }
   if (token) {
     api.defaults.headers.common["X-Auth-Token"] = token;
   } else {
@@ -68,8 +96,8 @@ export const authApi = {
     const res = await api.post("/auth/sso-callback", payload);
     return res.data;
   },
-  async me(): Promise<User> {
-    const res = await api.get("/auth/me");
+  async me(signal?: AbortSignal): Promise<User> {
+    const res = await api.get("/auth/me", { signal });
     return res.data;
   },
 };
@@ -92,7 +120,7 @@ export const aiApi = {
     const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
     const token = api.defaults.headers.common["X-Auth-Token"] as string | undefined;
     const response = await fetch(`${base}/ai/chat/stream`, {
-      signal: AbortSignal.timeout(65_000),
+      signal: AbortSignal.any([AbortSignal.timeout(65_000), sessionRequests.signal]),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -101,6 +129,7 @@ export const aiApi = {
       body: JSON.stringify({ messages, model }),
     });
     if (!response.ok) {
+      if (response.status === 401) expireToken(token);
       const data: unknown = await response.json().catch(() => undefined);
       const body = data && typeof data === "object" ? data as { code?: unknown; message?: unknown } : {};
       throw new HttpApiError(response.status, typeof body.code === "string" ? body.code : undefined,
@@ -317,6 +346,7 @@ type ProofRetryConfig = import("axios").InternalAxiosRequestConfig & { __adminPr
 
 adminApiClient.interceptors.response.use(undefined, async (error) => {
   const response = error?.response;
+  if (response?.status === 401) adminExpiredListeners.forEach(listener => listener());
   const config = error?.config as ProofRetryConfig | undefined;
   if (response?.status !== 428 || response?.data?.code !== "ADMIN_OPERATION_PROOF_REQUIRED"
       || !response?.data?.challengeId || !config || config.__adminProofRetried) {

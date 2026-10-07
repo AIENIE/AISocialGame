@@ -12,8 +12,12 @@ const navItems = [
 ];
 
 const AdminLayout = () => {
-  const { admin, logout, loading } = useAdminAuth();
+  const { admin, logout, loading, error, retry } = useAdminAuth();
   const location = useLocation();
+
+  if (loading) return <p role="status" className="p-6">正在确认管理权限…</p>;
+
+  if (error) return <div role="alert" className="p-6">管理会话校验失败。<Button onClick={() => void retry()}>重试</Button></div>;
 
   if (!loading && !admin) {
     return <Navigate to="/admin/login" replace />;

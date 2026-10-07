@@ -34,4 +34,18 @@ public class BalanceService {
         }
         return projectCreditService.getBalance(externalUserId, publicTokens);
     }
+    /** Read-only display snapshot: a failed dependency is never represented as a zero balance. */
+    public BalanceSnapshot getDisplayBalance(User user) {
+        if (user == null || user.getExternalUserId() == null) {
+            throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        return getDisplayBalance(user.getExternalUserId());
+    }
+
+    public BalanceSnapshot getDisplayBalance(long externalUserId) {
+        if (externalUserId <= 0) throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.UNAUTHORIZED, "未登录");
+        long publicTokens = billingGrpcClient.getPublicPermanentTokens(externalUserId);
+        return projectCreditService.getBalance(externalUserId, publicTokens);
+    }
+
 }

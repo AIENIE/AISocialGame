@@ -37,7 +37,7 @@ public class WalletService {
     }
 
     public BalanceSnapshot getBalance(User user) {
-        return balanceService.getUserBalance(requireExternalUserId(user));
+        return balanceService.getDisplayBalance(requireExternalUserId(user));
     }
 
     public PagedResult<UsageRecordSnapshot> getUsageRecords(User user, int page, int size) {

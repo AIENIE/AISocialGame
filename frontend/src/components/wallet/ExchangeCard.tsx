@@ -21,7 +21,8 @@ const ExchangeCard = ({ exchanging, onExchange }: Props) => {
     }
     const requestId = pendingRequestId || createRequestId();
     setPendingRequestId(requestId);
-    await onExchange(parsed, requestId);
+    try { await onExchange(parsed, requestId); }
+    catch { return; } // Keep the same request ID for a retry of an uncertain exchange.
     setAmount("");
     setPendingRequestId("");
   };

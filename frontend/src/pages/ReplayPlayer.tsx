@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { replayApi } from "@/services/v2Social";
 import { serverReplayApi } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -10,13 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pause, Play, Shield, SkipForward } from "lucide-react";
 import { ReplayViewMode } from "@/types";
-import { isAxiosError } from "axios";
+import { DataState } from "@/components/DataState";
 
 const ReplayPlayer = () => {
   const { t } = useTranslation();
   const { archiveId } = useParams();
-  const { user, displayName } = useAuth();
-  const userKey = useMemo(() => user?.id || `guest:${displayName}`, [user?.id, displayName]);
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ReplayViewMode>("PUBLIC");
   const serverReplay = useQuery({
     queryKey: ["server-replay", archiveId, viewMode, user?.id],
@@ -24,9 +22,7 @@ const ReplayPlayer = () => {
     enabled: !!archiveId,
     retry: 1,
   });
-  const denied = isAxiosError(serverReplay.error) && [401, 403].includes(serverReplay.error.response?.status || 0);
-  const localArchive = archiveId && serverReplay.isError && !denied ? replayApi.get(userKey, archiveId) : undefined;
-  const serverArchive = denied ? undefined : serverReplay.data?.archive;
+  const serverArchive = serverReplay.error ? undefined : serverReplay.data?.archive;
   const serverEvents = serverReplay.data?.events || [];
   const usingServer = !!serverArchive;
   const archive = usingServer
@@ -36,12 +32,12 @@ const ReplayPlayer = () => {
         roomId: serverArchive.roomId,
         roomName: serverArchive.roomName,
         result: serverArchive.winner || t("common.undetermined"),
-        createdAt: serverArchive.finishedAt || serverArchive.createdAt || new Date().toISOString(),
+        createdAt: serverArchive.finishedAt || serverArchive.createdAt,
         events: serverEvents.map((event) => ({
           id: String(event.id),
           type: event.eventType,
           message: String(event.data?.message || event.data?.content || event.eventType),
-          timestamp: event.occurredAt || new Date().toISOString(),
+          timestamp: event.occurredAt,
           phase: event.phase,
           roundNumber: event.roundNumber,
           seq: event.seq,
@@ -49,7 +45,7 @@ const ReplayPlayer = () => {
           data: event.data,
         })),
       }
-    : localArchive;
+    : undefined;
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -73,15 +69,7 @@ const ReplayPlayer = () => {
     return () => window.clearInterval(timer);
   }, [playing, speed, archive?.id]);
 
-  if (!archive) {
-    return (
-      <Card className="mx-auto max-w-3xl">
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          {serverReplay.isLoading ? t("replays.loading") : t("replay.notFound")}
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!archive) return <DataState loading={serverReplay.isPending} error={serverReplay.error} onRetry={() => void serverReplay.refetch()} />;
 
   const currentEvent: any = archive.events[index];
 
@@ -97,7 +85,7 @@ const ReplayPlayer = () => {
             <Badge variant="outline">{t("replays.result", { result: archive.result })}</Badge>
             {usingServer && <Badge variant="outline">{t("replays.serverArchive")}</Badge>}
             <Badge variant="outline">
-              {index + 1}/{Math.max(archive.events.length, 1)}
+              {archive.events.length ? index + 1 : 0}/{archive.events.length}
             </Badge>
           </div>
           {usingServer && (
@@ -120,7 +108,7 @@ const ReplayPlayer = () => {
                 .map(({ event, eventIndex }) => <Button key={eventIndex} size="sm" variant="outline" onClick={() => { setIndex(eventIndex); setPlaying(false); }}>{event.phase || event.type} #{event.seq || eventIndex + 1}</Button>)}
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{currentEvent?.timestamp ? new Date(currentEvent.timestamp).toLocaleTimeString() : "--:--:--"}</span>
+              {currentEvent?.timestamp && <span>{new Date(currentEvent.timestamp).toLocaleTimeString()}</span>}
               {currentEvent?.seq && <Badge variant="outline">#{currentEvent.seq}</Badge>}
               {currentEvent?.phase && <Badge variant="secondary">{currentEvent.phase}</Badge>}
               {currentEvent?.type && <Badge variant="outline">{currentEvent.type}</Badge>}
@@ -146,7 +134,7 @@ const ReplayPlayer = () => {
               {playing ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
               {playing ? t("replay.pause") : t("replay.play")}
             </Button>
-            <Button variant="outline" onClick={() => setIndex((prev) => Math.min(prev + 1, archive.events.length - 1))}>
+            <Button variant="outline" disabled={archive.events.length === 0 || index >= archive.events.length - 1} onClick={() => setIndex((prev) => Math.min(prev + 1, archive.events.length - 1))}>
               <SkipForward className="mr-2 h-4 w-4" />
               {t("replay.step")}
             </Button>
@@ -178,7 +166,7 @@ const ReplayPlayer = () => {
               onClick={() => setIndex(eventIndex)}
             >
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
+                {event.timestamp && <span>{new Date(event.timestamp).toLocaleTimeString()}</span>}
                 {(event as any).seq && <span>#{(event as any).seq}</span>}
                 {(event as any).phase && <span>{(event as any).phase}</span>}
                 <span>{event.type}</span>

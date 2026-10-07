@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { rankingApi } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerStats } from "@/types";
+import { DataState } from "@/components/DataState";
 import { gameName } from "@/i18n/gameTexts";
 
 const RankItem = ({ item, rank }: { item: PlayerStats; rank: number }) => {
@@ -48,7 +49,7 @@ const RankItem = ({ item, rank }: { item: PlayerStats; rank: number }) => {
 
 const RankingList = ({ gameId }: { gameId: string }) => {
   const { t } = useTranslation();
-  const { data = [], isLoading } = useQuery<PlayerStats[]>({
+  const { data = [], isLoading, error, refetch } = useQuery<PlayerStats[]>({
     queryKey: ["rankings", gameId],
     queryFn: () => rankingApi.list(gameId),
   });
@@ -63,9 +64,8 @@ const RankingList = ({ gameId }: { gameId: string }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-2 md:p-4 space-y-1 md:space-y-2">
-        {isLoading && <div className="text-sm text-slate-500">{t("rankings.loading")}</div>}
-        {!isLoading && data.length === 0 && <div className="text-sm text-slate-500">{t("rankings.empty")}</div>}
-        {data.map((item, idx) => (
+        {(isLoading || error || !data.length) && <DataState loading={isLoading} error={error} empty={!data.length} onRetry={() => void refetch()} />}
+        {!error && data.map((item, idx) => (
           <RankItem key={item.id} item={item} rank={idx + 1} />
         ))}
       </CardContent>

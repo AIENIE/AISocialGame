@@ -1,3 +1,4 @@
+import { AdminDataState } from "@/components/admin/AdminDataState";
 import { useState } from "react";
 import { adminApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -11,18 +12,21 @@ const UserAdmin = () => {
   const [reason, setReason] = useState("违反社区规范");
   const [userInfo, setUserInfo] = useState<any>(null);
 
+  const [readError, setReadError] = useState<unknown>();
+  const [reading, setReading] = useState(false);
   const queryUser = async () => {
     const id = Number(userId);
     if (!id) {
       toast.error("请输入用户 ID");
       return;
     }
+    setUserInfo(null); setReadError(undefined); setReading(true);
     try {
       const result = await adminApi.getUser(id);
       setUserInfo(result);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "查询用户失败");
-    }
+      setReadError(error);
+    } finally { setReading(false); }
   };
 
   const ban = async () => {
@@ -68,6 +72,7 @@ const UserAdmin = () => {
         <Button variant="outline" onClick={unban}>解封</Button>
       </div>
 
+      {(reading || readError) && <AdminDataState loading={reading} error={readError} retry={() => void queryUser()} />}
       {userInfo && (
         <Card>
           <CardHeader>
@@ -78,7 +83,7 @@ const UserAdmin = () => {
             <p>邮箱：{userInfo.email}</p>
             <p>封禁状态：{userInfo.banStatus?.banned ? "已封禁" : "正常"}</p>
             <p>封禁原因：{userInfo.banStatus?.reason || "-"}</p>
-            <p>项目积分：{userInfo.balance?.totalTokens ?? 0}</p>
+            <p>项目积分：{userInfo.balance?.totalTokens === undefined ? "余额不可用" : userInfo.balance.totalTokens}</p>
           </CardContent>
         </Card>
       )}

@@ -1,198 +1,49 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Heart, PenSquare } from "lucide-react";
+import { communityApi, getApiErrorMessage, getApiErrorCode } from "@/services/api";
+import { localizeErrorMessage } from "@/i18n/errors";
+import { useAuth } from "@/hooks/useAuth";
+import { DataState } from "@/components/DataState";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Heart, Share2, PenSquare, Flame, Hash } from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { communityApi, getApiErrorMessage } from "@/services/api";
-import { localizeErrorMessage } from "@/i18n/errors";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CommunityPost } from "@/types";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const Community = () => {
   const { t } = useTranslation();
-  const { user, avatar, redirectToSsoLogin } = useAuth();
+  const { user, avatar, displayName } = useAuth();
   const [input, setInput] = useState("");
   const [publishError, setPublishError] = useState("");
-  const queryClient = useQueryClient();
-
-  const { data: posts = [], isLoading } = useQuery<CommunityPost[]>({
-    queryKey: ["community", "posts"],
-    queryFn: communityApi.list,
+  const client = useQueryClient();
+  const posts = useQuery({ queryKey: ["community", "posts"], queryFn: communityApi.list });
+  const publish = useMutation({ mutationFn: () => communityApi.create(input.trim(), []),
+    onSuccess: () => { setInput(""); setPublishError(""); void client.invalidateQueries({ queryKey: ["community", "posts"] }); toast.success(t("community.publishSuccess")); },
+    onError: error => { const message = localizeErrorMessage(getApiErrorMessage(error, t("community.publishFailed")), "community.publishFailed", getApiErrorCode(error)); setPublishError(message); },
   });
-
-  const publishMutation = useMutation({
-    mutationFn: () => communityApi.create(input.trim(), []),
-    onSuccess: () => {
-      setInput("");
-      setPublishError("");
-      queryClient.invalidateQueries({ queryKey: ["community", "posts"] });
-      toast.success(t("community.publishSuccess"));
-    },
-    onError: (error: unknown) => {
-      const raw = getApiErrorMessage(error, t("community.publishFailed"));
-      const message = localizeErrorMessage(raw, "community.publishFailed");
-      setPublishError(message);
-      toast.error(message);
-    },
+  const like = useMutation({ mutationFn: communityApi.like,
+    onSuccess: () => { void client.invalidateQueries({ queryKey: ["community", "posts"] }); },
+    onError: () => toast.error(t("data.failed")),
   });
-
-  const likeMutation = useMutation({
-    mutationFn: (id: string) => communityApi.like(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["community", "posts"] }),
-  });
-
-  const publish = () => {
-    if (!user) { void redirectToSsoLogin(); return; }
-    const value = input.trim();
-    if (!value) {
-      toast.error(t("community.emptyInput"));
-      return;
-    }
-    setPublishError("");
-    publishMutation.mutate();
-  };
-
-  const hotTopics = useMemo(() => {
-    const tagCount: Record<string, number> = {};
-    posts.forEach((p) => p.tags.forEach((t) => { tagCount[t] = (tagCount[t] || 0) + 1; }));
-    return Object.entries(tagCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([title, count], idx) => ({ id: idx, title, views: t("community.discussionCount", { count }) }));
-  }, [posts, t]);
-
-  return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-      <div className="hidden lg:block space-y-6">
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-4 space-y-2">
-            <Button variant="ghost" className="w-full justify-start font-bold text-blue-600 bg-blue-50">
-              <MessageSquare className="mr-2 h-4 w-4" /> {t("community.general")}
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-slate-600">
-              <Flame className="mr-2 h-4 w-4" /> {t("community.latest")}
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-slate-600">
-              <Hash className="mr-2 h-4 w-4" /> {t("community.topics")}
-            </Button>
-          </CardContent>
-        </Card>
+  if (!user) return null;
+  return <div className="mx-auto max-w-3xl space-y-6">
+    <h1 className="text-2xl font-bold">{t("nav.community")}</h1>
+    <Card><CardContent className="p-4"><form className="flex gap-3" onSubmit={event => { event.preventDefault(); if (input.trim()) { setPublishError(""); publish.mutate(); } }}>
+      <Avatar><AvatarImage src={avatar} /><AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback></Avatar>
+      <div className="flex-1 space-y-3"><Input aria-label={t("community.placeholder")} maxLength={1024} value={input} onChange={event => setInput(event.target.value)} placeholder={t("community.placeholder")} />
+        <Button data-testid="community-publish-btn" disabled={publish.isPending || !input.trim()} type="submit"><PenSquare className="mr-2 h-4 w-4" />{t("community.publish")}</Button>
+        {publishError && <p role="alert" className="text-sm text-red-600">{publishError}</p>}
       </div>
-
-      <div className="lg:col-span-2 space-y-6">
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex gap-3 md:gap-4">
-              <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                <AvatarImage src={avatar} />
-                <AvatarFallback>ME</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-3">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={t("community.placeholder")}
-                  className="bg-slate-50 border-slate-200 text-sm"
-                />
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2 text-slate-400 text-sm">
-                    <Button variant="ghost" size="sm" className="h-8 px-2 text-xs md:text-sm"><Hash className="h-3 w-3 md:h-4 md:w-4 mr-1" /> {t("community.topic")}</Button>
-                  </div>
-                  <Button data-testid="community-publish-btn" size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs md:text-sm" onClick={publish} disabled={publishMutation.isPending}>
-                    <PenSquare className="h-3 w-3 md:h-4 md:w-4 mr-2" /> {t("community.publish")}
-                  </Button>
-                </div>
-                {publishError && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{publishError}</div>}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Tabs defaultValue="recommend" className="w-full">
-          <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-4 overflow-x-auto">
-            <TabsTrigger value="recommend" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-4 py-2 text-sm">{t("community.tab.recommend")}</TabsTrigger>
-            <TabsTrigger value="latest" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-4 py-2 text-sm">{t("community.tab.latest")}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="recommend" className="space-y-4">
-            {isLoading && <div className="text-slate-500 text-sm">{t("community.loading")}</div>}
-            {!isLoading && posts.length === 0 && <div className="text-slate-500 text-sm">{t("community.empty")}</div>}
-            {posts.map(post => (
-              <Card key={post.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="p-4 pb-2 flex flex-row items-start gap-3 md:gap-4 space-y-0">
-                  <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                    <AvatarImage src={post.avatar} />
-                    <AvatarFallback>{post.authorName[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold text-sm">{post.authorName}</h4>
-                        <p className="text-xs text-slate-500">{new Date(post.createdAt).toLocaleString()}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-2 space-y-3 md:space-y-4">
-                  <p className="text-slate-800 leading-relaxed text-sm md:text-base whitespace-pre-line">{post.content}</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {post.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100 text-xs">
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-6 pt-2 border-t border-slate-100">
-                    <Button variant="ghost" size="sm" className="text-slate-500 hover:text-red-500 px-0 h-8 text-xs md:text-sm" onClick={() => { if (!user) void redirectToSsoLogin(); else likeMutation.mutate(post.id); }}>
-                      <Heart className="h-3 w-3 md:h-4 md:w-4 mr-1.5" /> {post.likes}
-                    </Button>
-                    <div className="text-xs text-slate-500 flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3 md:h-4 md:w-4" /> {post.comments}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <div className="hidden lg:block space-y-6">
-        <Card className="border-slate-200 shadow-sm bg-slate-50/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center">
-              <Flame className="h-4 w-4 text-red-500 mr-2" /> {t("community.hotTopics")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {hotTopics.length === 0 && <div className="text-slate-500 text-sm">{t("community.noTopics")}</div>}
-            {hotTopics.map((topic, index) => (
-              <div key={topic.id} className="flex items-center justify-between group">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <span className={`text-sm font-bold w-4 text-center ${index < 3 ? 'text-red-500' : 'text-slate-400'}`}>
-                    {index + 1}
-                  </span>
-                  <span className="text-sm text-slate-700 truncate group-hover:text-blue-600 transition-colors">
-                    {topic.title}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap">{topic.views}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    </form></CardContent></Card>
+    {(posts.isPending || posts.error || !posts.data?.length) && <DataState loading={posts.isPending} error={posts.error} empty={!posts.data?.length} onRetry={() => void posts.refetch()} />}
+    {!posts.isPending && !posts.error && posts.data?.map(post => <Card key={post.id}><CardHeader className="flex-row gap-3 space-y-0">
+      <Avatar><AvatarImage src={post.avatar} /><AvatarFallback>{post.authorName.slice(0, 1)}</AvatarFallback></Avatar><div><h2 className="font-semibold">{post.authorName}</h2>{post.createdAt && <p className="text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleString()}</p>}</div>
+    </CardHeader><CardContent className="space-y-3"><p className="whitespace-pre-line">{post.content}</p><div className="flex flex-wrap gap-2">{post.tags.map(tag => <Badge key={tag} variant="secondary">#{tag}</Badge>)}</div>
+      <Button variant="ghost" size="sm" disabled={like.isPending} onClick={() => like.mutate(post.id)}><Heart className="mr-2 h-4 w-4" />{post.likes}</Button>
+    </CardContent></Card>)}
+  </div>;
 };
-
 export default Community;

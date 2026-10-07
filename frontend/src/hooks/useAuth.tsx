@@ -1,159 +1,82 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { authApi, setAuthToken } from "@/services/api";
-import { AuthResponse, SsoCallbackData, User } from "@/types";
+import { authApi, setAuthToken, subscribeAuthExpired } from "@/services/api";
+import type { AuthResponse, SsoCallbackData, User } from "@/types";
+import { dataTexts } from "@/i18n/dataTexts";
 
+import { LOCAL_TOKEN_KEY, LOCAL_SSO_STATE_KEY, LOCAL_RETURN_TO_KEY, readStorage, writeStorage, safeReturnTo } from "./authStorage";
+
+type AuthStatus = "checking" | "authenticated" | "anonymous" | "error";
 interface AuthContextValue {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  redirectToSsoLogin: () => Promise<void>;
-  redirectToSsoRegister: () => Promise<void>;
+  user: User | null; token: string | null; loading: boolean; status: AuthStatus;
+  redirectToSsoLogin: (returnTo?: string) => Promise<void>;
+  redirectToSsoRegister: (returnTo?: string) => Promise<void>;
   ssoCallback: (payload: SsoCallbackData) => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateBalance: (balance: NonNullable<User["balance"]>) => void;
-  logout: () => Promise<void>;
-  displayName: string;
-  avatar: string;
+  updateBalance: (balance: NonNullable<User["balance"]> | undefined) => void;
+  logout: () => Promise<void>; displayName: string; avatar: string;
 }
-
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-export const LOCAL_TOKEN_KEY = "aisocialgame_token";
-export const LOCAL_SSO_STATE_KEY = "aisocialgame_sso_state";
-const LOCAL_GUEST_KEY = "aisocialgame_guest_name";
-const readStorage = (kind: "localStorage" | "sessionStorage", key: string) => {
-  try { return window[kind].getItem(key); } catch { return null; }
-};
-const writeStorage = (kind: "localStorage" | "sessionStorage", key: string, value: string | null) => {
-  try { if (value === null) window[kind].removeItem(key); else window[kind].setItem(key, value); } catch { /* This feature stays in memory when storage is denied. */ }
-};
-
-const generateSsoState = () => {
-  const bytes = new Uint8Array(24);
-  if (window.crypto?.getRandomValues) {
-    window.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
-  }
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
-};
-
-const buildSsoEntryUrl = (entry: "login" | "register", state: string) => {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
-  return `${apiBase}/auth/sso/${entry}?state=${encodeURIComponent(state)}`;
-};
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => readStorage("sessionStorage", LOCAL_TOKEN_KEY));
-  const [loading, setLoading] = useState<boolean>(!!token);
-
-  useEffect(() => {
-    let current = true;
-    setAuthToken(token || undefined);
-    if (token) {
-      authApi.me().then((value) => { if (current) setUser(value); })
-        .catch(() => { if (current) setUser(null); })
-        .finally(() => { if (current) setLoading(false); });
-    }
-    return () => { current = false; };
-  }, [token]);
-
-  const applyAuthResponse = (res: AuthResponse) => {
-    writeStorage("sessionStorage", LOCAL_TOKEN_KEY, res.token);
-    setToken(res.token);
-    setUser(res.user);
-  };
-
-  const ssoCallback = async (payload: SsoCallbackData) => {
-    setLoading(true);
+  const [token, setToken] = useState<string | null>(() => readStorage(LOCAL_TOKEN_KEY));
+  const [status, setStatus] = useState<AuthStatus>(token ? "checking" : "anonymous");
+  const tokenRef = useRef(token);
+  const generation = useRef(0);
+  const clearSession = useCallback(() => {
+    generation.current += 1; tokenRef.current = null; setAuthToken(undefined);
+    writeStorage(LOCAL_TOKEN_KEY, null); setToken(null); setUser(null); setStatus("anonymous");
+  }, []);
+  useEffect(() => subscribeAuthExpired(clearSession), [clearSession]);
+  const checkSession = useCallback(async (signal?: AbortSignal) => {
+    const currentToken = tokenRef.current;
+    if (!currentToken) { setStatus("anonymous"); return; }
+    const revision = ++generation.current;
+    setStatus("checking"); setUser(null); setAuthToken(currentToken);
     try {
-      const res: AuthResponse = await authApi.ssoCallback(payload);
-      applyAuthResponse(res);
-    } finally {
-      setLoading(false);
+      const me = await authApi.me(signal);
+      if (generation.current === revision && !signal?.aborted) { setUser(me); setStatus("authenticated"); }
+    } catch {
+      if (generation.current !== revision || signal?.aborted) return;
+      setUser(null); setStatus("error");
     }
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    tokenRef.current = token; setAuthToken(token || undefined);
+    if (token) void checkSession(controller.signal);
+    return () => controller.abort();
+  }, [token, checkSession]);
+  const applyAuthResponse = (res: AuthResponse) => {
+    generation.current += 1; tokenRef.current = res.token; setAuthToken(res.token);
+    writeStorage(LOCAL_TOKEN_KEY, res.token); setToken(res.token); setUser(res.user); setStatus("authenticated");
   };
-
-  const refreshUser = async () => {
-    if (!token) {
-      return;
-    }
-    const me = await authApi.me();
-    setUser(me);
+  const ssoCallback = async (payload: SsoCallbackData) => {
+    const revision = ++generation.current; setUser(null); setStatus("checking");
+    try { const res = await authApi.ssoCallback(payload); if (generation.current === revision) applyAuthResponse(res); }
+    catch (error) { if (generation.current === revision) setStatus(tokenRef.current ? "error" : "anonymous"); throw error; }
   };
-
-  const updateBalance = (balance: NonNullable<User["balance"]>) => {
-    setUser((prev) => {
-      if (!prev) {
-        return prev;
-      }
-      return {
-        ...prev,
-        coins: balance.totalTokens,
-        balance,
-      };
-    });
-  };
-
-  const redirectToSsoLogin = async () => {
-    const state = generateSsoState();
+  const updateBalance = useCallback((balance: NonNullable<User["balance"]> | undefined) => setUser(prev => prev ? {
+    ...prev, balance, balanceAvailable: !!balance, coins: balance ? balance.projectPermanentTokens + balance.projectTempTokens : undefined,
+  } : prev), []);
+  const redirect = async (entry: "login" | "register", returnTo?: string) => {
+    const bytes = new Uint8Array(24); window.crypto.getRandomValues(bytes);
+    const state = Array.from(bytes, value => value.toString(16).padStart(2, "0")).join("");
     sessionStorage.setItem(LOCAL_SSO_STATE_KEY, state);
-    window.location.assign(buildSsoEntryUrl("login", state));
+    sessionStorage.setItem(LOCAL_RETURN_TO_KEY, safeReturnTo(returnTo || `${window.location.pathname}${window.location.search}${window.location.hash}`));
+    const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+    window.location.assign(`${base}/auth/sso/${entry}?state=${encodeURIComponent(state)}`);
   };
-
-  const redirectToSsoRegister = async () => {
-    const state = generateSsoState();
-    sessionStorage.setItem(LOCAL_SSO_STATE_KEY, state);
-    window.location.assign(buildSsoEntryUrl("register", state));
-  };
-
   const logout = async () => {
-    try { await authApi.logout(); }
-    catch { toast.error("注销失败，请重试"); return; }
-    writeStorage("sessionStorage", LOCAL_TOKEN_KEY, null);
-    setUser(null);
-    setToken(null);
-    setAuthToken(undefined);
+    const currentToken = tokenRef.current;
+    try { await authApi.logout(); if (tokenRef.current === currentToken) clearSession(); }
+    catch {
+      const language = (() => { try { return localStorage.getItem("aienie.user.locale.v1"); } catch { return null; } })();
+      toast.error(dataTexts[language === "en" || language === "zh-TW" ? language : "zh-CN"]["auth.logoutFailed"]);
+    }
   };
-
-  const displayName = useMemo(() => {
-    if (user?.nickname) return user.nickname;
-    const cached = readStorage("localStorage", LOCAL_GUEST_KEY);
-    if (cached) return cached;
-    const guest = `游客${Math.floor(Math.random() * 9000 + 1000)}`;
-    writeStorage("localStorage", LOCAL_GUEST_KEY, guest);
-    return guest;
-  }, [user]);
-
-  const avatar = useMemo(() => {
-    if (user?.avatar) return user.avatar;
-    const name = displayName || "guest";
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
-  }, [user, displayName]);
-
-  const value: AuthContextValue = {
-    user,
-    token,
-    loading,
-    redirectToSsoLogin,
-    redirectToSsoRegister,
-    ssoCallback,
-    refreshUser,
-    updateBalance,
-    logout,
-    displayName,
-    avatar,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, token, status, loading: status === "checking", redirectToSsoLogin: path => redirect("login", path),
+    redirectToSsoRegister: path => redirect("register", path), ssoCallback, refreshUser: checkSession, updateBalance, logout,
+    displayName: user?.nickname || user?.username || "", avatar: user?.avatar || "" }}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-};
+export const useAuth = () => { const ctx = useContext(AuthContext); if (!ctx) throw new Error("useAuth must be used within AuthProvider"); return ctx; };

@@ -7,6 +7,7 @@ import { quickMatchApi } from "@/services/v2Social";
 import { localizeErrorMessage } from "@/i18n/errors";
 import { gameName } from "@/i18n/gameTexts";
 import { Game } from "@/types";
+import { DataState } from "@/components/DataState";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,8 +24,9 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, redirectToSsoLogin } = useAuth();
-  const { data: games = [] } = useQuery<Game[]>({ queryKey: ["games"], queryFn: gameApi.list });
-  const activeGames = games.filter((g) => String(g.status).toLowerCase() === "active");
+  const gamesQuery = useQuery<Game[]>({ queryKey: ["games"], queryFn: gameApi.list });
+  const games = gamesQuery.error ? [] : gamesQuery.data || [];
+  const activeGames = games.filter((g) => String(g.status).toLowerCase() === "active" && ["undercover", "werewolf", "turtle_soup"].includes(g.id));
   const [gameId, setGameId] = useState<string>("");
   const [matching, setMatching] = useState(false);
 
@@ -57,6 +59,7 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
           <DialogTitle>{t("quickMatch.title")}</DialogTitle>
           <DialogDescription>{t("quickMatch.desc")}</DialogDescription>
         </DialogHeader>
+        {(gamesQuery.isPending || gamesQuery.error || !activeGames.length) && <DataState loading={gamesQuery.isPending} error={gamesQuery.error} empty onRetry={() => void gamesQuery.refetch()} />}
         <div className="space-y-2">
           <Select value={gameId} onValueChange={setGameId}>
             <SelectTrigger>
@@ -75,7 +78,7 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("quickMatch.cancel")}
           </Button>
-          <Button onClick={start} disabled={matching}>
+          <Button onClick={start} disabled={matching || !gameId || gamesQuery.isPending || !!gamesQuery.error || !activeGames.some(game => game.id === gameId)}>
             {matching ? t("quickMatch.matching") : t("quickMatch.start")}
           </Button>
         </DialogFooter>

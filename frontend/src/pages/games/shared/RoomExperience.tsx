@@ -35,7 +35,7 @@ export function RoomExperience({ gameId }: { gameId: string }) {
   const error = runtime.roomQuery.error || runtime.stateQuery.error || runtime.joinMutation.error;
   const status = error instanceof HttpApiError ? error.status : axios.isAxiosError(error) ? error.response?.status : undefined;
   const failure = status === 403 ? "noAccess" : status === 401 ? "signIn" : "unavailable";
-  if (!runtime.room || !runtime.state) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+  if (error || !runtime.room || !runtime.state) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
     <p role={error ? "alert" : "status"}>{copy(error ? failure : "loading")}</p>
     {(runtime.roomQuery.isError || runtime.stateQuery.isError) && <Button onClick={() => { void runtime.roomQuery.refetch(); void runtime.stateQuery.refetch(); }}>{copy("retry")}</Button>}
     <Button asChild variant="ghost"><Link to={`/game/${gameId}`}>{copy("back")}</Link></Button>
@@ -121,7 +121,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
       {playing ? timelineView() : stage === "waiting" ? chat() : <div className="room-settlement">
         <div className="room-settlement-results">
           {state.gameId === "turtle_soup" && <div className="mb-4 space-y-2"><h2 className="font-semibold">{t("game.solutionTitle")}</h2><p className="whitespace-pre-wrap text-sm leading-6">{String(state.extra?.solution || "")}</p></div>}
-          <SettlementPanel gameId={state.gameId} state={state} userKey={runtime.userKey} />
+          <SettlementPanel gameId={state.gameId} state={state} />
           <div className="mt-3 flex flex-wrap gap-2">{state.extra?.archiveId && <Button asChild variant="outline" size="sm"><Link to={`/replay/${state.extra.archiveId}`}><BookOpen className="mr-1 h-4 w-4" />{copy("replay")}</Link></Button>}<Button size="sm" variant="outline" onClick={() => setDrawer("setup")}>{copy("nextSetup")}</Button></div>
         </div><div className="room-settlement-chat">{chat()}</div>
       </div>}

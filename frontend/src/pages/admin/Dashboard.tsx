@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { AdminDataState } from "@/components/admin/AdminDataState";
 
 interface Summary {
   localUsers: number;
@@ -18,21 +18,24 @@ interface Summary {
 const Dashboard = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
 
-  useEffect(() => {
-    adminApi.dashboardSummary()
-      .then(setSummary)
-      .catch((error) => toast.error(error?.response?.data?.message || "加载仪表盘失败"));
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
+  const load = async () => {
+    setLoading(true); setError(undefined); setSummary(null);
+    try { setSummary(await adminApi.dashboardSummary()); } catch (failure) { setError(failure); } finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []);
+  if (loading || error || !summary) return <AdminDataState loading={loading} error={error} retry={() => void load()} />;
 
   const items = [
-    { label: "本地用户", value: summary?.localUsers ?? 0 },
-    { label: "房间数", value: summary?.localRooms ?? 0 },
-    { label: "社区帖子", value: summary?.localPosts ?? 0 },
-    { label: "进行中状态", value: summary?.localGameStates ?? 0 },
-    { label: "可用模型", value: summary?.aiModels ?? 0 },
-    { label: "未处理高危", value: summary?.openHighRiskSafetyEvents ?? 0 },
-    { label: "24h 拦截", value: summary?.safetyBlocksLast24h ?? 0 },
-    { label: "活跃安全控制", value: summary?.activeSafetyControls ?? 0 },
+    { label: "本地用户", value: summary.localUsers },
+    { label: "房间数", value: summary.localRooms },
+    { label: "社区帖子", value: summary.localPosts },
+    { label: "进行中状态", value: summary.localGameStates },
+    { label: "可用模型", value: summary.aiModels },
+    { label: "未处理高危", value: summary.openHighRiskSafetyEvents },
+    { label: "24h 拦截", value: summary.safetyBlocksLast24h },
+    { label: "活跃安全控制", value: summary.activeSafetyControls },
   ];
 
   return (

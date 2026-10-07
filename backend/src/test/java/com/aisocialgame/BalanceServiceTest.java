@@ -42,4 +42,26 @@ class BalanceServiceTest {
         Mockito.verify(billingGrpcClient).getPublicPermanentTokens(1001L);
         Mockito.verify(projectCreditService).getBalance(1001L, 10L);
     }
+    @Test
+    void displayReadMustPropagateDependencyFailureInsteadOfReturningZero() {
+        var billing = Mockito.mock(BillingGrpcClient.class);
+        var credits = Mockito.mock(ProjectCreditService.class);
+        var service = new BalanceService(billing, credits);
+        Mockito.when(billing.getPublicPermanentTokens(1001L)).thenThrow(new IllegalStateException("unavailable"));
+        Assertions.assertThrows(IllegalStateException.class, () -> service.getDisplayBalance(1001L));
+        Mockito.verifyNoInteractions(credits);
+    }
+
+    @Test
+    void confirmedZeroIsStillAnAvailableDisplayBalance() {
+        var billing = Mockito.mock(BillingGrpcClient.class);
+        var credits = Mockito.mock(ProjectCreditService.class);
+        Mockito.when(credits.getBalance(1001L, 0L)).thenReturn(BalanceSnapshot.empty());
+        var snapshot = new BalanceService(billing, credits).getDisplayBalance(1001L);
+        Assertions.assertTrue(new com.aisocialgame.dto.AuthUserView(new User(), snapshot).isBalanceAvailable());
+        var unavailable = new com.aisocialgame.dto.AuthUserView(new User(), null);
+        Assertions.assertFalse(unavailable.isBalanceAvailable());
+        Assertions.assertNull(unavailable.getBalance());
+    }
+
 }

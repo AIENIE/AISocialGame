@@ -34,6 +34,7 @@ export interface User {
   email?: string;
   avatar: string;
   coins?: number;
+  balanceAvailable?: boolean;
   level?: number;
   balance?: {
     publicPermanentTokens: number;

@@ -1,5 +1,4 @@
-import { useTranslation } from "react-i18next";
-import { closureText } from "@/i18n/closureTexts";
+import { AdminDataState } from "@/components/admin/AdminDataState";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adminApi } from "@/services/api";
 import { AiSafetyControl, AiSafetyEvent, AiSafetySummary } from "@/types";
@@ -16,8 +15,7 @@ import { toast } from "sonner";
 const formatDate = (value?: string) => value ? new Date(value).toLocaleString() : "-";
 
 const SafetyAdmin = () => {
-  const { i18n } = useTranslation();
-  const tr = (text: string) => closureText(i18n.language, text);
+  const tr = (text: string) => text;
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
@@ -28,17 +26,18 @@ const SafetyAdmin = () => {
   const [controls, setControls] = useState<AiSafetyControl[]>([]);
   const [filters, setFilters] = useState({ status: "OPEN", severity: "", source: "", roomId: "" });
   const [controlForm, setControlForm] = useState({ scope: "USER", targetKey: "", action: "BLOCK", reason: "" });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<unknown>();
 
-  const stats = useMemo(() => [
-    { label: tr("未处理高危"), value: summary?.openHighRiskEvents ?? 0, icon: ShieldAlert },
-    { label: tr("24h 拦截/替换"), value: summary?.blockedLast24h ?? 0, icon: Ban },
-    { label: tr("成本异常"), value: summary?.costAnomaliesLast24h ?? 0, icon: AlertTriangle },
-    { label: tr("活跃控制"), value: summary?.activeControls ?? 0, icon: PauseCircle },
-  ], [summary, i18n.language]);
+  const stats = useMemo(() => summary ? [
+    { label: tr("未处理高危"), value: summary.openHighRiskEvents, icon: ShieldAlert },
+    { label: tr("24h 拦截/替换"), value: summary.blockedLast24h, icon: Ban },
+    { label: tr("成本异常"), value: summary.costAnomaliesLast24h, icon: AlertTriangle },
+    { label: tr("活跃控制"), value: summary.activeControls, icon: PauseCircle },
+  ] : [], [summary]);
 
   const loadAll = async () => {
-    setLoading(true);
+    setLoading(true); setLoadError(undefined);
     try {
       const [nextSummary, eventPage, nextControls] = await Promise.all([
         adminApi.safetySummary(),
@@ -61,7 +60,7 @@ const SafetyAdmin = () => {
         setSelected(fresh || selected);
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || tr("加载安全运营数据失败"));
+      setLoadError(error);
     } finally {
       setLoading(false);
     }
@@ -120,6 +119,7 @@ const SafetyAdmin = () => {
     }
   };
 
+  if (loading || loadError || !summary) return <AdminDataState loading={loading} error={loadError} retry={() => void loadAll()} />;
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

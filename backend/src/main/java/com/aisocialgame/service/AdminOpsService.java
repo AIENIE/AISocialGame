@@ -139,7 +139,7 @@ public class AdminOpsService {
             throw new ApiException(HttpStatus.NOT_FOUND, "用户不存在");
         }
         var banStatus = userGrpcClient.getBanStatus(userId);
-        BalanceSnapshot balance = balanceService.getUserBalance(userId);
+        BalanceSnapshot balance = balanceService.getDisplayBalance(userId);
         return new AdminUserView(profile, banStatus, balance);
     }
 
@@ -168,7 +168,7 @@ public class AdminOpsService {
     }
 
     public BalanceSnapshot getBalance(long userId) {
-        return balanceService.getUserBalance(userId);
+        return balanceService.getDisplayBalance(userId);
     }
 
     public AdminLedgerPageResponse getLedger(long userId, int page, int size) {

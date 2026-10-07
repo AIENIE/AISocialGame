@@ -1,13 +1,13 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SafeErrorBoundary } from "@/components/SafeErrorBoundary";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SessionQueries } from "./components/auth/SessionQueries";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
-import { AdminAuthProvider } from "./hooks/useAdminAuth";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { RequireAuth } from "./components/auth/RequireAuth";
 import MainLayout from "./components/layout/MainLayout";
 import i18n from "./i18n/config";
 import Index from "./pages/Index";
@@ -48,12 +48,14 @@ export const UserErrorBoundary = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const queryClient = new QueryClient();
+const SessionLayout = () => {
+  const { user, token } = useAuth();
+  return <MainLayout key={`${user?.id || "anonymous"}:${token || ""}`} />;
+};
 
 const UserApp = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <AdminAuthProvider>
+  <AuthProvider>
+      <SessionQueries>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -64,8 +66,10 @@ const UserApp = () => (
                 <Route path="/sso/callback" element={<SsoCallback />} />
 
                 {/* Main App Routes */}
-                <Route element={<MainLayout />}>
+                <Route element={<SessionLayout />}>
                   <Route path="/" element={<Index />} />
+                  <Route path="/guide" element={<Guide />} />
+                  <Route element={<RequireAuth />}>
                   <Route path="/game/:gameId" element={<RoomList />} />
                   <Route path="/create/:gameId" element={<CreateRoom />} />
                   <Route path="/room/:gameId/:roomId" element={<Lobby />} />
@@ -76,8 +80,8 @@ const UserApp = () => (
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/replays" element={<Replays />} />
                   <Route path="/replay/:archiveId" element={<ReplayPlayer />} />
-                  <Route path="/guide" element={<Guide />} />
                   <Route path="/spectate/:gameId/:roomId" element={<SpectatorRoom />} />
+                  </Route>
                 </Route>
 
                 {/* 404 */}
@@ -86,9 +90,8 @@ const UserApp = () => (
             </BrowserRouter>
           </I18nextProvider>
         </TooltipProvider>
-      </AdminAuthProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+      </SessionQueries>
+  </AuthProvider>
 );
 
 export default UserApp;

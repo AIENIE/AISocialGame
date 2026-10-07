@@ -18,7 +18,7 @@ const RedeemCard = ({ redeeming, onRedeem }: Props) => {
     if (!value) {
       return;
     }
-    await onRedeem(value);
+    try { await onRedeem(value); } catch { return; }
     setCode("");
   };
 

@@ -118,6 +118,6 @@ test("community shows safety error without internal details", async ({ page }) =
   await expect(page.getByTestId("community-publish-btn")).toBeEnabled();
   await page.getByTestId("community-publish-btn").click();
   await expect.poll(() => postSeen).toBe(true);
-  await expect(page.getByRole("main").getByText("内容未通过安全检查，请调整后再试")).toBeVisible();
+  await expect(page.getByRole("main").getByRole("alert").getByText("内容未通过安全检查", { exact: true })).toBeVisible();
   await expect(page.getByText(/Prompt|系统提示|隐藏身份/)).toHaveCount(0);
 });

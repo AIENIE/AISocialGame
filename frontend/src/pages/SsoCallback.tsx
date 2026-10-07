@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LoaderCircle } from "lucide-react";
-import { LOCAL_SSO_STATE_KEY, LOCAL_TOKEN_KEY, useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { consumeReturnTo, LOCAL_SSO_STATE_KEY, LOCAL_TOKEN_KEY } from "@/hooks/authStorage";
 import { toast } from "sonner";
 import { localizeErrorMessage } from "@/i18n/errors";
 
@@ -55,7 +56,7 @@ const SsoCallback = () => {
     })
       .then(() => {
         window.history.replaceState(null, "", `${window.location.pathname}${redirectUrl.search}`);
-        navigate("/", { replace: true });
+        navigate(consumeReturnTo(), { replace: true });
       })
       .catch((error: any) => {
         const raw = error?.response?.data?.message || t("sso.loginFailed");

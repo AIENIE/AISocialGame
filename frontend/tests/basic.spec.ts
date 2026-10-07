@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("首页展示热门游戏卡片并可进入房间列表", async ({ page }) => {
+test("首页展示真实游戏目录，游客进入大厅需登录", async ({ page }) => {
   await page.route("**/api/games**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -25,7 +25,6 @@ test("首页展示热门游戏卡片并可进入房间列表", async ({ page }) 
   await expect(enterButton).toBeVisible();
   await enterButton.click({ force: true });
   await page.waitForLoadState("networkidle");
-  console.log("current url", page.url());
   await expect(page).toHaveURL(/game/);
-  await page.waitForTimeout(1000);
+  await expect(page.getByRole("heading", { name: "请登录后继续" })).toBeVisible();
 });

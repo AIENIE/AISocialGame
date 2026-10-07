@@ -2,24 +2,28 @@ import { useEffect, useState } from "react";
 import { adminApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { AdminDataState } from "@/components/admin/AdminDataState";
 
 const IntegrationAdmin = () => {
   const [data, setData] = useState<any>(null);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
   const reload = async () => {
+    setLoading(true); setError(undefined); setData(null);
     try {
       const response = await adminApi.integrationServices();
       setData(response);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "拉取服务状态失败");
-    }
+      setError(error);
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {
     reload();
   }, []);
 
+  if (loading || error || !data) return <AdminDataState loading={loading} error={error} retry={() => void reload()} />;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">

@@ -1,3 +1,4 @@
+import { AdminDataState } from "@/components/admin/AdminDataState";
 import { AdminReplayEvidence } from "./AdminReplayEvidence";
 import { useEffect, useMemo, useState } from "react";
 import { adminApi, getApiErrorMessage } from "@/services/api";
@@ -24,8 +25,8 @@ const compactJson = (value?: Record<string, any>) => {
 
 const AiAdmin = () => {
   const [models, setModels] = useState<any[]>([]);
-  const [userId, setUserId] = useState("1");
-  const [prompt, setPrompt] = useState("请给出一句社交推理游戏开场白");
+  const [userId, setUserId] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState<any>(null);
   const [traces, setTraces] = useState<AdminAiDecisionTrace[]>([]);
   const [traceTotal, setTraceTotal] = useState(0);
@@ -33,8 +34,9 @@ const AiAdmin = () => {
   const [experienceDrafts, setExperienceDrafts] = useState<Record<number, string>>({});
   const [reviewingMemory, setReviewingMemory] = useState<number | null>(null);
   const [filters, setFilters] = useState({ gameId: "", personaId: "", qualityFlag: "" });
-  const [loading, setLoading] = useState({ models: false, traces: false, memories: false, test: false });
+  const [loading, setLoading] = useState({ models: true, traces: true, memories: true, test: false });
 
+  const [readErrors, setReadErrors] = useState<{ models?: unknown; traces?: unknown; memories?: unknown }>({});
   const traceStats = useMemo(() => {
     const fallbackCount = traces.filter((trace) => trace.fallback).length;
     const invalidCount = traces.filter((trace) => !trace.validDecision).length;
@@ -46,10 +48,11 @@ const AiAdmin = () => {
 
   const loadModels = async () => {
     setLoading((prev) => ({ ...prev, models: true }));
+    setReadErrors(prev => ({ ...prev, models: undefined }));
     try {
       setModels(await adminApi.aiModels());
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "加载模型失败");
+      setReadErrors(prev => ({ ...prev, models: error }));
     } finally {
       setLoading((prev) => ({ ...prev, models: false }));
     }
@@ -57,6 +60,7 @@ const AiAdmin = () => {
 
   const loadTraces = async () => {
     setLoading((prev) => ({ ...prev, traces: true }));
+    setReadErrors(prev => ({ ...prev, traces: undefined }));
     try {
       const response = await adminApi.aiDecisionTraces({
         gameId: filters.gameId || undefined,
@@ -68,7 +72,7 @@ const AiAdmin = () => {
       setTraces(response.items || []);
       setTraceTotal(response.total || 0);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "加载决策 trace 失败");
+      setReadErrors(prev => ({ ...prev, traces: error }));
     } finally {
       setLoading((prev) => ({ ...prev, traces: false }));
     }
@@ -76,10 +80,11 @@ const AiAdmin = () => {
 
   const loadMemories = async () => {
     setLoading((prev) => ({ ...prev, memories: true }));
+    setReadErrors(prev => ({ ...prev, memories: undefined }));
     try {
       setMemories(await adminApi.aiPersonaMemories(filters.personaId || undefined));
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "加载 Persona 记忆失败");
+      setReadErrors(prev => ({ ...prev, memories: error }));
     } finally {
       setLoading((prev) => ({ ...prev, memories: false }));
     }
@@ -96,10 +101,12 @@ const AiAdmin = () => {
   };
 
   const runTest = async () => {
+    if (!Number.isSafeInteger(Number(userId)) || Number(userId) <= 0 || !prompt.trim()) { toast.error("请输入有效用户 ID 和消息"); return; }
+    setResult(null);
     setLoading((prev) => ({ ...prev, test: true }));
     try {
       const response = await adminApi.testChat({
-        userId: Number(userId) || 1,
+        userId: Number(userId),
         messages: [{ role: "user", content: prompt }],
       });
       setResult(response);
@@ -131,6 +138,8 @@ const AiAdmin = () => {
     } finally { setReviewingMemory(null); }
   };
 
+  const readError = readErrors.models || readErrors.traces || readErrors.memories;
+  if (loading.models || loading.traces || loading.memories || readError) return <AdminDataState loading={loading.models || loading.traces || loading.memories} error={readError} retry={() => { void loadModels(); void refreshQualityData(); }} />;
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -190,7 +199,7 @@ const AiAdmin = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="filter-quality">质量标记</Label>
-                <Input id="filter-quality" placeholder="demo_sample / REPEATED_TEMPLATE" value={filters.qualityFlag} onChange={(e) => setFilters((prev) => ({ ...prev, qualityFlag: e.target.value }))} />
+                <Input id="filter-quality" placeholder="REPEATED_TEMPLATE" value={filters.qualityFlag} onChange={(e) => setFilters((prev) => ({ ...prev, qualityFlag: e.target.value }))} />
               </div>
               <div className="flex items-end">
                 <Button onClick={loadTraces} disabled={loading.traces} className="w-full">
@@ -232,7 +241,7 @@ const AiAdmin = () => {
                 </CardContent>
               </Card>
             ))}
-            {!traces.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">暂无 trace 数据。先完成一场 AI 对局，或在本地开启 demo seed。</div>}
+            {!traces.length && <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">暂无 trace 数据。完成一场 AI 对局后可查看真实记录。</div>}
           </div>
         </TabsContent>
 

@@ -245,13 +245,11 @@ public class AuthService {
     }
 
     private AuthUserView buildUserView(User user) {
-        BalanceSnapshot snapshot;
         try {
-            snapshot = balanceService.getUserBalance(user);
+            return new AuthUserView(user, balanceService.getDisplayBalance(user));
         } catch (Exception ignored) {
-            snapshot = BalanceSnapshot.empty();
+            return new AuthUserView(user, null);
         }
-        return new AuthUserView(user, snapshot);
     }
 
     private String fallbackNickname(String username) {

@@ -6,9 +6,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useGameEngine } from "@/hooks/useGameEngine";
 import { useGameSocket } from "@/hooks/useGameSocket";
-import { getApiErrorMessage, getApiErrorCode, isRecoverableGameError, personaApi, roomApi, serverReplayApi } from "@/services/api";
+import { getApiErrorMessage, getApiErrorCode, isRecoverableGameError, personaApi, roomApi } from "@/services/api";
 import { localizeErrorMessage } from "@/i18n/errors";
-import { achievementApi, replayApi } from "@/services/v2Social";
 import { ChatMessage, GameStateEvent, PrivateEvent } from "@/types";
 
 const DEFAULT_RECOVERABLE_MESSAGES = ["已完成投票", "当前不需要你发言", "房间已满", "当前阶段不支持该操作"];
@@ -27,11 +26,9 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const playerId = user?.id || null;
   const [selectedAiId, setSelectedAiId] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const settlementSnapshotRef = useRef<string | null>(null);
-  const replayCacheAttemptRef = useRef<string | null>(null);
   const joinAttemptedRoomRef = useRef<string | null>(null);
   const lastSocketVersionRef = useRef<string | null>(null);
-  const userKey = user?.id || `guest:${displayName}`;
+  const userKey = user?.id || "";
 
   const personaQuery = useQuery({
     queryKey: ["personas"],
@@ -173,34 +170,6 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const isHost = room?.hostUserId === playerId || !!room?.seats?.some((seat) => seat.playerId === playerId && seat.host);
   const canAddAi = isHost && room?.status === "WAITING" && !personaQuery.isPending && !personaQuery.isError
     && !addAiMutation.isPending && personas.some(p => p.id === selectedAiId) && (room?.seats?.length ?? 0) < (room?.maxPlayers ?? 0);
-
-  useEffect(() => {
-    if (!roomId || !state || phase !== "SETTLEMENT") {
-      return;
-    }
-    const settlementId = state.extra?.archiveId;
-    const result = state.extra?.mySettlement;
-    if (typeof settlementId !== "string" || result?.eligible !== true || typeof result?.didWin !== "boolean") return;
-    if (settlementSnapshotRef.current === settlementId) return;
-    let active = true;
-    void achievementApi.applySettlement(userKey, settlementId, result.didWin).then(({ saved, unlocked }) => {
-      if (!active) return;
-      if (saved) settlementSnapshotRef.current = settlementId;
-      unlocked.forEach((item) => {
-        const def = achievementApi.listDefinitions().find((d) => d.code === item.code);
-        toast.success(t("v2.achievement.unlocked", { name: def?.name || item.code }));
-      });
-    }).catch(() => { /* Local achievements cannot interrupt the room. */ });
-    // The live state intentionally carries only the latest public logs. Cache a
-    // completed server replay so the local fallback never silently loses history.
-    if (replayCacheAttemptRef.current !== settlementId) {
-      replayCacheAttemptRef.current = settlementId;
-      void serverReplayApi.events(settlementId, "PUBLIC")
-        .then(detail => replayApi.save(userKey, replayApi.fromServerDetail(detail)))
-        .catch(() => { /* The server archive remains authoritative. */ });
-    }
-    return () => { active = false; };
-  }, [phase, state, userKey, roomId, effectiveGameId, room, t]);
 
   const startGame = useCallback(() => {
     startMutation.mutate(undefined, { onError: (error: unknown) => handleActionError(error, "errors.startFailed") });

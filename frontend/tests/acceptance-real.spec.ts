@@ -64,15 +64,15 @@ async function verifyPublicPages(page: Page) {
   await expect(page.getByText("热门游戏")).toBeVisible({ timeout: 30_000 });
 
   await page.goto("/community");
-  await expect(page.getByText(/综合讨论/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "请登录后继续" })).toBeVisible({ timeout: 30_000 });
 
   await page.goto("/rankings");
-  await expect(page.getByRole("heading", { name: "全服排行榜" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "请登录后继续" })).toBeVisible({ timeout: 30_000 });
 }
 
 async function seedCommunityPost(request: APIRequestContext) {
   const response = await request.post("/api/community/posts", {
-    headers: { "X-Guest-Name": `${RUN_ID}-acceptor` },
+    headers: { "X-Auth-Token": USER_TOKENS[0] },
     data: {
       content: `${RUN_ID} 浏览器验收：社区发帖链路正常。`,
       tags: ["e2e", "验收"],

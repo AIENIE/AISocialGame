@@ -67,7 +67,7 @@ class AuthServiceTest {
         );
         Mockito.when(userGrpcClient.validateSession(Mockito.eq(2001L), Mockito.anyString()))
                 .thenReturn(profile);
-        Mockito.when(balanceService.getUserBalance(Mockito.any(User.class)))
+        Mockito.when(balanceService.getDisplayBalance(Mockito.any(User.class)))
                 .thenReturn(BalanceSnapshot.empty());
 
         AuthResponse response = authService.ssoCallback(2001L, "测试用户", "session-1", "access-1");
@@ -128,7 +128,7 @@ class AuthServiceTest {
     void independentSessionsAndLogoutStayBoundToOriginalSso() {
         var profile = new ExternalUserProfile(2002L, "sessions", "sessions@example.invalid", "", true, null, Instant.now());
         Mockito.when(userGrpcClient.validateSession(Mockito.eq(2002L), Mockito.anyString())).thenReturn(profile);
-        Mockito.when(balanceService.getUserBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
+        Mockito.when(balanceService.getDisplayBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
         String first = authService.ssoCallback(2002L, "sessions", "device-first", "access").getToken();
         String second = authService.ssoCallback(2002L, "sessions", "device-second", "access").getToken();
         Assertions.assertEquals("device-first", authService.authenticate(first).getSessionId());
@@ -144,7 +144,7 @@ class AuthServiceTest {
     void revocationDuringUpstreamValidationRejectsAuthentication() {
         var profile = new ExternalUserProfile(2003L, "racing", "racing@example.invalid", "", true, null, Instant.now());
         Mockito.when(userGrpcClient.validateSession(Mockito.eq(2003L), Mockito.anyString())).thenReturn(profile);
-        Mockito.when(balanceService.getUserBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
+        Mockito.when(balanceService.getDisplayBalance(Mockito.any())).thenReturn(BalanceSnapshot.empty());
         String token = authService.ssoCallback(2003L, "racing", "race-session", "access").getToken();
         Mockito.when(userGrpcClient.validateSession(2003L, "race-session")).thenAnswer(ignored -> { authService.logout(token); return profile; });
         Assertions.assertNull(authService.authenticate(token));
