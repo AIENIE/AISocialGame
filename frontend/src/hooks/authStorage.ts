@@ -15,4 +15,3 @@ export function safeReturnTo(value: string | null | undefined): string {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 export function consumeReturnTo() { const path = safeReturnTo(readStorage(LOCAL_RETURN_TO_KEY)); writeStorage(LOCAL_RETURN_TO_KEY, null); return path; }
-
