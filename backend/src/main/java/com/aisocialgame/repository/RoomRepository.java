@@ -22,6 +22,17 @@ public interface RoomRepository extends JpaRepository<Room, String> {
 
     Page<Room> findByGameIdOrderByCreatedAtDesc(String gameId, Pageable pageable);
 
+    Optional<Room> findByRoomCode(String roomCode);
+    boolean existsByRoomCode(String roomCode);
+
+    @Query("select r from Room r where r.gameId=:gameId and r.isPrivate=false and r.status<>com.aisocialgame.model.RoomStatus.EXPIRED "
+            + "and (:status is null or r.status=:status) and (r.status<>com.aisocialgame.model.RoomStatus.WAITING or r.waitingSince>:cutoff) order by r.createdAt desc")
+    Page<Room> findDiscoverable(@Param("gameId") String gameId, @Param("status") RoomStatus status,
+                               @Param("cutoff") java.time.LocalDateTime cutoff, Pageable pageable);
+
+    @Query("select r.id from Room r where r.status=com.aisocialgame.model.RoomStatus.WAITING and (r.waitingSince is null or r.waitingSince<=:cutoff) order by r.waitingSince")
+    List<String> findExpirationCandidates(@Param("cutoff") java.time.LocalDateTime cutoff, Pageable pageable);
+
     interface JoinSnapshot { String getId(); String getPassword(); boolean getPrivateRoom(); }
     @Query("select r.id as id, r.password as password, r.isPrivate as privateRoom from Room r where r.id=:roomId")
     Optional<JoinSnapshot> findJoinSnapshot(@Param("roomId") String roomId);

@@ -67,6 +67,7 @@ class PersonaPresetTest {
                 when(repository.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
                 var names = mock(AiNameService.class); when(names.localName(preset)).thenReturn("生成昵称");
                 var service = new RoomService(repository, mock(GameService.class), personas, names, mock(GamePushService.class), mock(com.aisocialgame.service.WriteRateLimiter.class), mock(org.springframework.transaction.PlatformTransactionManager.class));
+                org.springframework.test.util.ReflectionTestUtils.setField(service, "lifecycle", new com.aisocialgame.service.RoomLifecycle(repository, mock(GamePushService.class), mock(org.springframework.transaction.PlatformTransactionManager.class)));
                 User host = new User(); host.setId("host");
                 service.addAi(room.getId(), preset.getId(), host);
                 var seat = room.getSeats().getLast();

@@ -463,6 +463,17 @@ class V2GameServiceIntegrationTest {
         assertTrue(older.items().stream().anyMatch(item -> "older-0".equals(item.getMessage())));
     }
 
+    @Test void newlyAdmittedPrivateLobbyMemberSeesNoPreviousGameData() {
+        Room room = room(false); room.setPrivate(true); room.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("secret")); rooms.saveAndFlush(room);
+        runtime.start("undercover", room.getId(), user(room.getHostUserId()));
+        GameState previous = states.findById(room.getId()).orElseThrow(); previous.setPhase("SETTLEMENT"); states.saveAndFlush(previous);
+        room = rooms.findById(room.getId()).orElseThrow(); room.setStatus(RoomStatus.WAITING); room.setWaitingSince(java.time.LocalDateTime.now()); room.getSeats().removeLast(); room.syncSeatCount(); rooms.saveAndFlush(room);
+        User guest = user(UUID.randomUUID().toString()); roomService.joinRoom(room.getId(), guest.getNickname(), guest, "secret");
+        var lobby = facade.state("undercover", room.getId(), guest);
+        assertEquals("WAITING", lobby.getPhase()); assertNull(lobby.getMyWord()); assertTrue(lobby.getLogs().isEmpty());
+        assertEquals("SETTLEMENT", facade.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
+    }
+
     private Room room(boolean ai) {
         String id = UUID.randomUUID().toString();
         Room room = new Room(id, "undercover", "V2 integration", RoomStatus.WAITING, 4, false, null, "text", new LinkedHashMap<>(Map.of("playerCount", 4, "speakTime", 0)));

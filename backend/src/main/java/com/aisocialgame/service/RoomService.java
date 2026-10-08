@@ -27,10 +27,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-@Transactional
 public class RoomService {
     private static final int MIN_PRIVATE_ROOM_PASSWORD_LENGTH = 4;
     private static final int MAX_PRIVATE_ROOM_PASSWORD_LENGTH = 64;
+    @org.springframework.beans.factory.annotation.Autowired
+    private RoomLifecycle lifecycle;
+    @org.springframework.beans.factory.annotation.Autowired
+    private RoomCodeGenerator codes;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final RoomRepository roomRepository;
     private final GameService gameService;
@@ -38,7 +41,6 @@ public class RoomService {
     private final AiNameService aiNameService;
     private final GamePushService gamePushService;
     private final WriteRateLimiter limiter;
-    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
     private final org.springframework.transaction.support.TransactionTemplate joinTransaction;
     @org.springframework.beans.factory.annotation.Value("${app.room.password-attempts-per-minute:5}")
     private int passwordAttempts = 5;
@@ -63,6 +65,17 @@ public class RoomService {
     }
 
     public Room createRoom(String gameId, String name, boolean isPrivate, String password, String commMode, Map<String, Object> config, User creator) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            try {
+                return joinTransaction.execute(tx -> createCandidate(gameId, name, isPrivate, password, commMode, config, creator));
+            } catch (org.springframework.dao.DataIntegrityViolationException conflict) {
+                if (!String.valueOf(conflict.getMostSpecificCause().getMessage()).toLowerCase(java.util.Locale.ROOT).contains("uk_rooms_code")) throw conflict;
+            }
+        }
+        throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "房间号暂时无法分配，请重试");
+    }
+
+    private Room createCandidate(String gameId, String name, boolean isPrivate, String password, String commMode, Map<String, Object> config, User creator) {
         Game game = gameService.findById(gameId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "游戏不存在"));
         int maxPlayers = normalizeMaxPlayers(gameId, resolveMaxPlayers(config, game.getMaxPlayers()), game.getMaxPlayers());
         String storedPassword = null;
@@ -78,6 +91,7 @@ public class RoomService {
         boolean authorHost = "undercover".equals(gameId) && "custom".equals(safeConfig.get("wordPack"));
         Object customWords = safeConfig.remove("customWords");
         Room room = new Room(UUID.randomUUID().toString(), gameId, name, RoomStatus.WAITING, maxPlayers, isPrivate, storedPassword, commMode, safeConfig);
+        room.setRoomCode(codes.next());
         if (creator != null) room.setHostUserId(creator.getId());
         if (authorHost) {
             if (creator == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
@@ -92,12 +106,12 @@ public class RoomService {
             room.getSeats().add(host);
         }
 
-        return roomRepository.save(room);
+        return roomRepository.saveAndFlush(room);
     }
 
     @Transactional(readOnly = true)
     public List<Room> listByGame(String gameId) {
-        return roomRepository.findByGameIdOrderByCreatedAtAsc(gameId);
+        return roomRepository.findDiscoverable(gameId, null, java.time.LocalDateTime.now().minusHours(3), PageRequest.of(0, 100)).getContent();
     }
 
     @Transactional(readOnly = true)
@@ -105,21 +119,19 @@ public class RoomService {
         int normalizedPage = Math.max(1, page);
         int normalizedSize = Math.min(Math.max(1, size), 100);
         PageRequest pageable = PageRequest.of(normalizedPage - 1, normalizedSize);
-        if (status == null) {
-            return roomRepository.findByGameIdOrderByCreatedAtDesc(gameId, pageable);
-        }
-        return roomRepository.findByGameIdAndStatusOrderByCreatedAtDesc(gameId, status, pageable);
+        return roomRepository.findDiscoverable(gameId, status, java.time.LocalDateTime.now().minusHours(3), pageable);
     }
 
     @Transactional(readOnly = true)
     public Room getRoom(String roomId) {
-        return roomRepository.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        return lifecycle.requireActive(roomId);
     }
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public JoinRoomResult joinRoom(String roomId, String displayName, User user, String password) {
         if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
         limiter.require(user.getId(), List.of(new WriteRateLimiter.Limit("join-global", globalJoinAttempts)));
+        lifecycle.requireActive(roomId);
         var snapshot = roomRepository.findJoinSnapshot(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
         limiter.require(user.getId(), List.of(new WriteRateLimiter.Limit("join-room:" + snapshot.getId(), passwordAttempts)));
         if (snapshot.getPrivateRoom()) {
@@ -129,12 +141,11 @@ public class RoomService {
                 throw new ApiException(HttpStatus.FORBIDDEN, "私密房间密码错误", "ROOM_PASSWORD_INVALID", Map.of());
             }
         }
-        return joinTransaction.execute(status -> joinVerified(snapshot.getId(), displayName, user, snapshot));
+        return lifecycle.withActiveRoom(snapshot.getId(), null, room -> joinVerified(room, displayName, user, snapshot));
     }
 
-    private JoinRoomResult joinVerified(String roomId, String displayName, User user, RoomRepository.JoinSnapshot snapshot) {
-        Room room = getRoomForUpdate(roomId);
-        entityManager.refresh(room);
+    private JoinRoomResult joinVerified(Room room, String displayName, User user, RoomRepository.JoinSnapshot snapshot) {
+        String roomId = room.getId();
         if (room.isPrivate() != snapshot.getPrivateRoom() || !java.util.Objects.equals(room.getPassword(), snapshot.getPassword())) {
             throw new ApiException(HttpStatus.CONFLICT, "房间口令已更新，请重试", "ROOM_PASSWORD_CHANGED", Map.of());
         }
@@ -170,7 +181,11 @@ public class RoomService {
     }
 
     public Room addAi(String roomId, String personaId, User actor) {
-        Room room = getRoomForUpdate(roomId);
+        return lifecycle.withActiveRoom(roomId, null, room -> addAiLocked(room, personaId, actor));
+    }
+
+    private Room addAiLocked(Room room, String personaId, User actor) {
+        String roomId = room.getId();
         requireHost(room, actor);
         if (room.getStatus() != RoomStatus.WAITING) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "只有等待中的房间可以添加 AI");
@@ -190,10 +205,6 @@ public class RoomService {
         roomRepository.save(room);
         gamePushService.pushSeatChange(roomId, new SeatEvent("AI_ADDED", seat));
         return room;
-    }
-
-    private Room getRoomForUpdate(String roomId) {
-        return roomRepository.findByIdForUpdate(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
     }
 
     private String encodePrivateRoomPassword(String password) {
@@ -216,10 +227,27 @@ public class RoomService {
         }
     }
 
+    @Transactional
     public void updateStatus(String roomId, RoomStatus status) {
-        Room room = getRoom(roomId);
+        Room room = roomRepository.findByIdForUpdate(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        if (room.getStatus() == RoomStatus.EXPIRED) throw RoomLifecycle.expiredError();
+        if (status == RoomStatus.WAITING && room.getStatus() != RoomStatus.WAITING) room.setWaitingSince(java.time.LocalDateTime.now());
+        if (status == RoomStatus.PLAYING) room.setWaitingSince(null);
         room.setStatus(status);
         roomRepository.save(room);
+    }
+
+    public Room search(String code, User viewer) {
+        if (code == null || !code.matches("[1-9][0-9]{5}")) throw new ApiException(HttpStatus.BAD_REQUEST, "请输入六位房间号", "ROOM_CODE_INVALID", Map.of());
+        limiter.require(viewer.getId(), List.of(new WriteRateLimiter.Limit("room-search", 30)));
+        Room found = roomRepository.findByRoomCode(code).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        return lifecycle.requireActive(found.getId());
+    }
+
+    public Room entry(String gameId, String roomId) {
+        Room room = lifecycle.requireActive(roomId);
+        if (!gameId.equals(room.getGameId())) throw new ApiException(HttpStatus.NOT_FOUND, "房间与玩法不匹配");
+        return room;
     }
 
     private List<Map<String, Object>> validateCustomWords(Object raw, User creator) {

@@ -8,6 +8,9 @@ import java.util.Map;
 
 public class RoomResponse {
     private String id;
+    private String roomCode;
+    private java.time.LocalDateTime waitingSince;
+    private java.time.OffsetDateTime expiresAt;
     private String gameId;
     private String name;
     private String status;
@@ -22,6 +25,10 @@ public class RoomResponse {
 
     public RoomResponse(Room room) {
         this.id = room.getId();
+        this.roomCode = room.getRoomCode();
+        this.waitingSince = room.getWaitingSince();
+        this.expiresAt = room.getStatus() == com.aisocialgame.model.RoomStatus.WAITING && waitingSince != null
+                ? waitingSince.plusHours(3).atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime() : null;
         this.gameId = room.getGameId();
         this.name = room.getName();
         this.status = room.getStatus().name();
@@ -42,11 +49,15 @@ public class RoomResponse {
     }
 
     public String getId() { return id; }
+    public String getRoomCode() { return roomCode; }
+    public java.time.LocalDateTime getWaitingSince() { return waitingSince; }
+    public java.time.OffsetDateTime getExpiresAt() { return expiresAt; }
     public String getGameId() { return gameId; }
     public String getName() { return name; }
     public String getStatus() { return status; }
     public int getMaxPlayers() { return maxPlayers; }
     public int getSeatCount() { return seatCount; }
+    @com.fasterxml.jackson.annotation.JsonProperty("isPrivate")
     public boolean isPrivate() { return isPrivate; }
     public String getCommMode() { return commMode; }
     public Map<String, Object> getConfig() { return config; }

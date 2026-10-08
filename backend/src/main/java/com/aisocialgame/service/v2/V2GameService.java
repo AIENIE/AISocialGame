@@ -29,6 +29,8 @@ public class V2GameService {
     private static final Set<String> EMOJIS = Set.of("👍", "🤔", "😂", "😱", "😡", "😭", "😎", "💀");
     private static final Set<String> QUICK_PHRASES = Set.of("我同意", "有点可疑", "等等", "继续说", "我反对", "快投票", "有點可疑", "繼續說", "我反對", "I agree", "Suspicious", "Wait", "Go on", "I object", "Vote now");
     private final Map<String, GameRuleSet> ruleSets = new LinkedHashMap<>();
+    @org.springframework.beans.factory.annotation.Autowired
+    private RoomLifecycle lifecycle;
     private final RoomRepository rooms;
     private final GameStateRepository states;
     private final AiTurnJobRepository jobs;
@@ -81,13 +83,18 @@ public class V2GameService {
     public GameStateResponse state(String gameId, String roomId, User viewer) {
         Room room = room(roomId, gameId, false);
         GameState state = states.findById(roomId).orElse(null);
-        RoomAccessPolicy.requireRead(room, state, viewer == null ? null : viewer.getId());
+        try { RoomAccessPolicy.requireRead(room, state, viewer == null ? null : viewer.getId()); }
+        catch (ApiException denied) {
+            if (denied.getStatus() != HttpStatus.FORBIDDEN || room.getStatus() != RoomStatus.WAITING || state == null || !"SETTLEMENT".equals(state.getPhase())) throw denied;
+            // A newly admitted player may prepare in the lobby without seeing the previous private game.
+            RoomAccessPolicy.requireRead(room, null, viewer == null ? null : viewer.getId());
+            state = null;
+        }
         if (viewer != null) connections.markActive(viewer.getId(), roomId);
         return response(room, state, viewer == null ? null : viewer.getId());
     }
     public GameStateResponse start(String gameId, String roomId, User user) {
-        return transaction.execute(status -> {
-            Room room = room(roomId, gameId, true);
+        return lifecycle.withActiveRoom(roomId, gameId, room -> {
             requireHost(room, user);
             GameState previous = states.findByIdForUpdate(roomId).orElse(null);
             if (previous != null && !"SETTLEMENT".equals(previous.getPhase())) {
@@ -106,15 +113,14 @@ public class V2GameService {
                 previous.setPhaseEndsAt(fresh.getPhaseEndsAt()); previous.setCreatedAt(LocalDateTime.now()); state = previous;
             }
             RuleSupport.event(state, "start", null, null, "对局开始，按房间展示的规则进行。", Map.of("ruleVersion", 2));
-            room.setStatus(RoomStatus.PLAYING); rooms.save(room);
+            room.setStatus(RoomStatus.PLAYING); room.setWaitingSince(null); rooms.save(room);
             persist(room, state, rules, true); prepareJob(state, rules);
             return response(room, state, user.getId());
         });
     }
     public GameStateResponse action(String gameId, String roomId, User user, PlayerAction action) {
         if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
-        return transaction.execute(status -> {
-            Room room = room(roomId, gameId, true);
+        return lifecycle.withActiveRoom(roomId, gameId, room -> {
             GameState state = states.findByIdForUpdate(roomId).orElseThrow(() -> RuleSupport.bad("游戏尚未开始"));
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
@@ -144,6 +150,7 @@ public class V2GameService {
         });
     }
     public boolean acceptSideChat(String roomId, String actorId, String type, String content) {
+        lifecycle.requireActive(roomId);
         GameStateRepository.RoutingSnapshot current = states.findRoutingSnapshotByRoomId(roomId).orElse(null);
         if (current == null || RuleSupport.number(current.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(current.getPhase())) return true;
         if ("TEXT".equals(type) && "turtle_soup".equals(current.getGameId())) {
@@ -163,7 +170,7 @@ public class V2GameService {
     }
     public void tick(String roomId) {
         transaction.executeWithoutResult(status -> {
-            Room room = rooms.findByIdForUpdateSkipLocked(roomId).orElse(null); if (room == null) return;
+            Room room = rooms.findByIdForUpdateSkipLocked(roomId).orElse(null); if (room == null || room.getStatus() != RoomStatus.PLAYING) return;
             GameState state = states.findByIdForUpdateSkipLocked(roomId).orElse(null);
             if (state == null || RuleSupport.number(state.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(state.getPhase())) return;
             int beforeSafety=RuleSupport.maps(state.getData().get("events")).size();
@@ -191,7 +198,7 @@ public class V2GameService {
             if (!"RUNNING".equals(job.getStatus())) return;
             job.getDiagnostics().put("generation", AiJobDiagnostics.generation(decision.diagnostics()));
             job.getDiagnostics().put("fallback", decision.fallback());
-            if (room == null || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
+            if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
             if (automationBlocked(state,job.getActorId())) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
@@ -236,7 +243,7 @@ public class V2GameService {
             if ("RECOVERY_TIMEOUT".equals(reason) && !AiJobDiagnostics.overdue(job, java.time.Instant.now(), java.time.ZoneId.systemDefault())) return;
             if (!generation.isEmpty()) job.getDiagnostics().put("generation", AiJobDiagnostics.generation(generation));
             job.getDiagnostics().put("failureReason", reason);
-            if (room == null || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
+            if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
             if (automationBlocked(state,job.getActorId())) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
@@ -320,7 +327,7 @@ public class V2GameService {
             memories.finishGame(state);
             if (!"custom".equals(room.getConfig().get("wordPack"))) stats.recordResult(String.valueOf(state.getData().get("archiveId")), state.getGameId(), state.getPlayers(), rules.winningPlayerIds(state));
             archives.archiveFinishedGame(state, room); state.getData().put("v2Settled", true);
-            room.setStatus(RoomStatus.WAITING); rooms.save(room);
+            room.setStatus(RoomStatus.WAITING); room.setWaitingSince(LocalDateTime.now()); rooms.save(room);
         }
         // The event table is the complete history for new V2 instances. Keep only
         // the live public window in the mutable state row after event persistence.
@@ -464,7 +471,7 @@ public class V2GameService {
         return new GameStateResponse(room.getId(), state.getGameId(), state.getPhase(), state.getRoundNumber(), seat, speaker, (String) state.getData().get("winner"), viewerId, viewer == null ? null : viewer.getSeatNumber(), viewer == null ? null : rules.visibleWord(state, viewer, viewerId), viewer == null ? null : rules.visibleRole(state, viewer, viewerId), night ? null : state.getPhaseEndsAt(), players, visibleLogs, extra, votes, null);
     }
     private Room room(String roomId, String gameId, boolean lock) {
-        Room room = (lock ? rooms.findByIdForUpdate(roomId) : rooms.findById(roomId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        Room room = lock ? rooms.findByIdForUpdate(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在")) : lifecycle.requireActive(roomId);
         RuleSupport.require(room.getGameId().equals(gameId), "房间与玩法不匹配"); return room;
     }
     private void requireHost(Room room, User user) {

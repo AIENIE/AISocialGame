@@ -15,7 +15,7 @@ class ClosureMySqlMigrationTest {
     @org.junit.jupiter.api.io.TempDir Path temporary;
     List<Path> migrations;
     static void sql(Connection c,String s)throws SQLException{try(var st=c.createStatement()){st.execute(s);}}
-    static void script(Connection c,String p){ScriptUtils.executeSqlScript(c,new FileSystemResource(p));}
+    static void script(Connection c,String p){ProductionSocialMigrationMain.executeScript(c, Path.of(p));}
     static List<List<String>> rows(Connection c,String query)throws SQLException{
         List<List<String>> values=new ArrayList<>();try(var st=c.createStatement();var r=st.executeQuery(query)){while(r.next()){List<String> row=new ArrayList<>();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.add(r.getString(i));values.add(row);}}return values;
     }

@@ -321,8 +321,7 @@ public final class ProductionSocialMigrationMain {
             if (entry.ordinal() == 2) {
                 applyLegacyRoomUpgrade(connection);
             } else {
-                ScriptUtils.executeSqlScript(connection, new EncodedResource(
-                        new FileSystemResource(entry.path()), StandardCharsets.UTF_8));
+                executeScript(connection, entry.path());
             }
             try (PreparedStatement statement = connection.prepareStatement(
                     "INSERT INTO " + HISTORY_TABLE
@@ -336,6 +335,24 @@ public final class ProductionSocialMigrationMain {
                 }
             }
         }
+    }
+
+    /** Keep the sealed historical bytes/checksum, but ignore its known accidental final literal newline token. */
+    static void executeScript(Connection connection, Path path) {
+        try {
+            if (path.getFileName().toString().equals("20261008_room_lifecycle.sql")) {
+                try (var statement = connection.prepareStatement("SET @room_migration_now=?")) {
+                    statement.setObject(1, java.time.LocalDateTime.now()); statement.execute();
+                }
+            }
+            byte[] raw = Files.readAllBytes(path);
+            org.springframework.core.io.Resource resource = new FileSystemResource(path);
+            if (path.getFileName().toString().equals("20260912_game_realism_v2.sql")
+                    && sha256(raw).equals("sha256:c12eb713005b82b7673ec154851c4cfadd92d30d8886ddc111a0593233c4f6cc")) {
+                resource = new org.springframework.core.io.ByteArrayResource(java.util.Arrays.copyOf(raw, raw.length - 2));
+            }
+            ScriptUtils.executeSqlScript(connection, new EncodedResource(resource, StandardCharsets.UTF_8));
+        } catch (IOException | SQLException ex) { throw new IllegalStateException("Migration SQL unavailable", ex); }
     }
 
     // The published 20260519 SQL is immutable and predates repeatable DDL. Resume

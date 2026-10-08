@@ -128,6 +128,7 @@ const CreateRoom = () => {
         <ArrowLeft className="mr-2 h-4 w-4" /> {t("create.back")}
       </Button>
 
+      <div className="mb-6 space-y-2 text-sm text-muted-foreground"><p>{t("rooms.visibilityHelp")}</p><p>{t("rooms.waitRule")}</p></div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* --- Left Column: Basic Info (4 cols) --- */}

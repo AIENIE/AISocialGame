@@ -23,6 +23,8 @@ import java.util.Map;
 
 @Service
 public class GameLogQueryService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private RoomLifecycle lifecycle;
     private final RoomRepository rooms;
     private final GameStateRepository states;
     private final GameEventRepository events;
@@ -37,7 +39,7 @@ public class GameLogQueryService {
     public GameLogPage page(String gameId, String roomId, String viewerId, Long before, int requestedSize) {
         if (before != null && before <= 0) throw new ApiException(HttpStatus.BAD_REQUEST, "日志游标无效");
         int size = Math.min(Math.max(requestedSize, 1), 100);
-        var room = rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        var room = lifecycle != null ? lifecycle.requireActive(roomId) : rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
         if (!room.getGameId().equals(gameId)) throw new ApiException(HttpStatus.NOT_FOUND, "房间与玩法不匹配");
         GameState state = states.findById(roomId).orElse(null);
         RoomAccessPolicy.requireRead(room, state, viewerId);

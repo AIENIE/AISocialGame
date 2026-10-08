@@ -1,4 +1,5 @@
 import { personaResources } from "./personaResources";
+import { roomTexts } from "./roomTexts";
 import { dataTexts } from "./dataTexts";
 import type { Locale } from "./config";
 
@@ -18,6 +19,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
     translation: {
       ...personaResources["zh-CN"],
       ...dataTexts["zh-CN"],
+      ...roomTexts["zh-CN"],
       "errors.localStorageUnavailable": "无法保存到本机，请检查浏览器存储权限或可用空间。",
       "app.title": "NexusPlay - 在线社交推理游戏平台",
       "i18n.selectLanguage": "选择语言",
@@ -587,6 +589,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
     translation: {
       ...personaResources["zh-TW"],
       ...dataTexts["zh-TW"],
+      ...roomTexts["zh-TW"],
       "errors.localStorageUnavailable": "無法儲存到本機，請檢查瀏覽器儲存權限或可用空間。",
       "app.title": "NexusPlay - 線上社交推理遊戲平台",
       "i18n.selectLanguage": "選擇語言",
@@ -1133,6 +1136,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
     translation: {
       ...personaResources["en"],
       ...dataTexts.en,
+      ...roomTexts.en,
       "errors.localStorageUnavailable": "Could not save locally. Check browser storage permissions or available space.",
       "app.title": "NexusPlay - Online Social Deduction Games",
       "i18n.selectLanguage": "Select language",

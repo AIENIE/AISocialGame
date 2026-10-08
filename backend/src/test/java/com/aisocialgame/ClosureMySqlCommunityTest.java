@@ -30,6 +30,7 @@ class ClosureMySqlCommunityTest {
     @Autowired com.aisocialgame.service.RoomService roomService;
     @Autowired com.aisocialgame.repository.RoomRepository rooms;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired com.aisocialgame.service.RoomLifecycle lifecycle;
 
     @Test void concurrentFinalSeatHasExactlyOneWinner() throws Exception {
         String id=java.util.UUID.randomUUID().toString();
@@ -74,8 +75,8 @@ class ClosureMySqlCommunityTest {
         });
         var user=new User();user.setId(java.util.UUID.randomUUID().toString());
         var rejected=assertThrows(com.aisocialgame.exception.ApiException.class,()->
-                new TransactionTemplate(transactions).execute(status->ReflectionTestUtils.invokeMethod(roomService,
-                        "joinVerified",id,"player",user,verifiedSnapshot)));
+                lifecycle.withActiveRoom(id,null,room->ReflectionTestUtils.invokeMethod(roomService,
+                        "joinVerified",room,"player",user,verifiedSnapshot)));
         assertEquals("ROOM_PASSWORD_CHANGED",rejected.getCode());
         assertTrue(rooms.findById(id).orElseThrow().getSeats().isEmpty());
         ClosureMySqlSupport.evidence("changed-password-after-preflight",java.util.Map.of("room",id,"rejectedCode",rejected.getCode()));

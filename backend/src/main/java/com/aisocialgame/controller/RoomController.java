@@ -36,7 +36,7 @@ public class RoomController {
     public ResponseEntity<PagedResponse<RoomResponse>> listRooms(@PathVariable("gameId") String gameId,
                                                                  @RequestParam(defaultValue = "1") int page,
                                                                  @RequestParam(defaultValue = "30") int size,
-                                                                 @RequestParam(required = false) String status) {
+                                                                 @RequestParam(required = false) String status, @CurrentUser User viewer) {
         RoomStatus roomStatus = parseStatus(status);
         Page<Room> rooms = roomService.listByGame(gameId, roomStatus, page, size);
         return ResponseEntity.ok(new PagedResponse<>(
@@ -56,32 +56,40 @@ public class RoomController {
     }
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> roomDetail(@PathVariable("roomId") String roomId, @CurrentUser User user) {
+    public ResponseEntity<RoomResponse> roomDetail(@PathVariable("gameId") String gameId, @PathVariable("roomId") String roomId, @CurrentUser User user) {
+        roomService.entry(gameId, roomId);
         access.requireLobbyRead(roomId, user.getId());
         Room room = roomService.getRoom(roomId);
         return ResponseEntity.ok(new RoomResponse(room));
     }
 
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<RoomResponse> joinRoom(@PathVariable("roomId") String roomId,
+    public ResponseEntity<RoomResponse> joinRoom(@PathVariable("gameId") String gameId, @PathVariable("roomId") String roomId,
                                                  @Valid @RequestBody JoinRoomRequest request,
                                                  @CurrentUser User user) {
+        roomService.entry(gameId, roomId);
         String displayName = user.getNickname();
         JoinRoomResult result = roomService.joinRoom(roomId, displayName, user, request.getPassword());
         return ResponseEntity.ok(new RoomResponse(result.getRoom(), result.getSeat().getPlayerId()));
     }
 
     @PostMapping("/{roomId}/ai")
-    public ResponseEntity<RoomResponse> addAi(@PathVariable("roomId") String roomId,
+    public ResponseEntity<RoomResponse> addAi(@PathVariable("gameId") String gameId, @PathVariable("roomId") String roomId,
                                               @Valid @RequestBody AddAiRequest request,
                                               @CurrentUser User user) {
+        roomService.entry(gameId, roomId);
         Room room = roomService.addAi(roomId, request.getPersonaId(), user);
         return ResponseEntity.ok(new RoomResponse(room));
     }
 
+    @GetMapping("/{roomId}/entry")
+    public com.aisocialgame.dto.RoomEntryResponse entry(@PathVariable String gameId, @PathVariable String roomId, @CurrentUser User user) {
+        return new com.aisocialgame.dto.RoomEntryResponse(roomService.entry(gameId, roomId), user.getId());
+    }
+
     private RoomStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
-            return RoomStatus.WAITING;
+            return null;
         }
         try {
             return RoomStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));

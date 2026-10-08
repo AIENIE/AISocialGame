@@ -17,6 +17,7 @@ const RAW_PATTERN_KEYS: Array<[RegExp, string]> = [
 ];
 
 const CODE_KEYS: Record<string, string> = {
+  ROOM_EXPIRED: "rooms.expired", ROOM_CODE_INVALID: "rooms.invalidCode",
   PHASE_CHANGED: "errors.phaseChanged", ALREADY_ACTED: "errors.alreadyVoted", NOT_YOUR_TURN: "errors.notYourTurn",
   INVALID_ACTION: "errors.phaseNotSupported", ROOM_FULL: "errors.roomFull", RATE_LIMITED: "errors.rateLimited",
   RATE_LIMIT_UNAVAILABLE: "errors.rateUnavailable", BUDGET_UNAVAILABLE: "errors.budgetUnavailable",

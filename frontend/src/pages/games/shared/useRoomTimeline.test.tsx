@@ -28,8 +28,8 @@ it("fills every missing page after reconnect and deduplicates the live overlap",
   vi.mocked(gameplayApi.logs).mockResolvedValueOnce(page([11, 12], 11)).mockResolvedValueOnce(page([9, 10], 9)).mockResolvedValueOnce(page([7, 8], 7));
   render(state([11, 12], "reconnected")); await settled();
   expect(container.textContent).toBe("5,6,7,8,9,10,11,12");
-  expect(gameplayApi.logs).toHaveBeenNthCalledWith(3, "undercover", "room", 11);
-  expect(gameplayApi.logs).toHaveBeenNthCalledWith(4, "undercover", "room", 9);
+  expect(gameplayApi.logs).toHaveBeenNthCalledWith(3, "undercover", "room", 11, 100, expect.any(AbortSignal));
+  expect(gameplayApi.logs).toHaveBeenNthCalledWith(4, "undercover", "room", 9, 100, expect.any(AbortSignal));
   vi.mocked(gameplayApi.logs).mockResolvedValueOnce(page([3, 4, 5], null));
   await act(async () => result.loadOlder());
   expect(container.textContent).toBe("3,4,5,6,7,8,9,10,11,12");

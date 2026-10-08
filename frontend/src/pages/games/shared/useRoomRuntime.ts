@@ -22,11 +22,11 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   const { roomId, gameId } = useParams();
   const effectiveGameId = gameId || defaultGameId;
   const queryClient = useQueryClient();
-  const { user, displayName, token, loading, redirectToSsoLogin } = useAuth();
+  const { user, token, loading } = useAuth();
   const playerId = user?.id || null;
   const [selectedAiId, setSelectedAiId] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const joinAttemptedRoomRef = useRef<string | null>(null);
+
   const lastSocketVersionRef = useRef<string | null>(null);
   const userKey = user?.id || "";
 
@@ -39,12 +39,17 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
 
   const roomQuery = useQuery({
     queryKey: ["room", roomId],
-    queryFn: () => roomApi.detail(effectiveGameId, roomId || ""),
+    queryFn: ({ signal }) => roomApi.detail(effectiveGameId, roomId || "", signal),
     enabled: !!roomId && !!effectiveGameId,
   });
   const room = roomQuery.data;
 
   const { stateQuery, startMutation, actionMutation } = useGameEngine(effectiveGameId, user ? roomId : undefined);
+  useEffect(() => {
+    if ([roomQuery.error, stateQuery.error].some(error => error && getApiErrorCode(error) === "ROOM_EXPIRED")) {
+      window.dispatchEvent(new CustomEvent("room-expired", { detail: roomId }));
+    }
+  }, [roomQuery.error, stateQuery.error, roomId]);
   const { refetch: refetchState } = stateQuery;
 
   const invalidateRuntime = useCallback(() => {
@@ -61,9 +66,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
   }, [invalidateRuntime, roomId]);
 
   const invalidateRoom = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["room-entry", effectiveGameId, roomId] });
     queryClient.invalidateQueries({ queryKey: ["room", roomId] });
     queryClient.invalidateQueries({ queryKey: ["game-state", roomId] });
-  }, [queryClient, roomId]);
+  }, [queryClient, roomId, effectiveGameId]);
 
   const socket = useGameSocket({
     roomId,
@@ -73,6 +79,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     onStateChange: invalidateSocketVersion,
     onSeatChange: invalidateRoom,
     onPrivate: (event) => {
+      if (event.type === "ROOM_EXPIRED" && event.payload?.roomId === roomId) {
+        window.dispatchEvent(new CustomEvent("room-expired", { detail: roomId }));
+        return;
+      }
       if (event.type === "SAFETY_NOTICE") {
         const message = typeof event.payload?.message === "string" ? event.payload.message : "";
         toast.warning(localizeErrorMessage(message, "errors.contentBlocked"));
@@ -98,9 +108,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
 
   useEffect(() => {
     if (stateQuery.data?.phase === "SETTLEMENT") {
+      void queryClient.invalidateQueries({ queryKey: ["room-entry", effectiveGameId, roomId] });
       void queryClient.invalidateQueries({ queryKey: ["room", roomId] });
     }
-  }, [stateQuery.data?.phase, roomId, queryClient]);
+  }, [stateQuery.data?.phase, roomId, queryClient, effectiveGameId]);
 
   const allRecoverableMessages = useMemo(
     () => [...DEFAULT_RECOVERABLE_MESSAGES, ...recoverableMessages],
@@ -111,6 +122,7 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     (error: unknown, fallbackKey: string) => {
       const raw = getApiErrorMessage(error, "");
       const code = getApiErrorCode(error);
+      if (code === "ROOM_EXPIRED") window.dispatchEvent(new CustomEvent("room-expired", { detail: roomId }));
       const recoverable = code ? isRecoverableGameError(code) : allRecoverableMessages.some((item) => raw.includes(item));
       const message = localizeErrorMessage(raw, fallbackKey, code);
       if (recoverable) {
@@ -120,37 +132,8 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
       }
       invalidateRoom();
     },
-    [allRecoverableMessages, invalidateRoom]
+    [allRecoverableMessages, invalidateRoom, roomId]
   );
-
-  const joinMutation = useMutation({
-    mutationFn: () => {
-      const password = room?.isPrivate ? window.prompt(t("lobby.enterPrivatePassword")) || undefined : undefined;
-      return roomApi.join(effectiveGameId, roomId || "", displayName, password);
-    },
-    onSuccess: (data) => {
-      if (data.selfPlayerId && roomId) {
-        invalidateRuntime();
-      }
-    },
-    onError: (error: unknown) => toast.error(localizeErrorMessage(getApiErrorMessage(error, ""), "lobby.joinFailed", getApiErrorCode(error))),
-  });
-
-  useEffect(() => {
-    if (!room || loading || joinMutation.isSuccess || joinMutation.isPending || joinAttemptedRoomRef.current === room.id) {
-      return;
-    }
-    if (!user) {
-      void redirectToSsoLogin();
-      return;
-    }
-    if (room.seats?.some((seat) => seat.playerId === user.id)) {
-      return;
-    }
-    if (room.hostUserId === user.id && room.config?.hostMode === "AUTHOR") return;
-    joinAttemptedRoomRef.current = room.id;
-    joinMutation.mutate();
-  }, [room, loading, token, playerId, user, redirectToSsoLogin, joinMutation]);
 
   const addAiMutation = useMutation({
     mutationFn: (personaId: string) => roomApi.addAi(effectiveGameId, roomId || "", personaId),
@@ -181,7 +164,6 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     room,
     roomQuery,
     authLoading: loading,
-    joinMutation,
     state,
     players,
     alivePlayers,

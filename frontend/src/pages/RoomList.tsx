@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { RoomSearch, RoomNumber, RoomJoin } from "@/components/rooms/RoomEntry";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { toast } from "sonner";
 
 const RoomList = () => {
   const { t } = useTranslation();
+  const [page, setPage] = useState(1);
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { displayName, user, redirectToSsoLogin } = useAuth();
@@ -27,8 +30,8 @@ const RoomList = () => {
   });
 
   const roomQuery = useQuery({
-    queryKey: ["rooms", gameId],
-    queryFn: () => roomApi.list(gameId || "", { page: 1, size: 30, status: "WAITING" }),
+    queryKey: ["rooms", gameId, page],
+    queryFn: () => roomApi.list(gameId || "", { page, size: 30 }),
     enabled: !!gameId,
   });
   const { data: game } = gameQuery;
@@ -100,6 +103,8 @@ const RoomList = () => {
         </div>
       </div>
 
+      <RoomSearch />
+      <h2 className="text-xl font-semibold">{t("rooms.publicList")}</h2>
       {/* Room Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {(isLoading || roomQuery.error || !rooms.length) && <DataState loading={isLoading} error={roomQuery.error} empty={!rooms.length} onRetry={() => void roomQuery.refetch()} />}
@@ -138,21 +143,20 @@ const RoomList = () => {
                 </div>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button 
-                  className="w-full border border-slate-200" 
-                  variant={room.status.toString().toLowerCase() === "playing" ? "secondary" : "default"}
-                  onClick={() =>
-                    room.status.toString().toLowerCase() === "playing"
-                      ? navigate(`/spectate/${gameId}/${room.id}`)
-                      : navigate(`/room/${gameId}/${room.id}`)
-                  }
-                >
-                  {room.status.toString().toLowerCase() === "playing" ? t("roomList.watchNow") : t("roomList.joinNow")}
-                </Button>
+                <div className="w-full space-y-2"><RoomNumber code={room.roomCode} /><RoomJoin room={{
+                  id: room.id, roomCode: room.roomCode || "", gameId: room.gameId, name: room.name,
+                  status: String(room.status).toUpperCase() === "PLAYING" ? "PLAYING" : "WAITING",
+                  isPrivate: room.isPrivate, seatCount: room.seatCount ?? room.seats.length, maxPlayers: room.maxPlayers,
+                  passwordRequired: room.isPrivate, joined: room.hostUserId === user?.id || room.seats.some(seat => seat.playerId === user?.id), expiresAt: room.expiresAt || null,
+                }} /></div>
               </CardFooter>
             </Card>
           ))}
       </div>
+      {!!roomPage && roomPage.total > 30 && <div className="flex justify-center gap-3">
+        <Button variant="outline" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>{t("rooms.previous")}</Button>
+        <Button variant="outline" disabled={page * 30 >= roomPage.total} onClick={() => setPage(value => value + 1)}>{t("rooms.next")}</Button>
+      </div>}
     </div>
   );
 };

@@ -76,7 +76,10 @@ export interface Room {
   id: string;
   gameId: string;
   name: string;
-  status: "WAITING" | "PLAYING" | "waiting" | "playing";
+  status: "WAITING" | "PLAYING" | "EXPIRED" | "waiting" | "playing";
+  roomCode?: string;
+  waitingSince?: string;
+  expiresAt?: string | null;
   maxPlayers: number;
   seatCount?: number;
   isPrivate: boolean;
@@ -87,6 +90,20 @@ export interface Room {
   seats: RoomSeat[];
   selfPlayerId?: string;
   hostUserId?: string;
+}
+
+export interface RoomEntry {
+  id: string;
+  roomCode: string;
+  gameId: string;
+  name: string;
+  status: "WAITING" | "PLAYING";
+  isPrivate: boolean;
+  seatCount: number;
+  maxPlayers: number;
+  passwordRequired: boolean;
+  joined: boolean;
+  expiresAt: string | null;
 }
 
 export interface AuthResponse {

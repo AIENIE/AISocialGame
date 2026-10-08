@@ -233,6 +233,12 @@ export const gameApi = {
 };
 
 export const roomApi = {
+  async search(roomCode: string): Promise<import("@/types").RoomEntry> {
+    return (await api.get("/rooms/search", { params: { roomCode } })).data;
+  },
+  async entry(gameId: string, roomId: string, signal?: AbortSignal): Promise<import("@/types").RoomEntry> {
+    return (await api.get(`/games/${gameId}/rooms/${roomId}/entry`, { signal })).data;
+  },
   async list(gameId: string, params: { page?: number; size?: number; status?: string } = {}): Promise<PagedResponse<Room>> {
     const res = await api.get(`/games/${gameId}/rooms`, { params });
     return res.data;
@@ -241,8 +247,8 @@ export const roomApi = {
     const res = await api.post(`/games/${gameId}/rooms`, payload);
     return res.data;
   },
-  async detail(gameId: string, roomId: string): Promise<Room> {
-    const res = await api.get(`/games/${gameId}/rooms/${roomId}`);
+  async detail(gameId: string, roomId: string, signal?: AbortSignal): Promise<Room> {
+    const res = await api.get(`/games/${gameId}/rooms/${roomId}`, { signal });
     return res.data;
   },
   async join(gameId: string, roomId: string, displayName: string, password?: string): Promise<Room> {
@@ -263,12 +269,12 @@ export const personaApi = {
 };
 
 export const gameplayApi = {
-  async logs(gameId: string, roomId: string, before?: number, size = 100): Promise<GameLogPage> {
-    const res = await api.get(`/games/${gameId}/rooms/${roomId}/logs`, { params: { before, size } });
+  async logs(gameId: string, roomId: string, before?: number, size = 100, signal?: AbortSignal): Promise<GameLogPage> {
+    const res = await api.get(`/games/${gameId}/rooms/${roomId}/logs`, { params: { before, size }, signal });
     return res.data;
   },
-  async state(gameId: string, roomId: string): Promise<GameState> {
-    const res = await api.get(`/games/${gameId}/rooms/${roomId}/state`);
+  async state(gameId: string, roomId: string, signal?: AbortSignal): Promise<GameState> {
+    const res = await api.get(`/games/${gameId}/rooms/${roomId}/state`, { signal });
     return res.data;
   },
   async start(gameId: string, roomId: string): Promise<GameState> {

@@ -24,7 +24,7 @@ export function useGameEngine(gameId: string | undefined, roomId: string | undef
 
   const stateQuery = useQuery<GameState>({
     queryKey,
-    queryFn: () => gameplayApi.state(gameId || "", roomId || ""),
+    queryFn: ({ signal }) => gameplayApi.state(gameId || "", roomId || "", signal),
     enabled: !!gameId && !!roomId,
     refetchInterval: 0,
   });

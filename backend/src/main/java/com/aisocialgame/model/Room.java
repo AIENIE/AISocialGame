@@ -21,11 +21,16 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "rooms")
+@Table(name = "rooms", uniqueConstraints = @jakarta.persistence.UniqueConstraint(name = "uk_rooms_code", columnNames = "room_code"))
 public class Room {
     @Id
     @Column(length = 36)
     private String id;
+
+    @Column(name = "room_code", nullable = false, length = 6)
+    private String roomCode;
+    private LocalDateTime waitingSince;
+    private LocalDateTime expiredAt;
 
     @Column(nullable = false, length = 64)
     private String gameId;
@@ -34,6 +39,7 @@ public class Room {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
     @Column(nullable = false, length = 32)
     private RoomStatus status;
 
@@ -81,6 +87,7 @@ public class Room {
         this.gameId = gameId;
         this.name = name;
         this.status = status;
+        if (status == RoomStatus.WAITING) this.waitingSince = LocalDateTime.now();
         this.maxPlayers = maxPlayers;
         this.isPrivate = isPrivate;
         this.password = password;
@@ -94,6 +101,8 @@ public class Room {
             this.id = UUID.randomUUID().toString();
         }
         this.createdAt = LocalDateTime.now();
+        if (status == RoomStatus.WAITING) waitingSince = createdAt;
+        if (roomCode == null) roomCode = String.valueOf(java.util.concurrent.ThreadLocalRandom.current().nextInt(100000, 1000000));
         this.updatedAt = this.createdAt;
         if (this.config == null) {
             this.config = new HashMap<>();
@@ -111,6 +120,12 @@ public class Room {
     }
 
     public String getId() { return id; }
+    public String getRoomCode() { return roomCode; }
+    public void setRoomCode(String value) { roomCode = value; }
+    public LocalDateTime getWaitingSince() { return waitingSince; }
+    public void setWaitingSince(LocalDateTime value) { waitingSince = value; }
+    public LocalDateTime getExpiredAt() { return expiredAt; }
+    public void setExpiredAt(LocalDateTime value) { expiredAt = value; }
     public String getGameId() { return gameId; }
     public String getName() { return name; }
     public RoomStatus getStatus() { return status; }

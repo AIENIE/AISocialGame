@@ -34,6 +34,8 @@ public class RoomChatController {
     private static final String TYPE_EMOJI = "EMOJI";
     private static final String TYPE_QUICK_PHRASE = "QUICK_PHRASE";
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.aisocialgame.service.RoomLifecycle lifecycle;
     private final RoomService roomService;
     private final GameStateRepository gameStateRepository;
     private final ChatRateLimiter chatRateLimiter;
@@ -83,7 +85,13 @@ public class RoomChatController {
             return;
         }
 
-        Room room = roomService.getRoom(roomId);
+        lifecycle.withActiveRoom(roomId, null, room -> {
+            handleActiveChat(roomId, request, principal, room);
+            return null;
+        });
+    }
+
+    private void handleActiveChat(String roomId, ChatMessageRequest request, Principal principal, Room room) {
         Optional<RoomSeat> maybeSeat = room.getSeats().stream()
                 .filter(seat -> principal.getName().equals(seat.getPlayerId()))
                 .findFirst();

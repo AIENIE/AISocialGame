@@ -51,6 +51,11 @@
       "ordinal": 10,
       "kind": "upgrade",
       "file": "20260927_audit_public_event_cursor.sql"
+    },
+    {
+      "ordinal": 11,
+      "kind": "upgrade",
+      "file": "20261008_room_lifecycle.sql"
     }
   ],
   "execution_plans": [
@@ -65,7 +70,8 @@
         7,
         8,
         9,
-        10
+        10,
+        11
       ]
     },
     {
@@ -78,7 +84,8 @@
         7,
         8,
         9,
-        10
+        10,
+        11
       ]
     }
   ],

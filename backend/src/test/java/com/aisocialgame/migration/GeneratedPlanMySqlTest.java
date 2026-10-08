@@ -17,6 +17,41 @@ class GeneratedPlanMySqlTest {
     @TempDir Path temporary;
 
     @Test
+    void roomLifecycleBackfillsExactOriginsAndNumbersAndIsRepeatable() throws Exception {
+        var generated = new GeneratedMigrationFixture(temporary);
+        try (var server = connect(null); var statement = server.createStatement()) {
+            statement.execute("CREATE DATABASE `" + database("room_lifecycle") + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try (var db = connect("room_lifecycle")) {
+            String offset = java.time.ZonedDateTime.now().getOffset().getId();
+            ClosureMySqlMigrationTest.sql(db, "SET time_zone='" + (offset.equals("Z") ? "+00:00" : offset) + "'");
+            var scripts = generated.freshScripts();
+            for (var path : scripts.subList(0, scripts.size()-1)) ClosureMySqlMigrationTest.script(db, path.toString());
+            ClosureMySqlMigrationTest.sql(db, "INSERT INTO rooms(id,game_id,name,status,max_players,created_at,updated_at) VALUES"
+                + "('old','undercover','old','WAITING',4,NOW()-INTERVAL 4 HOUR,NOW()),"
+                + "('recent','undercover','recent','WAITING',4,NOW()-INTERVAL 1 HOUR,NOW()),"
+                + "('archive','undercover','archive','WAITING',4,NOW()-INTERVAL 2 DAY,NOW()),"
+                + "('settled','undercover','settled','WAITING',4,NOW()-INTERVAL 2 DAY,NOW()),"
+                + "('unknown','undercover','unknown','WAITING',4,NULL,NOW()),"
+                + "('playing','undercover','playing','PLAYING',4,NOW()-INTERVAL 2 DAY,NOW())");
+            ClosureMySqlMigrationTest.sql(db, "INSERT INTO game_archives(id,room_id,game_id,room_name,finished_at) VALUES('finished','archive','undercover','archive',NOW()-INTERVAL 30 MINUTE)");
+            ClosureMySqlMigrationTest.sql(db, "INSERT INTO game_states(room_id,game_id,phase,round_number,updated_at) VALUES('settled','undercover','SETTLEMENT',1,NOW()-INTERVAL 40 MINUTE)");
+            ClosureMySqlMigrationTest.sql(db, "ALTER TABLE rooms MODIFY COLUMN status ENUM('WAITING','PLAYING') NOT NULL");
+            var migration = scripts.getLast().toString();
+            ClosureMySqlMigrationTest.script(db, migration);
+            assertEquals(List.of(List.of("archive","WAITING"),List.of("old","EXPIRED"),List.of("playing","PLAYING"),List.of("recent","WAITING"),List.of("settled","WAITING"),List.of("unknown","EXPIRED")),
+                ClosureMySqlMigrationTest.rows(db, "SELECT id,status FROM rooms ORDER BY id"));
+            assertEquals(List.of(List.of("1")), ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM rooms r JOIN game_archives a ON a.room_id=r.id WHERE r.waiting_since=a.finished_at"));
+            assertEquals(List.of(List.of("1")), ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM rooms r JOIN game_states s ON s.room_id=r.id WHERE r.waiting_since=s.updated_at"));
+            assertEquals(List.of(List.of("6","6")), ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(DISTINCT room_code),COUNT(*) FROM rooms WHERE room_code REGEXP '^[1-9][0-9]{5}$'"));
+            var before = ClosureMySqlMigrationTest.rows(db,"SELECT id,room_code,status,COALESCE(CAST(waiting_since AS CHAR),'NULL'),COALESCE(CAST(expired_at AS CHAR),'NULL') FROM rooms ORDER BY id");
+            ClosureMySqlMigrationTest.script(db, migration);
+            assertEquals(before, ClosureMySqlMigrationTest.rows(db,"SELECT id,room_code,status,COALESCE(CAST(waiting_since AS CHAR),'NULL'),COALESCE(CAST(expired_at AS CHAR),'NULL') FROM rooms ORDER BY id"));
+            evidence("room-lifecycle-migration", java.util.Map.of("repeatable",true,"origins",true,"numbers",6,"expired",2));
+        }
+    }
+
+    @Test
     void generatedReleasePlansPreserveHistoryAndResumePartialDdl() throws Exception {
         var generated = new GeneratedMigrationFixture(temporary);
         Path output = generated.output;
@@ -77,7 +112,7 @@ class GeneratedPlanMySqlTest {
             entries.put(value.path("ordinal").asInt(), new ProductionSocialMigrationMain.MigrationEntry(
                     value.path("ordinal").asInt(), path, value.path("sha256").asText()));
         }
-        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10);
+        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10, 11);
         var plan = new ProductionSocialMigrationMain.MigrationPlan("fresh-empty-schema", "sha256:" + "a".repeat(64),
                 selected.stream().map(entries::get).toList(), entries);
         for (boolean indexAlreadyCreated : List.of(false, true)) {
@@ -116,7 +151,7 @@ class GeneratedPlanMySqlTest {
             entries.put(value.path("ordinal").asInt(), new ProductionSocialMigrationMain.MigrationEntry(
                     value.path("ordinal").asInt(), path, value.path("sha256").asText()));
         }
-        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10);
+        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10, 11);
         var plan = new ProductionSocialMigrationMain.MigrationPlan("fresh-empty-schema", "sha256:" + "a".repeat(64),
                 selected.stream().map(entries::get).toList(), entries);
         for (boolean indexAlreadyCreated : List.of(false, true)) {

@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 CREATE TABLE IF NOT EXISTS `rooms` (
   `id` CHAR(36) NOT NULL,
+  `room_code` VARCHAR(6) NOT NULL,
+  `waiting_since` DATETIME NULL,
+  `expired_at` DATETIME NULL,
   `game_id` VARCHAR(64) NOT NULL,
   `name` VARCHAR(128) NOT NULL,
   `status` VARCHAR(32) NOT NULL,
@@ -38,6 +41,9 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_rooms_code` (`room_code`),
+  KEY `idx_rooms_discovery` (`game_id`,`is_private`,`status`,`created_at`),
+  KEY `idx_rooms_expiration` (`status`,`waiting_since`),
   KEY `idx_rooms_game` (`game_id`),
   KEY `idx_rooms_status` (`status`),
   KEY `idx_rooms_game_status_created` (`game_id`, `status`, `created_at`)

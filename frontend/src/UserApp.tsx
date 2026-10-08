@@ -8,6 +8,7 @@ import { SessionQueries } from "./components/auth/SessionQueries";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import { RoomEntryGate } from "./components/rooms/RoomEntry";
 import MainLayout from "./components/layout/MainLayout";
 import i18n from "./i18n/config";
 import Index from "./pages/Index";
@@ -72,7 +73,7 @@ const UserApp = () => (
                   <Route element={<RequireAuth />}>
                   <Route path="/game/:gameId" element={<RoomList />} />
                   <Route path="/create/:gameId" element={<CreateRoom />} />
-                  <Route path="/room/:gameId/:roomId" element={<Lobby />} />
+                  <Route path="/room/:gameId/:roomId" element={<RoomEntryGate><Lobby /></RoomEntryGate>} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/ai-chat" element={<AiChat />} />
@@ -80,7 +81,7 @@ const UserApp = () => (
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/replays" element={<Replays />} />
                   <Route path="/replay/:archiveId" element={<ReplayPlayer />} />
-                  <Route path="/spectate/:gameId/:roomId" element={<SpectatorRoom />} />
+                  <Route path="/spectate/:gameId/:roomId" element={<RoomEntryGate spectator><SpectatorRoom /></RoomEntryGate>} />
                   </Route>
                 </Route>
 

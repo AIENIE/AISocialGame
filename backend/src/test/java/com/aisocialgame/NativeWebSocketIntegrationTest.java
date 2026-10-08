@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 class NativeWebSocketIntegrationTest {
     @LocalServerPort int port;
     @Autowired RoomRepository rooms;
+    @Autowired com.aisocialgame.service.RoomLifecycle lifecycle;
     @Autowired org.springframework.context.ApplicationEventPublisher events;
     @MockitoBean AuthService auth;
 
@@ -119,6 +120,39 @@ class NativeWebSocketIntegrationTest {
             sendSockJs(socket, "SEND\ndestination:/app/room/" + roomId + "/sync\ncontent-type:application/json\n\n{\"nonce\":\"sockjs-check\"}\0");
             assertTrue(frames.await("SYNC_READY", 5).contains("sockjs-check"));
             socket.abort();
+        } finally { client.shutdownNow(); }
+    }
+
+    @Test void expiryNotifiesMembersAndRejectsChatAndNewSubscriptionsOnRealTransport() throws Exception {
+        String ownerId = UUID.randomUUID().toString();
+        String roomId = UUID.randomUUID().toString();
+        Room room = new Room(roomId, "undercover", "expiry", RoomStatus.WAITING, 4, true, null, "text", Map.of());
+        room.setHostUserId(ownerId); rooms.saveAndFlush(room);
+        User owner = new User(); owner.setId(ownerId);
+        when(auth.authenticate("v2.expiry")).thenReturn(owner);
+        when(auth.isSessionActive("v2.expiry")).thenReturn(true);
+        HttpClient client = HttpClient.newHttpClient();
+        try {
+            Frames frames = new Frames();
+            WebSocket socket = client.newWebSocketBuilder().buildAsync(
+                    URI.create("ws://127.0.0.1:" + port + "/ws"), frames).get(5, TimeUnit.SECONDS);
+            connect(socket, "v2.expiry"); frames.await("CONNECTED", 5);
+            send(socket, "SUBSCRIBE\nid:expiry-private\ndestination:/user/queue/private\n\n\0");
+            send(socket, "SEND\ndestination:/app/room/" + roomId + "/sync\ncontent-type:application/json\n\n{\"nonce\":\"expiry-ready\"}\0");
+            frames.await("SYNC_READY", 5);
+            Room current = rooms.findById(roomId).orElseThrow();
+            current.setWaitingSince(java.time.LocalDateTime.now().minusHours(4)); rooms.saveAndFlush(current);
+            lifecycle.sweep();
+            assertTrue(frames.await("ROOM_EXPIRED", 5).contains(roomId));
+            assertEquals(RoomStatus.EXPIRED, rooms.findById(roomId).orElseThrow().getStatus());
+            send(socket, "SEND\ndestination:/app/room/" + roomId + "/chat\ncontent-type:application/json\n\n{\"type\":\"TEXT\",\"content\":\"late\"}\0");
+            assertNotNull(frames.closed.get(5, TimeUnit.SECONDS));
+            Frames rejected = new Frames();
+            WebSocket reconnect = client.newWebSocketBuilder().buildAsync(
+                    URI.create("ws://127.0.0.1:" + port + "/ws"), rejected).get(5, TimeUnit.SECONDS);
+            connect(reconnect, "v2.expiry"); rejected.await("CONNECTED", 5);
+            send(reconnect, "SUBSCRIBE\nid:expired-state\ndestination:/topic/room/" + roomId + "/state\n\n\0");
+            assertNotNull(rejected.closed.get(5, TimeUnit.SECONDS));
         } finally { client.shutdownNow(); }
     }
 

@@ -46,6 +46,7 @@ async function roomFixture(page: Page, gameId: string) {
     if (url.pathname === "/api/auth/me") body = { id: "p0", username: "room-fixture", nickname: "小林", avatar: "", coins: 0, level: 1 };
     else if (url.pathname.endsWith("/start")) { room.status = "PLAYING"; update(playing()); body = state; }
     else if (url.pathname.endsWith("/action")) { actions.push(route.request().postDataJSON()); update({ extra: { legalActions: [] } }); body = state; }
+    else if (url.pathname.endsWith("/entry")) body = { ...room, roomCode: "123456", joined: true, passwordRequired: false, expiresAt: null };
     else if (url.pathname.endsWith("/state")) body = state;
     else if (url.pathname.endsWith("/logs")) body = { items: state.logs, nextCursor: null, hasMore: false };
     else if (url.pathname.endsWith(`/rooms/${room.id}`)) body = room;

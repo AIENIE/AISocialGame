@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RoomAccessPolicy {
+    @org.springframework.beans.factory.annotation.Autowired
+    private RoomLifecycle lifecycle;
     private final RoomRepository rooms;
     private final GameStateRepository states;
 
@@ -19,12 +21,12 @@ public class RoomAccessPolicy {
     }
 
     public void requireRead(String roomId, String viewerId) {
-        Room room = rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        Room room = lifecycle != null ? lifecycle.requireActive(roomId) : rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
         requireRead(room, states.findById(roomId).orElse(null), viewerId);
     }
 
     public void requireLobbyRead(String roomId, String viewerId) {
-        Room room = rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        Room room = lifecycle != null ? lifecycle.requireActive(roomId) : rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
         requireRead(room, room.getStatus() == com.aisocialgame.model.RoomStatus.WAITING ? null : states.findById(roomId).orElse(null), viewerId);
     }
 
@@ -36,7 +38,7 @@ public class RoomAccessPolicy {
     }
 
     public void requireParticipant(String roomId, String viewerId) {
-        Room room = rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
+        Room room = lifecycle != null ? lifecycle.requireActive(roomId) : rooms.findById(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在"));
         GameState state = room.getStatus() == com.aisocialgame.model.RoomStatus.WAITING ? null : states.findById(roomId).orElse(null);
         if (viewerId == null || !participant(room, state, viewerId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "仅本局参与者可以执行此操作");
@@ -44,6 +46,7 @@ public class RoomAccessPolicy {
     }
 
     public static void requireRead(Room room, GameState state, String viewerId) {
+        if (RoomLifecycle.expired(room, java.time.LocalDateTime.now())) throw RoomLifecycle.expiredError();
         if (viewerId == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
         boolean startedPrivate = state != null && Boolean.FALSE.equals(com.aisocialgame.engine.v2.RuleSupport.map(state.getData().get("accessSnapshot")).get("publicReplay"));
         if ((room.isPrivate() || startedPrivate) && !participant(room, state, viewerId)) {
