@@ -1,10 +1,6 @@
 # AISocialGame 后续开发里程碑
 
-> 更新时间：2026-09-22
-
-本轮追加：[96 样本完整验证](test/ai-conversation-validation-20260922.md)：工程门禁通过；获授权后完成 12 项真实先导，11 正常（4 修正）/1 降级，正常输出四维均分均低于 4，后续 84 项按门槛停止。新增 17 请求，原账本 74→91，caller 33 已读回 OFFLINE。补齐定向回答示例的顶层证据引用，修复版仅离线回归、不拼接旧结果；总体 L4 未通过。
-
-最新追加：[正常生成的交流目的与发言尺度](test/ai-conversation-20260922.md)已实现并通过后端 L2（541 项，516 通过、25 外部跳过），48 份规则驱动 mock 输入完成。提示 social-v2.8 / 输入 v3；人格与记忆不变，降级优化留待下一期。真实拟真效果、M1-R5 和总体 L4 仍未通过，下文历史完成记录保留。
+当前工程能力不等于真实拟真质量验收通过。M1-R5、多角色连续表现、冻结版本六局验收及总体 L4 仍未通过；共享环境目标、迁移和实时预算必须按授权核实。旧预算仅为历史账本，不代表当前余额，不能自动启用调用方或重发。
 
 ## 1. 总目标
 
@@ -22,9 +18,8 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 当前版本采用 `GameRuleSet` / `V2GameService` / `AiTurnGenerator`，旧 `GameRuntimeSupport` 仅保留历史兼容路径。局内结构化记忆、来源分类、承诺状态、四款完整预设与任务诊断已交付；本轮补齐回合反思、独立难度、回放权限、调用治理、统一元数据与随机题目。
 
-当前未完成的是：共享环境与迁移执行条件核实、实时预算授权，以及最终冻结版本的真实语义、多人格连续表现和六局验收。本机原生 MySQL 8.0.45 隔离验证与 Node 22.23.2 环境统一已完成，见[环境门禁报告](test/environment-gates-20260922.md)。原历史通过记录不能代替当前真实验收。
+当前未完成的是：共享环境与迁移执行条件核实、实时预算授权，以及最终冻结版本的真实语义、多人格连续表现和六局验收。本机原生 MySQL 8.0.45 隔离验证与 Node 22.23.2 环境统一已完成，见[环境门禁报告](modules/ai-quality-loop-module.md)。原历史通过记录不能代替当前真实验收。
 
-2026-09-22 只读准备批次：实际 Node 入口、共享数据库目标校验和未授权草案拒绝已修复，标准 L2 与独立检查通过。只读发现矩阵 13306 与验收配置 23306 冲突，因此未连接数据库；caller 实时状态、持久消耗和迁移差异仍未知。详见[只读预检报告](test/readonly-preflight-20260922.md)。本批材料不构成迁移、调用方启用或预算授权，L4 仍未通过。
 
 ## 3. 产品原则
 
@@ -35,7 +30,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 ## 4. 里程碑总览
 
-2026-09-22 后续可靠性修复：严格 fallback 判定、批次/构建/对局关联、人格差异显式结论及真实规则四步序列已完成离线验证。卧底连续评测按用户确认使用七人两卧底。当前后端 L2 为 516 项（511 通过、5 跳过），独立 Python 14 项通过；总体 L4 仍未通过。详见 [本批报告](test/acceptance-reliability-20260922.md)。下文保留前批完成记录。
 
 ### M1～M5 原始交付项收尾（2026-09-22，工程门禁通过，最终验收未完成）
 
@@ -51,25 +45,24 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 完整前后端 L2：后端 511 项（506 通过、5 项外部测试跳过），前端 58 项通过，构建和类型检查通过。独立 Java 指标测试与 Python 6 项指标测试通过。未调用真实模型、未应用共享迁移。
 
-原对照账本本轮只读核实为 74 次；本批离散决策最多另需 360 请求，累计申请下限为 434，完整对局及昵称预算另计。历史对局 105/210 仍须执行前重新读回。[执行门槛与清单](operations/m1-m5-live-execution-checklist.md)列出迁移、恢复、授权、先导样本和停机步骤。证据位于仓库外 `C:\Users\duwei\.codex\artifacts\AISocialGame\m1-m5-closure-20260922`。
 
 | 里程碑 | 优先级 | 主题 | 核心产出 |
 |---|---|---|---|
-| M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；开发记录见 `doc/milestones/m1-ai-quality-loop/development.md` |
-| M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；开发记录见 `doc/milestones/m2-structured-replay/development.md` |
-| M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md` |
-| M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；开发记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md` |
-| M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程；开发记录见 `doc/milestones/m5-turtle-soup/development.md` |
+| M1 | P0 | AI 拟人质量闭环 | 记忆、信念、反思、难度、质量评测；当前机制见 `doc/modules/ai-quality-loop-module.md` |
+| M2 | P0 | 结构化事件与回放/质检底座 | 服务端事件流、回放、AI 复盘数据；当前机制见 `doc/modules/replay-event-module.md` |
+| M3 | P0 | GameEngine 插件化架构 | 游戏引擎抽象、统一 action、现有玩法迁移；当前机制见 `doc/modules/game-engine-module.md` |
+| M4 | P0 | AI 安全治理与 Admin 应急运营 | 内容审核、风险事件、分级处置、后台介入；当前机制见 `doc/modules/ai-safety-admin-ops-module.md` |
+| M5 | P1 | 新增海龟汤玩法 | AI 主持、题库、提问与解谜流程；当前机制见 `doc/modules/turtle-soup-module.md` |
 | M6 | P1 | 社交平台化与留存 | 后端化好友/匹配/观战/战报/成长体系 |
 | M7 | P1 | AI 运营后台与策略治理 | Persona/Prompt/模型/成本/审计/灰度 |
 
-里程碑阶段记录入口见 `doc/milestones/README.md`。
+里程碑阶段记录入口见 `doc/milestones.md`。
 
 ## 5. M1：AI 拟人质量闭环
 
 ### AI 拟真质量增强（2026-09-16）
 
-历史基础实现已交付；M1-R1、M1-R2 已通过后端 L2，M1-R3 已通过前后端 L2；M1-R4 已通过后端 L2；M1-R5 评测工程已准备、真实验收待执行，**L4 未通过**。已有结果见 [修复与验收报告](ai-game-realism-v2-quality-recovery.md)，实施记录见 [M1 阶段记录](milestones/m1-ai-quality-loop/development.md)。
+历史基础实现已交付；M1-R1、M1-R2 已通过后端 L2，M1-R3 已通过前后端 L2；M1-R4 已通过后端 L2；M1-R5 评测工程已准备、真实验收待执行，**L4 未通过**。当前机制与验收限制见[AI 质量模块](modules/ai-quality-loop-module.md)。
 
 | 编号 | 状态 | 待处理事项 | 预期结果 |
 | --- | --- | --- | --- |
@@ -111,14 +104,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - AI 决策日志中能看到信念状态、关键依据、是否兜底、模型调用耗时。
 - 同一 Persona 连续多轮发言风格稳定，重复模板化发言明显减少。
 
-### M1 实现记录（2026-05-16）
-
-- 新增服务端 AI 质量闭环：信念快照、局内短期记忆、Persona 跨局记忆、决策 trace、质量 flags 与安全日志 metadata。
-- 新增管理端 API：AI 决策 trace 查询、Persona 记忆查询与重置。
-- 玩家端继续只展示 AI 身份、发言和公开行动，不展示隐藏身份、隐藏词语、完整 Prompt 或内部推理链。
-- 详细架构见 `doc/modules/ai-quality-loop-module.md`。
-- 分目录开发记录见 `doc/milestones/m1-ai-quality-loop/development.md`。
-
 ### 依赖
 
 - 现有 `AiDecisionService`、`GameLogEntry` 结构化字段、`Persona` 扩展字段。
@@ -155,15 +140,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 现有 `GameState.logs` 和前端回放页面。
 - 为 M1 的质量评测、M4 的安全治理、M6 的社区战报、M7 的后台审计提供基础数据。
 
-### M2 实现记录（2026-05-16）
-
-- 新增服务端结构化事件流：`game_events` 记录事件序号、阶段、轮次、行为人、目标、可见性和结构化数据。
-- 新增服务端单局归档：`game_archives` 记录房间、玩法、胜负、玩家快照、事件数和 AI trace 摘要。
-- 新增 `ReplayController`：提供回放列表、详情和 `PUBLIC` / `PLAYER` / `GOD` 视角事件查询。
-- 前端 `/replays` 与 `/replay/:archiveId` 优先读取服务端回放，服务端不可用时保留原本地存档降级。
-- 详细架构见 `doc/modules/replay-event-module.md`。
-- 分目录开发记录见 `doc/milestones/m2-structured-replay/development.md`。
-
 ## 7. M3：GameEngine 插件化架构
 
 ### 目标
@@ -195,16 +171,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - M1 的 AI 决策抽象经验。
 - M2 的统一事件记录。
-
-### M3 实现记录（2026-05-17）
-
-- 新增 `GameEngine`、`GameEngineRegistry`、阶段/角色定义和开局校验结果类型。
-- 新增 `UndercoverGameEngine` 与 `WerewolfGameEngine`，现有玩法由 engine 注册表承接入口。
-- `GamePlayService` 改为编排与兼容层，通过 registry 分发到具体 engine。
-- 新增统一 `/api/games/{gameId}/rooms/{roomId}/action` 接口，旧 `/speak`、`/vote`、`/night-action` 保持兼容。
-- 前端新增 `useGameEngine` 和玩法组件 registry，现有房间页动作提交切换到统一 action。
-- 详细架构见 `doc/modules/game-engine-module.md`。
-- 分目录开发记录见 `doc/milestones/m3-game-engine-plugin-architecture/development.md`。
 
 ## 8. M4：AI 安全治理与 Admin 应急运营
 
@@ -264,15 +230,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - M3 的统一 action 与 GameEngine 插件化入口。
 - 现有 admin 模块、用户封禁、积分账本和 AI 网关调用记录。
 
-### M4 实现记录（2026-05-20）
-
-- 新增 AI Safety 治理层，统一输出 `ALLOW` / `REDACT` / `BLOCK` / `RATE_LIMIT` / `ESCALATE`。
-- 新增 `ai_safety_events` 与 `ai_safety_controls`，支持安全事件队列和 `USER` / `ROOM` / `PERSONA` / `MODEL` / `GLOBAL` 临时控制。
-- 房间聊天、社区发帖、通用 AI Chat、管理端 AI 测试、真人局内发言和 AI 玩家自动发言均接入 safety gate。
-- 管理端新增 `/admin/safety` 安全运营页面，仪表盘增加安全指标。
-- 详细架构见 `doc/modules/ai-safety-admin-ops-module.md`。
-- 分目录开发记录见 `doc/milestones/m4-ai-safety-admin-ops/development.md`。
-
 ## 9. M5：新增海龟汤玩法
 
 ### 目标
@@ -300,15 +257,6 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 - 1 真人 + AI 玩家 + AI 主持可完整解出一局。
 - 多真人 + AI 玩家可共同提问，AI 提问不会大量重复或直接作弊。
 - 主持在常见诱导问题下不提前泄露汤底。
-
-### M5 实现记录（2026-06-06）
-
-- 新增 `turtle_soup` GameEngine，海龟汤从 `COMING_SOON` 切换为可创建、可开局、可结算的 active 玩法。
-- 第一版采用规则闭环 + AI 玩家追问辅助：本地题库负责汤面、汤底、线索命中、问题上限和正确解答判定。
-- 前端新增海龟汤房间页，支持题面、问答历史、已确认线索、提问、最终解答和结算汤底揭示。
-- 统一 `/action` 新增 `ASK_QUESTION` 与 `SUBMIT_SOLUTION`，并接入服务端事件流和回放归档。
-- 详细架构见 `doc/modules/turtle-soup-module.md`。
-- 分目录开发记录见 `doc/milestones/m5-turtle-soup/development.md`。
 
 ### 依赖
 

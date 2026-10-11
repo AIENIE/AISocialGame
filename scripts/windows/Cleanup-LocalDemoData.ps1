@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('dry-run','apply')][string]$Mode = 'dry-run',
-    [string]$EnvironmentFile = 'D:\project\aienie\aienie-runtime\private\app-secrets\aisocialgame.env'
+    [string]$EnvironmentFile = $(Join-Path $(if ($env:AIENIE_RUNTIME_ROOT) { $env:AIENIE_RUNTIME_ROOT } else { Join-Path $PSScriptRoot '../../../../aienie-runtime' }) 'private/app-secrets/aisocialgame.env')
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

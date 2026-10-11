@@ -25,7 +25,7 @@
 
 ## 后续里程碑
 
-- 后续开发主线见 `doc/milestones.md`，里程碑阶段记录见 `doc/milestones/README.md`。
+- 后续开发主线见 `doc/milestones.md`，里程碑阶段记录见 `doc/milestones.md`。
 - 当前 M1-M5 已完成第一版工程闭环，后续主线为社交平台化与 AI 运营后台治理。
 
 ## 回归说明

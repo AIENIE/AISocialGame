@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$EnvironmentFile = (Join-Path 'D:\project\aienie\aienie-runtime\private\app-secrets' 'aisocialgame.env'),
+    [string]$EnvironmentFile = (Join-Path $(Join-Path $(if ($env:AIENIE_RUNTIME_ROOT) { $env:AIENIE_RUNTIME_ROOT } else { Join-Path $PSScriptRoot '../../../../aienie-runtime' }) 'private/app-secrets') 'aisocialgame.env'),
     [ValidateRange(30, 600)][int]$StartupTimeoutSeconds = 240,
     [ValidateSet('All','Backend','Frontend')][string]$Component = 'All',
     [switch]$EnableBackendDebug,
@@ -48,7 +48,7 @@ $components = @(
     [pscustomobject]@{ Name = 'Frontend'; Script = (Join-Path $PSScriptRoot 'Start-Frontend.ps1'); Port = 11030; HealthPath = '/'; HealthKind = 'Http200' }
 )
 if ($Component -ne 'All') { $components = @($components | Where-Object Name -eq $Component) }
-$stateRoot = Join-Path 'D:\project\aienie\aienie-runtime\local-services\direct-runs\native-runs' 'aisocialgame'
+$stateRoot = Join-Path $(Join-Path $(if ($env:AIENIE_RUNTIME_ROOT) { $env:AIENIE_RUNTIME_ROOT } else { Join-Path $PSScriptRoot '../../../../aienie-runtime' }) 'local-services/direct-runs/native-runs') 'aisocialgame'
 $statePath = Join-Path $stateRoot 'processes.json'
 $logsRoot = Join-Path $stateRoot 'logs'
 

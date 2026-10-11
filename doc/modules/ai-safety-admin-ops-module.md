@@ -4,7 +4,7 @@
 
 当前治理拆为内容审核、RPC 准入和游戏推进控制。AiCallAdmission 以 ai_call_usage 数据库锁保证跨进程原子时间窗，AiCallScope 标记入口/作用域，SafetyAuditWriter 独立事务保留拒绝记录。Chat/Embeddings/OCR 共用准入，原累计预算独立。PAUSE_ROOM 冻结期限，FORCE_OBSERVE 停自动行动但允许真人，MUTE 只约束公开内容；V2GameService 提交前再次核查。控制和异常保存操作人、到期及作用域。请求阈值20/30/120/180每60秒，用量观察10万/20万/100万/150万每5分钟，未知用量为NULL。有限本地规则不是全面语义审核；没有外部 moderation 或 token 流式审核。
 
-当前测试、限制及数据迁移见 [M1～M5 收尾报告](../test/m1-m5-closure-20260922.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
+当前测试、限制及数据迁移见 [M1～M5 收尾报告](ai-quality-loop-module.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
 
 
 ## 模块作用

@@ -15,7 +15,7 @@
 - `Test-Local.ps1 -Component Backend -Level L2`：最终编译及全量测试通过。最终全量为 624 项，40 项依赖特定环境而跳过，失败和错误均为 0；`NativeWebSocketIntegrationTest` 共 4 项通过，验证通知、聊天拒绝及新订阅拒绝。
 - `Test-Local.ps1 -Component Frontend -Level L2`：22 个文件、116 项单元测试通过。类型检查和构建通过，lint 无错误或新增警告（94 项既存警告）。最后文案及按钮换行调整后再次通过类型检查、lint 和构建。
 - Playwright `room-discovery.spec.ts`、`room-experience.spec.ts`、`access-boundaries.spec.ts`：15 项通过，覆盖 1440px/390px、密码失败重试、取消不加载私密业务、失效链接、登录守卫、三玩法准备/对局/结算。
-- `Test-ClosureMySql.ps1`：MySQL 8.4.11 原生隔离实例整套通过，覆盖完整迁移链、旧 ENUM、精确时间回填、号码保留与重试、部分 DDL 恢复、业务并发、结算幂等及 1000 条归档分页。最终 `result.json` 为 `passed: true` / `listenerRemaining: false`，临时实例已清理。证据目录为 `D:/project/aienie/aienie-runtime/evidence/product-artifacts/aisocialgame/mysql-629409e1e578404da2ccdd68fdefc9d7`。
+- `Test-ClosureMySql.ps1`：MySQL 8.4.11 原生隔离实例整套通过，覆盖完整迁移链、旧 ENUM、精确时间回填、号码保留与重试、部分 DDL 恢复、业务并发、结算幂等及 1000 条归档分页。最终 `result.json` 为 `passed: true` / `listenerRemaining: false`，临时实例已清理。证据目录为 `${AIENIE_RUNTIME_ROOT}/evidence/product-artifacts/aisocialgame/mysql-629409e1e578404da2ccdd68fdefc9d7`。
 - 日志位于忽略目录 `backend/target/room-final-backend.log`、`room-final-frontend.log`、`room-final-static.log`、`room-final-browser.log`、`room-delivery-backend-tests.log`、`room-delivery-frontend-static.log`、`room-native-websocket.log`。
 
 ## 本地迁移与真实页面

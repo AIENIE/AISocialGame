@@ -1,12 +1,12 @@
 # M1～M5 真实执行清单（尚未执行）
 
-当前生成版本已更新为 **social-v2.8 / inputFormatVersion=3 / memoryFormatVersion=4**，见[正常交流优化报告](../test/ai-conversation-20260922.md)。本次仅离线工程验证。新的构建摘要覆盖 `.txt` 提示及评阅尺度；必须使用重新生成并绑定本批源码/构建的清单，不能沿用 v2.7 或输入 v2 的批准材料。48 份 `conversation-v1` mock 输入不是原 180 个真实样本的替代，也不增加已授权真实请求额度。
+当前生成版本已更新为 **social-v2.8 / inputFormatVersion=3 / memoryFormatVersion=4**，见[正常交流优化报告](../modules/ai-quality-loop-module.md)。本次仅离线工程验证。新的构建摘要覆盖 `.txt` 提示及评阅尺度；必须使用重新生成并绑定本批源码/构建的清单，不能沿用 v2.7 或输入 v2 的批准材料。48 份 `conversation-v1` mock 输入不是原 180 个真实样本的替代，也不增加已授权真实请求额度。
 
 日期：2026-09-22。依据用户批准计划的“真实执行门槛与预算”：工程阶段不自动应用共享迁移或提高累计预算。以下清单是下一阶段的审查材料，不是授权凭据。
 
 本批只读准备已完成，详见[入口修复与预检报告](../test/readonly-preflight-20260922.md)。原账本当前采集为 74；矩阵 13306 与现有验收配置 23306 冲突，数据库未连接，持久 consumed 及 caller 实时状态仍未知。不得仅修改端口后试连，也不得把历史 OFFLINE 当成当前读回。
 
-另有已批准方案的[96 样本当前版本交流验证](../test/ai-conversation-validation-20260922.md)，工程门禁已通过。使用 `Test-AiConversation.ps1` 和独立 conversation-validation-v1 清单，不能传入本清单原 180 项入口。它使用隔离状态，不依赖共享库迁移、玩家登录或游戏服务；并不关闭这些业务运行缺口。当前申请为先导最多 24 新请求、全部最多 192（含先导），原 74 对应累计 98/266；仍未授权。caller 33 的 HMAC 标识为 aisocialgame-realism-v2-20260912，真实启用状态为 ACTIVE，结束须 OFFLINE 读回。
+另有已批准方案的[96 样本当前版本交流验证](../modules/ai-quality-loop-module.md)，工程门禁已通过。使用 `Test-AiConversation.ps1` 和独立 conversation-validation-v1 清单，不能传入本清单原 180 项入口。它使用隔离状态，不依赖共享库迁移、玩家登录或游戏服务；并不关闭这些业务运行缺口。当前申请为先导最多 24 新请求、全部最多 192（含先导），原 74 对应累计 98/266；仍未授权。caller 33 的 HMAC 标识为 aisocialgame-realism-v2-20260912，真实启用状态为 ACTIVE，结束须 OFFLINE 读回。
 
 独立入口顺序：Preflight → 核实原 caller/模型与 TLS → 获得绑定清单、构建、原账本及有效期的明确授权 → 按授权启用原 caller、保存 15 分钟内的脱敏读回证据 → Pilot → 对精确证据 SHA-256 做逐例评阅 → Remaining。任何中断保留账本和样本，不重跑已收费样本；结束按原 caller 停用清单收口。授权草案不能作为正式 grant。没有正常 96 项完整覆盖时只报告已观察的正常质量，不宣称专项或 L4 通过。
 
@@ -18,10 +18,10 @@
 
 ## 1. 先完成无付费门槛
 
-- [x] 当前源码完整前后端 L2、类型检查、构建、独立指标测试通过，见 [收尾报告](../test/m1-m5-closure-20260922.md)。
+- [x] 当前源码完整前后端 L2、类型检查、构建、独立指标测试通过，见 [收尾报告](../modules/ai-quality-loop-module.md)。
 - [x] 180 个固定 ID、规则驱动连续序列、评分尺度及失败停止逻辑已准备。
 - [x] 原 comparison-call-budget.jsonl 只读核实为 74 次；未修改原账本。
-- [x] 本机原生 MySQL 8.0.45 已验证新库、旧库升级、已有 v2 升级、重复执行、数据保留及并发/事务；见[环境门禁报告](../test/environment-gates-20260922.md)。共享实例实际配置仍须运行前核实。
+- [x] 本机原生 MySQL 8.0.45 已验证新库、旧库升级、已有 v2 升级、重复执行、数据保留及并发/事务；见[环境门禁报告](../modules/ai-quality-loop-module.md)。共享实例实际配置仍须运行前核实。
 - [x] Node 22.23.2 / pnpm 11.22.0 目标环境已验证，标准脚本统一检查版本；不使用系统 Node 24 的历史结果代替。
 - [ ] 只读核实当前标准环境矩阵、TLS 信任链、普通用户正常登录、原 caller 标识/状态、目标数据库及持久 budget run ID/已用次数/累计上限。记录脱敏主机、库名和时区配置，凭据仅保留仓库外。
 - [ ] 将明确的迁移目标、备份位置、原 caller ID、两个累计预算上限、批准人/授权引用/有效期与源码指纹补入仓库外执行授权文件。不能猜测旧对局 105/210 是实时余额。
@@ -53,7 +53,7 @@
 
 ## 4. 冻结与运行
 
-本批统一证据采用 `evaluationSchemaVersion=2`、`evaluationSetVersion=closure-v2`，详见[可靠性修复报告](../test/acceptance-reliability-20260922.md)。清单、决策、评审、六局和运行指标必须共享 batchId/sourceFingerprint/buildId 及各格式版本。批准文件亦必须绑定 batchId/buildId。旧格式只能历史查看，不能计为新版通过。
+本批统一证据采用 `evaluationSchemaVersion=2`、`evaluationSetVersion=closure-v2`，详见[可靠性修复报告](../modules/ai-quality-loop-module.md)。清单、决策、评审、六局和运行指标必须共享 batchId/sourceFingerprint/buildId 及各格式版本。批准文件亦必须绑定 batchId/buildId。旧格式只能历史查看，不能计为新版通过。
 
 标准 Build-Local 后端构建生成内嵌标识与 `backend/target/closure-build-manifest.json`，后者含 JAR SHA-256；执行前 `closure_identity.py verify` 必须通过。源码、知识包、人格、夹具或判定脚本发生变化后重新构建和冻结，禁止复用旧标识。归档冻结清单及构建清单至仓库外证据目录；批次只使用同一份清单，不在运行中重新生成。
 
