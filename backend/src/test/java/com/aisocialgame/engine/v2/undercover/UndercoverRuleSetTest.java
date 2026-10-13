@@ -116,7 +116,7 @@ class UndercoverRuleSetTest {
         assertEquals("DESCRIPTION", state.getPhase());
         assertNotEquals(firstSeat, state.getCurrentSeat());
         assertNull(state.getPhaseEndsAt());
-        assertEquals(1, state.getLogs().stream().filter(log -> "TIMEOUT".equals(log.getType()) && actor.getPlayerId().equals(log.getActorId())).count());
+        assertEquals(1, state.getLogs().stream().filter(log -> "SKIP".equals(log.getType()) && "REQUEST_FAILED".equals(log.getMetadata().get("reason")) && actor.getPlayerId().equals(log.getActorId())).count());
         Integer nextSeat = state.getCurrentSeat();
         int eventCount = maps(state.getData().get("events")).size();
         rules.onAiFailure(state, failed, NOW.plusSeconds(3));
@@ -336,7 +336,7 @@ class UndercoverRuleSetTest {
         assertTrue(rules.validateDecision(observation, vote).contains("VOTE_MUST_REMAIN_PRIVATE"));
     }
 
-    @Test void everyFallbackIsLegalAndAllAiGamesConcludeWithoutModelCalls() {
+    @Test void allAiFailuresSkipAndConcludeWithoutInventedSpeech() {
         for (String category : UndercoverWordCatalog.CATEGORIES) {
             GameState state = rules.initialize(room(4, Map.of("hasBlank", true, "wordPack", category)), NOW);
             state.getPlayers().forEach(p -> p.setAi(true));
@@ -346,11 +346,7 @@ class UndercoverRuleSetTest {
                 assertFalse(turns.isEmpty());
                 for (TurnRequest turn : turns) {
                     if (!rules.isTurnCurrent(state, turn)) continue;
-                    VisibleObservation observation = observation(state, player(state, turn.actorId()));
-                    PlayerAction fallback = rules.fallback(observation);
-                    assertTrue(rules.validateDecision(observation, AiTurnDecision.fallback(fallback)).isEmpty());
-                    assertTrue(rules.legalActions(state, turn.actorId()).stream().anyMatch(a -> a.type().equals(fallback.getType())));
-                    rules.apply(state, turn.actorId(), fallback, NOW);
+                    rules.onAiFailure(state, turn, NOW);
                 }
             }
             assertEquals("SETTLEMENT", state.getPhase());

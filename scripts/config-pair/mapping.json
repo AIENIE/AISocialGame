@@ -113,6 +113,9 @@
     "APP_AI_SYSTEM_USER_ID": [
       "app.ai.system-user-id"
     ],
+    "APP_AI_BUDGET_ENABLED": ["app.ai.budget-enabled"],
+    "APP_AI_BUDGET_MAX_OUTPUT_TOKENS": ["app.ai.budget-max-output-tokens"],
+    "APP_AI_BUDGET_RECONCILE_DELAY_MS": ["app.ai.budget-reconcile-delay-ms"],
     "APP_CREDIT_CHECKIN_GRANT_TOKENS": [
       "app.credit.checkin-grant-tokens"
     ],

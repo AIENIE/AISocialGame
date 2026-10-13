@@ -128,14 +128,14 @@ class AiTurnCoordinatorTest {
         AiTurnDecision result = AiTurnDecision.fallback(new com.aisocialgame.dto.PlayerAction());
         when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(12_345L);
-        when(generator.generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L))).thenReturn(result);
+        when(generator.generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class))).thenReturn(result);
 
         coordinator.run(job);
 
         var ordered = inOrder(runtime, generator);
         ordered.verify(runtime).rules("undercover");
         ordered.verify(runtime).remainingTurnMillis(job.getId());
-        ordered.verify(generator).generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L));
+        ordered.verify(generator).generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class));
         ordered.verify(runtime).complete(job.getId(), result);
         verify(runtime, never()).fail(anyString());
     }
@@ -146,7 +146,7 @@ class AiTurnCoordinatorTest {
         GameRuleSet rules = mock(GameRuleSet.class); when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(50_000L);
         var result = new AiTurnDecision(new com.aisocialgame.dto.PlayerAction(), "", Map.of(), List.of(), Map.of(), false, Map.of("latencyMs", 123L));
-        when(generator.generate(eq(rules), any(), eq(job.getId()), eq(50_000L))).thenReturn(result);
+        when(generator.generate(eq(rules), any(), eq(job.getId()), eq(50_000L), any(java.util.function.BooleanSupplier.class))).thenReturn(result);
         doThrow(new IllegalStateException("private diagnostic must not persist")).when(runtime).complete(job.getId(), result);
         coordinator.run(job);
         verify(runtime).fail(eq(job.getId()), eq("SUBMISSION_EXCEPTION"), argThat(d -> Long.valueOf(123L).equals(d.get("latencyMs")) && d.containsKey("submissionFailedMs")));

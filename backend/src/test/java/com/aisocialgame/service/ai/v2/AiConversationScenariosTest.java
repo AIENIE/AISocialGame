@@ -61,6 +61,10 @@ class AiConversationScenariosTest {
                 List<AiChatMessageDto> messages = c.getArgument(4); captured.add(messages.getLast().content());
                 return new AiChatResult(response, "mock-only", 10, 10);
             });
+            when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt())).thenAnswer(c -> {
+                List<AiChatMessageDto> messages = c.getArgument(4); captured.add(messages.getLast().content());
+                return new AiChatResult(response, "mock-only", 10, 10);
+            });
             var generator = new AiTurnGenerator(client, properties, session.memory, safety);
             String before = json.writeValueAsString(o);
             var decision = generator.generate(session.rule, o, "conversation-" + s.id() + "-" + s.personaId());
@@ -77,7 +81,8 @@ class AiConversationScenariosTest {
             session.rule.apply(session.state, session.actor, decision.action(), session.now);
             session.memory.commit(session.state, session.actor, decision, o, session.rule, eventCount);
             assertFalse(maps(session.memory.snapshot(session.state, session.actor).get("recentDecisions")).isEmpty());
-            verify(client, times(1)).chatCompletions(anyString(), anyLong(), anyString(), eq("mock-only"), anyList(), anyString(), anyInt());
+            if ("undercover".equals(o.gameId())) verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), eq("mock-only"), anyList(), anyString(), anyInt());
+            else verify(client, times(1)).chatCompletions(anyString(), anyLong(), anyString(), eq("mock-only"), anyList(), anyString(), anyInt());
             var row = new LinkedHashMap<String,Object>(); row.put("scenarioId", s.id()); row.put("personaId", s.personaId());
             row.put("phase", o.phase()); row.put("round", o.round()); row.put("requiredEventId", s.requiredEventId());
             row.put("input", input); row.put("decision", decision); row.put("status", "MOCK_SUBMITTED");

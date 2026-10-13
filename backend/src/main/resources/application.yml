@@ -96,6 +96,9 @@ app:
   ai:
     default-model: ''
     system-user-id: 0
+    budget-enabled: false
+    budget-max-output-tokens: 1024
+    budget-reconcile-delay-ms: 30000
   credit:
     checkin-grant-tokens: 20
     temp-expiry-days: 30

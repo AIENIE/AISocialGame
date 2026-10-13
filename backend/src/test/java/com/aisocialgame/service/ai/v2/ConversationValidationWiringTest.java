@@ -24,15 +24,16 @@ class ConversationValidationWiringTest {
  @Test void allNinetySixTraverseActualGeneratorAndRulesWithMockRpc()throws Exception {
   var frozen=ConversationValidation.freeze("SYNTHETIC_TEST");
   ConversationValidation.Generate generate=s->{
-   var a=s.adapter().fallback(s.observation());
+   var a=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation());
    if(s.id().startsWith("sequence:")&&s.id().endsWith(":4")&&Set.of("SPEAK","DISCUSS").contains(a.getType()))a.setContent("目前这些结果还不足以排除另一种解释，我继续观察。");
    String body=ConversationValidation.JSON.writeValueAsString(Map.of("action",a,"evidenceEventIds",s.adapter().conversation(s.observation()).replyTo().stream().map(AiConversationContext.ReplyReference::eventId).toList()));
    when(client.chatCompletions(anyString(),anyLong(),anyString(),anyString(),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
+   when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),anyString(),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
    var d=generator.generate(s.adapter(),s.observation(),"mock-"+UUID.randomUUID());assertFalse(d.fallback(),s.id()+":"+d.diagnostics());return d;
   };
   var pilot=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("pilot.json"),Map.of(),"PILOT",Set.of(),generate);pilot.run();
   var remaining=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("remaining.json"),ConversationValidation.read(pilot.output),"REMAINING",Set.of(),generate);remaining.run();
   assertEquals(96,remaining.rows.values().stream().filter(r->"GENERATED".equals(r.get("status"))).count());
-  verify(client,times(96)).chatCompletions(anyString(),anyLong(),anyString(),anyString(),anyList(),anyString(),anyInt());
+  assertEquals(96, mockingDetails(client).getInvocations().size());
  }
 }

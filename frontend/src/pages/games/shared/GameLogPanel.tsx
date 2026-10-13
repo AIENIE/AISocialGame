@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { gameplayApi } from "@/services/api";
 import { GameLogEntry } from "@/types";
+import { systemEventMessage } from "./roomEvents";
 import { presentationText } from "./aiPresentation";
 
 interface GameLogPanelProps {
@@ -54,7 +55,7 @@ function VirtualLogRow({ log, itemKey, top, onMeasure, language }: {
         {Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" })}
       </time>
       <div className="min-w-0 flex-1">
-        <span className="whitespace-pre-wrap break-words">{log.message}</span>
+        <span className="whitespace-pre-wrap break-words">{systemEventMessage(log, language)}</span>
         {cue && <span data-testid="ai-presentation" className="ml-2 text-xs italic text-muted-foreground motion-reduce:transition-none">· {cue}</span>}
       </div>
     </div>

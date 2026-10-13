@@ -257,8 +257,10 @@ public class V2GameService {
                     var receipt = rules.commitmentAction(state, turn.actorId(), RuleSupport.action("SKIP", "", null));
                     int actionStart = RuleSupport.maps(state.getData().get("events")).size();
                     AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
-                    rules.onAiFailure(state, turn, now);
-                    AiCommitments.submitted(state, receipt, "LEGAL_FALLBACK", actionStart);
+                    if (rules instanceof com.aisocialgame.engine.v2.undercover.UndercoverRuleSet undercover)
+                        undercover.onAiFailure(state, turn, now, Set.of("TIMEOUT", "NO_ACTION_BUDGET", "RECOVERY_TIMEOUT").contains(reason) ? "TIMEOUT" : "REQUEST_FAILED");
+                    else rules.onAiFailure(state, turn, now);
+                    AiCommitments.submitted(state, receipt, "undercover".equals(state.getGameId()) ? reason : "LEGAL_FALLBACK", actionStart);
                 }
                 finishJob(job, "FAILED", reason); persist(room, state, rules, false);
             } else finishJob(job, "DISCARDED", "TURN_OBSOLETE");

@@ -47,6 +47,10 @@ import java.util.UUID;
 
 @Service
 public class ProjectCreditService {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.aisocialgame.service.credit.TemporaryCreditService temporaryCredits;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.aisocialgame.repository.credit.AiCreditReservationRepository aiReservations;
     private static final String CREDIT_TYPE_UNSPECIFIED = "CREDIT_TYPE_UNSPECIFIED";
     private static final String CREDIT_TYPE_TEMP = "CREDIT_TYPE_TEMP";
     private static final String CREDIT_TYPE_PERMANENT = "CREDIT_TYPE_PERMANENT";
@@ -100,6 +104,10 @@ public class ProjectCreditService {
         if (isTempExpired(account, now)) {
             tempBalance = 0;
             tempExpiresAt = null;
+        }
+        if (temporaryCredits != null) {
+            tempBalance = Math.addExact(tempBalance, temporaryCredits.returnedBalance(account));
+            tempExpiresAt = temporaryCredits.earliestExpiry(account, tempExpiresAt);
         }
         return new BalanceSnapshot(
                 publicPermanentTokens,
@@ -363,14 +371,16 @@ public class ProjectCreditService {
         CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
         expireTempIfNeeded(account, publicTokens);
 
-        long available = Math.max(0, account.getTempBalance()) + Math.max(0, account.getPermanentBalance());
+        long temporaryBalance = temporaryCredits == null ? account.getTempBalance() : temporaryCredits.balance(account, Instant.now());
+        long available = Math.addExact(Math.max(0, temporaryBalance), Math.max(0, account.getPermanentBalance()));
         if (available < billedTokens) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "专属积分不足，请先充值或兑换");
         }
 
-        long consumeTemp = Math.min(account.getTempBalance(), billedTokens);
+        long consumeTemp = Math.min(temporaryBalance, billedTokens);
         long consumePermanent = billedTokens - consumeTemp;
-        account.setTempBalance(account.getTempBalance() - consumeTemp);
+        if (temporaryCredits == null) account.setTempBalance(account.getTempBalance() - consumeTemp);
+        else temporaryCredits.take(account, consumeTemp, Instant.now());
         account.setPermanentBalance(account.getPermanentBalance() - consumePermanent);
         if (account.getTempBalance() == 0) {
             account.setTempExpiresAt(null);
@@ -578,6 +588,9 @@ public class ProjectCreditService {
         if (original.getUserId() != userId) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "原始流水用户不匹配");
         }
+        if ("AI_BUDGET".equals(original.getSource())) {
+            throw new ApiException(HttpStatus.CONFLICT, "AI 预算流水须通过调用对账处理，不能单独冲正");
+        }
         if ("REVERSAL".equalsIgnoreCase(original.getType())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "冲正流水不允许再次冲正");
         }
@@ -635,6 +648,9 @@ public class ProjectCreditService {
         }
 
         CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
+        if (aiReservations != null && aiReservations.existsByUserIdAndProjectKey(userId, appProperties.getProjectKey())) {
+            throw new ApiException(HttpStatus.CONFLICT, "已有 AI 预算流水，不能再用历史快照覆盖项目余额");
+        }
         long deltaTemp = projectTempTokens - account.getTempBalance();
         long deltaPermanent = projectPermanentTokens - account.getPermanentBalance();
         account.setTempBalance(Math.max(0, projectTempTokens));
@@ -744,6 +760,10 @@ public class ProjectCreditService {
         if (isTempExpired(account, Instant.now())) {
             temp = 0;
             expiresAt = null;
+        }
+        if (temporaryCredits != null) {
+            temp = Math.addExact(temp, temporaryCredits.returnedBalance(account));
+            expiresAt = temporaryCredits.earliestExpiry(account, expiresAt);
         }
         return new BalanceSnapshot(publicPermanentTokens, temp, account.getPermanentBalance(), expiresAt);
     }

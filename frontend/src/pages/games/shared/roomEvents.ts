@@ -40,3 +40,14 @@ export function revealedBallot(state: GameState, logs: GameLogEntry[]) {
   if (result?.votes && result?.tally) return { votes: result.votes as Record<string, string>, tally: result.tally as Record<string, number>, round: result.round as number };
   return undefined;
 }
+
+/** Old events retain their original text; only structured skip reasons are translated. */
+export function systemEventMessage(log: GameLogEntry, language: string): string {
+  const { reason, action, actorName } = log.metadata || {};
+  if (!["SKIP", "TIMEOUT", "SYSTEM_LOG"].includes(log.type) || !["REQUEST_FAILED", "TIMEOUT"].includes(String(reason))
+    || !["SPEAK", "VOTE"].includes(String(action)) || typeof actorName !== "string") return log.message;
+  const voting = action === "VOTE", timeout = reason === "TIMEOUT";
+  if (language.startsWith("en")) return `${actorName}: ${voting ? "abstained" : "speaking turn skipped"} (${timeout ? "timed out" : "request failed"}).`;
+  if (language === "zh-TW" || language === "zh-HK") return `${actorName}因${timeout ? "逾時" : "請求失敗"}${voting ? "，自動棄票。" : "，跳過本次發言。"}`;
+  return `${actorName}因${timeout ? "超时" : "请求失败"}${voting ? "，自动弃票。" : "，跳过本次发言。"}`;
+}

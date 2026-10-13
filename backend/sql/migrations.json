@@ -56,6 +56,11 @@
       "ordinal": 11,
       "kind": "upgrade",
       "file": "20261008_room_lifecycle.sql"
+    },
+    {
+      "ordinal": 12,
+      "kind": "upgrade",
+      "file": "20261002_ai_credit_escrow.sql"
     }
   ],
   "execution_plans": [
@@ -71,7 +76,8 @@
         8,
         9,
         10,
-        11
+        11,
+        12
       ]
     },
     {
@@ -85,7 +91,8 @@
         8,
         9,
         10,
-        11
+        11,
+        12
       ]
     }
   ],

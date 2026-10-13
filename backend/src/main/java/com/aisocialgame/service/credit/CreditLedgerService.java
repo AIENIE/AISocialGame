@@ -20,6 +20,8 @@ import java.util.Map;
 
 @Service
 public class CreditLedgerService {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemporaryCreditService temporaryCredits;
     private final CreditLedgerEntryRepository creditLedgerEntryRepository;
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
@@ -101,6 +103,15 @@ public class CreditLedgerService {
                                   Map<String, String> metadata,
                                   Long relatedEntryId,
                                   CreditAccount account) {
+        insertLedgerEntry(requestId, userId, type, deltaTemp, deltaPermanent, deltaPublic,
+                publicBalance, source, metadata, relatedEntryId, account, null);
+    }
+
+    public void insertLedgerEntry(String requestId, long userId, String type, long deltaTemp,
+                                  long deltaPermanent, long deltaPublic, long publicBalance,
+                                  String source, Map<String, String> metadata, Long relatedEntryId,
+                                  CreditAccount account,
+                                  com.aisocialgame.integration.grpc.dto.BalanceSnapshot snapshot) {
         if (creditLedgerEntryRepository.findByRequestId(requestId).isPresent()) {
             return;
         }
@@ -112,8 +123,13 @@ public class CreditLedgerService {
         entry.setTokenDeltaTemp(deltaTemp);
         entry.setTokenDeltaPermanent(deltaPermanent);
         entry.setTokenDeltaPublic(deltaPublic);
-        entry.setBalanceTemp(account.getTempBalance());
+        entry.setBalanceTemp(temporaryCredits == null ? account.getTempBalance()
+                : temporaryCredits.balance(account, java.time.Instant.now()));
         entry.setBalancePermanent(account.getPermanentBalance());
+        if (snapshot != null) {
+            entry.setBalanceTemp(snapshot.projectTempTokens());
+            entry.setBalancePermanent(snapshot.projectPermanentTokens());
+        }
         entry.setBalancePublic(publicBalance);
         entry.setSource(source);
         entry.setMetadataJson(serializeMetadata(metadata));

@@ -677,7 +677,7 @@ public class GameRuntimeSupport {
             if (speaker != null && !speakerList(state).contains(speaker.getPlayerId())) {
                 if (speaker.isAi()) {
                     AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                    addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
+                    logUndercoverSpeech(state, speaker, decision);
                     addSpeaker(state, speaker.getPlayerId());
                     moveUndercoverToNextSpeaker(state, room);
                     changed = true;
@@ -685,7 +685,7 @@ public class GameRuntimeSupport {
                     if (isPlayerDisconnected(speaker)) {
                         markAiTakeover(state, speaker);
                         AiDecisionResult decision = aiDecisionService.generateSpeech(state, speaker);
-                        addLog(state, "speak", speaker.getDisplayName() + "（托管）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
+                        logUndercoverSpeech(state, speaker, decision);
                     } else {
                         addLog(state, "system", speaker.getDisplayName() + " 发言超时，自动跳过");
                     }
@@ -906,6 +906,14 @@ public class GameRuntimeSupport {
                 continue;
             }
             AiDecisionResult decision = aiDecisionService.decideVote(state, player);
+            if ("undercover".equals(state.getGameId()) && (decision.fallback() || !StringUtils.hasText(decision.targetPlayerId())
+                    || targets.stream().noneMatch(t -> t.getPlayerId().equals(decision.targetPlayerId())))) {
+                votes.put(player.getPlayerId(), "abstain");
+                addLog(state, "system", player.getDisplayName() + "因请求失败，自动弃票。",
+                        Map.of("reason", "REQUEST_FAILED", "action", "VOTE", "actorName", player.getDisplayName()));
+                changed = true;
+                continue;
+            }
             String decidedTargetPlayerId = decision.targetPlayerId();
             String targetPlayerId = decidedTargetPlayerId;
             if (!StringUtils.hasText(decidedTargetPlayerId) || targets.stream().noneMatch(t -> t.getPlayerId().equals(decidedTargetPlayerId))) {
@@ -1295,6 +1303,13 @@ public class GameRuntimeSupport {
             data.put("metadata", metadata);
         }
         gameEventRecorder.recordPublic(state, eventTypeForLog(type), null, null, data);
+    }
+
+    private void logUndercoverSpeech(GameState state, GamePlayerState speaker, AiDecisionResult decision) {
+        if (decision.fallback() || !StringUtils.hasText(decision.content())) {
+            addLog(state, "system", speaker.getDisplayName() + "因请求失败，跳过本次发言。",
+                    Map.of("reason", "REQUEST_FAILED", "action", "SPEAK", "actorName", speaker.getDisplayName()));
+        } else addLog(state, "speak", speaker.getDisplayName() + "（AI）：" + safeAiSpeech(state, speaker, decision), decision.logMetadata());
     }
 
     private String safeAiSpeech(GameState state, GamePlayerState speaker, AiDecisionResult decision) {

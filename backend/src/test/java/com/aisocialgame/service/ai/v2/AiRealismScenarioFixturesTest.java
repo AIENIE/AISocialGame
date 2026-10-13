@@ -51,7 +51,7 @@ class AiRealismScenarioFixturesTest {
         var samples = new java.util.ArrayList<java.util.Map<String, Object>>();
         for (var scenario : fixtures.load()) {
             var o = scenario.observation();
-            var decision = AiTurnDecision.fallback(scenario.adapter().fallback(o));
+            var decision = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(scenario.adapter(), o));
             assertTrue(o.legalActions().stream().anyMatch(a -> a.type().equals(decision.action().getType())), scenario.id());
             assertTrue(scenario.adapter().validateDecision(o, decision).isEmpty(), scenario.id());
             samples.add(java.util.Map.of("scenarioId", scenario.id(), "decision", decision, "continuity", AiGrounding.context(o)));

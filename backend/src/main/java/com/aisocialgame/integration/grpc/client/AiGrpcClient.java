@@ -41,6 +41,9 @@ public class AiGrpcClient {
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.service.safety.AiCallAdmission admission;
 
+    @Autowired
+    private com.aisocialgame.service.credit.BoundedAiClient boundedClient;
+
     public List<AiModelOptionDto> listModels(long userId) {
         try {
             var response = aiStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).listModels(ListModelsRequest.newBuilder()
@@ -72,8 +75,19 @@ public class AiGrpcClient {
 
     public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, String model,
                                         List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
+        return chat(projectKey, userId, sessionId, model, messages, requestId, deadlineSeconds, false);
+    }
+
+    /** Only the undercover generation path opts into the restored budget transport. */
+    public AiChatResult undercoverChatCompletions(String projectKey, long userId, String sessionId, String model,
+            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
+        return chat(projectKey, userId, sessionId, model, messages, requestId, deadlineSeconds, true);
+    }
+
+    private AiChatResult chat(String projectKey, long userId, String sessionId, String model,
+            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds, boolean undercover) {
         AppProperties.requireCanonicalProjectKey(projectKey);
-        requireBoundedBudget();
+        if (undercover) boundedClient.requireReady(); else requireBoundedBudget();
         if (admission!=null) admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model));
         boolean answered=false;
         try {
@@ -94,9 +108,9 @@ public class AiGrpcClient {
                             .build());
                 }
             }
-            if (callBudget != null) callBudget.consume();
+            if (!undercover && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
-            var response = stub.chatCompletions(builder.build());
+            var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds) : stub.chatCompletions(builder.build());
             if (admission!=null) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
             return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens());

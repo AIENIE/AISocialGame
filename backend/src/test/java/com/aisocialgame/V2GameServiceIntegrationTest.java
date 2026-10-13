@@ -119,7 +119,7 @@ class V2GameServiceIntegrationTest {
         var recovery = jobs.findRecoveryCandidates("RUNNING", org.springframework.data.domain.PageRequest.of(0, 64)).stream().filter(c -> queued.getId().equals(c.getId())).findFirst().orElseThrow();
         assertNotNull(recovery.getDiagnostics().get("startedEpochMs"));
         assertFalse(recovery.getDiagnostics().containsKey("observation"));
-        when(client.chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt())).thenAnswer(call -> {
+        when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt())).thenAnswer(call -> {
             assertFalse(TransactionSynchronizationManager.isActualTransactionActive(), "model request must release the transaction");
             return new AiChatResult("{\"action\":{\"type\":\"SPEAK\",\"content\":\"我先从实际使用场景来描述，再听听大家的说法。\"},\"speech\":\"我先从实际使用场景来描述，再听听大家的说法。\"}", "test-model", 30, 20);
         });
@@ -138,11 +138,11 @@ class V2GameServiceIntegrationTest {
         assertFalse(json.writeValueAsString(diagnostic).contains("我先从实际"));
         long count = events.countByArchiveId(queued.getInstanceId());
         VisibleObservation observation = json.convertValue(queued.getObservation(), VisibleObservation.class);
-        runtime.complete(queued.getId(), AiTurnDecision.fallback(runtime.rules("undercover").fallback(observation)));
+        runtime.complete(queued.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
         assertEquals(diagnostic, jobs.findById(queued.getId()).orElseThrow().getDiagnostics());
         assertEquals(count, events.countByArchiveId(queued.getInstanceId()));
         assertEquals(1, traces.findAll().stream().filter(t -> queued.getId().equals(t.getQuality().get("jobId"))).count());
-        verify(client, times(1)).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt());
+        verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt());
     }
 
     @Test void rollbackRecoveryRecordsFailureWithoutSuccessTraceAndLateCompletionCannotRewriteIt() throws Exception {
@@ -175,7 +175,7 @@ class V2GameServiceIntegrationTest {
         String instance = String.valueOf(states.findById(room.getId()).orElseThrow().getData().get("archiveId"));
         assertNotEquals(old.getInstanceId(), instance);
         long count = events.countByArchiveId(instance);
-        runtime.complete(old.getId(), AiTurnDecision.fallback(runtime.rules("undercover").fallback(observation)));
+        runtime.complete(old.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
         assertEquals("DISCARDED", jobs.findById(old.getId()).orElseThrow().getStatus());
         assertEquals("INSTANCE_UNAVAILABLE", jobs.findById(old.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
         assertEquals(count, events.countByArchiveId(instance));
@@ -228,7 +228,7 @@ class V2GameServiceIntegrationTest {
         for (int i = 0; i < 4; i++) {
             AiTurnJob description = coordinator.claim(queued(room.getId()).getId());
             VisibleObservation observation = json.convertValue(description.getObservation(), VisibleObservation.class);
-            runtime.complete(description.getId(), AiTurnDecision.fallback(runtime.rules("undercover").fallback(observation)));
+            runtime.complete(description.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
         }
         AiTurnJob ballot = coordinator.claim(queued(room.getId()).getId());
         GameState state = states.findById(room.getId()).orElseThrow();
@@ -250,7 +250,7 @@ class V2GameServiceIntegrationTest {
         Room room = room(true); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
         VisibleObservation observation = json.convertValue(job.getObservation(), VisibleObservation.class);
-        AiTurnDecision result = AiTurnDecision.fallback(runtime.rules("undercover").fallback(observation));
+        AiTurnDecision result = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation));
         GameState state = states.findById(room.getId()).orElseThrow();
         state.setPhaseEndsAt(java.time.LocalDateTime.now().minusSeconds(1)); states.saveAndFlush(state);
 

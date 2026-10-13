@@ -383,13 +383,7 @@ public class AiDecisionService {
     }
 
     private String fallbackSpeech(AiGameContext context) {
-        if ("undercover".equals(context.gameId())) {
-            String word = context.self().word();
-            if (!StringUtils.hasText(word)) {
-                return "这个东西不好直说，我先听听大家怎么描述。";
-            }
-            return word.length() <= 2 ? "它很常见，但细节上容易和别的东西混淆。" : "它很有辨识度，不过我不想把范围说得太死。";
-        }
+        if ("undercover".equals(context.gameId())) return "";
         if ("werewolf".equals(context.gameId())) {
             return "我先按发言和投票逻辑看，暂时更关注前后说法不一致的人。";
         }
@@ -397,6 +391,7 @@ public class AiDecisionService {
     }
 
     private String fallbackVoteTarget(AiGameContext context) {
+        if ("undercover".equals(context.gameId())) return null;
         return context.players().stream()
                 .filter(p -> p.alive() && !p.playerId().equals(context.self().playerId()))
                 .sorted(Comparator

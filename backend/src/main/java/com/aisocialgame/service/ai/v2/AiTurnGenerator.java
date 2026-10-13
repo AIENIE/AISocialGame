@@ -20,7 +20,7 @@ import java.util.function.LongSupplier;
 /** Remote work only; the caller must not hold a game transaction while invoking this service. */
 @Service
 public class AiTurnGenerator {
-    public static final String PROMPT_VERSION = "social-v2.8";
+    public static final String PROMPT_VERSION = "social-v2.9";
     public static final long MAX_DECISION_MILLIS = 50_000;
     private static final int MAX_REQUEST_SECONDS = 45;
     public static final Set<String> EMOTIONS = Set.of("neutral", "curious", "tense", "relieved", "uncertain", "amused", "determined", "disappointed");
@@ -47,8 +47,12 @@ public class AiTurnGenerator {
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId) {
         return generate(adapter, observation, jobId, MAX_DECISION_MILLIS);
     }
-    /** Both attempts share one monotonic budget; a runtime caller may further restrict it. */
+    /** All attempts share one monotonic budget; a runtime caller may further restrict it. */
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis) {
+        return generate(adapter, observation, jobId, remainingTurnMillis, () -> true);
+    }
+    public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis,
+                                   java.util.function.BooleanSupplier turnCurrent) {
         long started = nanoTime.getAsLong();
         long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(MAX_DECISION_MILLIS, remainingTurnMillis)));
         List<String> failures = List.of();
@@ -59,7 +63,11 @@ public class AiTurnGenerator {
         Map<String, Object> stages = new LinkedHashMap<>();
         stages.put("initialBudgetMs", TimeUnit.NANOSECONDS.toMillis(budgetNanos));
         stages.put("inputFormatVersion", AiPromptProjection.VERSION);
-        for (int attempt = 0; attempt < 2; attempt++) {
+        boolean undercover = "undercover".equals(observation.gameId());
+        for (int attempt = 0; attempt < (undercover ? 4 : 2); attempt++) {
+            if (undercover && !turnCurrent.getAsBoolean()) {
+                failures = List.of("TURN_OBSOLETE"); break;
+            }
             long remaining = remainingNanos(started, budgetNanos);
             if (attempt > 0) stages.put("repairRemainingMs", TimeUnit.NANOSECONDS.toMillis(remaining));
             if (remaining < TimeUnit.SECONDS.toNanos(attempt == 0 ? 1 : 5)) {
@@ -90,12 +98,14 @@ public class AiTurnGenerator {
                 if (requestSeconds <= 0) { failures = deadlineFailure(failures); break; }
                 sample.put("requestTimeoutMs", requestSeconds * 1000);
                 sample.put("requestRemainingMs", TimeUnit.NANOSECONDS.toMillis(remainingNanos(started, budgetNanos)));
+                if (undercover && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
                 calls++;
                 AiChatResult response;
                 stage = "RPC";
                 long rpc = nanoTime.getAsLong();
                 try {
-                    response = client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
+                    response = undercover ? client.undercoverChatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
+                            messages, jobId + ":" + attempt, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
                             messages, jobId + ":" + attempt, requestSeconds);
                 } finally { sample.put("rpcMs", elapsed(rpc)); }
                 stage = "PARSE";
@@ -134,13 +144,20 @@ public class AiTurnGenerator {
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
                 failures = List.of("RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
-                sample.put("failureStage", stage); break;
+                sample.put("failureStage", stage);
+                if (!(undercover && "RPC".equals(stage) && retryable(ex))) break;
             } finally { sample.put("flags", failures); }
         }
+        if (remainingNanos(started, budgetNanos) == 0) failures = deadlineFailure(failures);
         long fallbackStarted = nanoTime.getAsLong();
         AiTurnDecision fallback;
         List<String> fallbackErrors;
         stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
+        if (undercover) {
+            String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT" : "REQUEST_FAILED";
+            throw new GenerationFailure(reason, diagnostics(new AiTurnDecision(null, "", Map.of(), List.of(), Map.of(), false, Map.of()),
+                    started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages).diagnostics());
+        }
         try {
             fallback = AiTurnDecision.fallback(adapter.fallback(observation));
             fallbackErrors = validate(adapter, observation, fallback);
@@ -219,7 +236,7 @@ public class AiTurnGenerator {
         metrics.put("latencyMs", Math.max(0, (nanoTime.getAsLong() - started) / 1_000_000)); metrics.put("calls", calls);
         if (calls == 0 || RuleSupport.number(stages.get("responsesObserved"), 0) > 0) { metrics.put("promptTokens", input); metrics.put("completionTokens", output); } metrics.put("modelKey", model == null ? "" : model);
         metrics.put("qualityFlags", errors); metrics.put("rawOutput", raw); metrics.put("promptVersion", PROMPT_VERSION);
-        metrics.put("attempts", attempts); metrics.put("repaired", !decision.fallback() && calls == 2);
+        metrics.put("attempts", attempts); metrics.put("repaired", decision.action() != null && !decision.fallback() && calls > 1);
         return new AiTurnDecision(decision.action(), decision.speech(), decision.presentation(), decision.evidenceEventIds(), decision.memoryUpdates(), decision.fallback(), metrics);
     }
     private static String normalize(String value) { return value.replaceAll("[\\s\\p{Punct}，。！？：；、]", ""); }
@@ -231,7 +248,11 @@ public class AiTurnGenerator {
         if (!result.contains("DECISION_DEADLINE_EXCEEDED")) result.add("DECISION_DEADLINE_EXCEEDED");
         return List.copyOf(result);
     }
+    private static boolean retryable(Exception ex) {
+        return ex instanceof com.aisocialgame.exception.ApiException api && "AI_REQUEST_NOT_SENT".equals(api.getCode());
+    }
     private static String classifyFailure(Exception ex) {
+        if (ex instanceof com.aisocialgame.exception.ApiException api && api.getCode() != null) return api.getCode();
         if (ex instanceof AiCallBlockedException blocked) return blocked.reason().name();
         // Preserve status, not a guessed billing/capacity explanation from arbitrary message text.
         return switch (io.grpc.Status.fromThrowable(ex).getCode()) {

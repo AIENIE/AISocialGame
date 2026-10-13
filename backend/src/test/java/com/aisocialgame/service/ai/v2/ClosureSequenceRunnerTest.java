@@ -10,7 +10,7 @@ class ClosureSequenceRunnerTest {
         var fixtures=new MilestoneClosureScenarios();List<MilestoneClosureScenarios.Sample> samples=new ArrayList<>();
         List<Map<String,Object>> exported=new ArrayList<>();
         fixtures.sequences(s->{
-            samples.add(s);var decision=AiTurnDecision.fallback(s.adapter().fallback(s.observation()));
+            samples.add(s);var decision=AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation()));
             var row=new LinkedHashMap<String,Object>(s.metadata());row.put("coverage",s.coverage());row.put("observation",s.observation());row.put("decision",decision);row.put("status","LOCAL_FALLBACK");exported.add(row);return decision;
         });
         var document=MilestoneClosureScenarios.header("offline-rule-sequences","SYNTHETIC_TEST");document.put("samples",exported);
@@ -34,7 +34,7 @@ class ClosureSequenceRunnerTest {
             List<MilestoneClosureScenarios.Sample> rows=new ArrayList<>();
             new MilestoneClosureScenarios().sequences(s->{
                 rows.add(s);var o=s.observation();String step=text(s.expected().get("stepId"));
-                var selected=s.adapter().fallback(o);String speech=selected.getContent();Map<String,Object> updates=new LinkedHashMap<>();
+                var selected=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), o);String speech=selected.getContent();Map<String,Object> updates=new LinkedHashMap<>();
                 String target=o.players().stream().map(p->text(p.get("playerId"))).filter(id->!id.equals(o.actorId())).findFirst().orElseThrow();
                 if("INITIAL".equals(step)&&!"turtle_soup".equals(o.gameId())){
                     speech=("undercover".equals(o.gameId())?"我本轮复投投给":"我本轮投给")+target;selected.setContent(speech);

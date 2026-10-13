@@ -173,26 +173,35 @@ public final class UndercoverRuleSet implements GameRuleSet {
         }
         if ("SETTLEMENT".equals(state.getPhase()) || !expired(state, now)) return;
         if (VOTING_PHASES.contains(state.getPhase())) {
-            for (GamePlayerState actor : alive(state)) if (!votes(state).containsKey(actor.getPlayerId())) submitVote(state, actor, "abstain");
+            for (GamePlayerState actor : alive(state)) if (!votes(state).containsKey(actor.getPlayerId())) {
+                event(state, "TIMEOUT", actor.getPlayerId(), null, actor.getDisplayName() + "投票超时，自动弃票。",
+                        Map.of("reason", "TIMEOUT", "action", "VOTE", "actorName", actor.getDisplayName()));
+                submitVote(state, actor, "abstain");
+            }
             resolveVote(state, now);
             return;
         }
-        current(state).ifPresent(actor -> event(state, "TIMEOUT", actor.getPlayerId(), null, actor.getDisplayName() + "本次发言超时，自动跳过。", Map.of()));
+        current(state).ifPresent(actor -> event(state, "TIMEOUT", actor.getPlayerId(), null, actor.getDisplayName() + "本次发言超时，自动跳过。", Map.of("reason", "TIMEOUT", "action", "SPEAK", "actorName", actor.getDisplayName())));
         completeCurrentSpeech(state, now);
     }
 
     @Override public void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now) {
         if (!isTurnCurrent(state, turn)) return;
-        if ("DESCRIPTION".equals(state.getPhase())) {
-            GamePlayerState actor = player(state, turn.actorId());
-            event(state, "TIMEOUT", actor.getPlayerId(), null,
-                    actor.getDisplayName() + "本次未能完成描述，跳过这一发言机会。", Map.of());
-            completeCurrentSpeech(state, now);
-            return;
-        }
-        // In a simultaneous ballot, the shared default submits only this AI's
-        // legal abstention; it must not advance the deadline for other voters.
-        GameRuleSet.super.onAiFailure(state, turn, now);
+        onAiFailure(state, turn, now, "REQUEST_FAILED");
+    }
+
+    public void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now, String reason) {
+        if (!isTurnCurrent(state, turn)) return;
+        GamePlayerState actor = player(state, turn.actorId());
+        boolean voting = VOTING_PHASES.contains(state.getPhase());
+        String label = "TIMEOUT".equals(reason) ? "超时" : "请求失败";
+        event(state, "SKIP", actor.getPlayerId(), null,
+                actor.getDisplayName() + "因" + label + (voting ? "，自动弃票。" : "，跳过本次发言。"),
+                Map.of("reason", reason, "action", voting ? "VOTE" : "SPEAK", "actorName", actor.getDisplayName()));
+        if (voting) {
+            submitVote(state, actor, "abstain");
+            if (votes(state).size() == alive(state).size()) resolveVote(state, now);
+        } else completeCurrentSpeech(state, now);
     }
 
     @Override public List<LegalAction> legalActions(GameState state, String actorId) {
@@ -300,46 +309,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
     }
 
     @Override public PlayerAction fallback(VisibleObservation observation) {
-        boolean canSkip = observation.legalActions().stream().anyMatch(a -> "SKIP".equals(a.type()));
-        if (canSkip) return action("SKIP", "", null);
-        Map<String, Object> own = map(observation.privateFacts().get("wordKnowledge"));
-        List<String> cues = new ArrayList<>(strings(own.get("attributes"))); cues.addAll(strings(own.get("scenes")));
-        Set<String> used = new LinkedHashSet<>(strings(observation.memory().get("usedDescriptions")));
-        int variation = Math.floorMod(Objects.hash(observation.actorId(), observation.round()), 4);
-        String[] prefixes = {"我想到的一个特点是", "换个角度说，", "对我来说，", "我补一个细节："};
-        String content = "目前没有足够线索，我还不能确定范围，先保留判断。";
-        if (!cues.isEmpty()) {
-            List<String> previous = new ArrayList<>(used);
-            observation.events().stream().filter(e -> observation.actorId().equals(e.get("actorId")))
-                    .map(com.aisocialgame.service.ai.v2.AiGrounding::content).forEach(previous::add);
-            maps(observation.memory().get("recentDecisions")).forEach(d -> previous.add(text(d.get("speech"))));
-            int max = 90;
-            String cue = cues.stream().filter(c -> previous.stream().noneMatch(p -> p.contains(c)))
-                    .filter(c -> !catalog.containsForbidden(c, text(observation.privateFacts().get("word"))))
-                    .filter(c -> c.codePointCount(0, c.length()) <= max - 20).findFirst().orElse("");
-            content = cue.isBlank() ? "我暂时想不到不重复的新线索，先保留判断。"
-                    : prefixes[variation] + cue + "。";
-        } else if (observation.events().stream().anyMatch(e -> "SPEAK".equals(e.get("type")))) {
-            content = "前面的线索还不足以让我确定范围，我先保留判断。";
-        }
-        String word = text(observation.privateFacts().get("word"));
-        if ("DESCRIPTION".equals(observation.phase()) && acknowledgedCivilianVote(observation))
-            content = "刚才我投的人公开为平民了，我得重新核对判断。" + content;
-        if (catalog.containsForbidden(content, word)) content = "我先从自己熟悉的场景来想，还不想把范围说死。";
-        if (content.codePointCount(0, content.length()) > 90) content = "刚才我投的人公开为平民了，我得重新核对判断。";
-        return action("SPEAK", content, null);
-    }
-
-    private boolean acknowledgedCivilianVote(VisibleObservation observation) {
-        List<Map<String, Object>> events = observation.events();
-        String target = "";
-        for (Map<String, Object> e : events) {
-            if (number(e.get("round"), -1) != observation.round() - 1) continue;
-            if ("VOTE_REVEAL".equals(e.get("type"))) target = text(map(map(e.get("data")).get("votes")).get(observation.actorId()));
-            if (!target.isBlank() && target.equals(e.get("actorId")) && "ELIMINATED".equals(e.get("type"))
-                    && "CIVILIAN".equals(map(e.get("data")).get("role"))) return true;
-        }
-        return false;
+        throw new IllegalStateException("Undercover requires a model decision; recover through onAiFailure");
     }
 
     @Override public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {

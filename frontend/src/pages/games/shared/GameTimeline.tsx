@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { GameLogEntry, GamePlayerStateView } from "@/types";
 import { presentationText } from "./aiPresentation";
-import { eventContent, eventKey, isHostEvent, isSpeechEvent } from "./roomEvents";
+import { eventContent, eventKey, isHostEvent, isSpeechEvent, systemEventMessage } from "./roomEvents";
 import { useRoomText } from "./roomText";
 
 interface Props {
@@ -83,7 +83,7 @@ export function GameTimeline({ logs, players, myPlayerId, history = false, hasMo
                 </div>
                 {cue && <p className="room-message-cue" data-testid="ai-presentation">{cue}</p>}
               </div>
-            </article> : <div className="room-system-event" data-testid="game-system-event">{log.message}</div>}
+            </article> : <div className="room-system-event" data-testid="game-system-event">{systemEventMessage(log, i18n.language)}</div>}
           </div>;
         })}
       </div>

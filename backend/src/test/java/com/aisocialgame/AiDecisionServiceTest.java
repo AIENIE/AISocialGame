@@ -53,7 +53,7 @@ class AiDecisionServiceTest {
     }
 
     @Test
-    void illegalAiVoteFallsBackToDeterministicLegalTarget() {
+    void illegalUndercoverVoteHasNoInventedTarget() {
         AiGrpcClient aiGrpcClient = mock(AiGrpcClient.class);
         when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), anyString(), any()))
                 .thenReturn(new AiChatResult("{\"targetSeat\":99,\"reason\":\"非法座位\"}", "test", 1, 1));
@@ -64,7 +64,7 @@ class AiDecisionServiceTest {
 
         AiDecisionResult result = service.decideVote(state, actor);
 
-        Assertions.assertEquals("p3", result.targetPlayerId());
+        Assertions.assertNull(result.targetPlayerId());
         Assertions.assertTrue(result.fallback());
         Assertions.assertTrue(result.qualityFlags().contains("FALLBACK_USED"));
     }

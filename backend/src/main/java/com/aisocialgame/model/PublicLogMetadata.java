@@ -12,6 +12,11 @@ public final class PublicLogMetadata {
         if (eventId != null && !eventId.isBlank()) result.put("eventId", eventId);
         if (publicSeq != null) result.put("publicSeq", publicSeq);
         if (data == null) return result;
+        if (java.util.Set.of("SKIP", "TIMEOUT", "SYSTEM_LOG").contains(type)) {
+            copyString(data, result, "reason", "reason");
+            copyString(data, result, "action", "action");
+            copyString(data, result, "actorName", "actorName");
+        }
         copyString(data, result, "content", "content");
         if ("TURTLE_SOUP_QUESTION".equals(type)) copyString(data, result, "answer", "content");
         if ("TURTLE_SOUP_HINT".equals(type)) copyString(data, result, "hint", "content");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameLogEntry, GameState } from "@/types";
-import { eventContent, isSpeechEvent, mergeEvents, revealedBallot } from "./roomEvents";
+import { systemEventMessage, eventContent, isSpeechEvent, mergeEvents, revealedBallot } from "./roomEvents";
 import { roomActions } from "./roomActions";
 
 const event = (seq: number, fields: Partial<GameLogEntry> = {}): GameLogEntry => ({ type: "SPEECH", message: `legacy ${seq}`, time: "2026-10-07T12:00:00", metadata: { eventId: `e${seq}`, publicSeq: seq, content: `body ${seq}` }, ...fields });
@@ -26,4 +26,14 @@ describe("room presentation", () => {
     expect(roomActions({ extra: { ruleVersion: 2, legalActions: actions } } as unknown as GameState)).toEqual(actions);
     expect(roomActions({ extra: { ruleVersion: 2, legalActions: [] } } as unknown as GameState)).toEqual([]);
   });
+});
+
+it("shows failed AI actions as localized system skips without fabricating speech", () => {
+  const log = event(1, { type: "SKIP", message: "历史文字", metadata: { reason: "REQUEST_FAILED", action: "SPEAK", actorName: "AI 1" } });
+  expect(isSpeechEvent(log)).toBe(false);
+  expect(systemEventMessage(log, "zh-CN")).toBe("AI 1因请求失败，跳过本次发言。");
+  expect(systemEventMessage(log, "zh-TW")).toBe("AI 1因請求失敗，跳過本次發言。");
+  expect(systemEventMessage(log, "en")).toBe("AI 1: speaking turn skipped (request failed).");
+  expect(systemEventMessage({ ...log, metadata: { ...log.metadata, reason: "TIMEOUT", action: "VOTE" } }, "en")).toBe("AI 1: abstained (timed out).");
+  expect(systemEventMessage({ ...log, metadata: {} }, "en")).toBe("历史文字");
 });

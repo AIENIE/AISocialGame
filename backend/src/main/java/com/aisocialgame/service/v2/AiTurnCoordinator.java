@@ -162,7 +162,7 @@ public class AiTurnCoordinator {
             AiTurnDecision decision;
             try (var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
                     .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))))) {
-                decision = generator.generate(rules, observation, job.getId(), remainingMillis);
+                decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0);
             }
             measurements = decision.diagnostics(); submitting = true; submissionStarted = System.nanoTime();
             runtime.complete(job.getId(), decision);
@@ -173,7 +173,7 @@ public class AiTurnCoordinator {
                 measurements.put("submissionFailedMs", Math.max(0, (System.nanoTime() - submissionStarted) / 1_000_000));
             }
             if (ex instanceof AiTurnGenerator.GenerationFailure failure) measurements = failure.diagnostics();
-            String reason = submitting ? "SUBMISSION_EXCEPTION" : ex instanceof AiTurnGenerator.GenerationFailure ? "INVALID_FALLBACK" : "EXECUTION_EXCEPTION";
+            String reason = submitting ? "SUBMISSION_EXCEPTION" : ex instanceof AiTurnGenerator.GenerationFailure failure ? failure.getMessage() : "EXECUTION_EXCEPTION";
             try { runtime.fail(job.getId(), reason, measurements); }
             catch (Exception recoveryError) { log.warn("AI recovery deferred jobId={} errorType={}", job.getId(), recoveryError.getClass().getSimpleName()); }
         }
