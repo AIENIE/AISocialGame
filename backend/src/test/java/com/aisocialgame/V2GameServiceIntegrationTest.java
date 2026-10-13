@@ -44,6 +44,19 @@ class V2GameServiceIntegrationTest {
     @MockitoBean AiGrpcClient client;
     final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
 
+    @Test void deferredJobPersistsRetryCheckpointWithoutExtendingItsExecutionDeadline() {
+        Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
+        var job=coordinator.claim(queued(room.getId()).getId());
+        Object deadline=job.getDiagnostics().get("executionDeadlineEpochMs");
+        runtime.defer(job.getId(),Map.of("nextAttempt",2,"calls",2,"lastOutput",Map.of("action",Map.of("type","SPEAK","content","private fixture"))));
+        var pending=jobs.findById(job.getId()).orElseThrow();assertEquals("QUEUED",pending.getStatus());
+        assertEquals(2,RuleSupport.map(pending.getObservation().get("generationCheckpoint")).get("nextAttempt"));
+        var resumed=coordinator.claim(job.getId());assertEquals(deadline,resumed.getDiagnostics().get("executionDeadlineEpochMs"));
+        runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),false,Map.of()));
+        assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertFalse(states.findById(room.getId()).orElseThrow().getLogs().toString().contains("private fixture"));
+    }
+
     @Test void allBallotsUsePhaseStartSnapshotAndConcurrentCompletionsRevealExactlyOnce() throws Exception {
         Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
         for(int i=0;i<4;i++) {

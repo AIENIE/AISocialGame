@@ -33,16 +33,19 @@ public class BoundedAiClient {
         if(!enabled || maxOutput<=0) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 预算能力暂不可用，请稍后再试","BUDGET_UNAVAILABLE",Map.of());
     }
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds) {
+        return chat(request, deadlineSeconds, () -> {});
+    }
+    public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds,Runnable beforeSend) {
         requireReady();
         escrow.beginRequest(request.getRequestId());
-        try { return execute(request, deadlineSeconds); }
+        try { return execute(request, deadlineSeconds, beforeSend); }
         finally { escrow.endRequest(request.getRequestId()); }
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
         String identity = AiCreditEscrowService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         return reservations.findByIdentityHash(identity).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
     }
-    private ChatCompletionsResponse execute(ChatCompletionsRequest request, int deadlineSeconds) {
+    private ChatCompletionsResponse execute(ChatCompletionsRequest request, int deadlineSeconds, Runnable beforeSend) {
         long remainingSeconds=Math.min(89,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;
@@ -60,7 +63,11 @@ public class BoundedAiClient {
                 long remaining=deadline-System.nanoTime();
                 remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
                 if(remaining<=0) throw io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException();
+                beforeSend.run();
                 callBudget.consume();
+                remaining = deadline-System.nanoTime();
+                remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
+                if (remaining <= 0) throw io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException();
                 stub.withDeadlineAfter(remaining,TimeUnit.NANOSECONDS)
                     .chatCompletions(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
             } catch(RuntimeException failure) {

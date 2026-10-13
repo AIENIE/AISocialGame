@@ -88,7 +88,11 @@ public class AiGrpcClient {
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds, boolean undercover) {
         AppProperties.requireCanonicalProjectKey(projectKey);
         if (undercover) boundedClient.requireReady(); else requireBoundedBudget();
-        if (admission!=null) admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model));
+        var registered = new java.util.concurrent.atomic.AtomicBoolean();
+        Runnable beforeSend = () -> {
+            if (admission != null) { admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model)); registered.set(true); }
+        };
+        if (!undercover) beforeSend.run();
         boolean answered=false;
         try {
             ChatCompletionsRequest.Builder builder = ChatCompletionsRequest.newBuilder()
@@ -111,18 +115,18 @@ public class AiGrpcClient {
             }
             if (!undercover && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
-            var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds) : stub.chatCompletions(builder.build());
-            if (admission!=null) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
+            var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds, beforeSend) : stub.chatCompletions(builder.build());
+            if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
             var metadata = undercover ? boundedClient.metadata(builder.build()) : java.util.Map.<String,Object>of();
             return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens(),
                     response.hasFinishReason() ? response.getFinishReason() : null, response.hasReasoningTokens() ? response.getReasoningTokens() : null,
                     (String) metadata.get("budgetId"), (String) metadata.get("settlementState"));
         } catch (StatusRuntimeException ex) {
-            if(admission!=null)admission.finish(requestId,"RPC_"+ex.getStatus().getCode().name(),null,null);
+            if(registered.get())admission.finish(requestId,"RPC_"+ex.getStatus().getCode().name(),null,null);
             throw toApiException(ex);
         } finally {
-            if (admission!=null && !answered) admission.finish(requestId,"NO_RESPONSE",null,null);
+            if (registered.get() && !answered) admission.finish(requestId,"NO_RESPONSE",null,null);
         }
     }
 
