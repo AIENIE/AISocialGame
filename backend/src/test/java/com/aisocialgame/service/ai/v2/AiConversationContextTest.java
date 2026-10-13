@@ -21,8 +21,8 @@ class AiConversationContextTest {
         return new VisibleObservation(game, "i", phase, 2, "self", "ANSWER_PLAYER", Map.of(), List.of(), Map.of(), events, Map.of(), actions, Map.of(), Map.of(), List.of());
     }
     @Test void onlyCurrentUnansweredQuestionsWithMatchingCapabilityAreReferenced() {
-        for (var rule : List.<GameRuleSet>of(undercover, wolf)) {
-            String phase = rule == undercover ? "RESPONSE" : "DAY_INTERACTION", questionPhase = rule == undercover ? "CHALLENGE" : "DAY_INTERACTION";
+        for (var rule : List.<GameRuleSet>of(wolf)) {
+            String phase = "DAY_INTERACTION", questionPhase = "DAY_INTERACTION";
             var actions = List.of(LegalAction.target("ANSWER_PLAYER", "reply", List.of("asker"), 60));
             var q = event("q", "ASK_PLAYER", "asker", "self", 2, questionPhase, Map.of());
             assertEquals("q", rule.conversation(observation(rule.gameId(), phase, actions, List.of(q))).replyTo().getFirst().eventId());
@@ -35,7 +35,7 @@ class AiConversationContextTest {
                 var answered = event("a", "ANSWER_PLAYER", "self", "asker", 2, phase, data);
                 assertTrue(rule.conversation(observation(rule.gameId(), phase, actions, List.of(q, answered))).replyTo().isEmpty());
             }
-            var skipped = event("skip", rule == undercover ? "SKIP" : "ANSWER_SKIPPED", "self", "asker", 2, phase, Map.of());
+            var skipped = event("skip", "ANSWER_SKIPPED", "self", "asker", 2, phase, Map.of());
             assertTrue(rule.conversation(observation(rule.gameId(), phase, actions, List.of(q, skipped))).replyTo().isEmpty());
             var unrelated = event("a", "ANSWER_PLAYER", "other", "asker", 2, phase, Map.of("questionEventId", "q"));
             assertEquals(1, rule.conversation(observation(rule.gameId(), phase, actions, List.of(q, unrelated))).replyTo().size());
@@ -52,6 +52,10 @@ class AiConversationContextTest {
             assertEquals(List.of(entry.getValue()), wolf.conversation(observation("werewolf", entry.getKey(), skip, List.of())).actions().getFirst().purposes());
         var required = undercover.conversation(observation("undercover", "DESCRIPTION", List.of(LegalAction.text("SPEAK", "describe", 90)), List.of()));
         assertEquals(1, required.actions().size()); assertEquals(List.of("DESCRIBE"), required.actions().getFirst().purposes());
+        var extra = undercover.conversation(observation("undercover", "TIE_DEFENSE", List.of(LegalAction.text("SPEAK", "describe", 60)),
+                List.of(event("old", "ASK_PLAYER", "asker", "self", 2, "CHALLENGE", Map.of()))));
+        assertEquals(List.of("DESCRIBE"), extra.actions().getFirst().purposes());
+        assertTrue(extra.replyTo().isEmpty());
         var shot = wolf.conversation(observation("werewolf", "DEATH_ACTION", List.of(LegalAction.target("HUNTER_SHOOT", "shoot", List.of("other"), 120)), List.of()));
         assertTrue(shot.actions().getFirst().lengthGuide().contains("公开规则"));
         var skill = wolf.conversation(observation("werewolf", "NIGHT", List.of(LegalAction.night("WOLF_KILL", "kill", List.of("other"))), List.of()));

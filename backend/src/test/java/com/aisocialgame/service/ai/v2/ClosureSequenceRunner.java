@@ -53,15 +53,27 @@ final class ClosureSequenceRunner {
                 rule.advance(state,now);
                 if("SETTLEMENT".equals(state.getPhase()))throw new IllegalStateException("SEQUENCE_EARLY_SETTLEMENT:"+rule.gameId()+":"+step);
                 String phase=state.getPhase();
-                if(step==1 && Set.of("CHALLENGE","DAY_INTERACTION").contains(phase)){
+                if(step==1 && "undercover".equals(rule.gameId()) && "VOTING".equals(phase)){
+                    String other=state.getPlayers().stream().map(GamePlayerState::getPlayerId).filter(id->!id.equals(actor)).findFirst().orElseThrow();
+                    submit(actor,action("VOTE",null,other),"SCRIPTED_SETUP");
+                    submit(other,action("VOTE",null,actor),"SCRIPTED_PEER");
+                    int index=0;
+                    for(var p:state.getPlayers()){
+                        if(Set.of(actor,other).contains(p.getPlayerId()))continue;
+                        submit(p.getPlayerId(),index<2?action("VOTE",null,actor):index<4?action("VOTE",null,other):action("SKIP",null,null),"SCRIPTED_PEER");index++;
+                    }
+                    counter=maps(state.getData().get("events")).stream().filter(e->"VOTE_REVEAL".equals(e.get("type"))).map(e->text(e.get("eventId"))).toList();
+                    continue;
+                }
+                if(step==1 && "DAY_INTERACTION".equals(phase)){
                     var asker=state.getPlayers().stream().filter(p->!p.isAi() && rule.legalActions(state,p.getPlayerId()).stream().anyMatch(a->a.type().equals("ASK_PLAYER")&&a.targets().contains(actor))).findFirst();
                     if(asker.isPresent()){
-                        String content="undercover".equals(rule.gameId())?"我撤回刚才关于使用场景一致的判断。你会怎样重新核对描述？":"我撤回把相似发言当作同阵营依据的说法，你现在怎么判断？";
+                        String content="我撤回把相似发言当作同阵营依据的说法，你现在怎么判断？";
                         counter=submit(asker.get().getPlayerId(),action("ASK_PLAYER",content,actor),"SCRIPTED_PEER");continue;
                     }
                 }
                 var turn=rule.pendingTurns(state).stream().filter(t->t.actorId().equals(actor)).findFirst();
-                boolean anchor=switch(step){case 0->Set.of("DESCRIPTION","DAY_DISCUSS").contains(phase);case 1->"RESPONSE".equals(phase)||"DAY_INTERACTION".equals(phase)&&rule.legalActions(state,actor).stream().anyMatch(a->a.type().equals("ANSWER_PLAYER"));case 2->Set.of("VOTING","DAY_VOTE").contains(phase);default->state.getRoundNumber()>1&&Set.of("DESCRIPTION","DAY_DISCUSS").contains(phase);};
+                boolean anchor=switch(step){case 0->Set.of("DESCRIPTION","DAY_DISCUSS").contains(phase);case 1->"TIE_DEFENSE".equals(phase)||"DAY_INTERACTION".equals(phase)&&rule.legalActions(state,actor).stream().anyMatch(a->a.type().equals("ANSWER_PLAYER"));case 2->Set.of("VOTING","RUNOFF","DAY_VOTE").contains(phase);default->state.getRoundNumber()>1&&Set.of("DESCRIPTION","DAY_DISCUSS").contains(phase);};
                 if(turn.isPresent()&&anchor){evaluate(turn.get());continue;}
                 if(step>=2&&"DAY_INTERACTION".equals(phase)){now=now.plusSeconds(61);continue;}
                 boolean moved=false;

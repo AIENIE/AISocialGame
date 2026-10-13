@@ -47,9 +47,9 @@ class AiConversationScenariosTest {
             if ("ai2".equals(s.personaId())) content = "我把判断和确认分开。相似的表述不等于相同的依据。需要核对具体条件。暂时保留另一个解释。";
             if ("ai2".equals(s.personaId()) && "werewolf".equals(o.gameId()) && "SPEAK".equals(type))
                 content = "我把判断和确认分开。相似的发言可以成为询问的起点，但不足以确认阵营。需要核对每个人在什么信息出现后作出表态。现在我保留另一种解释：措辞相近也可能只是注意到了同一处细节。接下来我更关心谁愿意给出具体依据，以及面对反证时怎样回应。这些仍是判断方向，不是身份结论。";
-            if (s.id().endsWith("first_description")) content = "我会把它和熟悉的日常场景联系起来。";
+            if ("undercover".equals(o.gameId()) && "SPEAK".equals(type)) content = "我会把它和熟悉的日常场景联系起来。";
             if ("ASK_QUESTION".equals(type)) content = "事情发生在夜间吗？";
-            if (Set.of("PASS", "SKIP").contains(type)) content = null;
+            if (Set.of("PASS", "SKIP", "VOTE").contains(type)) content = null;
             var a = action(type, content, capability.targets().isEmpty() ? null : capability.targets().getFirst());
             var output = new LinkedHashMap<String,Object>(); output.put("action", a);
             if (!conversation.replyTo().isEmpty()) output.put("evidenceEventIds", List.of(conversation.replyTo().getFirst().eventId()));

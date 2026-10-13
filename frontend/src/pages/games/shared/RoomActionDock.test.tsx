@@ -6,11 +6,12 @@ import { RoomActionDock } from "./RoomActionDock";
 import { useRoomActionController } from "./useRoomActionController";
 import { RoomPlayers } from "./RoomPlayers";
 
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "zh-CN" }, t: (key: string) => key }) }));
+let language = "zh-CN";
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language }, t: (key: string) => key }) }));
 const players = ["me", "p2", "p3"].map((id, index) => ({ playerId: id, displayName: id, seatNumber: index, ai: false, alive: true }));
 const state = (legalActions: LegalAction[], phaseToken = "one", phase = "VOTING"): GameState => ({ roomId: "room", gameId: "undercover", phase, round: 1, myPlayerId: "me", players, logs: [], extra: { ruleVersion: 2, legalActions, phaseToken } });
 let root: Root, container: HTMLDivElement;
-beforeEach(() => { (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
+beforeEach(() => { language = "zh-CN"; (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.clearAllMocks(); });
 function Harness({ value, send, connected = true }: { value: GameState; send: (action: PlayerAction) => Promise<unknown>; connected?: boolean }) {
   const control = useRoomActionController(value, send);
@@ -67,4 +68,25 @@ it("requires an explicit confirmation for the final soup answer", async () => {
   const confirm = [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find(button => button.textContent === "确认提交")!;
   await act(async () => confirm.click());
   expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SUBMIT_SOLUTION", content: "我们的最终推理" });
+});
+
+
+it.each([
+  ["zh-CN", "补充描述你的词语", "提交补充描述", "跳过补充描述"],
+  ["zh-TW", "補充描述你的詞語", "提交補充描述", "跳過補充描述"],
+  ["en", "Add a description of your word", "Submit extra description", "Skip extra description"],
+])("shows word description controls for tied candidates in %s", async (locale, label, submit, skip) => {
+  language = locale;
+  const send = vi.fn().mockResolvedValue(undefined);
+  const actions: LegalAction[] = [{ type: "SPEAK", label: "补充描述", targets: [], maxLength: 60 }, { type: "SKIP", label: "跳过", targets: [], maxLength: 0 }];
+  act(() => root.render(<Harness value={state(actions, "tie", "TIE_DEFENSE")} send={send} />));
+  expect(container.querySelector("textarea")!.getAttribute("aria-label")).toBe(label);
+  expect(container.querySelector('[data-testid="v2-action-submit"]')!.textContent).toBe(submit);
+  expect(container.querySelector('[data-testid="v2-action-skip"]')!.textContent).toBe(skip);
+  expect(container.querySelector('[data-testid="room-choose-target"]')).toBeNull();
+  fill("长".repeat(61));
+  expect(container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.disabled).toBe(true);
+  fill("下雨时我会用到它。");
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SPEAK", content: "下雨时我会用到它。" });
 });

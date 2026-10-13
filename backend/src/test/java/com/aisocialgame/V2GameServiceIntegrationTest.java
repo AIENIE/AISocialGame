@@ -223,26 +223,26 @@ class V2GameServiceIntegrationTest {
         verifyNoInteractions(client);
     }
 
-    @Test void expiredChallengeWithoutATickRecoversWithoutCallingTheModelOrStrandingTheJob() {
+    @Test void expiredVoteWithoutATickRecoversWithoutCallingTheModelOrStrandingTheJob() {
         Room room = room(true); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         for (int i = 0; i < 4; i++) {
             AiTurnJob description = coordinator.claim(queued(room.getId()).getId());
             VisibleObservation observation = json.convertValue(description.getObservation(), VisibleObservation.class);
             runtime.complete(description.getId(), AiTurnDecision.fallback(runtime.rules("undercover").fallback(observation)));
         }
-        AiTurnJob challenge = coordinator.claim(queued(room.getId()).getId());
+        AiTurnJob ballot = coordinator.claim(queued(room.getId()).getId());
         GameState state = states.findById(room.getId()).orElseThrow();
-        assertEquals("CHALLENGE", state.getPhase());
+        assertEquals("VOTING", state.getPhase());
         state.setPhaseEndsAt(java.time.LocalDateTime.now().minusSeconds(1)); states.saveAndFlush(state);
 
-        assertEquals(0, runtime.remainingTurnMillis(challenge.getId()));
-        coordinator.run(challenge);
+        assertEquals(0, runtime.remainingTurnMillis(ballot.getId()));
+        coordinator.run(ballot);
 
         verifyNoInteractions(client);
-        assertEquals("FAILED", jobs.findById(challenge.getId()).orElseThrow().getStatus());
-        assertEquals("NO_ACTION_BUDGET", jobs.findById(challenge.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
+        assertEquals("FAILED", jobs.findById(ballot.getId()).orElseThrow().getStatus());
+        assertEquals("NO_ACTION_BUDGET", jobs.findById(ballot.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
         GameState next = states.findById(room.getId()).orElseThrow();
-        assertTrue(runtime.rules("undercover").pendingTurns(next).stream().noneMatch(turn -> turn.key().equals(challenge.getTurnKey())));
+        assertTrue(runtime.rules("undercover").pendingTurns(next).stream().noneMatch(turn -> turn.key().equals(ballot.getTurnKey())));
         assertTrue(jobs.findAll().stream().anyMatch(job -> room.getId().equals(job.getRoomId()) && "QUEUED".equals(job.getStatus())));
     }
 

@@ -154,7 +154,7 @@ def sequence_checks(planned, rows):
         for key in ids:
             row = rows.get(key, {}); cover = row.get("coverage", {})
             obs = row.get("observation", {})
-            phases = {"undercover":("DESCRIPTION","RESPONSE","VOTING","DESCRIPTION"),"werewolf":("DAY_DISCUSS","DAY_INTERACTION","DAY_VOTE","DAY_DISCUSS"),"turtle_soup":("QUESTIONING",)*4}
+            phases = {"undercover":("DESCRIPTION","TIE_DEFENSE","RUNOFF","DESCRIPTION"),"werewolf":("DAY_DISCUSS","DAY_INTERACTION","DAY_VOTE","DAY_DISCUSS"),"turtle_soup":("QUESTIONING",)*4}
             stage = planned[key]["stepId"]
             if stage not in STEPS or obs.get("phase") != phases[planned[key]["gameId"]][STEPS.index(stage)]: problems.append(key+":UNEXPECTED_SEQUENCE_PHASE")
             visible = {e.get("eventId") for e in obs.get("events", [])}

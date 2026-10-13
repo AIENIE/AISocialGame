@@ -12,11 +12,11 @@ from closure_identity import artifact
 SET = "conversation-validation-v1"
 CHECKS = ("interactionNeed", "proportionateLength", "stopsWhenComplete")
 SCENARIOS = {
-    "undercover": ("first_description", "direct_question", "peer_correction", "runoff_defense"),
+    "undercover": ("first_description", "description_ballot", "next_description", "runoff_description"),
     "werewolf": ("ordinary_stance", "identity_question", "counterevidence", "no_new_information"),
     "turtle_soup": ("no_new_contribution", "human_prepares_question", "verdict_excludes_hypothesis", "specific_question"),
 }
-PILOTS = {"undercover:direct_question", "werewolf:counterevidence", "turtle_soup:human_prepares_question"}
+PILOTS = {"undercover:runoff_description", "werewolf:counterevidence", "turtle_soup:human_prepares_question"}
 PERSONAS = ("ai1", "ai2", "ai3", "ai4")
 
 def sha(path):

@@ -142,31 +142,52 @@ class UndercoverRuleSetTest {
         assertEquals("VOTING", state.getPhase());
     }
 
-    @Test void twoQuestionsHaveExactlyOneResponseEachAndCannotRepeatATarget() {
+    @Test void descriptionsGoStraightToVotingWithoutQuestions() {
         GameState state = rules.initialize(room(6, Map.of()), NOW);
         finishDescriptions(state);
-        assertEquals("CHALLENGE", state.getPhase());
-        String asker = current(state).getPlayerId();
-        String target = rules.legalActions(state, asker).getFirst().targets().getFirst();
-        rules.apply(state, asker, action("ASK_PLAYER", "你刚才提到的使用场景能具体一点吗？", target), NOW);
-        assertEquals("RESPONSE", state.getPhase());
-        assertEquals(target, current(state).getPlayerId());
-        assertThrows(ApiException.class, () -> rules.apply(state, asker, action("ASK_PLAYER", "继续问。", target), NOW));
-        rules.apply(state, target, action("ANSWER_PLAYER", "我想说的是平时使用它时的一个习惯。", null), NOW);
-        assertEquals("CHALLENGE", state.getPhase());
-        String second = current(state).getPlayerId();
-        assertFalse(rules.legalActions(state, second).getFirst().targets().contains(target));
-        rules.apply(state, second, action("SKIP", "", null), NOW);
         assertEquals("VOTING", state.getPhase());
-        assertTrue(map(state.getData().get("activeQuestion")).isEmpty());
+        assertEquals(NOW.plusSeconds(30), state.getPhaseEndsAt());
+        assertTrue(maps(state.getData().get("events")).stream().noneMatch(e -> Set.of("CHALLENGE_START", "ASK_PLAYER", "ANSWER_PLAYER").contains(e.get("type"))));
+        assertTrue(rules.definition().getPhaseDefinitions().stream().noneMatch(p -> Set.of("CHALLENGE", "RESPONSE").contains(p.phase())));
     }
 
-    @Test void firstTieCreatesDefenseAndOnlyTiedCandidatesCanReceiveRunoffVotes() {
+    @Test void persistedQuestionPhasesAdvanceImmediatelyAndInvalidateOldJobs() {
+        for (String legacy : List.of("CHALLENGE", "RESPONSE")) {
+            GameState state = rules.initialize(room(4, Map.of()), NOW);
+            state.getPlayers().forEach(p -> p.setAi(true));
+            phase(state, legacy, 0, 20, NOW);
+            state.getData().put("activeQuestion", Map.of("content", "此前的问题"));
+            event(state, "ASK_PLAYER", "p1", "p0", "此前的问题", Map.of());
+            var history = new ArrayList<>(maps(state.getData().get("events")));
+            var old = turn(state, "p0", "CHALLENGE".equals(legacy) ? "ASK_PLAYER" : "ANSWER_PLAYER");
+            Object oldToken = state.getData().get("phaseSerial");
+            assertTrue(rules.pendingTurns(state).isEmpty());
+            assertTrue(rules.legalActions(state, "p0").isEmpty());
+            rules.advance(state, NOW.plusSeconds(1));
+            assertEquals("VOTING", state.getPhase());
+            assertEquals(NOW.plusSeconds(31), state.getPhaseEndsAt());
+            assertNotEquals(oldToken, state.getData().get("phaseSerial"));
+            assertFalse(rules.isTurnCurrent(state, old));
+            assertEquals(history, maps(state.getData().get("events")).subList(0, history.size()));
+            assertTrue(map(rules.publicData(state).get("activeQuestion")).isEmpty());
+            assertEquals(4, rules.pendingTurns(state).size());
+            assertThrows(ApiException.class, () -> rules.apply(state, "p0", action(old.kind(), "迟到的发言", "p1"), NOW.plusSeconds(1)));
+            rules.advance(state, NOW.plusSeconds(2));
+            assertEquals(NOW.plusSeconds(31), state.getPhaseEndsAt());
+        }
+    }
+
+    @Test void firstTieAddsWordDescriptionsAndOnlyTiedCandidatesCanReceiveRunoffVotes() {
         GameState state = rules.initialize(room(4, Map.of()), NOW);
         goToVoting(state);
         cast(state, "p0", "p1"); cast(state, "p1", "p0"); cast(state, "p2", "p0"); cast(state, "p3", "p1");
         assertEquals("TIE_DEFENSE", state.getPhase());
         assertEquals(List.of("p0", "p1"), strings(state.getData().get("runoffCandidates")));
+        assertEquals(NOW.plusSeconds(20), state.getPhaseEndsAt());
+        assertEquals("补充描述", rules.publicData(state).get("phaseLabel"));
+        assertEquals(60, rules.legalActions(state, "p0").getFirst().maxLength());
+        assertTrue(rules.legalActions(state, "p2").isEmpty());
+        assertThrows(ApiException.class, () -> rules.apply(state, "p0", action("SPEAK", "长".repeat(61), null), NOW));
         assertTrue(state.getPlayers().stream().allMatch(GamePlayerState::isAlive));
         rules.apply(state, "p0", action("SKIP", "", null), NOW);
         rules.apply(state, "p1", action("SPEAK", "我补充的是使用习惯，不是外形。", null), NOW);
@@ -235,11 +256,54 @@ class UndercoverRuleSetTest {
         eliminate(spyWin, "p5"); eliminate(spyWin, "p4");
         assertEquals(4, alive(spyWin).size());
         assertEquals("UNDERCOVER", spyWin.getData().get("winner"));
-        GameState civilianWin = rules.initialize(room(4, Map.of()), NOW);
-        roles(civilianWin, "UNDERCOVER", "CIVILIAN", "CIVILIAN", "CIVILIAN");
+        GameState civilianWin = rules.initialize(room(5, Map.of()), NOW);
+        roles(civilianWin, "UNDERCOVER", "CIVILIAN", "CIVILIAN", "CIVILIAN", "CIVILIAN");
         eliminate(civilianWin, "p3"); eliminate(civilianWin, "p0");
         assertEquals("CIVILIAN", civilianWin.getData().get("winner"));
-        assertEquals(Set.of("p1", "p2", "p3"), rules.winningPlayerIds(civilianWin));
+        assertEquals(Set.of("p1", "p2", "p3", "p4"), rules.winningPlayerIds(civilianWin));
+    }
+
+    @Test void undercoverWinsAtFinalThreeWithoutBlankOrAtParity() {
+        for (int spies : List.of(1, 2, 3)) {
+            int civilians = spies == 1 ? 3 : spies;
+            GameState state = rules.initialize(room(spies + civilians + 1, Map.of()), NOW);
+            String[] assigned = new String[state.getPlayers().size()];
+            Arrays.fill(assigned, "CIVILIAN"); Arrays.fill(assigned, 0, spies, "UNDERCOVER");
+            roles(state, assigned);
+            eliminate(state, "p" + (assigned.length - 1));
+            if (spies == 1) {
+                assertEquals("DESCRIPTION", state.getPhase()); // 1 + 3 still plays.
+                eliminate(state, "p3"); // 1 + 2 now wins.
+            }
+            assertEquals("SETTLEMENT", state.getPhase());
+            assertEquals("UNDERCOVER", state.getData().get("winner"));
+        }
+    }
+
+    @Test void removingBlankImmediatelyEnablesFinalThreeWin() {
+        GameState state = rules.initialize(room(4, Map.of("hasBlank", true)), NOW);
+        roles(state, "UNDERCOVER", "BLANK", "CIVILIAN", "CIVILIAN");
+        eliminate(state, "p1");
+        assertEquals("UNDERCOVER", state.getData().get("winner"));
+        assertEquals(Set.of("p0"), rules.winningPlayerIds(state));
+    }
+
+    @Test void timedOutDescriptionsAndExtraDescriptionsReachTheNextBallot() {
+        GameState state = rules.initialize(room(4, Map.of()), NOW);
+        LocalDateTime now = NOW;
+        for (int i = 0; i < 4; i++) { now = state.getPhaseEndsAt().plusSeconds(1); rules.advance(state, now); }
+        assertEquals("VOTING", state.getPhase());
+        for (String actor : List.of("p0", "p1", "p2", "p3")) {
+            String target = Set.of("p0", "p3").contains(actor) ? "p1" : "p0";
+            rules.apply(state, actor, action("VOTE", "", target), now);
+        }
+        assertEquals("TIE_DEFENSE", state.getPhase());
+        for (int i = 0; i < 2; i++) { now = state.getPhaseEndsAt().plusSeconds(1); rules.advance(state, now); }
+        assertEquals("RUNOFF", state.getPhase());
+        rules.advance(state, state.getPhaseEndsAt().plusSeconds(1));
+        assertEquals("DESCRIPTION", state.getPhase());
+        assertEquals(1, state.getData().get("noEliminationRounds"));
+        assertEquals(4, alive(state).size());
     }
 
     @Test void customHostCannotPlayAndPrivateWordsNeverAppearInPublicRules() throws Exception {
@@ -310,7 +374,6 @@ class UndercoverRuleSetTest {
     }
     private void goToVoting(GameState state) {
         finishDescriptions(state);
-        while (Set.of("CHALLENGE", "RESPONSE").contains(state.getPhase())) rules.apply(state, current(state).getPlayerId(), action("SKIP", "", null), NOW);
         assertEquals("VOTING", state.getPhase());
     }
     private void cast(GameState state, String actor, String target) { rules.apply(state, actor, action("VOTE", "", target), NOW); }

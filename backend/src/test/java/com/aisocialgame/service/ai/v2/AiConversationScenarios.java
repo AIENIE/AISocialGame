@@ -42,11 +42,15 @@ final class AiConversationScenarios {
             reach(s, () -> "DESCRIPTION".equals(s.state.getPhase()) && has(s, "SPEAK"));
             return row(s, "first_description", "DESCRIPTION", "SPEAK", "");
         }
-        if (variant < 3) {
-            reach(s, () -> "CHALLENGE".equals(s.state.getPhase()) && asker(s).isPresent());
-            String question = variant == 1 ? "你描述的使用场景具体指什么？" : "我更正刚才的说法，相似场景不一定是同一种用途。你怎么判断？";
-            String event = s.submit(asker(s).orElseThrow(), action("ASK_PLAYER", question, s.actor), "SCRIPTED_PEER").getFirst();
-            return row(s, variant == 1 ? "direct_question" : "peer_correction", "RESPONSE", "ANSWER_PLAYER", event);
+        if (variant == 1) {
+            reach(s, () -> "VOTING".equals(s.state.getPhase()));
+            return row(s, "description_ballot", "VOTING", "VOTE", "");
+        }
+        if (variant == 2) {
+            reach(s, () -> s.state.getRoundNumber() == 2 && "DESCRIPTION".equals(s.state.getPhase()) && has(s, "SPEAK"));
+            String event = maps(s.state.getData().get("events")).stream().filter(e -> "NO_ELIMINATION".equals(e.get("type")))
+                    .map(e -> text(e.get("eventId"))).reduce((a, b) -> b).orElseThrow();
+            return row(s, "next_description", "DESCRIPTION", "SPEAK", event);
         }
         reach(s, () -> "VOTING".equals(s.state.getPhase()));
         String other = s.state.getPlayers().stream().map(GamePlayerState::getPlayerId).filter(id -> !s.actor.equals(id)).findFirst().orElseThrow();
@@ -60,7 +64,7 @@ final class AiConversationScenarios {
         }
         reach(s, () -> "TIE_DEFENSE".equals(s.state.getPhase()) && has(s, "SPEAK"));
         String reveal = maps(s.state.getData().get("events")).stream().filter(e -> "VOTE_REVEAL".equals(e.get("type"))).map(e -> text(e.get("eventId"))).reduce((a,b) -> b).orElseThrow();
-        return row(s, "runoff_defense", "TIE_DEFENSE", "SPEAK", reveal);
+        return row(s, "runoff_description", "TIE_DEFENSE", "SPEAK", reveal);
     }
 
     private Scenario werewolf(ClosureSequenceRunner.Session s, int variant) {

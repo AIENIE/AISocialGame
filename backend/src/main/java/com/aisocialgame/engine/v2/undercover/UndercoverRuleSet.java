@@ -124,7 +124,6 @@ public final class UndercoverRuleSet implements GameRuleSet {
         state.getData().put("wordKnowledgeByPlayer", knowledgeByPlayer);
         List<GamePlayerState> alive = alive(state);
         int firstSeat = alive.get(random.nextInt(alive.size())).getSeatNumber();
-        state.getData().put("questionCursorSeat", firstSeat);
         beginDescription(state, firstSeat, now);
         event(state, "GAME_START", null, null, "词语已发放：有词玩家只知道词语；白板存活到最后两人独赢。", Map.of("ruleVersion", 2));
         return state;
@@ -160,25 +159,18 @@ public final class UndercoverRuleSet implements GameRuleSet {
         // Exact and obfuscated answer names are rejected for everyone, including the blank.
         require(!revealsAnswer(state, content), "描述中不能直接包含本局词语或别名");
         Map<String, Object> data = new LinkedHashMap<>(); data.put("content", content);
-        if ("ASK_PLAYER".equals(type)) {
-            require(capability.targets().contains(action.getTargetPlayerId()), "请选择本轮尚未被质疑的其他存活玩家");
-            event(state, "ASK_PLAYER", actorId, action.getTargetPlayerId(), actor.getDisplayName() + "问：" + content, data);
-            List<Map<String, Object>> events = maps(state.getData().get("events"));
-            Map<String, Object> question = new LinkedHashMap<>(Map.of("actorId", actorId, "targetId", action.getTargetPlayerId(), "content", content,
-                    "eventId", text(events.get(events.size() - 1).get("eventId"))));
-            state.getData().put("activeQuestion", question);
-            List<String> challenged = new ArrayList<>(strings(state.getData().get("challengedPlayers"))); challenged.add(action.getTargetPlayerId());
-            state.getData().put("challengedPlayers", challenged);
-            phase(state, "RESPONSE", player(state, action.getTargetPlayerId()).getSeatNumber(), 20, now);
-        } else {
-            String target = "ANSWER_PLAYER".equals(type) ? text(map(state.getData().get("activeQuestion")).get("actorId")) : null;
-            if ("ANSWER_PLAYER".equals(type)) data.put("questionEventId", text(map(state.getData().get("activeQuestion")).get("eventId")));
-            event(state, type, actorId, target, actor.getDisplayName() + "：" + content, data);
-            completeCurrentSpeech(state, now);
-        }
+        event(state, type, actorId, null, actor.getDisplayName() + "：" + content, data);
+        completeCurrentSpeech(state, now);
     }
 
     @Override public void advance(GameState state, LocalDateTime now) {
+        // Persisted pre-update rounds may still be waiting for a question or answer.
+        // Transition through phase() so outstanding jobs and client tokens become obsolete.
+        if (Set.of("CHALLENGE", "RESPONSE").contains(state.getPhase())) {
+            for (String key : List.of("questionCursorSeat", "questioners", "challengedPlayers", "challengeIndex", "activeQuestion")) state.getData().remove(key);
+            beginVote(state, false, now);
+            return;
+        }
         if ("SETTLEMENT".equals(state.getPhase()) || !expired(state, now)) return;
         if (VOTING_PHASES.contains(state.getPhase())) {
             for (GamePlayerState actor : alive(state)) if (!votes(state).containsKey(actor.getPlayerId())) submitVote(state, actor, "abstain");
@@ -215,9 +207,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         if (!Objects.equals(state.getCurrentSeat(), actor.getSeatNumber())) return List.of();
         return switch (state.getPhase()) {
             case "DESCRIPTION" -> List.of(LegalAction.text("SPEAK", "描述你的词语", 90));
-            case "CHALLENGE" -> List.of(LegalAction.target("ASK_PLAYER", "提出一个质疑", others.stream().filter(id -> !strings(state.getData().get("challengedPlayers")).contains(id)).toList(), 60), LegalAction.simple("SKIP", "没有质疑，跳过"));
-            case "RESPONSE" -> List.of(LegalAction.text("ANSWER_PLAYER", "回应质疑", 60), LegalAction.simple("SKIP", "跳过回应"));
-            case "TIE_DEFENSE" -> List.of(LegalAction.text("SPEAK", "发表一次辩解", 60), LegalAction.simple("SKIP", "跳过辩解"));
+            case "TIE_DEFENSE" -> List.of(LegalAction.text("SPEAK", "补充描述你的词语", 60), LegalAction.simple("SKIP", "跳过补充描述"));
             default -> List.of();
         };
     }
@@ -227,19 +217,19 @@ public final class UndercoverRuleSet implements GameRuleSet {
         if (VOTING_PHASES.contains(state.getPhase())) return alive(state).stream().filter(RuleSupport::automated)
                 .filter(p -> !votes(state).containsKey(p.getPlayerId())).map(p -> turn(state, p.getPlayerId(), "VOTE")).toList();
         return current(state).filter(RuleSupport::automated).filter(p -> !legalActions(state, p.getPlayerId()).isEmpty())
-                .map(p -> List.of(turn(state, p.getPlayerId(), "CHALLENGE".equals(state.getPhase()) ? "ASK_PLAYER" : "RESPONSE".equals(state.getPhase()) ? "ANSWER_PLAYER" : "SPEAK")))
+                .map(p -> List.of(turn(state, p.getPlayerId(), "SPEAK")))
                 .orElse(List.of());
     }
 
     @Override public Map<String, Object> publicData(GameState state) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("ruleVersion", 2); data.put("wordPack", text(state.getData().get("wordPack")));
-        data.put("phaseLabel", switch (state.getPhase()) { case "CHALLENGE" -> "质疑"; case "RESPONSE" -> "回应"; case "TIE_DEFENSE" -> "平票辩解"; case "RUNOFF" -> "复投"; case "DESCRIPTION" -> "描述"; case "VOTING" -> "投票"; default -> "结算"; });
+        data.put("phaseLabel", switch (state.getPhase()) { case "TIE_DEFENSE" -> "补充描述"; case "RUNOFF" -> "复投"; case "DESCRIPTION" -> "描述"; case "VOTING" -> "投票"; default -> "结算"; });
         data.put("descriptionOrder", strings(state.getData().get("descriptionOrder")));
-        data.put("questioners", strings(state.getData().get("questioners")));
-        data.put("challengedPlayers", strings(state.getData().get("challengedPlayers")));
+        data.put("questioners", List.of());
+        data.put("challengedPlayers", List.of());
         data.put("runoffCandidates", strings(state.getData().get("runoffCandidates")));
-        data.put("activeQuestion", map(state.getData().get("activeQuestion")));
+        data.put("activeQuestion", Map.of());
         data.put("votedPlayers", new ArrayList<>(votes(state).keySet()));
         data.put("lastVoteResult", map(state.getData().get("lastVoteResult")));
         data.put("noEliminationRounds", number(state.getData().get("noEliminationRounds"), 0));
@@ -275,27 +265,24 @@ public final class UndercoverRuleSet implements GameRuleSet {
             case "SKIP" -> VOTING_PHASES.contains(o.phase())
                     ? AiConversationContext.guide("此动作是弃票，不是让出发言。", "ABSTAIN")
                     : AiConversationContext.guide("本次不发言；不附带一段补充。", "YIELD");
-            case "ASK_PLAYER" -> AiConversationContext.guide("通常只问一个具体问题。", "QUESTION");
-            case "ANSWER_PLAYER" -> AiConversationContext.guide("通常一至两句处理被问的内容；必要时可在合法上限内展开。", "CLARIFY", "STATE_POSITION", "REVISE");
             case "SPEAK" -> "DESCRIPTION".equals(o.phase())
                     ? AiConversationContext.guide("通常15～40字，集中一个描述角度；必须完成本轮描述。", "DESCRIBE")
-                    : AiConversationContext.guide("集中澄清关键误会，需要完整辩解时可在合法上限内展开。", "CLARIFY", "STATE_POSITION", "REVISE");
+                    : AiConversationContext.guide("补充一个尚未用过的词语特征，最多60字；不询问其他玩家，不作身份辩解。", "DESCRIBE");
             default -> AiConversationContext.guide("按合法行动参与。", "CHOOSE_FOR_SITUATION");
-        }, Set.of("CHALLENGE"), Set.of("ANSWER_PLAYER", "SKIP", "TIMEOUT"));
+        }, Set.of(), Set.of());
     }
 
     @Override public String instruction(VisibleObservation observation) {
         String phaseInstruction = switch (observation.phase()) {
-            case "DESCRIPTION" -> "给出一条新的有效描述，一般15-40字。首轮可以说场景或感受，后续换一个尚未用过的属性；可以简短接住刚发生的误解。";
-            case "CHALLENGE" -> "你只有一次质疑机会。找一个真实公开语义冲突或跟风迹象，点名问一个具体问题；没有实质疑点就SKIP，不为制造戏剧强行找茬。";
-            case "RESPONSE" -> "你正在回应别人刚刚对你的质疑。先处理被问的那一点，必要时补充直接相关的依据，不强制另加线索；最多60字，不另起无限追问。";
-            case "TIE_DEFENSE" -> "你处于最高票并列的一次辩解。用公开事实澄清最关键的误会，可以克制地紧张，最多60字；无法补充时可以SKIP。";
+            case "DESCRIPTION" -> "给出一条新的有效词语描述，一般15-40字。首轮可以说场景或感受，后续换一个尚未用过的属性；不询问其他玩家，不作身份辩解。";
+            case "TIE_DEFENSE" -> "你处于最高票并列的一次补充描述。围绕自己的词语补充一个新的特征或使用场景，最多60字；不询问其他玩家，不作身份辩解；无法补充时可以SKIP。";
             case "VOTING", "RUNOFF" -> "根据公开语义和此前表态选择合法候选人。使用evidenceEventIds记录依据；证据不足可以弃票，不能仅凭发言字数判人。投票阶段speech留空，防止尚未揭晓时泄露选择。";
             default -> "只执行当前合法动作。";
         };
         return "你是认真参加谁是卧底的桌游朋友。你没有被告知自己属于平民还是卧底，只知道自己的词；" +
                 "不要从人设、词库排列或经验中猜定真实阵营。通过词义、场景、用法的异同更新自己的多个假设。" +
                 "白板没有词，可以根据公开发言猜测，也可以首轮试探或伪装；不强制使用暴露身份的固定不确定措辞，但不能伪造系统裁决或已发生的公共记录。存活到最后两人才能独赢，三人时尚未获胜。" +
+                "每轮依次描述后直接投票，平票候选人各补充一次描述后复投。卧底人数不少于其他存活玩家时获胜；没有白板存活时，卧底撑到最后三人也获胜。白板两人独赢优先判定。" +
                 "不能直接说出本局词语、别名、拼音、拆字或字数提示，也不要念出知识库定义。" +
                 "把description维度写入usedDescriptions，把有依据的怀疑写入beliefs与evidenceEventIds；" +
                 "改变立场要回应新证据，误投可以简短认错，不能把上一局的敌友关系带来。" +
@@ -314,7 +301,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
 
     @Override public PlayerAction fallback(VisibleObservation observation) {
         boolean canSkip = observation.legalActions().stream().anyMatch(a -> "SKIP".equals(a.type()));
-        if (canSkip && !"RESPONSE".equals(observation.phase())) return action("SKIP", "", null);
+        if (canSkip) return action("SKIP", "", null);
         Map<String, Object> own = map(observation.privateFacts().get("wordKnowledge"));
         List<String> cues = new ArrayList<>(strings(own.get("attributes"))); cues.addAll(strings(own.get("scenes")));
         Set<String> used = new LinkedHashSet<>(strings(observation.memory().get("usedDescriptions")));
@@ -326,12 +313,12 @@ public final class UndercoverRuleSet implements GameRuleSet {
             observation.events().stream().filter(e -> observation.actorId().equals(e.get("actorId")))
                     .map(com.aisocialgame.service.ai.v2.AiGrounding::content).forEach(previous::add);
             maps(observation.memory().get("recentDecisions")).forEach(d -> previous.add(text(d.get("speech"))));
-            int max = "RESPONSE".equals(observation.phase()) ? 60 : 90;
+            int max = 90;
             String cue = cues.stream().filter(c -> previous.stream().noneMatch(p -> p.contains(c)))
                     .filter(c -> !catalog.containsForbidden(c, text(observation.privateFacts().get("word"))))
                     .filter(c -> c.codePointCount(0, c.length()) <= max - 20).findFirst().orElse("");
             content = cue.isBlank() ? "我暂时想不到不重复的新线索，先保留判断。"
-                    : ("RESPONSE".equals(observation.phase()) ? "关于这点，我能补充的是" : prefixes[variation]) + cue + "。";
+                    : prefixes[variation] + cue + "。";
         } else if (observation.events().stream().anyMatch(e -> "SPEAK".equals(e.get("type")))) {
             content = "前面的线索还不足以让我确定范围，我先保留判断。";
         }
@@ -340,7 +327,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
             content = "刚才我投的人公开为平民了，我得重新核对判断。" + content;
         if (catalog.containsForbidden(content, word)) content = "我先从自己熟悉的场景来想，还不想把范围说死。";
         if (content.codePointCount(0, content.length()) > 90) content = "刚才我投的人公开为平民了，我得重新核对判断。";
-        return action("RESPONSE".equals(observation.phase()) ? "ANSWER_PLAYER" : "SPEAK", content, null);
+        return action("SPEAK", content, null);
     }
 
     private boolean acknowledgedCivilianVote(VisibleObservation observation) {
@@ -362,7 +349,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
                 || catalog.containsForbidden(decision.action() == null ? "" : decision.action().getContent(), word)
                 || catalog.containsForbidden(decision.presentation().toString(), word)) errors.add("SECRET_WORD_LEAK");
         if (VOTING_PHASES.contains(observation.phase()) && !decision.speech().isBlank()) errors.add("VOTE_MUST_REMAIN_PRIVATE");
-        if (decision.action() != null && Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER").contains(decision.action().getType()) && decision.speech().isBlank()) errors.add("EMPTY_GAME_SPEECH");
+        if (decision.action() != null && "SPEAK".equals(decision.action().getType()) && decision.speech().isBlank()) errors.add("EMPTY_GAME_SPEECH");
         return errors;
     }
 
@@ -371,8 +358,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         state.getData().put("roundStartSeat", player(state, order.getFirst()).getSeatNumber());
         state.getData().put("descriptionOrder", order); state.getData().put("descriptionIndex", 0);
         state.getData().put("speakers", new ArrayList<>()); state.getData().put("votes", new LinkedHashMap<>());
-        state.getData().put("runoffCandidates", List.of()); state.getData().put("activeQuestion", Map.of());
-        state.getData().put("questioners", List.of()); state.getData().put("challengedPlayers", new ArrayList<>());
+        state.getData().put("runoffCandidates", List.of());
         phase(state, "DESCRIPTION", player(state, order.getFirst()).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 60), now);
         event(state, "ROUND_START", null, null, "进入第" + state.getRoundNumber() + "轮描述。", Map.of("descriptionOrder", order));
     }
@@ -385,9 +371,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
                 List<String> speakers = new ArrayList<>(strings(state.getData().get("speakers"))); speakers.add(order.get(index));
                 state.getData().put("speakers", speakers); state.getData().put("descriptionIndex", ++index);
                 if (index < order.size()) phase(state, "DESCRIPTION", player(state, order.get(index)).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 60), now);
-                else beginChallenges(state, now);
+                else beginVote(state, false, now);
             }
-            case "CHALLENGE", "RESPONSE" -> nextChallenge(state, now);
             case "TIE_DEFENSE" -> {
                 List<String> candidates = strings(state.getData().get("runoffCandidates"));
                 int index = number(state.getData().get("defenseIndex"), 0) + 1; state.getData().put("defenseIndex", index);
@@ -398,25 +383,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
         }
     }
 
-    private void beginChallenges(GameState state, LocalDateTime now) {
-        List<GamePlayerState> order = orderedFrom(state, number(state.getData().get("questionCursorSeat"), 0));
-        List<String> questioners = order.stream().limit(2).map(GamePlayerState::getPlayerId).toList();
-        state.getData().put("questioners", questioners); state.getData().put("challengeIndex", 0);
-        state.getData().put("questionCursorSeat", order.get(2 % order.size()).getSeatNumber());
-        phase(state, "CHALLENGE", player(state, questioners.getFirst()).getSeatNumber(), 20, now);
-        event(state, "CHALLENGE_START", null, null, "本轮有两次质疑机会；可以选择跳过，每个被质疑者回应一次。", Map.of("questioners", questioners));
-    }
-
-    private void nextChallenge(GameState state, LocalDateTime now) {
-        state.getData().put("activeQuestion", Map.of());
-        List<String> questioners = strings(state.getData().get("questioners"));
-        int index = number(state.getData().get("challengeIndex"), 0) + 1; state.getData().put("challengeIndex", index);
-        if (index < questioners.size()) phase(state, "CHALLENGE", player(state, questioners.get(index)).getSeatNumber(), 20, now);
-        else beginVote(state, false, now);
-    }
-
     private void beginVote(GameState state, boolean runoff, LocalDateTime now) {
-        state.getData().put("votes", new LinkedHashMap<>()); state.getData().put("activeQuestion", Map.of());
+        state.getData().put("votes", new LinkedHashMap<>());
         phase(state, runoff ? "RUNOFF" : "VOTING", null, runoff ? 15 : 30, now);
         event(state, "VOTE_START", null, null, runoff ? "开始复投，只能投给平票候选人，也可以弃票。" : "开始投票，投齐或时间结束后统一公布。", Map.of("runoff", runoff));
     }
@@ -440,7 +408,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
             if ("RUNOFF".equals(state.getPhase())) { noElimination(state, now); return; }
             state.getData().put("runoffCandidates", leaders); state.getData().put("defenseIndex", 0);
             phase(state, "TIE_DEFENSE", player(state, leaders.getFirst()).getSeatNumber(), 20, now);
-            event(state, "TIE", null, null, "最高票并列，候选人各有一次辩解机会。", Map.of("candidates", leaders));
+            event(state, "TIE", null, null, "最高票并列，候选人各补充一次词语描述后复投。", Map.of("candidates", leaders));
             return;
         }
         GamePlayerState eliminated = player(state, leaders.getFirst()); eliminated.setAlive(false);
@@ -468,7 +436,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
         long spies = survivors.stream().filter(p -> "UNDERCOVER".equals(p.getRole())).count();
         Optional<GamePlayerState> blank = survivors.stream().filter(p -> "BLANK".equals(p.getRole())).findFirst();
         if (blank.isPresent() && survivors.size() == 2) { finish(state, "BLANK", List.of(blank.get().getPlayerId())); return true; }
-        String winner = spies == 0 && blank.isEmpty() ? "CIVILIAN" : spies > 0 && spies >= survivors.size() - spies ? "UNDERCOVER" : null;
+        String winner = spies == 0 && blank.isEmpty() ? "CIVILIAN"
+                : spies > 0 && (spies >= survivors.size() - spies || blank.isEmpty() && survivors.size() <= 3) ? "UNDERCOVER" : null;
         if (winner == null) return false;
         finish(state, winner, state.getPlayers().stream().filter(p -> winner.equals(p.getRole())).map(GamePlayerState::getPlayerId).toList());
         return true;

@@ -53,9 +53,9 @@
       ]
     },
     {
-      "id": "wrongly_accused",
-      "title": "被误解后的辩解",
-      "phase": "RESPONSE",
+      "id": "extra_word_feature",
+      "title": "平票后补充用途",
+      "phase": "TIE_DEFENSE",
       "self": {
         "blank": false,
         "word": "雨伞"
@@ -69,25 +69,24 @@
         {
           "eventId": "e2",
           "actorId": "p2",
-          "targetId": "p1",
-          "content": "你是不是一直没说具体用途？"
+          "content": "一号和二号并列最高票。"
         }
       ],
       "expected": [
-        "承接具体质疑并补充用途",
-        "允许轻微委屈但仍愿意解释",
-        "不把被质疑自动等同敌对阵营"
+        "补充尚未说过的词语用途",
+        "只描述词语，不询问或身份辩解",
+        "不把平票自动等同敌对阵营"
       ],
       "prohibited": [
         "直接说出自己的词",
-        "威胁或辱骂质疑者",
-        "忽视提问重新背描述"
+        "点名质疑其他玩家",
+        "重复之前的描述"
       ]
     },
     {
       "id": "meaning_conflict",
       "title": "词义证据出现冲突",
-      "phase": "CHALLENGE",
+      "phase": "VOTING",
       "self": {
         "blank": false,
         "word": "冰箱"
@@ -105,9 +104,9 @@
         }
       ],
       "expected": [
-        "点名询问公开描述中的冲突",
+        "根据公开描述中的语义冲突投票",
         "仍把不同理解保留为可能",
-        "引用具体事件ID"
+        "在内部依据中引用具体事件ID"
       ],
       "prohibited": [
         "直接断言他人身份",
@@ -117,7 +116,7 @@
     {
       "id": "copying",
       "title": "发现近似复读",
-      "phase": "CHALLENGE",
+      "phase": "VOTING",
       "self": {
         "blank": false,
         "word": "书店"
@@ -136,7 +135,7 @@
       ],
       "expected": [
         "将相似表述作为弱线索",
-        "请求一个不同维度的解释",
+        "结合描述维度选择投票或弃票",
         "不会只凭复读做确定性定罪"
       ],
       "prohibited": [
@@ -211,8 +210,8 @@
       ]
     },
     {
-      "id": "tied_defense",
-      "title": "最高票并列辩解",
+      "id": "tied_description",
+      "title": "最高票并列补充描述",
       "phase": "TIE_DEFENSE",
       "self": {
         "blank": false,
@@ -226,9 +225,9 @@
         }
       ],
       "expected": [
-        "在一次辩解内澄清关键线索",
+        "提供一个新的词语特征或场景",
         "可以表现克制的紧张",
-        "不公开自己的词或请求无限加时"
+        "不询问其他玩家，不作身份辩解"
       ],
       "prohibited": [
         "提前知道未揭晓的票",

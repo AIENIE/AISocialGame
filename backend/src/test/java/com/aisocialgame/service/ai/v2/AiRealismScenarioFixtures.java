@@ -183,10 +183,8 @@ final class AiRealismScenarioFixtures {
         } else if ("undercover".equals(game)) {
             List<String> others = players.stream().filter(p -> !actorId.equals(p.get("playerId")) && flag(p.get("alive"))).map(p -> text(p.get("playerId"))).toList();
             switch (phase) {
-                case "CHALLENGE" -> { result.add(LegalAction.target("ASK_PLAYER", "质疑", others, 60)); result.add(LegalAction.simple("SKIP", "跳过")); }
-                case "RESPONSE" -> result.add(LegalAction.target("ANSWER_PLAYER", "回应", List.of("p2"), 60));
                 case "VOTING" -> { result.add(LegalAction.target("VOTE", "投票", others, 0)); result.add(LegalAction.simple("SKIP", "弃票")); }
-                case "TIE_DEFENSE" -> { result.add(LegalAction.text("SPEAK", "辩解", 60)); result.add(LegalAction.simple("SKIP", "跳过")); }
+                case "TIE_DEFENSE" -> { result.add(LegalAction.text("SPEAK", "补充描述", 60)); result.add(LegalAction.simple("SKIP", "跳过")); }
                 default -> result.add(LegalAction.text("SPEAK", "描述", 60));
             }
         } else {

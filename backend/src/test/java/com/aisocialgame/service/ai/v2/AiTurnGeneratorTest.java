@@ -391,12 +391,12 @@ class AiTurnGeneratorTest {
         assertFalse(fallback.getContent().contains("咖啡"));
     }
 
-    @Test void fallbackRespondsAndOnlyAcknowledgesARevealedOwnVote() {
+    @Test void fallbackSkipsOptionalDescriptionAndOnlyAcknowledgesARevealedOwnVote() {
         var o = speechObservation();
-        var response = new VisibleObservation(o.gameId(), o.instanceId(), "RESPONSE", 2, o.actorId(), "ANSWER_PLAYER", o.self(), o.players(), o.rules(),
-                o.events(), o.privateFacts(), List.of(LegalAction.text("ANSWER_PLAYER", "回应", 60), LegalAction.simple("SKIP", "跳过")), o.persona(), o.memory(), o.knowledge());
+        var response = new VisibleObservation(o.gameId(), o.instanceId(), "TIE_DEFENSE", 2, o.actorId(), "SPEAK", o.self(), o.players(), o.rules(),
+                o.events(), o.privateFacts(), List.of(LegalAction.text("SPEAK", "补充描述", 60), LegalAction.simple("SKIP", "跳过")), o.persona(), o.memory(), o.knowledge());
         var fallback = rules.fallback(response);
-        assertEquals("ANSWER_PLAYER", fallback.getType());
+        assertEquals("SKIP", fallback.getType());
         assertTrue(generator.validate(rules, response, AiTurnDecision.fallback(fallback)).isEmpty());
         List<Map<String, Object>> events = List.of(
                 Map.of("type", "VOTE_REVEAL", "round", 1, "data", Map.of("votes", Map.of("p0", "p1"))),

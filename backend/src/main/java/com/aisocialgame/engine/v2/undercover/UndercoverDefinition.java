@@ -49,10 +49,8 @@ private static final String GAME_ID="undercover";
     public static List<PhaseDefinition> phaseDefinitions() {
         return List.of(
                 new PhaseDefinition(GamePhases.DESCRIPTION, "描述阶段", 60, true),
-                new PhaseDefinition("CHALLENGE", "质询", 30, true),
-                new PhaseDefinition("RESPONSE", "回应", 30, true),
-                new PhaseDefinition("TIE_DEFENSE", "平票申辩", 30, true),
-                new PhaseDefinition("RUNOFF", "复投", 30, true),
+                new PhaseDefinition("TIE_DEFENSE", "补充描述", 20, true),
+                new PhaseDefinition("RUNOFF", "复投", 15, true),
                 new PhaseDefinition(GamePhases.VOTING, "投票阶段", 30, true),
                 new PhaseDefinition(GamePhases.SETTLEMENT, "结算", 0, true)
         );

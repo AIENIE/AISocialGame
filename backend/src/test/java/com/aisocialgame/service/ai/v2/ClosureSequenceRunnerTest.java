@@ -22,7 +22,7 @@ class ClosureSequenceRunnerTest {
             var first=series.get(0).observation();var second=series.get(1).observation();var fourth=series.get(3).observation();
             assertTrue(first.events().stream().anyMatch(e->"PUBLIC".equals(e.get("visibility"))));
             assertFalse(strings(series.get(1).coverage().get("requiredVisibleEventIds")).isEmpty());
-            assertTrue(second.events().stream().anyMatch(e->"turtle_soup".equals(first.gameId())?"NO".equals(map(e.get("data")).get("verdict")):text(e.get("message")).contains("撤回")));
+            assertTrue(second.events().stream().anyMatch(e->"turtle_soup".equals(first.gameId())?"NO".equals(map(e.get("data")).get("verdict")):"undercover".equals(first.gameId())?"VOTE_REVEAL".equals(e.get("type")):text(e.get("message")).contains("撤回")));
             for(var sample:series){assertEquals("APPLIED",sample.coverage().get("status"));assertEquals("LEGAL_FALLBACK",sample.coverage().get("origin"));assertEquals(sample.observation().phase(),sample.coverage().get("phase"));}
             if(!"turtle_soup".equals(first.gameId()))assertTrue(fourth.round()>first.round());
             else assertTrue(number(series.get(3).coverage().get("cycle"),0)>number(series.get(0).coverage().get("cycle"),0));
@@ -37,12 +37,12 @@ class ClosureSequenceRunnerTest {
                 var selected=s.adapter().fallback(o);String speech=selected.getContent();Map<String,Object> updates=new LinkedHashMap<>();
                 String target=o.players().stream().map(p->text(p.get("playerId"))).filter(id->!id.equals(o.actorId())).findFirst().orElseThrow();
                 if("INITIAL".equals(step)&&!"turtle_soup".equals(o.gameId())){
-                    speech="我本轮投给"+target;selected.setContent(speech);
-                    updates.put("commitments",List.of(Map.of("text",speech,"sourceQuote",speech,"action",Map.of("kind","VOTE","targetPlayerId",target,"ballot","NORMAL"),"roundOffset",0)));
+                    speech=("undercover".equals(o.gameId())?"我本轮复投投给":"我本轮投给")+target;selected.setContent(speech);
+                    updates.put("commitments",List.of(Map.of("text",speech,"sourceQuote",speech,"action",Map.of("kind","VOTE","targetPlayerId",target,"ballot","undercover".equals(o.gameId())?"RUNOFF":"NORMAL"),"roundOffset",0)));
                 }
                 if("COUNTEREVIDENCE".equals(step)){
                     speech=change?"刚才的更正使我改变判断，我先保留其他解释。":"我听到了更正，但目前仍保留先前判断。";
-                    selected=action("turtle_soup".equals(o.gameId())?"DISCUSS":"ANSWER_PLAYER",speech, "werewolf".equals(o.gameId())?o.legalActions().stream().filter(a->a.type().equals("ANSWER_PLAYER")).findFirst().orElseThrow().targets().getFirst():null);
+                    selected=action("turtle_soup".equals(o.gameId())?"DISCUSS":"undercover".equals(o.gameId())?"SPEAK":"ANSWER_PLAYER",speech, "werewolf".equals(o.gameId())?o.legalActions().stream().filter(a->a.type().equals("ANSWER_PLAYER")).findFirst().orElseThrow().targets().getFirst():null);
                 }
                 if("ACTION".equals(step))selected=action("turtle_soup".equals(o.gameId())?"PASS":"SKIP",null,null);
                 if("CONTINUITY".equals(step)&&!"turtle_soup".equals(o.gameId())){

@@ -17,9 +17,10 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
   const { selected, primary, key, draft, target, prepared, abstain, busy, capabilities, submitted } = control;
   const disabled = busy || !connected;
   const player = state.players.find(p => p.playerId === target);
-  const label = selected ? actionLabel(selected, copy) : "";
+  const extraDescription = state.gameId === "undercover" && state.phase === "TIE_DEFENSE";
+  const label = selected?.type === "SPEAK" && extraDescription ? copy("extraDescription") : selected ? actionLabel(selected, copy) : "";
   const targetName = player ? `${copy("seat", { n: player.seatNumber + 1 })} ${player.displayName}` : "";
-  const buttonText = selected?.type === "SPEAK" ? copy("send") : target === "__abstain__" ? copy("abstain") : targetName ? copy("confirmTarget", { action: label, name: targetName }) : label;
+  const buttonText = selected?.type === "SPEAK" ? copy(extraDescription ? "sendExtraDescription" : "send") : target === "__abstain__" ? copy("abstain") : targetName ? copy("confirmTarget", { action: label, name: targetName }) : label;
   const send = () => {
     if (disabled || !prepared) return;
     if (selected?.type === "SUBMIT_SOLUTION" && state.phase === "FINAL_ANSWER") control.setConfirmation(prepared);
@@ -40,7 +41,7 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
         {abstain && <Button type="button" size="sm" variant={target === "__abstain__" ? "secondary" : "ghost"} aria-pressed={target === "__abstain__"} disabled={disabled} onClick={() => control.selectTarget("__abstain__")}>{copy("abstain")}</Button>}
       </div>}
       {selected.maxLength > 0 && <Textarea data-testid="v2-action-text" aria-label={label} value={draft} rows={2} className="room-composer" disabled={disabled}
-        placeholder={copy(needsText(selected) ? "draft" : "note")} aria-invalid={Array.from(draft.trim()).length > selected.maxLength}
+        placeholder={copy(extraDescription && selected.type === "SPEAK" ? "extraDescriptionHint" : needsText(selected) ? "draft" : "note")} aria-invalid={Array.from(draft.trim()).length > selected.maxLength}
         onChange={event => control.setDraft(event.target.value)} />}
       <div className="room-compose-footer">
         <div className="min-w-0 text-xs text-muted-foreground">
@@ -59,7 +60,7 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
           if (action.type === "REVEAL_SOLUTION") control.setConfirmation(next);
           else if (Number(state.extra?.ruleVersion) !== 2 && state.phase === "NIGHT" && action.type === "SKIP") void control.submit({ type: "NIGHT_ACTION", nightAction: "WITCH_SAVE", useHeal: false });
           else void control.submit(next);
-        }}>{action.type === "SKIP" && ["VOTING", "DAY_VOTE", "RUNOFF"].includes(state.phase) ? copy("abstain") : actionLabel(action, copy)}{action.type === "REQUEST_HINT" && <span className="ml-1 text-xs text-muted-foreground">· {copy("hintCost")}</span>}</Button>)}
+        }}>{action.type === "SKIP" && ["VOTING", "DAY_VOTE", "RUNOFF"].includes(state.phase) ? copy("abstain") : action.type === "SKIP" && extraDescription ? copy("skipExtraDescription") : actionLabel(action, copy)}{action.type === "REQUEST_HINT" && <span className="ml-1 text-xs text-muted-foreground">· {copy("hintCost")}</span>}</Button>)}
     </div>}
     <AlertDialog open={!!control.confirmation} onOpenChange={open => { if (!open) control.setConfirmation(null); }}>
       <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{copy(control.confirmation?.type === "REVEAL_SOLUTION" ? "reveal" : "solution")}</AlertDialogTitle>

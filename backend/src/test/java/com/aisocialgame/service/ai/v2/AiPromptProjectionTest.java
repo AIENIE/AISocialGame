@@ -68,6 +68,7 @@ class AiPromptProjectionTest {
         for (var scenario : new AiConversationScenarios().load()) {
             var o = scenario.observation(); var adapter = scenario.session().rule;
             if (adapter.conversation(o).replyTo().isEmpty()) continue;
+            assertEquals("werewolf", o.gameId());
             var examples = com.aisocialgame.engine.v2.RuleSupport.maps(AiPromptProjection.project(adapter,o).get("outputExamples"));
             var example = examples.stream().filter(e -> "ANSWER_PLAYER".equals(com.aisocialgame.engine.v2.RuleSupport.map(e.get("action")).get("type"))).findFirst().orElseThrow();
             assertEquals(List.of(scenario.requiredEventId()), example.get("evidenceEventIds"));
@@ -84,7 +85,7 @@ class AiPromptProjectionTest {
             assertFalse(decision.fallback(),scenario.id()+":"+decision.diagnostics());
             assertEquals(1,decision.diagnostics().get("calls"));
         }
-        assertEquals(16,checked);
+        assertEquals(8,checked);
     }
 
     private JsonNode resolve(JsonNode node, JsonNode root, int depth) {

@@ -16,7 +16,7 @@ class ClosureMetricsTest(unittest.TestCase):
                         key=f"{group}:{game}:{i}:ai{p}"
                         meta=dict(id=key,group=group,gameId=game,personaId=f"ai{p}",scenarioId=f"case-{i}" if group=="SINGLE" else "continuity",
                                   sequenceId="" if group=="SINGLE" else game+"-continuity",stepId="" if group=="SINGLE" else STEPS[i])
-                        phase = ({"undercover":("DESCRIPTION","RESPONSE","VOTING","DESCRIPTION"),"werewolf":("DAY_DISCUSS","DAY_INTERACTION","DAY_VOTE","DAY_DISCUSS"),"turtle_soup":("QUESTIONING",)*4}[game][i] if group=="SEQUENCE" else "DISCUSSION")
+                        phase = ({"undercover":("DESCRIPTION","TIE_DEFENSE","RUNOFF","DESCRIPTION"),"werewolf":("DAY_DISCUSS","DAY_INTERACTION","DAY_VOTE","DAY_DISCUSS"),"turtle_soup":("QUESTIONING",)*4}[game][i] if group=="SEQUENCE" else "DISCUSSION")
                         planned.append(meta); event=f"{game}:ai{p}:event-{i}"
                         row=dict(meta,status="GENERATED",decision=dict(fallback=False,action=dict(type="SPEAK",content="具体回应")),observation=dict(phase=phase,round=1+i//3,events=[dict(eventId=f"{game}:ai{p}:event-{j}",message="visible") for j in range(i)]))
                         if group=="SEQUENCE": row['coverage']=dict(status="APPLIED",origin="MODEL",stepId=STEPS[i],phase=phase,round=1+i//3,cycle=i+1,producedEventIds=[event],requiredVisibleEventIds=[] if i==0 else [f"{game}:ai{p}:event-{i-1}"],action=row['decision']['action'])

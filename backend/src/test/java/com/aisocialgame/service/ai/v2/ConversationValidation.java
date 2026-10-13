@@ -14,7 +14,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 final class ConversationValidation {
     static final ObjectMapper JSON=MilestoneClosureScenarios.JSON;
     static final String SET="conversation-validation-v1";
-    static final Set<String> PILOTS=Set.of("undercover:direct_question","werewolf:counterevidence","turtle_soup:human_prepares_question");
+    static final Set<String> PILOTS=Set.of("undercover:runoff_description","werewolf:counterevidence","turtle_soup:human_prepares_question");
     static final Set<String> STOP_FLAGS=Set.of("MODEL_RESOURCE_EXHAUSTED","MODEL_AUTH_REJECTED","CALL_BUDGET_EXHAUSTED","CALL_RATE_LIMITED","ADMIN_CONTROL",
             "SECRET_WORD_LEAK","INVISIBLE_EVIDENCE","PRIVATE_MEMORY_LEAK","HOST_PRIVATE_OUTPUT");
     static final class Stop extends RuntimeException { Stop(String reason){super(reason);} }

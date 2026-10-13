@@ -71,8 +71,8 @@ class UndercoverWordCatalogTest {
                 assertTrue(scenario.get("expected").size() >= 3);
                 assertTrue(scenario.get("prohibited").size() >= 2);
             });
-            assertTrue(ids.containsAll(Set.of("blank_first", "blank_last", "wrongly_accused", "meaning_conflict", "copying",
-                    "evidence_reversal", "wrong_vote_regret", "tied_defense", "pressure_blank_final", "secret_injection")));
+            assertTrue(ids.containsAll(Set.of("blank_first", "blank_last", "extra_word_feature", "meaning_conflict", "copying",
+                    "evidence_reversal", "wrong_vote_regret", "tied_description", "pressure_blank_final", "secret_injection")));
         }
     }
 }
