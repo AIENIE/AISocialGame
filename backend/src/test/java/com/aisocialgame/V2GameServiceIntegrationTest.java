@@ -44,6 +44,28 @@ class V2GameServiceIntegrationTest {
     @MockitoBean AiGrpcClient client;
     final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
 
+    @Test void allBallotsUsePhaseStartSnapshotAndConcurrentCompletionsRevealExactlyOnce() throws Exception {
+        Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
+        for(int i=0;i<4;i++) {
+            var job=coordinator.claim(queued(room.getId()).getId());
+            runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),false,Map.of()));
+        }
+        var ballots=jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED"));
+        assertEquals(4,ballots.size()); assertTrue(ballots.stream().allMatch(j->"VOTE".equals(j.getKind())));
+        assertTrue(ballots.stream().allMatch(j->RuleSupport.maps(j.getObservation().get("events")).stream().noneMatch(e->"VOTE_CAST".equals(e.get("type")))));
+        var running=ballots.stream().map(j->coordinator.claim(j.getId())).toList();
+        try(var pool=Executors.newFixedThreadPool(4)) {
+            var tasks=running.stream().map(j->pool.submit(()->runtime.complete(j.getId(),new AiTurnDecision(
+                RuleSupport.action("SKIP","",null),"",Map.of(),List.of(),Map.of(),false,Map.of())))).toList();
+            for(var task:tasks)task.get(15,TimeUnit.SECONDS);
+        }
+        var state=states.findById(room.getId()).orElseThrow();
+        assertEquals(1,RuleSupport.maps(state.getData().get("events")).stream().filter(e->"VOTE_REVEAL".equals(e.get("type"))).count());
+        assertEquals(2,state.getRoundNumber());
+        runtime.complete(running.getFirst().getId(),AiTurnDecision.fallback(RuleSupport.action("SKIP","",null)));
+        assertEquals(2,states.findById(room.getId()).orElseThrow().getRoundNumber());
+    }
+
     @Test void pauseFreezesDeadlineAndLateResponseIsNotPublishedAndCanResume() {
         Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
         AiTurnJob queued=queued(room.getId());var running=coordinator.claim(queued.getId());

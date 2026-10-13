@@ -20,8 +20,9 @@ import java.util.function.LongSupplier;
 /** Remote work only; the caller must not hold a game transaction while invoking this service. */
 @Service
 public class AiTurnGenerator {
-    public static final String PROMPT_VERSION = "social-v2.9";
+    public static final String PROMPT_VERSION = "social-v2.10";
     public static final long MAX_DECISION_MILLIS = 50_000;
+    public static final long UNDERCOVER_DECISION_MILLIS = 89_000;
     private static final int MAX_REQUEST_SECONDS = 45;
     public static final Set<String> EMOTIONS = Set.of("neutral", "curious", "tense", "relieved", "uncertain", "amused", "determined", "disappointed");
     public static final Set<String> GESTURES = Set.of("none", "pause", "nod", "shake_head", "frown", "smile", "sigh", "lean_in");
@@ -33,6 +34,7 @@ public class AiTurnGenerator {
     private final AiSafetyService safety;
     private final String playerSystem;
     private final String hostSystem;
+    private final String undercoverSystem;
     private final LongSupplier nanoTime;
 
     @Autowired
@@ -42,10 +44,11 @@ public class AiTurnGenerator {
     AiTurnGenerator(AiGrpcClient client, AppProperties properties, AiMemoryServiceV2 memories, AiSafetyService safety, LongSupplier nanoTime) {
         this.client = client; this.properties = properties; this.memories = memories; this.safety = safety;
         this.nanoTime = Objects.requireNonNull(nanoTime);
+        undercoverSystem = resource("game-knowledge/undercover-player-system.txt");
         playerSystem = resource("game-knowledge/social-player-system.txt"); hostSystem = resource("game-knowledge/turtle-host-system.txt");
     }
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId) {
-        return generate(adapter, observation, jobId, MAX_DECISION_MILLIS);
+        return generate(adapter, observation, jobId, "undercover".equals(observation.gameId()) ? UNDERCOVER_DECISION_MILLIS : MAX_DECISION_MILLIS);
     }
     /** All attempts share one monotonic budget; a runtime caller may further restrict it. */
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis) {
@@ -53,8 +56,13 @@ public class AiTurnGenerator {
     }
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis,
                                    java.util.function.BooleanSupplier turnCurrent) {
+        return generate(adapter, observation, jobId, remainingTurnMillis, turnCurrent, Map.of());
+    }
+    public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis,
+                                   java.util.function.BooleanSupplier turnCurrent, Map<String,Object> checkpoint) {
+        boolean undercover = "undercover".equals(observation.gameId());
         long started = nanoTime.getAsLong();
-        long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(MAX_DECISION_MILLIS, remainingTurnMillis)));
+        long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(undercover ? UNDERCOVER_DECISION_MILLIS : MAX_DECISION_MILLIS, remainingTurnMillis)));
         List<String> failures = List.of();
         int promptTokens = 0, completionTokens = 0, calls = 0, responses = 0;
         String modelKey = "";
@@ -63,8 +71,14 @@ public class AiTurnGenerator {
         Map<String, Object> stages = new LinkedHashMap<>();
         stages.put("initialBudgetMs", TimeUnit.NANOSECONDS.toMillis(budgetNanos));
         stages.put("inputFormatVersion", AiPromptProjection.VERSION);
-        boolean undercover = "undercover".equals(observation.gameId());
-        for (int attempt = 0; attempt < (undercover ? 4 : 2); attempt++) {
+        int resume = RuleSupport.number(checkpoint.get("nextAttempt"), 0);
+        if (!checkpoint.isEmpty()) {
+            calls = RuleSupport.number(checkpoint.get("calls"), 0); responses = RuleSupport.number(checkpoint.get("responses"), 0);
+            promptTokens = RuleSupport.number(checkpoint.get("promptTokens"), 0); completionTokens = RuleSupport.number(checkpoint.get("completionTokens"), 0);
+            modelKey = RuleSupport.text(checkpoint.get("modelKey")); lastOutput = RuleSupport.map(checkpoint.get("lastOutput"));
+            failures = RuleSupport.strings(checkpoint.get("failures")); attempts.addAll(RuleSupport.maps(checkpoint.get("attempts")));
+        }
+        for (int attempt = resume; attempt < (undercover ? 4 : 2); attempt++) {
             if (undercover && !turnCurrent.getAsBoolean()) {
                 failures = List.of("TURN_OBSOLETE"); break;
             }
@@ -91,14 +105,15 @@ public class AiTurnGenerator {
                     if (attempt > 0) { payload.put("previousOutput", lastOutput); payload.put("correction", correction(failures)); }
                     user = JSON.writeValueAsString(payload);
                 } finally { sample.put("inputPreparationMs", elapsed(preparation)); }
-                String system = RuleSupport.HOST.equals(observation.actorId()) ? hostSystem : playerSystem;
+                String system = undercover ? undercoverSystem : RuleSupport.HOST.equals(observation.actorId()) ? hostSystem : playerSystem;
                 List<AiChatMessageDto> messages = List.of(new AiChatMessageDto("system", system), new AiChatMessageDto("user", user));
                 sample.put("inputBytes", system.getBytes(StandardCharsets.UTF_8).length + user.getBytes(StandardCharsets.UTF_8).length);
-                int requestSeconds = (int) Math.min(MAX_REQUEST_SECONDS, TimeUnit.NANOSECONDS.toSeconds(remainingNanos(started, budgetNanos)));
+                int requestSeconds = (int) Math.min(undercover ? 89 : MAX_REQUEST_SECONDS, TimeUnit.NANOSECONDS.toSeconds(remainingNanos(started, budgetNanos)));
                 if (requestSeconds <= 0) { failures = deadlineFailure(failures); break; }
                 sample.put("requestTimeoutMs", requestSeconds * 1000);
                 sample.put("requestRemainingMs", TimeUnit.NANOSECONDS.toMillis(remainingNanos(started, budgetNanos)));
                 if (undercover && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
+                sample.put("requestId", jobId + ":" + attempt);
                 calls++;
                 AiChatResult response;
                 stage = "RPC";
@@ -108,12 +123,18 @@ public class AiTurnGenerator {
                             messages, jobId + ":" + attempt, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
                             messages, jobId + ":" + attempt, requestSeconds);
                 } finally { sample.put("rpcMs", elapsed(rpc)); }
+                if (response.finishReason() != null) sample.put("finishReason", response.finishReason());
+                if (response.reasoningTokens() != null) sample.put("reasoningTokens", response.reasoningTokens());
+                if (response.budgetId() != null) sample.put("budgetId", response.budgetId());
+                if (response.settlementState() != null) sample.put("settlementState", response.settlementState());
                 stage = "PARSE";
                 responses++;
                 promptTokens += response.promptTokens(); completionTokens += response.completionTokens(); modelKey = response.modelKey();
                 sample.put("promptTokens", response.promptTokens()); sample.put("completionTokens", response.completionTokens());
                 String raw = response.content() == null ? "" : response.content().strip();
                 sample.put("outputBytes", (response.content() == null ? "" : response.content()).getBytes(StandardCharsets.UTF_8).length);
+                if (undercover && "length".equals(response.finishReason())) { failures = List.of("OUTPUT_LIMIT_REACHED"); break; }
+                if (undercover && raw.isBlank()) { failures = List.of("EMPTY_MODEL_RESPONSE"); continue; }
                 AiTurnDecision decision;
                 List<String> grounding;
                 long parsing = nanoTime.getAsLong();
@@ -143,6 +164,17 @@ public class AiTurnGenerator {
                 sample.put("failureStage", stage);
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
+                if (undercover && ex instanceof com.aisocialgame.exception.ApiException api) {
+                    if ("AI_BUDGET_BUSY".equals(api.getCode())) {
+                        calls--; attempts.remove(sample);
+                        Map<String,Object> saved = new LinkedHashMap<>();
+                        saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
+                        saved.put("promptTokens",promptTokens); saved.put("completionTokens",completionTokens);
+                        saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
+                        throw new GenerationDeferred(saved);
+                    }
+                    for (String key : List.of("budgetId", "settlementState")) if (api.getDetails().containsKey(key)) sample.put(key, api.getDetails().get(key));
+                }
                 failures = List.of("RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
                 sample.put("failureStage", stage);
                 if (!(undercover && "RPC".equals(stage) && retryable(ex))) break;
@@ -154,7 +186,10 @@ public class AiTurnGenerator {
         List<String> fallbackErrors;
         stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
         if (undercover) {
-            String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT" : "REQUEST_FAILED";
+            String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT"
+                    : failures.contains("OUTPUT_LIMIT_REACHED") ? "OUTPUT_LIMIT_REACHED"
+                    : failures.contains("AI_CREDIT_INSUFFICIENT") ? "AI_CREDIT_INSUFFICIENT"
+                    : failures.contains("BUDGET_RECONCILIATION_REQUIRED") ? "BUDGET_RECONCILIATION_REQUIRED" : "REQUEST_FAILED";
             throw new GenerationFailure(reason, diagnostics(new AiTurnDecision(null, "", Map.of(), List.of(), Map.of(), false, Map.of()),
                     started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages).diagnostics());
         }
@@ -172,6 +207,11 @@ public class AiTurnGenerator {
                     modelKey, fallbackErrors, lastOutput, attempts, stages).diagnostics());
         }
         return diagnostics(fallback, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
+    }
+    public static final class GenerationDeferred extends RuntimeException {
+        private final Map<String,Object> checkpoint;
+        public GenerationDeferred(Map<String,Object> checkpoint) { super("AI_BUDGET_BUSY"); this.checkpoint = checkpoint; }
+        public Map<String,Object> checkpoint() { return checkpoint; }
     }
     /** Carries measurements across rollback/recovery, without exposing output in exception messages. */
     public static final class GenerationFailure extends IllegalStateException {

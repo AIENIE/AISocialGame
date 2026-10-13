@@ -18,6 +18,7 @@ class BoundedAiClientTest {
     Server server; ManagedChannel channel;
     AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
     final AtomicInteger sends=new AtomicInteger(),prepares=new AtomicInteger();
+    final java.util.concurrent.atomic.AtomicReference<PrepareCallBudgetRequest> prepared = new java.util.concurrent.atomic.AtomicReference<>();
     final PrepareCallBudgetResponse budget=PrepareCallBudgetResponse.newBuilder().setBudgetId("budget").setBudgetCredential("credential").build();
     final ChatCompletionsResponse response=ChatCompletionsResponse.newBuilder().setContent("committed").setPromptTokens(10).setCompletionTokens(5).build();
     final GetBudgetCallStatusResponse status=GetBudgetCallStatusResponse.newBuilder().setBudgetId("budget").setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setChat(response).build();
@@ -25,7 +26,7 @@ class BoundedAiClientTest {
         String name=InProcessServerBuilder.generateName();
         server=InProcessServerBuilder.forName(name).directExecutor().addService(new AiGatewayServiceGrpc.AiGatewayServiceImplBase(){
             @Override public void prepareCallBudget(PrepareCallBudgetRequest request,StreamObserver<PrepareCallBudgetResponse> observer){
-                prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
+                prepared.set(request);prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
             }
             @Override public void chatCompletions(ChatCompletionsRequest request,StreamObserver<ChatCompletionsResponse> observer){
                 sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());observer.onError(Status.DEADLINE_EXCEEDED.asRuntimeException());
@@ -40,13 +41,14 @@ class BoundedAiClientTest {
     @AfterEach void stop(){channel.shutdownNow();server.shutdownNow();}
     @Test void lostResponseUsesCommittedStatusWithoutRepeatingInference() {
         var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
-        var client=new BoundedAiClient(stub,escrow,reservations,count,true,100);
+        var client=new BoundedAiClient(stub,escrow,reservations,count,true,8192);
         var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
         var row=new AiCreditReservation();row.id="reservation";row.budgetId="budget";row.requestId="same-request";row.userId=85;row.projectKey="aisocialgame";row.state="HELD";
         when(escrow.reserve(request,budget)).thenReturn(new AiCreditEscrowService.Claim(row,true),new AiCreditEscrowService.Claim(row,false));
         doAnswer(invocation->{row.state="SETTLED";row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());return null;}).when(escrow).reconcile(row.id,status);
         when(reservations.findById(row.id)).thenAnswer(invocation->Optional.of(row));
         assertEquals(response,client.chat(request,45));assertEquals(response,client.chat(request,45));
+        assertEquals(8192,prepared.get().getMaxOutputTokens());
         assertEquals(1,sends.get());verify(count,times(1)).consume();
     }
     @Test void disabledAndInsufficientCreditNeverReachInference() {

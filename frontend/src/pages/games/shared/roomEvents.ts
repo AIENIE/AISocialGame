@@ -44,10 +44,18 @@ export function revealedBallot(state: GameState, logs: GameLogEntry[]) {
 /** Old events retain their original text; only structured skip reasons are translated. */
 export function systemEventMessage(log: GameLogEntry, language: string): string {
   const { reason, action, actorName } = log.metadata || {};
-  if (!["SKIP", "TIMEOUT", "SYSTEM_LOG"].includes(log.type) || !["REQUEST_FAILED", "TIMEOUT"].includes(String(reason))
+  const reasons: Record<string, [string, string, string]> = {
+    REQUEST_FAILED: ["请求失败", "請求失敗", "request failed"],
+    TIMEOUT: ["超时", "逾時", "timed out"],
+    OUTPUT_LIMIT_REACHED: ["思考达到输出上限", "思考達到輸出上限", "reasoning reached the output limit"],
+    AI_CREDIT_INSUFFICIENT: ["额度不足", "額度不足", "insufficient credits"],
+    BUDGET_RECONCILIATION_REQUIRED: ["调用待对账", "呼叫待對帳", "call awaiting reconciliation"],
+  };
+  const labels = reasons[String(reason)];
+  if (!["SKIP", "TIMEOUT", "SYSTEM_LOG"].includes(log.type) || !labels
     || !["SPEAK", "VOTE"].includes(String(action)) || typeof actorName !== "string") return log.message;
-  const voting = action === "VOTE", timeout = reason === "TIMEOUT";
-  if (language.startsWith("en")) return `${actorName}: ${voting ? "abstained" : "speaking turn skipped"} (${timeout ? "timed out" : "request failed"}).`;
-  if (language === "zh-TW" || language === "zh-HK") return `${actorName}因${timeout ? "逾時" : "請求失敗"}${voting ? "，自動棄票。" : "，跳過本次發言。"}`;
-  return `${actorName}因${timeout ? "超时" : "请求失败"}${voting ? "，自动弃票。" : "，跳过本次发言。"}`;
+  const voting = action === "VOTE";
+  if (language.startsWith("en")) return `${actorName}: ${voting ? "abstained" : "speaking turn skipped"} (${labels[2]}).`;
+  if (language === "zh-TW" || language === "zh-HK") return `${actorName}因${labels[1]}${voting ? "，自動棄票。" : "，跳過本次發言。"}`;
+  return `${actorName}因${labels[0]}${voting ? "，自动弃票。" : "，跳过本次发言。"}`;
 }

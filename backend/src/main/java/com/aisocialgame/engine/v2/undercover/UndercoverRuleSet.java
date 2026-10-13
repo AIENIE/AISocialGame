@@ -66,7 +66,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
                 return ValidationResult.invalid("手动卧底数量必须是1到" + ((count - 1) / 3) + "之间的整数");
             }
         }
-        if (!SPEAK_TIMES.contains(text(config.getOrDefault("speakTime", 60)))) return ValidationResult.invalid("发言时长仅支持0、30、60或90秒");
+        if (!SPEAK_TIMES.contains(text(config.getOrDefault("speakTime", 90)))) return ValidationResult.invalid("发言时长仅支持0、30、60或90秒");
         String pack = text(config.getOrDefault("wordPack", "daily"));
         if (!UndercoverWordCatalog.CATEGORIES.contains(pack) && !"custom".equals(pack)) return ValidationResult.invalid("词库类型不支持");
         if ("custom".equals(pack)) {
@@ -194,7 +194,13 @@ public final class UndercoverRuleSet implements GameRuleSet {
         if (!isTurnCurrent(state, turn)) return;
         GamePlayerState actor = player(state, turn.actorId());
         boolean voting = VOTING_PHASES.contains(state.getPhase());
-        String label = "TIMEOUT".equals(reason) ? "超时" : "请求失败";
+        String label = switch (reason) {
+            case "TIMEOUT" -> "超时";
+            case "OUTPUT_LIMIT_REACHED" -> "思考达到输出上限";
+            case "AI_CREDIT_INSUFFICIENT" -> "额度不足";
+            case "BUDGET_RECONCILIATION_REQUIRED" -> "调用待对账";
+            default -> "请求失败";
+        };
         event(state, "SKIP", actor.getPlayerId(), null,
                 actor.getDisplayName() + "因" + label + (voting ? "，自动弃票。" : "，跳过本次发言。"),
                 Map.of("reason", reason, "action", voting ? "VOTE" : "SPEAK", "actorName", actor.getDisplayName()));
@@ -329,7 +335,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         state.getData().put("descriptionOrder", order); state.getData().put("descriptionIndex", 0);
         state.getData().put("speakers", new ArrayList<>()); state.getData().put("votes", new LinkedHashMap<>());
         state.getData().put("runoffCandidates", List.of());
-        phase(state, "DESCRIPTION", player(state, order.getFirst()).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 60), now);
+        phase(state, "DESCRIPTION", player(state, order.getFirst()).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 90), now);
         event(state, "ROUND_START", null, null, "进入第" + state.getRoundNumber() + "轮描述。", Map.of("descriptionOrder", order));
     }
 
@@ -340,13 +346,13 @@ public final class UndercoverRuleSet implements GameRuleSet {
                 int index = number(state.getData().get("descriptionIndex"), 0);
                 List<String> speakers = new ArrayList<>(strings(state.getData().get("speakers"))); speakers.add(order.get(index));
                 state.getData().put("speakers", speakers); state.getData().put("descriptionIndex", ++index);
-                if (index < order.size()) phase(state, "DESCRIPTION", player(state, order.get(index)).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 60), now);
+                if (index < order.size()) phase(state, "DESCRIPTION", player(state, order.get(index)).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 90), now);
                 else beginVote(state, false, now);
             }
             case "TIE_DEFENSE" -> {
                 List<String> candidates = strings(state.getData().get("runoffCandidates"));
                 int index = number(state.getData().get("defenseIndex"), 0) + 1; state.getData().put("defenseIndex", index);
-                if (index < candidates.size()) phase(state, "TIE_DEFENSE", player(state, candidates.get(index)).getSeatNumber(), 20, now);
+                if (index < candidates.size()) phase(state, "TIE_DEFENSE", player(state, candidates.get(index)).getSeatNumber(), 60, now);
                 else beginVote(state, true, now);
             }
             default -> throw bad("当前阶段无法推进发言");
@@ -355,7 +361,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
 
     private void beginVote(GameState state, boolean runoff, LocalDateTime now) {
         state.getData().put("votes", new LinkedHashMap<>());
-        phase(state, runoff ? "RUNOFF" : "VOTING", null, runoff ? 15 : 30, now);
+        phase(state, runoff ? "RUNOFF" : "VOTING", null, 60, now);
         event(state, "VOTE_START", null, null, runoff ? "开始复投，只能投给平票候选人，也可以弃票。" : "开始投票，投齐或时间结束后统一公布。", Map.of("runoff", runoff));
     }
 
@@ -377,7 +383,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         if (leaders.size() > 1) {
             if ("RUNOFF".equals(state.getPhase())) { noElimination(state, now); return; }
             state.getData().put("runoffCandidates", leaders); state.getData().put("defenseIndex", 0);
-            phase(state, "TIE_DEFENSE", player(state, leaders.getFirst()).getSeatNumber(), 20, now);
+            phase(state, "TIE_DEFENSE", player(state, leaders.getFirst()).getSeatNumber(), 60, now);
             event(state, "TIE", null, null, "最高票并列，候选人各补充一次词语描述后复投。", Map.of("candidates", leaders));
             return;
         }

@@ -146,7 +146,7 @@ class UndercoverRuleSetTest {
         GameState state = rules.initialize(room(6, Map.of()), NOW);
         finishDescriptions(state);
         assertEquals("VOTING", state.getPhase());
-        assertEquals(NOW.plusSeconds(30), state.getPhaseEndsAt());
+        assertEquals(NOW.plusSeconds(60), state.getPhaseEndsAt());
         assertTrue(maps(state.getData().get("events")).stream().noneMatch(e -> Set.of("CHALLENGE_START", "ASK_PLAYER", "ANSWER_PLAYER").contains(e.get("type"))));
         assertTrue(rules.definition().getPhaseDefinitions().stream().noneMatch(p -> Set.of("CHALLENGE", "RESPONSE").contains(p.phase())));
     }
@@ -165,7 +165,7 @@ class UndercoverRuleSetTest {
             assertTrue(rules.legalActions(state, "p0").isEmpty());
             rules.advance(state, NOW.plusSeconds(1));
             assertEquals("VOTING", state.getPhase());
-            assertEquals(NOW.plusSeconds(31), state.getPhaseEndsAt());
+            assertEquals(NOW.plusSeconds(61), state.getPhaseEndsAt());
             assertNotEquals(oldToken, state.getData().get("phaseSerial"));
             assertFalse(rules.isTurnCurrent(state, old));
             assertEquals(history, maps(state.getData().get("events")).subList(0, history.size()));
@@ -173,7 +173,7 @@ class UndercoverRuleSetTest {
             assertEquals(4, rules.pendingTurns(state).size());
             assertThrows(ApiException.class, () -> rules.apply(state, "p0", action(old.kind(), "迟到的发言", "p1"), NOW.plusSeconds(1)));
             rules.advance(state, NOW.plusSeconds(2));
-            assertEquals(NOW.plusSeconds(31), state.getPhaseEndsAt());
+            assertEquals(NOW.plusSeconds(61), state.getPhaseEndsAt());
         }
     }
 
@@ -183,7 +183,7 @@ class UndercoverRuleSetTest {
         cast(state, "p0", "p1"); cast(state, "p1", "p0"); cast(state, "p2", "p0"); cast(state, "p3", "p1");
         assertEquals("TIE_DEFENSE", state.getPhase());
         assertEquals(List.of("p0", "p1"), strings(state.getData().get("runoffCandidates")));
-        assertEquals(NOW.plusSeconds(20), state.getPhaseEndsAt());
+        assertEquals(NOW.plusSeconds(60), state.getPhaseEndsAt());
         assertEquals("补充描述", rules.publicData(state).get("phaseLabel"));
         assertEquals(60, rules.legalActions(state, "p0").getFirst().maxLength());
         assertTrue(rules.legalActions(state, "p2").isEmpty());
@@ -192,7 +192,7 @@ class UndercoverRuleSetTest {
         rules.apply(state, "p0", action("SKIP", "", null), NOW);
         rules.apply(state, "p1", action("SPEAK", "我补充的是使用习惯，不是外形。", null), NOW);
         assertEquals("RUNOFF", state.getPhase());
-        assertEquals(NOW.plusSeconds(15), state.getPhaseEndsAt());
+        assertEquals(NOW.plusSeconds(60), state.getPhaseEndsAt());
         assertThrows(ApiException.class, () -> cast(state, "p0", "p2"));
         assertThrows(ApiException.class, () -> cast(state, "p0", "p0"));
         cast(state, "p0", "p1"); cast(state, "p1", "p0"); cast(state, "p2", "p0"); cast(state, "p3", "p1");
@@ -211,7 +211,7 @@ class UndercoverRuleSetTest {
         assertEquals("ALREADY_ACTED", assertThrows(ApiException.class, () -> cast(state, "p0", "p2")).getCode());
         assertTrue(maps(state.getData().get("events")).stream().noneMatch(e -> "VOTE_REVEAL".equals(e.get("type"))));
         assertTrue(maps(state.getData().get("events")).stream().filter(e -> "VOTE_CAST".equals(e.get("type"))).allMatch(e -> e.get("targetId") == null && map(e.get("data")).isEmpty()));
-        rules.advance(state, NOW.plusSeconds(31));
+        rules.advance(state, NOW.plusSeconds(61));
         assertTrue(maps(state.getData().get("events")).stream().anyMatch(e -> "VOTE_REVEAL".equals(e.get("type"))));
         assertFalse(player(state, "p1").isAlive());
     }

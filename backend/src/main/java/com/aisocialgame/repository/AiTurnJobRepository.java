@@ -22,6 +22,8 @@ public interface AiTurnJobRepository extends JpaRepository<AiTurnJob, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select j from AiTurnJob j where j.id = :id")
     Optional<AiTurnJob> findByIdForUpdate(@Param("id") String id);
+    List<AiTurnJob> findByStatusOrderByCreatedAtAsc(String status);
+    List<AiTurnJob> findByRoomIdAndStatusIn(String roomId, java.util.Collection<String> statuses);
     long countByStatus(String status);
     boolean existsByRoomIdAndStatusIn(String roomId, java.util.Collection<String> statuses);
 }

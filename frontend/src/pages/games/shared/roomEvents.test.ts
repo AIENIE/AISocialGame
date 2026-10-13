@@ -37,3 +37,11 @@ it("shows failed AI actions as localized system skips without fabricating speech
   expect(systemEventMessage({ ...log, metadata: { ...log.metadata, reason: "TIMEOUT", action: "VOTE" } }, "en")).toBe("AI 1: abstained (timed out).");
   expect(systemEventMessage({ ...log, metadata: {} }, "en")).toBe("历史文字");
 });
+
+ describe("AI failure details", () => {
+  it.each(["OUTPUT_LIMIT_REACHED", "AI_CREDIT_INSUFFICIENT", "BUDGET_RECONCILIATION_REQUIRED"])("translates %s without turning it into speech", reason => {
+    const log = { time: "2026-10-13T00:00:00Z", type: "SKIP", actorId: "ai", message: "old", metadata: { reason, action: "VOTE", actorName: "AI" } } as GameLogEntry;
+    for (const language of ["zh-CN", "zh-TW", "en"]) expect(systemEventMessage(log, language)).not.toBe("old");
+    expect(isSpeechEvent(log)).toBe(false);
+  });
+ });

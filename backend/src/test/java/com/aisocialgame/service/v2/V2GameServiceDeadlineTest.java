@@ -60,7 +60,7 @@ class V2GameServiceDeadlineTest {
     }
 
     @Test void onlyThePersistedRunningCurrentOpportunityReceivesABudget() {
-        assertEquals(50_000, runtime.remainingTurnMillis("job"));
+        assertEquals(89_000, runtime.remainingTurnMillis("job"));
         job.setStatus("SUCCEEDED");
         assertEquals(0, runtime.remainingTurnMillis("job"));
         job.setStatus("RUNNING");

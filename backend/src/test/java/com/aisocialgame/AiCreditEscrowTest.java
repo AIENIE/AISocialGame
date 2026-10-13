@@ -49,6 +49,23 @@ class AiCreditEscrowTest {
                 .setPromptTokens(input).setCompletionTokens(output)).build();
     }
     CreditAccount account(){return accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow();}
+    @Test void activeHoldWaitsButUnknownHoldNeverTriggersFreshInference() {
+        escrow.beginRequest(request.getRequestId());
+        try {
+            var first = escrow.reserve(request,budget);
+            var next = request.toBuilder().setRequestId(UUID.randomUUID().toString()).build();
+            var nextBudget = budget.toBuilder().setBudgetId(UUID.randomUUID().toString())
+                .setRequestSha256(AiCreditEscrowService.hash(next.toByteArray())).build();
+            var busy = assertThrows(com.aisocialgame.exception.ApiException.class,()->escrow.reserve(next,nextBudget));
+            assertEquals("AI_BUDGET_BUSY",busy.getCode());
+            escrow.endRequest(request.getRequestId());
+            var pending = assertThrows(com.aisocialgame.exception.ApiException.class,()->escrow.reserve(next,nextBudget));
+            assertEquals("BUDGET_RECONCILIATION_REQUIRED",pending.getCode());
+            escrow.reconcile(first.reservation().id,success(20,10));
+            assertTrue(escrow.reserve(next,nextBudget).acquired());
+        } finally { escrow.endRequest(request.getRequestId()); }
+    }
+
     @Test void reserveAndSettleOncePreserveTempExpiryAcrossNewGrants() {
         var claim=escrow.reserve(request,budget);assertTrue(claim.acquired());assertFalse(escrow.reserve(request,budget).acquired());
         assertEquals(0,account().getTempBalance());assertEquals(60,account().getPermanentBalance());

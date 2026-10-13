@@ -51,9 +51,24 @@ class AiTurnCoordinatorTest {
         coordinator.close();
     }
 
+    @Test void undercoverPoolDispatchesEightWithRoomFairnessWithoutConsumingOtherGameSlots() {
+        ExecutorService original = (ExecutorService)ReflectionTestUtils.getField(coordinator,"undercoverExecutor"); original.shutdownNow();
+        ExecutorService undercover = mock(ExecutorService.class); ReflectionTestUtils.setField(coordinator,"undercoverExecutor",undercover);
+        var selected = new java.util.ArrayList<String>();
+        doAnswer(i->{accepted.add(i.getArgument(0));return null;}).when(undercover).execute(any(Runnable.class));
+        var queued = new java.util.ArrayList<AiTurnJob>();
+        for(int i=0;i<10;i++) { var j=job("vote-"+i);j.setRoomId(i<9?"a":"b");j.setObservation(Map.of("gameId","undercover"));queued.add(j);
+            doAnswer(inv->{selected.add(j.getRoomId());return j;}).when(coordinator).claim(j.getId()); }
+        when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED")).thenReturn(queued);
+        coordinator.dispatchPulse();
+        assertEquals(8,accepted.size()); assertEquals(List.of("a","b"),selected.subList(0,2));
+        verify(executor,never()).execute(any());
+        assertEquals(1,((java.util.concurrent.Semaphore)ReflectionTestUtils.getField(coordinator,"slots")).availablePermits());
+    }
+
     @Test void claimExceptionReturnsPermitAndTheNextPulseCanDispatchWithoutRestart() {
         AiTurnJob job = job("retry-after-claim-failure");
-        when(jobs.findTop16ByStatusOrderByCreatedAtAsc("QUEUED")).thenReturn(List.of(job));
+        when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED")).thenReturn(List.of(job));
         doThrow(new IllegalStateException("temporary database failure")).doReturn(job).when(coordinator).claim(job.getId());
 
         assertDoesNotThrow(coordinator::pulse);
@@ -77,7 +92,7 @@ class AiTurnCoordinatorTest {
         AiTurnJob rejected = job("rejected");
         AiTurnJob next = job("next");
         AiTurnJob last = job("last");
-        when(jobs.findTop16ByStatusOrderByCreatedAtAsc("QUEUED"))
+        when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED"))
                 .thenReturn(List.of(rejected), List.of(next), List.of(last));
         doReturn(rejected).when(coordinator).claim(rejected.getId());
         doReturn(next).when(coordinator).claim(next.getId());
@@ -128,14 +143,14 @@ class AiTurnCoordinatorTest {
         AiTurnDecision result = AiTurnDecision.fallback(new com.aisocialgame.dto.PlayerAction());
         when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(12_345L);
-        when(generator.generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class))).thenReturn(result);
+        when(generator.generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class), anyMap())).thenReturn(result);
 
         coordinator.run(job);
 
         var ordered = inOrder(runtime, generator);
         ordered.verify(runtime).rules("undercover");
         ordered.verify(runtime).remainingTurnMillis(job.getId());
-        ordered.verify(generator).generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class));
+        ordered.verify(generator).generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class), anyMap());
         ordered.verify(runtime).complete(job.getId(), result);
         verify(runtime, never()).fail(anyString());
     }
@@ -146,7 +161,7 @@ class AiTurnCoordinatorTest {
         GameRuleSet rules = mock(GameRuleSet.class); when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(50_000L);
         var result = new AiTurnDecision(new com.aisocialgame.dto.PlayerAction(), "", Map.of(), List.of(), Map.of(), false, Map.of("latencyMs", 123L));
-        when(generator.generate(eq(rules), any(), eq(job.getId()), eq(50_000L), any(java.util.function.BooleanSupplier.class))).thenReturn(result);
+        when(generator.generate(eq(rules), any(), eq(job.getId()), eq(50_000L), any(java.util.function.BooleanSupplier.class), anyMap())).thenReturn(result);
         doThrow(new IllegalStateException("private diagnostic must not persist")).when(runtime).complete(job.getId(), result);
         coordinator.run(job);
         verify(runtime).fail(eq(job.getId()), eq("SUBMISSION_EXCEPTION"), argThat(d -> Long.valueOf(123L).equals(d.get("latencyMs")) && d.containsKey("submissionFailedMs")));

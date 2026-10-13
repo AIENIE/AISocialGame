@@ -97,7 +97,7 @@ app:
     default-model: ''
     system-user-id: 0
     budget-enabled: false
-    budget-max-output-tokens: 1024
+    budget-max-output-tokens: 8192
     budget-reconcile-delay-ms: 30000
   credit:
     checkin-grant-tokens: 20

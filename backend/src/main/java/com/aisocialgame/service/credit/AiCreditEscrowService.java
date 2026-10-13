@@ -28,6 +28,9 @@ public class AiCreditEscrowService {
         this.reservations=reservations; this.accounts=accounts; this.temporary=temporary; this.ledger=ledger; this.json=json;
         tx=new TransactionTemplate(manager); tx.setPropagationBehavior(3);
     }
+    private final java.util.Set<String> executing = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    public void beginRequest(String id) { executing.add(id); }
+    public void endRequest(String id) { executing.remove(id); }
     public Claim reserve(ChatCompletionsRequest request,PrepareCallBudgetResponse budget) {
         String digest=hash(request.toByteArray());
         if(!digest.equals(budget.getRequestSha256()) || budget.getBudgetId().isBlank()
@@ -47,9 +50,16 @@ public class AiCreditEscrowService {
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
             long temp=temporary.balance(account,now);
-            if(Math.addExact(temp,account.getPermanentBalance())<budget.getMaxTotalTokens())
-                throw new ApiException(HttpStatus.BAD_REQUEST,"专属积分不足以预留本次 AI 调用的最高用量","AI_CREDIT_INSUFFICIENT",
-                    Map.of("requiredTokens",budget.getMaxTotalTokens()));
+            long available = Math.addExact(temp,account.getPermanentBalance());
+            if(available < budget.getMaxTotalTokens()) {
+                var held = reservations.findByUserIdAndProjectKeyAndState(request.getUserId(), request.getProjectKey(), "HELD");
+                long active = held.stream().filter(r -> executing.contains(r.requestId))
+                        .mapToLong(r -> Math.addExact(r.reservedTemp,r.reservedPermanent)).sum();
+                String code = available + active >= budget.getMaxTotalTokens() ? "AI_BUDGET_BUSY"
+                        : available + held.stream().mapToLong(r -> Math.addExact(r.reservedTemp,r.reservedPermanent)).sum() >= budget.getMaxTotalTokens() ? "BUDGET_RECONCILIATION_REQUIRED" : "AI_CREDIT_INSUFFICIENT";
+                throw new ApiException(HttpStatus.BAD_REQUEST,"专属积分不足以预留本次 AI 调用的最高用量",code,
+                    Map.of("requiredTokens",budget.getMaxTotalTokens(), "budgetId", budget.getBudgetId()));
+            }
             long reserveTemp=Math.min(temp,budget.getMaxTotalTokens());
             var portions=temporary.take(account,reserveTemp,now);
             long reservePermanent=budget.getMaxTotalTokens()-reserveTemp;

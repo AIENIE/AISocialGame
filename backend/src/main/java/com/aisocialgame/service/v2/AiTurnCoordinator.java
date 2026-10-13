@@ -28,6 +28,9 @@ public class AiTurnCoordinator {
     private final AiTurnGenerator generator;
     private final TransactionTemplate transaction;
     private final ExecutorService executor;
+    private final ExecutorService undercoverExecutor;
+    private final Semaphore undercoverSlots = new Semaphore(8);
+    private String lastDispatchedRoom = "";
     private final ThreadPoolExecutor clockExecutor;
     private final java.util.Set<String> clockPending = ConcurrentHashMap.newKeySet();
     private final AtomicReference<String> clockCursor = new AtomicReference<>("");
@@ -50,6 +53,7 @@ public class AiTurnCoordinator {
         this.transaction = new TransactionTemplate(manager); this.enabled = enabled;
         int size = Math.max(1, Math.min(workers, 8)); slots = new Semaphore(size);
         executor = Executors.newFixedThreadPool(size, r -> { Thread t = new Thread(r, "game-ai-turn"); t.setDaemon(true); return t; });
+        undercoverExecutor = Executors.newFixedThreadPool(8, r -> { Thread t = new Thread(r, "undercover-ai-turn"); t.setDaemon(true); return t; });
         int clockSize = Math.max(1, Math.min(clockWorkers, 8));
         this.clockBatchSize = Math.max(1, Math.min(clockBatchSize, 256));
         clockExecutor = new ThreadPoolExecutor(clockSize, clockSize, 0, TimeUnit.MILLISECONDS,
@@ -107,19 +111,32 @@ public class AiTurnCoordinator {
     }
 
     @Scheduled(fixedDelayString = "${app.game.scheduler-interval-ms:750}")
-    public void dispatchPulse() {
+    public synchronized void dispatchPulse() {
         if (!enabled) return;
-        for (AiTurnJob queued : jobs.findTop16ByStatusOrderByCreatedAtAsc("QUEUED")) {
-            if (!slots.tryAcquire()) break;
+        var byRoom = new java.util.TreeMap<String,java.util.ArrayDeque<AiTurnJob>>();
+        for (AiTurnJob job : jobs.findByStatusOrderByCreatedAtAsc("QUEUED"))
+            byRoom.computeIfAbsent(job.getRoomId(), ignored -> new java.util.ArrayDeque<>()).add(job);
+        var rooms = new java.util.ArrayList<>(byRoom.keySet());
+        rooms.sort(java.util.Comparator.comparing((String room) -> room.compareTo(lastDispatchedRoom) <= 0).thenComparing(java.util.Comparator.naturalOrder()));
+        var fair = new java.util.ArrayList<AiTurnJob>();
+        while (byRoom.values().stream().anyMatch(q -> !q.isEmpty())) for (String room : rooms) {
+            var queue = byRoom.get(room); if (!queue.isEmpty()) fair.add(queue.remove());
+        }
+        for (AiTurnJob queued : fair) {
+            boolean undercover = "undercover".equals(queued.getObservation().get("gameId"));
+            Semaphore permits = undercover ? undercoverSlots : slots;
+            ExecutorService workers = undercover ? undercoverExecutor : executor;
+            if (!permits.tryAcquire()) continue;
             AiTurnJob claimed = null;
             boolean submitted = false;
             try {
                 claimed = claim(queued.getId());
                 if (claimed == null) continue;
                 AiTurnJob dispatched = claimed;
-                executor.execute(() -> {
+                lastDispatchedRoom = queued.getRoomId();
+                workers.execute(() -> {
                     try { run(dispatched); }
-                    finally { slots.release(); }
+                    finally { permits.release(); }
                 });
                 submitted = true;
             } catch (Exception ex) {
@@ -130,7 +147,7 @@ public class AiTurnCoordinator {
                 }
             } finally {
                 // The worker owns a permit only after execute accepted its task.
-                if (!submitted) slots.release();
+                if (!submitted) permits.release();
             }
         }
     }
@@ -144,8 +161,16 @@ public class AiTurnCoordinator {
                         .persona(com.aisocialgame.engine.v2.RuleSupport.text(persona.get("id"))).model(properties==null?null:properties.getAi().getDefaultModel());
                 if (safety.blocksAutomation(context,job.getKind())) return null;
             }
+            if (job.getDiagnostics().remove("budgetWaitStartedEpochMs") instanceof Number waiting) {
+                long previous = job.getDiagnostics().get("budgetWaitMs") instanceof Number n ? n.longValue() : 0;
+                job.getDiagnostics().put("budgetWaitMs", previous + Math.max(0,System.currentTimeMillis()-waiting.longValue()));
+            }
+            job.getDiagnostics().remove("waitingReason");
             job.setStatus("RUNNING"); job.setStartedAt(LocalDateTime.now());
-            AiJobDiagnostics.started(job, java.time.Instant.now()); return jobs.saveAndFlush(job);
+            if ("undercover".equals(job.getObservation().get("gameId")))
+                job.getDiagnostics().putIfAbsent("executionDeadlineEpochMs", System.currentTimeMillis()+AiTurnGenerator.UNDERCOVER_DECISION_MILLIS);
+            if (!job.getDiagnostics().containsKey("startedEpochMs")) AiJobDiagnostics.started(job, java.time.Instant.now());
+            return jobs.saveAndFlush(job);
         });
     }
     public void run(AiTurnJob job) {
@@ -153,7 +178,7 @@ public class AiTurnCoordinator {
         boolean submitting = false;
         long submissionStarted = 0;
         try {
-            VisibleObservation observation = JSON.convertValue(job.getObservation(), VisibleObservation.class);
+            VisibleObservation observation = JSON.convertValue(V2GameService.observationPayload(job), VisibleObservation.class);
             var rules = runtime.rules(observation.gameId());
             long remainingMillis = runtime.remainingTurnMillis(job.getId());
             if (remainingMillis <= 0) {
@@ -162,10 +187,12 @@ public class AiTurnCoordinator {
             AiTurnDecision decision;
             try (var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
                     .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))))) {
-                decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0);
+                decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")));
             }
             measurements = decision.diagnostics(); submitting = true; submissionStarted = System.nanoTime();
             runtime.complete(job.getId(), decision);
+        } catch (AiTurnGenerator.GenerationDeferred deferred) {
+            runtime.defer(job.getId(), deferred.checkpoint());
         } catch (Exception ex) {
             log.warn("AI turn failed jobId={} roomId={} errorType={}", job.getId(), job.getRoomId(), ex.getClass().getSimpleName());
             if (submitting) {
@@ -178,5 +205,5 @@ public class AiTurnCoordinator {
             catch (Exception recoveryError) { log.warn("AI recovery deferred jobId={} errorType={}", job.getId(), recoveryError.getClass().getSimpleName()); }
         }
     }
-    @PreDestroy public void close() { clockExecutor.shutdownNow(); executor.shutdownNow(); }
+    @PreDestroy public void close() { clockExecutor.shutdownNow(); executor.shutdownNow(); undercoverExecutor.shutdownNow(); }
 }

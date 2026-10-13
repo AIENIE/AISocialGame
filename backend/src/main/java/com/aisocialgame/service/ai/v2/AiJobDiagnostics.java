@@ -11,7 +11,7 @@ public final class AiJobDiagnostics {
     private static final Set<String> GENERATION_KEYS = Set.of("latencyMs", "calls", "promptTokens", "completionTokens", "usageComplete", "responsesObserved",
             "qualityFlags", "modelKey", "promptVersion", "repaired", "initialBudgetMs", "inputFormatVersion", "inputSectionBytes", "repairRemainingMs", "fallbackMs", "submissionFailedMs");
     private static final Set<String> ATTEMPT_KEYS = Set.of("attempt", "flags", "failureStage", "inputPreparationMs", "inputBytes", "requestTimeoutMs", "requestRemainingMs",
-            "rpcMs", "parseMs", "validationMs", "promptTokens", "completionTokens", "outputBytes");
+            "rpcMs", "parseMs", "validationMs", "promptTokens", "completionTokens", "outputBytes", "requestId", "budgetId", "settlementState", "finishReason", "reasoningTokens");
 
     public static Map<String, Object> generation(Map<String, Object> source) {
         Map<String, Object> result = new LinkedHashMap<>();
@@ -42,6 +42,8 @@ public final class AiJobDiagnostics {
         return overdue(job.getDiagnostics(), job.getStartedAt(), now, legacyZone);
     }
     public static boolean overdue(Map<String, Object> diagnostics, LocalDateTime legacyStarted, Instant now, ZoneId legacyZone) {
+        if (diagnostics != null && diagnostics.get("executionDeadlineEpochMs") instanceof Number n)
+            return now.toEpochMilli() > n.longValue() + 10_000;
         if (diagnostics != null && diagnostics.get("startedEpochMs") instanceof Number)
             return age(new LinkedHashMap<>(diagnostics), "startedEpochMs", now).orElse(-1) > 60_000;
         return legacyStarted != null && legacyStarted.isBefore(LocalDateTime.ofInstant(now, legacyZone).minusSeconds(60));

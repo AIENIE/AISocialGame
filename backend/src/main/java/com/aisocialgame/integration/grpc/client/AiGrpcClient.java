@@ -97,6 +97,7 @@ public class AiGrpcClient {
                     .setUserId(userId)
                     .setSessionId(sessionId == null ? "" : sessionId)
                     .setModel(model == null ? "" : model);
+            if (undercover) builder.setThinkingEnabled(true);
             if (messages != null) {
                 for (AiChatMessageDto message : messages) {
                     if (message == null) {
@@ -113,7 +114,10 @@ public class AiGrpcClient {
             var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds) : stub.chatCompletions(builder.build());
             if (admission!=null) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
-            return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens());
+            var metadata = undercover ? boundedClient.metadata(builder.build()) : java.util.Map.<String,Object>of();
+            return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens(),
+                    response.hasFinishReason() ? response.getFinishReason() : null, response.hasReasoningTokens() ? response.getReasoningTokens() : null,
+                    (String) metadata.get("budgetId"), (String) metadata.get("settlementState"));
         } catch (StatusRuntimeException ex) {
             if(admission!=null)admission.finish(requestId,"RPC_"+ex.getStatus().getCode().name(),null,null);
             throw toApiException(ex);

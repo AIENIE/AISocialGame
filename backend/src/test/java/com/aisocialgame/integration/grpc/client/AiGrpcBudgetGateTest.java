@@ -42,6 +42,7 @@ class AiGrpcBudgetGateTest {
         var request = org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
         verify(bounded).chat(request.capture(), eq(19)); verify(bounded).requireReady();
         assertEquals("job:0", request.getValue().getRequestId());
+        assertTrue(request.getValue().hasThinkingEnabled()); assertTrue(request.getValue().getThinkingEnabled());
         assertEquals("match:actor", request.getValue().getSessionId()); assertEquals(85, request.getValue().getUserId());
         assertBudgetUnavailable(() -> client.chatCompletions("aisocialgame", 85, "", "deepseek-flash", List.of()));
         verifyNoInteractions(channel);

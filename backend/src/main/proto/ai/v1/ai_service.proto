@@ -101,6 +101,9 @@ message ChatCompletionsResponse {
   optional bool reasoning_prefix_applied = 6;
   // Native tools only: {message,finish_reason,model,system_fingerprint}; includes private reasoning.
   optional string native_response_json = 7;
+  // Optional provider metadata; absent means unknown. Reasoning is included in completion_tokens.
+  optional string finish_reason = 8;
+  optional int64 reasoning_tokens = 9;
 }
 
 enum ChatStreamEventType {

@@ -25,7 +25,7 @@ public class BoundedAiClient {
     public BoundedAiClient(AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub,AiCreditEscrowService escrow,
             AiCreditReservationRepository reservations,AiCallBudgetService callBudget,
             @Value("${app.ai.budget-enabled:false}") boolean enabled,
-            @Value("${app.ai.budget-max-output-tokens:1024}") int maxOutput) {
+            @Value("${app.ai.budget-max-output-tokens:8192}") int maxOutput) {
         this.stub=stub; this.escrow=escrow; this.reservations=reservations; this.callBudget=callBudget;
         this.enabled=enabled; this.maxOutput=maxOutput;
     }
@@ -34,7 +34,16 @@ public class BoundedAiClient {
     }
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds) {
         requireReady();
-        long remainingSeconds=Math.min(45,Math.max(1,deadlineSeconds));
+        escrow.beginRequest(request.getRequestId());
+        try { return execute(request, deadlineSeconds); }
+        finally { escrow.endRequest(request.getRequestId()); }
+    }
+    public Map<String,Object> metadata(ChatCompletionsRequest request) {
+        String identity = AiCreditEscrowService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return reservations.findByIdentityHash(identity).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
+    }
+    private ChatCompletionsResponse execute(ChatCompletionsRequest request, int deadlineSeconds) {
+        long remainingSeconds=Math.min(89,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;
         try {
@@ -49,6 +58,7 @@ public class BoundedAiClient {
         if(claim.acquired()) {
             try {
                 long remaining=deadline-System.nanoTime();
+                remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
                 if(remaining<=0) throw io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException();
                 callBudget.consume();
                 stub.withDeadlineAfter(remaining,TimeUnit.NANOSECONDS)
@@ -59,14 +69,18 @@ public class BoundedAiClient {
                 var committed=reservations.findById(claim.reservation().id).orElseThrow();
                 if("SETTLED".equals(committed.state)) return result(committed);
                 if ("RELEASED".equals(committed.state) && transientFailure(failure)) throw notSent();
-                throw pending();
+                throw pending(claim.reservation());
             }
         }
-        try { reconcile(claim.reservation(), deadline); } catch (RuntimeException failure) { throw pending(); }
+        try { reconcile(claim.reservation(), deadline); } catch (RuntimeException failure) { throw pending(claim.reservation()); }
         var committed=reservations.findById(claim.reservation().id).orElseThrow();
         if("SETTLED".equals(committed.state)) return result(committed);
         if ("RELEASED".equals(committed.state)) throw notSent();
-        throw pending();
+        throw pending(claim.reservation());
+    }
+    private static ApiException pending(AiCreditReservation row) {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI 调用结果正在对账", "BUDGET_RECONCILIATION_REQUIRED",
+                Map.of("budgetId", row.budgetId, "settlementState", row.state));
     }
     private static boolean transientFailure(RuntimeException failure) {
         return java.util.Set.of(io.grpc.Status.Code.UNAVAILABLE, io.grpc.Status.Code.DEADLINE_EXCEEDED,

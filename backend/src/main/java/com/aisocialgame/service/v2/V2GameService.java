@@ -72,7 +72,12 @@ public class V2GameService {
         if (state == null || !Objects.equals(job.getInstanceId(), state.getData().get("archiveId"))) return 0;
         GameRuleSet rules = rules(state.getGameId());
         if (!rules.isTurnCurrent(state, new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey()))) return 0;
-        return turnBudgetMillis(state.getPhaseEndsAt(), LocalDateTime.now());
+        if (!"undercover".equals(state.getGameId())) return turnBudgetMillis(state.getPhaseEndsAt(), LocalDateTime.now());
+        long now = System.currentTimeMillis();
+        long remaining = state.getPhaseEndsAt() == null ? AiTurnGenerator.UNDERCOVER_DECISION_MILLIS
+                : Math.max(0, Duration.between(LocalDateTime.now(), state.getPhaseEndsAt()).toMillis() - 1_000);
+        Object deadline = job.getDiagnostics().get("executionDeadlineEpochMs");
+        return Math.min(remaining, deadline instanceof Number n ? Math.max(0, n.longValue()-now) : AiTurnGenerator.UNDERCOVER_DECISION_MILLIS);
     }
     static long turnBudgetMillis(LocalDateTime deadline, LocalDateTime now) {
         if (deadline == null) return AiTurnGenerator.MAX_DECISION_MILLIS;
@@ -208,7 +213,7 @@ public class V2GameService {
                 rules.advance(state, now); AiCommitments.reconcile(state, rules, "TIMEOUT"); finishJob(job, "DISCARDED", "TURN_EXPIRED");
                 persist(room, state, rules, false); prepareJob(state, rules); return;
             }
-            VisibleObservation observation = JSON.convertValue(job.getObservation(), VisibleObservation.class);
+            VisibleObservation observation = JSON.convertValue(observationPayload(job), VisibleObservation.class);
             if(!decision.speech().isBlank()) {
                 var review=safety.review(decision.speech(),AiSafetyContext.source("AI_PLAYER").room(state.getRoomId(),state.getGameId())
                         .user(job.getActorId(),job.getActorId()).persona(RuleSupport.text(observation.persona().get("id")))
@@ -230,6 +235,22 @@ public class V2GameService {
             AiRoundReflection.closeRounds(state);
             recordTrace(state, job, observation, decision, before);
             persist(room, state, rules, false); prepareJob(state, rules);
+        });
+    }
+    public void defer(String jobId, Map<String,Object> checkpoint) {
+        AiTurnJob lookup = jobs.findById(jobId).orElse(null); if (lookup == null) return;
+        transaction.executeWithoutResult(status -> {
+            rooms.findByIdForUpdate(lookup.getRoomId());
+            GameState state = states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
+            AiTurnJob job = jobs.findByIdForUpdate(jobId).orElse(null);
+            if (job == null || !"RUNNING".equals(job.getStatus())) return;
+            if (state == null || !rules(state.getGameId()).isTurnCurrent(state, new TurnRequest(job.getActorId(),job.getKind(),job.getTurnKey()))) {
+                finishJob(job,"DISCARDED","TURN_OBSOLETE"); return;
+            }
+            job.getObservation().put("generationCheckpoint", checkpoint);
+            job.getDiagnostics().putIfAbsent("budgetWaitStartedEpochMs", System.currentTimeMillis());
+            job.getDiagnostics().put("waitingReason", "AI_BUDGET_BUSY");
+            job.setStatus("QUEUED"); jobs.save(job);
         });
     }
     public void fail(String jobId) { fail(jobId, "EXECUTION_EXCEPTION", Map.of()); }
@@ -258,7 +279,7 @@ public class V2GameService {
                     int actionStart = RuleSupport.maps(state.getData().get("events")).size();
                     AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
                     if (rules instanceof com.aisocialgame.engine.v2.undercover.UndercoverRuleSet undercover)
-                        undercover.onAiFailure(state, turn, now, Set.of("TIMEOUT", "NO_ACTION_BUDGET", "RECOVERY_TIMEOUT").contains(reason) ? "TIMEOUT" : "REQUEST_FAILED");
+                        undercover.onAiFailure(state, turn, now, Set.of("TIMEOUT", "NO_ACTION_BUDGET", "RECOVERY_TIMEOUT").contains(reason) ? "TIMEOUT" : Set.of("OUTPUT_LIMIT_REACHED", "AI_CREDIT_INSUFFICIENT", "BUDGET_RECONCILIATION_REQUIRED").contains(reason) ? reason : "REQUEST_FAILED");
                     else rules.onAiFailure(state, turn, now);
                     AiCommitments.submitted(state, receipt, "undercover".equals(state.getGameId()) ? reason : "LEGAL_FALLBACK", actionStart);
                 }
@@ -267,8 +288,15 @@ public class V2GameService {
             prepareJob(state, rules);
         });
     }
+    static Map<String,Object> observationPayload(AiTurnJob job) {
+        Map<String,Object> payload = new LinkedHashMap<>(job.getObservation()); payload.remove("generationCheckpoint"); return payload;
+    }
     private void prepareJob(GameState state, GameRuleSet rules) {
-        if ("SETTLEMENT".equals(state.getPhase()) || jobs.existsByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING"))) return;
+        boolean undercover = "undercover".equals(state.getGameId());
+        if (undercover) for (AiTurnJob old : jobs.findByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING"))) {
+            if (!rules.isTurnCurrent(state, new TurnRequest(old.getActorId(), old.getKind(), old.getTurnKey()))) finishJob(old, "DISCARDED", Objects.equals(old.getInstanceId(),state.getData().get("archiveId")) ? "TURN_OBSOLETE" : "INSTANCE_UNAVAILABLE");
+        }
+        if ("SETTLEMENT".equals(state.getPhase()) || (!undercover && jobs.existsByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING")))) return;
         for (TurnRequest turn : rules.pendingTurns(state)) {
             if (automationBlocked(state,turn.actorId())) continue;
             String id = hash(turn.key());
@@ -286,7 +314,8 @@ public class V2GameService {
             job.setObservation(RuleSupport.map(JSON.convertValue(observations.build(state, rules, turn), Map.class)));
             job.getDiagnostics().put("observationMs", Math.max(0, (System.nanoTime() - observing) / 1_000_000));
             job.getDiagnostics().put("queuedEpochMs", java.time.Instant.now().toEpochMilli());
-            jobs.save(job); break;
+            jobs.save(job);
+            if (!undercover || !Set.of("VOTING", "RUNOFF").contains(state.getPhase())) break;
         }
     }
     private void persist(Room room, GameState state, GameRuleSet rules, boolean forcePush) {

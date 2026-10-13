@@ -37,7 +37,7 @@ private static final String GAME_ID="undercover";
                                 new GameConfigOption.Option("硬核科技", "tech"),
                                 new GameConfigOption.Option("自定义词库", "custom")
                         ), null, null),
-                        new GameConfigOption("speakTime", "发言时长", "select", 60, List.of(
+                        new GameConfigOption("speakTime", "发言时长", "select", 90, List.of(
                                 new GameConfigOption.Option("30秒", 30),
                                 new GameConfigOption.Option("60秒", 60),
                                 new GameConfigOption.Option("90秒", 90),
@@ -48,10 +48,10 @@ private static final String GAME_ID="undercover";
     }
     public static List<PhaseDefinition> phaseDefinitions() {
         return List.of(
-                new PhaseDefinition(GamePhases.DESCRIPTION, "描述阶段", 60, true),
-                new PhaseDefinition("TIE_DEFENSE", "补充描述", 20, true),
-                new PhaseDefinition("RUNOFF", "复投", 15, true),
-                new PhaseDefinition(GamePhases.VOTING, "投票阶段", 30, true),
+                new PhaseDefinition(GamePhases.DESCRIPTION, "描述阶段", 90, true),
+                new PhaseDefinition("TIE_DEFENSE", "补充描述", 60, true),
+                new PhaseDefinition("RUNOFF", "复投", 60, true),
+                new PhaseDefinition(GamePhases.VOTING, "投票阶段", 60, true),
                 new PhaseDefinition(GamePhases.SETTLEMENT, "结算", 0, true)
         );
     }
