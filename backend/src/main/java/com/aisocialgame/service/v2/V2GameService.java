@@ -47,6 +47,8 @@ public class V2GameService {
     private final boolean enabled;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.config.AppProperties appProperties;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.aisocialgame.service.ai.config.AiModelConfigService modelConfigs;
 
     public V2GameService(List<GameRuleSet> rules, RoomRepository rooms, GameStateRepository states, AiTurnJobRepository jobs,
                          org.springframework.transaction.PlatformTransactionManager manager, ObservationFactory observations,
@@ -204,7 +206,7 @@ public class V2GameService {
             job.getDiagnostics().put("generation", AiJobDiagnostics.generation(decision.diagnostics()));
             job.getDiagnostics().put("fallback", decision.fallback());
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
-            if (automationBlocked(state,job.getActorId())) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
+            if (automationBlocked(state,job.getActorId(),jobModel(job,state.getGameId()))) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (!rules.isTurnCurrent(state, turn)) { finishJob(job, "DISCARDED", "TURN_OBSOLETE"); prepareJob(state, rules); return; }
@@ -217,7 +219,7 @@ public class V2GameService {
             if(!decision.speech().isBlank()) {
                 var review=safety.review(decision.speech(),AiSafetyContext.source("AI_PLAYER").room(state.getRoomId(),state.getGameId())
                         .user(job.getActorId(),job.getActorId()).persona(RuleSupport.text(observation.persona().get("id")))
-                        .model(appProperties==null?null:appProperties.getAi().getDefaultModel()).metadata("visibility","NIGHT_ACTION".equals(decision.action().getType())?"PRIVATE":"PUBLIC"));
+                        .model(jobModel(job,state.getGameId())).metadata("visibility","NIGHT_ACTION".equals(decision.action().getType())?"PRIVATE":"PUBLIC"));
                 if(review.blocked() || review.redacted()) {finishJob(job,"DISCARDED","CONTENT_REVIEW_FAILED");return;}
             }
             int before = RuleSupport.maps(state.getData().get("events")).size();
@@ -265,7 +267,7 @@ public class V2GameService {
             if (!generation.isEmpty()) job.getDiagnostics().put("generation", AiJobDiagnostics.generation(generation));
             job.getDiagnostics().put("failureReason", reason);
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
-            if (automationBlocked(state,job.getActorId())) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
+            if (automationBlocked(state,job.getActorId(),jobModel(job,state.getGameId()))) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (rules.isTurnCurrent(state, turn)) {
@@ -372,9 +374,19 @@ public class V2GameService {
         return safety.controls(AiSafetyContext.source("GAME").room(state.getRoomId(),state.getGameId()));
     }
     private boolean automationBlocked(GameState state,String actorId) {
+        return automationBlocked(state,actorId,configuredModel(state.getGameId(),actorId));
+    }
+    private String configuredModel(String gameId,String actorId) {
+        return modelConfigs == null ? appProperties == null ? null : appProperties.getAi().getDefaultModel() : modelConfigs.resolve(gameId,actorId).modelKey();
+    }
+    private String jobModel(AiTurnJob job,String gameId) {
+        var selected = RuleSupport.map(job.getDiagnostics().get("modelSelection"));
+        return selected.containsKey("modelKey") ? RuleSupport.text(selected.get("modelKey")) : configuredModel(gameId,job.getActorId());
+    }
+    private boolean automationBlocked(GameState state,String actorId,String modelKey) {
         String persona=state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId)).map(p -> p.getPersonaId()==null?"":p.getPersonaId()).findFirst().orElse("");
         var context=AiSafetyContext.source("AI_PLAYER").room(state.getRoomId(),state.getGameId()).user(actorId,actorId).persona(persona)
-                .model(appProperties==null?null:appProperties.getAi().getDefaultModel());
+                .model(modelKey);
         String kind=rules(state.getGameId()).pendingTurns(state).stream().filter(t -> actorId.equals(t.actorId())).map(TurnRequest::kind).findFirst().orElse("");
         return safety.blocksAutomation(context,kind);
     }

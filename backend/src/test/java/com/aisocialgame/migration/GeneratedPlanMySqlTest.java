@@ -16,6 +16,28 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratedPlanMySqlTest {
     @TempDir Path temporary;
 
+    @Test void modelConfigurationMatchesCurrentSchemaAndRepeatedMigrationPreservesSavedChoices() throws Exception {
+        var generated = new GeneratedMigrationFixture(temporary);
+        try (var server = connect(null); var statement = server.createStatement()) {
+            for (String suffix : List.of("model_config", "model_config_snapshot"))
+                statement.execute("CREATE DATABASE `" + database(suffix) + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try (var db = connect("model_config"); var snapshot = connect("model_config_snapshot")) {
+            for (var path : generated.freshScripts()) ClosureMySqlMigrationTest.script(db,path.toString());
+            ClosureMySqlMigrationTest.script(snapshot,"sql/schema.sql");
+            String structure = "SELECT table_name,column_name,column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name IN ('ai_model_catalog','ai_function_model_configs') ORDER BY table_name,column_name";
+            assertEquals(ClosureMySqlMigrationTest.rows(db,structure),ClosureMySqlMigrationTest.rows(snapshot,structure));
+            ClosureMySqlMigrationTest.sql(db,"UPDATE ai_model_catalog SET models_json='[{\"modelKey\":\"saved-model\",\"thinking\":{\"declared\":false,\"defaultEnabled\":null}}]',synced_at=NOW(6),version=4 WHERE id=1");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO ai_function_model_configs(function_code,model_key,thinking_mode,thinking_effort,updated_at,version) VALUES('UNDERCOVER','saved-model','ENABLED','HIGH',NOW(6),7)");
+            var before = ClosureMySqlMigrationTest.rows(db,"SELECT models_json,CAST(synced_at AS CHAR),version FROM ai_model_catalog");
+            var migration = generated.freshScripts().stream().filter(path -> path.getFileName().toString().equals("20261019_ai_model_config.sql")).findFirst().orElseThrow();
+            ClosureMySqlMigrationTest.script(db,migration.toString()); ClosureMySqlMigrationTest.script(db,migration.toString());
+            assertEquals(before,ClosureMySqlMigrationTest.rows(db,"SELECT models_json,CAST(synced_at AS CHAR),version FROM ai_model_catalog"));
+            assertEquals(List.of(List.of("saved-model","ENABLED","HIGH","7")),ClosureMySqlMigrationTest.rows(db,"SELECT model_key,thinking_mode,thinking_effort,version FROM ai_function_model_configs"));
+            evidence("model-config-migration",java.util.Map.of("currentSchemaMatches",true,"savedSettingsPreserved",true,"repeatRuns",2));
+        }
+    }
+
     @Test
     void roomLifecycleBackfillsExactOriginsAndNumbersAndIsRepeatable() throws Exception {
         var generated = new GeneratedMigrationFixture(temporary);
@@ -26,7 +48,11 @@ class GeneratedPlanMySqlTest {
             String offset = java.time.ZonedDateTime.now().getOffset().getId();
             ClosureMySqlMigrationTest.sql(db, "SET time_zone='" + (offset.equals("Z") ? "+00:00" : offset) + "'");
             var scripts = generated.freshScripts();
-            for (var path : scripts.subList(0, scripts.size()-1)) ClosureMySqlMigrationTest.script(db, path.toString());
+            var migration = scripts.stream().filter(path -> path.getFileName().toString().equals("20261008_room_lifecycle.sql")).findFirst().orElseThrow().toString();
+            for (var path : scripts) {
+                if (path.toString().equals(migration)) break;
+                ClosureMySqlMigrationTest.script(db, path.toString());
+            }
             ClosureMySqlMigrationTest.sql(db, "INSERT INTO rooms(id,game_id,name,status,max_players,created_at,updated_at) VALUES"
                 + "('old','undercover','old','WAITING',4,NOW()-INTERVAL 4 HOUR,NOW()),"
                 + "('recent','undercover','recent','WAITING',4,NOW()-INTERVAL 1 HOUR,NOW()),"
@@ -37,7 +63,6 @@ class GeneratedPlanMySqlTest {
             ClosureMySqlMigrationTest.sql(db, "INSERT INTO game_archives(id,room_id,game_id,room_name,finished_at) VALUES('finished','archive','undercover','archive',NOW()-INTERVAL 30 MINUTE)");
             ClosureMySqlMigrationTest.sql(db, "INSERT INTO game_states(room_id,game_id,phase,round_number,updated_at) VALUES('settled','undercover','SETTLEMENT',1,NOW()-INTERVAL 40 MINUTE)");
             ClosureMySqlMigrationTest.sql(db, "ALTER TABLE rooms MODIFY COLUMN status ENUM('WAITING','PLAYING') NOT NULL");
-            var migration = scripts.getLast().toString();
             ClosureMySqlMigrationTest.script(db, migration);
             assertEquals(List.of(List.of("archive","WAITING"),List.of("old","EXPIRED"),List.of("playing","PLAYING"),List.of("recent","WAITING"),List.of("settled","WAITING"),List.of("unknown","EXPIRED")),
                 ClosureMySqlMigrationTest.rows(db, "SELECT id,status FROM rooms ORDER BY id"));
@@ -112,7 +137,8 @@ class GeneratedPlanMySqlTest {
             entries.put(value.path("ordinal").asInt(), new ProductionSocialMigrationMain.MigrationEntry(
                     value.path("ordinal").asInt(), path, value.path("sha256").asText()));
         }
-        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10, 11);
+        var selected = new java.util.ArrayList<Integer>();
+        generated.ledger.path("execution_plans").get(1).path("ordinals").forEach(value -> selected.add(value.asInt()));
         var plan = new ProductionSocialMigrationMain.MigrationPlan("fresh-empty-schema", "sha256:" + "a".repeat(64),
                 selected.stream().map(entries::get).toList(), entries);
         for (boolean indexAlreadyCreated : List.of(false, true)) {
@@ -151,7 +177,8 @@ class GeneratedPlanMySqlTest {
             entries.put(value.path("ordinal").asInt(), new ProductionSocialMigrationMain.MigrationEntry(
                     value.path("ordinal").asInt(), path, value.path("sha256").asText()));
         }
-        var selected = List.of(1, 4, 5, 6, 7, 8, 9, 10, 11);
+        var selected = new java.util.ArrayList<Integer>();
+        generated.ledger.path("execution_plans").get(1).path("ordinals").forEach(value -> selected.add(value.asInt()));
         var plan = new ProductionSocialMigrationMain.MigrationPlan("fresh-empty-schema", "sha256:" + "a".repeat(64),
                 selected.stream().map(entries::get).toList(), entries);
         for (boolean indexAlreadyCreated : List.of(false, true)) {

@@ -41,6 +41,7 @@ public class AiTurnCoordinator {
     private com.aisocialgame.service.safety.AiSafetyService safety;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.config.AppProperties properties;
+    @Autowired private com.aisocialgame.service.ai.config.AiModelConfigService modelConfigs;
 
     @Autowired
     public AiTurnCoordinator(AiTurnJobRepository jobs, GameStateRepository states, V2GameService runtime, AiTurnGenerator generator,
@@ -155,10 +156,15 @@ public class AiTurnCoordinator {
         return transaction.execute(status -> {
             AiTurnJob job = jobs.findByIdForUpdate(id).orElse(null);
             if (job == null || !"QUEUED".equals(job.getStatus())) return null;
+            if (modelConfigs != null && !job.getDiagnostics().containsKey("modelSelection")) {
+                var prior = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")).get("modelSelection"));
+                job.getDiagnostics().put("modelSelection", prior.isEmpty() ? modelConfigs.resolve(
+                        com.aisocialgame.engine.v2.RuleSupport.text(V2GameService.observationPayload(job).get("gameId")), job.getActorId()).toMap() : prior);
+            }
             if (safety!=null) {
                 var persona=com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("persona"));
                 var context=com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER").room(job.getRoomId(),null).user(job.getActorId(),job.getActorId())
-                        .persona(com.aisocialgame.engine.v2.RuleSupport.text(persona.get("id"))).model(properties==null?null:properties.getAi().getDefaultModel());
+                        .persona(com.aisocialgame.engine.v2.RuleSupport.text(persona.get("id"))).model(selectedModel(job));
                 if (safety.blocksAutomation(context,job.getKind())) return null;
             }
             if (job.getDiagnostics().remove("budgetWaitStartedEpochMs") instanceof Number waiting) {
@@ -185,9 +191,11 @@ public class AiTurnCoordinator {
                 runtime.fail(job.getId(), "NO_ACTION_BUDGET", java.util.Map.of()); return;
             }
             AiTurnDecision decision;
+            var checkpoint = new java.util.LinkedHashMap<>(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")));
+            if (job.getDiagnostics().containsKey("modelSelection")) checkpoint.put("modelSelection", job.getDiagnostics().get("modelSelection"));
             try (var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
-                    .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))))) {
-                decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")));
+                    .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))).model(selectedModel(job)))) {
+                decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, checkpoint);
             }
             measurements = decision.diagnostics(); submitting = true; submissionStarted = System.nanoTime();
             runtime.complete(job.getId(), decision);
@@ -204,6 +212,11 @@ public class AiTurnCoordinator {
             try { runtime.fail(job.getId(), reason, measurements); }
             catch (Exception recoveryError) { log.warn("AI recovery deferred jobId={} errorType={}", job.getId(), recoveryError.getClass().getSimpleName()); }
         }
+    }
+    private String selectedModel(AiTurnJob job) {
+        var selected = com.aisocialgame.engine.v2.RuleSupport.map(job.getDiagnostics().get("modelSelection"));
+        return selected.containsKey("modelKey") ? com.aisocialgame.engine.v2.RuleSupport.text(selected.get("modelKey"))
+                : properties == null ? null : properties.getAi().getDefaultModel();
     }
     @PreDestroy public void close() { clockExecutor.shutdownNow(); executor.shutdownNow(); undercoverExecutor.shutdownNow(); }
 }

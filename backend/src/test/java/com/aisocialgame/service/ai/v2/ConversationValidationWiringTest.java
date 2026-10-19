@@ -27,8 +27,8 @@ class ConversationValidationWiringTest {
    var a=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation());
    if(s.id().startsWith("sequence:")&&s.id().endsWith(":4")&&Set.of("SPEAK","DISCUSS").contains(a.getType()))a.setContent("目前这些结果还不足以排除另一种解释，我继续观察。");
    String body=ConversationValidation.JSON.writeValueAsString(Map.of("action",a,"evidenceEventIds",s.adapter().conversation(s.observation()).replyTo().stream().map(AiConversationContext.ReplyReference::eventId).toList()));
-   when(client.chatCompletions(anyString(),anyLong(),anyString(),anyString(),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
-   when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),anyString(),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
+   when(client.chatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
+   when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
    var d=generator.generate(s.adapter(),s.observation(),"mock-"+UUID.randomUUID());assertFalse(d.fallback(),s.id()+":"+d.diagnostics());return d;
   };
   var pilot=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("pilot.json"),Map.of(),"PILOT",Set.of(),generate);pilot.run();

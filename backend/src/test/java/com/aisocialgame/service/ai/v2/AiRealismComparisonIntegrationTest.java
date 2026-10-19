@@ -315,7 +315,7 @@ class AiRealismComparisonIntegrationTest {
                 Map<String, Object> start = new LinkedHashMap<>();
                 start.put("event", "ATTEMPT_RESERVED"); start.put("attempt", ordinal); start.put("comparisonAttempt", cumulative);
                 start.put("scenarioId", activeScenario); start.put("variant", activeVariant);
-                start.put("requestId", invocation.getArgument(5)); start.put("model", invocation.getArgument(3)); start.put("messages", invocation.getArgument(4));
+                start.put("requestId", invocation.getArgument(5)); start.put("model", invocation.<com.aisocialgame.service.ai.config.AiModelSelection>getArgument(3).modelKey()); start.put("messages", invocation.getArgument(4));
                 start.put("at", Instant.now().toString());
                 append("calls.jsonl", start);
                 AiChatResult response = (AiChatResult) invocation.callRealMethod();
@@ -344,7 +344,7 @@ class AiRealismComparisonIntegrationTest {
                 } catch (IOException journalError) { error.addSuppressed(journalError); }
                 throw error;
             }
-        }).when(client).chatCompletions(anyString(), anyLong(), nullable(String.class), nullable(String.class), anyList(), anyString(), anyInt());
+        }).when(client).chatCompletions(anyString(), anyLong(), nullable(String.class), any(com.aisocialgame.service.ai.config.AiModelSelection.class), anyList(), anyString(), anyInt());
     }
 
     static Path createEvidenceDirectory(String requested) throws IOException {

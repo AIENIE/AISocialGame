@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
 import { HttpApiError } from "./apiError";
 export type { ApiErrorResponse } from "./apiError";
@@ -372,6 +373,15 @@ adminApiClient.interceptors.response.use(undefined, async (error) => {
 });
 
 export const adminApi = {
+  async modelConfiguration(): Promise<AiModelConfiguration> {
+    return (await adminApiClient.get("/admin/ai/model-config")).data;
+  },
+  async syncModelConfiguration(): Promise<AiModelConfiguration> {
+    return (await adminApiClient.post("/admin/ai/model-config/sync")).data;
+  },
+  async saveFunctionModelConfig(code: AiFunctionCode, config: SaveFunctionModelConfig): Promise<FunctionModelConfig> {
+    return (await adminApiClient.put(`/admin/ai/model-config/functions/${code}`, config)).data;
+  },
   async replayEvents(archiveId: string): Promise<ReplayDetail> {
     return (await adminApiClient.get(`/admin/replays/${encodeURIComponent(archiveId)}/events`)).data;
   },

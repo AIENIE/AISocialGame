@@ -9,6 +9,8 @@ import com.aisocialgame.integration.grpc.dto.AiEmbeddingsResult;
 import com.aisocialgame.integration.grpc.dto.AiModelOptionDto;
 import com.aisocialgame.integration.grpc.dto.AiOcrParams;
 import com.aisocialgame.integration.grpc.dto.AiOcrResult;
+import com.aisocialgame.service.ai.config.AiModelConfigService;
+import com.aisocialgame.service.ai.config.AiModelSelection;
 import fireflychat.ai.v1.AiGatewayServiceGrpc;
 import fireflychat.ai.v1.ChatCompletionsRequest;
 import fireflychat.ai.v1.ChatMessage;
@@ -44,21 +46,16 @@ public class AiGrpcClient {
     @Autowired
     private com.aisocialgame.service.credit.BoundedAiClient boundedClient;
 
+    @Autowired
+    private AiModelConfigService modelConfigs;
+
     public List<AiModelOptionDto> listModels(long userId) {
         try {
             var response = aiStub.withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS).listModels(ListModelsRequest.newBuilder()
                     .setUserId(userId)
                     .build());
             return response.getModelsList().stream()
-                    .map(model -> new AiModelOptionDto(
-                            model.getId(),
-                            model.getDisplayName(),
-                            model.getProvider(),
-                            model.getInputRate(),
-                            model.getOutputRate(),
-                            model.getType().name(),
-                            model.getSupportsImageInput()
-                    ))
+                    .map(AiModelOptionDto::from)
                     .toList();
         } catch (StatusRuntimeException ex) {
             throw toApiException(ex);
@@ -75,21 +72,34 @@ public class AiGrpcClient {
 
     public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, String model,
                                         List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, model, messages, requestId, deadlineSeconds, false);
+        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds, false);
     }
 
     /** Only the undercover generation path opts into the restored budget transport. */
     public AiChatResult undercoverChatCompletions(String projectKey, long userId, String sessionId, String model,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, model, messages, requestId, deadlineSeconds, true);
+        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds, true);
     }
 
-    private AiChatResult chat(String projectKey, long userId, String sessionId, String model,
+    public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, AiModelSelection selection,
+            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
+        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds, false);
+    }
+
+    public AiChatResult undercoverChatCompletions(String projectKey, long userId, String sessionId, AiModelSelection selection,
+            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
+        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds, true);
+    }
+
+    private AiChatResult chat(String projectKey, long userId, String sessionId, AiModelSelection selection,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds, boolean undercover) {
         AppProperties.requireCanonicalProjectKey(projectKey);
         if (undercover) boundedClient.requireReady(); else requireBoundedBudget();
+        if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
+        String model = selection.modelKey();
         var registered = new java.util.concurrent.atomic.AtomicBoolean();
         Runnable beforeSend = () -> {
+            if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
             if (admission != null) { admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model)); registered.set(true); }
         };
         if (!undercover) beforeSend.run();
@@ -101,7 +111,7 @@ public class AiGrpcClient {
                     .setUserId(userId)
                     .setSessionId(sessionId == null ? "" : sessionId)
                     .setModel(model == null ? "" : model);
-            if (undercover) builder.setThinkingEnabled(true);
+            selection.apply(builder);
             if (messages != null) {
                 for (AiChatMessageDto message : messages) {
                     if (message == null) {

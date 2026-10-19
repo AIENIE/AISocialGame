@@ -154,7 +154,7 @@ class V2GameServiceIntegrationTest {
         var recovery = jobs.findRecoveryCandidates("RUNNING", org.springframework.data.domain.PageRequest.of(0, 64)).stream().filter(c -> queued.getId().equals(c.getId())).findFirst().orElseThrow();
         assertNotNull(recovery.getDiagnostics().get("startedEpochMs"));
         assertFalse(recovery.getDiagnostics().containsKey("observation"));
-        when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt())).thenAnswer(call -> {
+        when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), anyList(), anyString(), anyInt())).thenAnswer(call -> {
             assertFalse(TransactionSynchronizationManager.isActualTransactionActive(), "model request must release the transaction");
             return new AiChatResult("{\"action\":{\"type\":\"SPEAK\",\"content\":\"我先从实际使用场景来描述，再听听大家的说法。\"},\"speech\":\"我先从实际使用场景来描述，再听听大家的说法。\"}", "test-model", 30, 20);
         });
@@ -177,7 +177,7 @@ class V2GameServiceIntegrationTest {
         assertEquals(diagnostic, jobs.findById(queued.getId()).orElseThrow().getDiagnostics());
         assertEquals(count, events.countByArchiveId(queued.getInstanceId()));
         assertEquals(1, traces.findAll().stream().filter(t -> queued.getId().equals(t.getQuality().get("jobId"))).count());
-        verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList(), anyString(), anyInt());
+        verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), anyList(), anyString(), anyInt());
     }
 
     @Test void rollbackRecoveryRecordsFailureWithoutSuccessTraceAndLateCompletionCannotRewriteIt() throws Exception {

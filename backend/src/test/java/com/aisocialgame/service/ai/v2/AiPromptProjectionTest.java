@@ -78,7 +78,7 @@ class AiPromptProjectionTest {
             var safety = org.mockito.Mockito.mock(com.aisocialgame.service.safety.AiSafetyService.class);
             org.mockito.Mockito.when(safety.review(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(com.aisocialgame.service.safety.AiSafetyContext.class)))
                     .thenAnswer(c -> new com.aisocialgame.service.safety.AiSafetyResult("ALLOW","LOW","NONE","",c.getArgument(0),null));
-            org.mockito.Mockito.when(client.chatCompletions(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyList(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyInt()))
+            org.mockito.Mockito.when(client.chatCompletions(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(com.aisocialgame.service.ai.config.AiModelSelection.class),org.mockito.ArgumentMatchers.anyList(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyInt()))
                     .thenReturn(new com.aisocialgame.integration.grpc.dto.AiChatResult(json.writeValueAsString(example),"mock-only",1,1));
             var properties = new com.aisocialgame.config.AppProperties(); properties.setProjectKey("offline"); properties.getAi().setDefaultModel("mock-only"); properties.getAi().setSystemUserId(1);
             var decision = new AiTurnGenerator(client,properties,scenario.session().memory,safety).generate(adapter,o,"example-only-"+checked++);

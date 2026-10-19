@@ -61,6 +61,11 @@
       "ordinal": 12,
       "kind": "upgrade",
       "file": "20261002_ai_credit_escrow.sql"
+    },
+    {
+      "ordinal": 13,
+      "kind": "upgrade",
+      "file": "20261019_ai_model_config.sql"
     }
   ],
   "execution_plans": [
@@ -77,7 +82,8 @@
         9,
         10,
         11,
-        12
+        12,
+        13
       ]
     },
     {
@@ -92,7 +98,8 @@
         9,
         10,
         11,
-        12
+        12,
+        13
       ]
     }
   ],

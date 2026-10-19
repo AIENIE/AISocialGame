@@ -42,7 +42,8 @@ class AiGrpcBudgetGateTest {
         var request = org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
         verify(bounded).chat(request.capture(), eq(19), any(Runnable.class)); verify(bounded).requireReady();
         assertEquals("job:0", request.getValue().getRequestId());
-        assertTrue(request.getValue().hasThinkingEnabled()); assertTrue(request.getValue().getThinkingEnabled());
+        assertFalse(request.getValue().hasThinkingEnabled());
+        assertEquals(fireflychat.ai.v1.ThinkingEffort.THINKING_EFFORT_UNSPECIFIED, request.getValue().getThinkingEffort());
         assertEquals("match:actor", request.getValue().getSessionId()); assertEquals(85, request.getValue().getUserId());
         assertBudgetUnavailable(() -> client.chatCompletions("aisocialgame", 85, "", "deepseek-flash", List.of()));
         verifyNoInteractions(channel);
@@ -68,5 +69,44 @@ class AiGrpcBudgetGateTest {
         ApiException error = assertThrows(ApiException.class, operation::run);
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, error.getStatus());
         assertEquals("BUDGET_UNAVAILABLE", error.getCode());
+    }
+
+    @Test void thinkingSelectionsAreAppliedBeforeBudgetPreparationAndRecheckedBeforeSend() {
+        var bounded = mock(com.aisocialgame.service.credit.BoundedAiClient.class);
+        var configs = mock(com.aisocialgame.service.ai.config.AiModelConfigService.class);
+        var client = new AiGrpcClient();
+        ReflectionTestUtils.setField(client,"boundedClient",bounded);
+        ReflectionTestUtils.setField(client,"modelConfigs",configs);
+        ReflectionTestUtils.setField(client,"aiStub",AiGatewayServiceGrpc.newBlockingStub(mock(Channel.class)));
+        when(bounded.chat(any(),anyInt(),any(Runnable.class))).thenAnswer(call -> {
+            call.<Runnable>getArgument(2).run();
+            return fireflychat.ai.v1.ChatCompletionsResponse.newBuilder().setContent("ok").build();
+        });
+        for (var mode : com.aisocialgame.service.ai.config.AiModelSelection.ThinkingMode.values()) {
+            var selection = new com.aisocialgame.service.ai.config.AiModelSelection(com.aisocialgame.service.ai.config.AiFunctionCode.UNDERCOVER,
+                    "selected-model", mode, mode == com.aisocialgame.service.ai.config.AiModelSelection.ThinkingMode.ENABLED ? "HIGH" : null, 3);
+            client.undercoverChatCompletions("aisocialgame",1,"session",selection,List.of(),mode.name(),30);
+            verify(configs,times(2)).requireUsable(selection);
+        }
+        var requests = org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
+        verify(bounded,times(3)).chat(requests.capture(),eq(30),any(Runnable.class));
+        var values = requests.getAllValues();
+        assertFalse(values.get(0).hasThinkingEnabled());
+        assertTrue(values.get(1).hasThinkingEnabled()); assertTrue(values.get(1).getThinkingEnabled());
+        assertEquals(fireflychat.ai.v1.ThinkingEffort.THINKING_EFFORT_HIGH,values.get(1).getThinkingEffort());
+        assertTrue(values.get(2).hasThinkingEnabled()); assertFalse(values.get(2).getThinkingEnabled());
+        assertTrue(values.stream().allMatch(r -> r.getModel().equals("selected-model")));
+    }
+
+    @Test void invalidSnapshotNeverPreparesABudgetOrDispatches() {
+        var bounded = mock(com.aisocialgame.service.credit.BoundedAiClient.class);
+        var configs = mock(com.aisocialgame.service.ai.config.AiModelConfigService.class);
+        var client = new AiGrpcClient();
+        ReflectionTestUtils.setField(client,"boundedClient",bounded); ReflectionTestUtils.setField(client,"modelConfigs",configs);
+        var selection = new com.aisocialgame.service.ai.config.AiModelSelection(com.aisocialgame.service.ai.config.AiFunctionCode.UNDERCOVER,
+                "removed",com.aisocialgame.service.ai.config.AiModelSelection.ThinkingMode.DEFAULT,null,0);
+        doThrow(new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"invalid","AI_MODEL_CONFIG_INVALID",java.util.Map.of())).when(configs).requireUsable(selection);
+        assertEquals("AI_MODEL_CONFIG_INVALID",assertThrows(ApiException.class,()->client.undercoverChatCompletions("aisocialgame",1,"s",selection,List.of(),"id",30)).getCode());
+        verify(bounded).requireReady(); verifyNoMoreInteractions(bounded);
     }
 }

@@ -13,6 +13,7 @@ enum ModelType {
   MODEL_TYPE_EMBEDDING = 3;
   MODEL_TYPE_AUDIO = 4;
   MODEL_TYPE_OCR = 5;
+  MODEL_TYPE_RERANK = 6;
 }
 
 enum ThinkingEffort {
@@ -39,6 +40,31 @@ message ModelOption {
   bool supports_streaming = 8;
   // 稳定模型键，用于调用方选择模型；不要使用可变的 display_name 代替。
   string model_key = 9;
+  // Always present on updated servers; absent on older servers.
+  ModelThinkingCapabilities thinking = 10;
+}
+
+message ThinkingOption {
+  ThinkingEffort effort = 1;
+  string label = 2;
+}
+
+message ModelThinkingCapabilities {
+  // False means at least one relevant endpoint lacks a complete valid declaration.
+  bool declared = 1;
+  bool supports_enable = 2;
+  bool supports_disable = 3;
+  repeated ThinkingOption options = 4;
+  // Model configuration only. Absence never means false or a lowest effort.
+  optional bool default_enabled = 5;
+  optional ThinkingEffort default_effort = 6;
+}
+
+// Caller identity comes exclusively from the existing authenticated metadata.
+message ListCallerModelsRequest {}
+
+message ListCallerModelsResponse {
+  repeated ModelOption models = 1;
 }
 
 message ListModelsRequest {
@@ -74,11 +100,11 @@ message ChatCompletionsRequest {
   // 可选图片输入（URL 或 data URI）。仅在模型支持识图时生效。
   string img = 7;
 
-  // 可选：是否启用模型思考模式。仅 true 才启用；false 显式关闭；
-  // 未传时保持供应商/后台配置默认行为（单独传 thinking_effort 不会启用）。
+  // 可选：覆盖模型默认思考开关。true 启用；false 显式关闭；
+  // 未传时采用模型默认配置；未配置时保持供应商/后台默认（单独 effort 不覆盖默认）。
   optional bool thinking_enabled = 8;
   // 可选：思考强度相对偏好（MINIMAL..MAX，值越大偏好越强）。
-  // UNSPECIFIED 表示无偏好；单独设置不启用思考，须配合 thinking_enabled=true；
+  // UNSPECIFIED 表示无偏好；单独设置不覆盖模型默认，须配合 thinking_enabled=true；
   // 关闭思考靠 thinking_enabled=false。
   ThinkingEffort thinking_effort = 9;
   // Optional thinking-prefix input; requires thinking_enabled=true and an explicitly supported route.
@@ -88,6 +114,10 @@ message ChatCompletionsRequest {
   optional string tools_json = 11;
   // Opt-in bounded, durable logical call. Empty keeps legacy semantics.
   optional string budget_credential = 12;
+  // Opt-in structured unary generation on an explicitly verified route.
+  optional string json_schema = 13;
+  optional int32 max_output_tokens = 14;
+  optional string evaluation_run_id = 15;
 }
 
 message ChatCompletionsResponse {
@@ -155,6 +185,34 @@ message EmbeddingsRequest {
   // 是否归一化为单位向量；未传时默认 true。
   optional bool normalize = 7;
   optional string budget_credential = 8;
+  optional int32 dimensions = 9;
+  // "query" or "document"; absent retains the legacy route.
+  optional string input_type = 10;
+  optional string evaluation_run_id = 11;
+}
+
+message RerankRequest {
+  string request_id = 1;
+  string project_key = 2;
+  int64 user_id = 3;
+  string session_id = 4;
+  string model = 5;
+  string query = 6;
+  repeated string documents = 7;
+  int32 top_n = 8;
+  string instruct = 9;
+  optional string evaluation_run_id = 10;
+}
+
+message RerankItem {
+  int32 index = 1;
+  double relevance_score = 2;
+}
+
+message RerankResponse {
+  string model_key = 1;
+  repeated RerankItem results = 2;
+  int64 prompt_tokens = 3;
 }
 
 message Embedding {
@@ -305,8 +363,11 @@ service AiGatewayService {
   rpc ChatCompletionsStream(ChatCompletionsRequest) returns (stream ChatCompletionsStreamEvent);
   // 批量生成向量。
   rpc Embeddings(EmbeddingsRequest) returns (EmbeddingsResponse);
+  rpc Rerank(RerankRequest) returns (RerankResponse);
   // 解析图片/PDF 文档为文本、Markdown 或 JSON。
   rpc OcrParse(OcrParseRequest) returns (OcrParseResponse);
   // 生成图片，返回可下载的图片 URL。
   rpc GenerateImage(GenerateImageRequest) returns (GenerateImageResponse);
+  // Read-only caller catalog; no ordinary user ID or inference consumption.
+  rpc ListCallerModels(ListCallerModelsRequest) returns (ListCallerModelsResponse);
 }

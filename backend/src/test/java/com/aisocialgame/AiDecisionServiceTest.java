@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,7 +37,7 @@ class AiDecisionServiceTest {
     @Test
     void decideVoteUsesStructuredAiTargetSeat() {
         AiGrpcClient aiGrpcClient = mock(AiGrpcClient.class);
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), any(), anyString(), anyInt()))
                 .thenReturn(new AiChatResult("{\"targetSeat\":3,\"reason\":\"3号描述最模糊\"}", "test", 1, 1));
         AiDecisionService service = service(aiGrpcClient);
 
@@ -55,7 +56,7 @@ class AiDecisionServiceTest {
     @Test
     void illegalUndercoverVoteHasNoInventedTarget() {
         AiGrpcClient aiGrpcClient = mock(AiGrpcClient.class);
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), any(), anyString(), anyInt()))
                 .thenReturn(new AiChatResult("{\"targetSeat\":99,\"reason\":\"非法座位\"}", "test", 1, 1));
         AiDecisionService service = service(aiGrpcClient);
 
@@ -72,7 +73,7 @@ class AiDecisionServiceTest {
     @Test
     void werewolfNightActionUsesStructuredAiDecision() {
         AiGrpcClient aiGrpcClient = mock(AiGrpcClient.class);
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), any(), anyString(), anyInt()))
                 .thenReturn(new AiChatResult("{\"action\":\"WOLF_KILL\",\"targetSeat\":3,\"reason\":\"先刀发言强势的人\"}", "test", 1, 1));
         AiDecisionService service = service(aiGrpcClient);
 
@@ -89,7 +90,7 @@ class AiDecisionServiceTest {
     @Test
     void decisionPromptPersistsBeliefAndMemoryInState() {
         AiGrpcClient aiGrpcClient = mock(AiGrpcClient.class);
-        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(aiGrpcClient.chatCompletions(anyString(), anyLong(), anyString(), any(com.aisocialgame.service.ai.config.AiModelSelection.class), any(), anyString(), anyInt()))
                 .thenReturn(new AiChatResult("{\"content\":\"它很常见，但我先不说太具体\",\"reason\":\"避免暴露词语\",\"confidence\":0.8,\"evidence\":[\"一号发言偏泛\"],\"reflection\":\"继续观察三号\"}", "test-model", 9, 5));
         AiDecisionService service = service(aiGrpcClient);
 

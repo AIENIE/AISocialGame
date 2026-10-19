@@ -8,6 +8,7 @@ import com.aisocialgame.integration.grpc.client.AiGrpcClient;
 import com.aisocialgame.integration.grpc.dto.AiChatMessageDto;
 import com.aisocialgame.integration.grpc.dto.AiChatResult;
 import com.aisocialgame.service.safety.*;
+import com.aisocialgame.service.ai.config.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -32,6 +33,7 @@ public class AiTurnGenerator {
     private final AppProperties properties;
     private final AiMemoryServiceV2 memories;
     private final AiSafetyService safety;
+    @Autowired private AiModelConfigService modelConfigs;
     private final String playerSystem;
     private final String hostSystem;
     private final String undercoverSystem;
@@ -69,6 +71,11 @@ public class AiTurnGenerator {
         Map<String, Object> lastOutput = Map.of(), basePayload = null;
         List<Map<String, Object>> attempts = new ArrayList<>();
         Map<String, Object> stages = new LinkedHashMap<>();
+        AiModelSelection selected = checkpoint.containsKey("modelSelection")
+                ? AiModelSelection.fromMap(RuleSupport.map(checkpoint.get("modelSelection")))
+                : modelConfigs == null ? AiModelSelection.defaults(properties.getAi().getDefaultModel())
+                : modelConfigs.resolve(observation.gameId(), observation.actorId());
+        stages.put("modelSelection", selected.toMap());
         stages.put("initialBudgetMs", TimeUnit.NANOSECONDS.toMillis(budgetNanos));
         stages.put("inputFormatVersion", AiPromptProjection.VERSION);
         int resume = RuleSupport.number(checkpoint.get("nextAttempt"), 0);
@@ -119,8 +126,9 @@ public class AiTurnGenerator {
                 stage = "RPC";
                 long rpc = nanoTime.getAsLong();
                 try {
-                    response = undercover ? client.undercoverChatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
-                            messages, jobId + ":" + attempt, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), observation.instanceId() + ":" + observation.actorId(), properties.getAi().getDefaultModel(),
+                    String session = observation.instanceId() + ":" + observation.actorId();
+                    response = undercover ? client.undercoverChatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), session, selected,
+                            messages, jobId + ":" + attempt, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), session, selected,
                             messages, jobId + ":" + attempt, requestSeconds);
                 } finally { sample.put("rpcMs", elapsed(rpc)); }
                 if (response.finishReason() != null) sample.put("finishReason", response.finishReason());
@@ -171,6 +179,7 @@ public class AiTurnGenerator {
                         saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
                         saved.put("promptTokens",promptTokens); saved.put("completionTokens",completionTokens);
                         saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
+                        saved.put("modelSelection", selected.toMap());
                         throw new GenerationDeferred(saved);
                     }
                     for (String key : List.of("budgetId", "settlementState")) if (api.getDetails().containsKey(key)) sample.put(key, api.getDetails().get(key));

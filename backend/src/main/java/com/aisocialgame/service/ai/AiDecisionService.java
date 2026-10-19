@@ -35,6 +35,8 @@ public class AiDecisionService {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
     private final AiGrpcClient aiGrpcClient;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.aisocialgame.service.ai.config.AiModelConfigService modelConfigs;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.service.safety.AiSafetyService callSafety;
     private final AppProperties appProperties;
@@ -193,22 +195,18 @@ public class AiDecisionService {
         long startedAt = System.nanoTime();
         AiChatResult response = null;
         Map<String, Object> rawOutput = Map.of();
+        var selected = modelConfigs == null ? com.aisocialgame.service.ai.config.AiModelSelection.defaults(appProperties.getAi().getDefaultModel())
+                : modelConfigs.resolve(context.gameId(), context.self().playerId());
         var safetyContext=com.aisocialgame.service.safety.AiSafetyContext.source("LEGACY_AI_PLAYER")
                 .room(asString(context.extra().get("roomId")),context.gameId()).user(context.self().playerId(),context.self().playerId())
-                .persona(asString(context.extra().get("personaId"))).model(appProperties.getAi().getDefaultModel());
+                .persona(asString(context.extra().get("personaId"))).model(selected.modelKey());
         try (var scope=com.aisocialgame.service.safety.AiCallScope.open(safetyContext)) {
             if(callSafety!=null)callSafety.requireCallAllowed(safetyContext);
             String userPrompt = buildUserPrompt(context, actionPrompt);
-            response = aiGrpcClient.chatCompletions(
-                    appProperties.getProjectKey(),
-                    appProperties.getAi().getSystemUserId(),
-                    "",
-                    appProperties.getAi().getDefaultModel(),
-                    List.of(
-                            new AiChatMessageDto("system", promptProperties.getAiDecision().getSystemPrompt()),
-                            new AiChatMessageDto("user", userPrompt)
-                    )
-            );
+            var messages = List.of(new AiChatMessageDto("system", promptProperties.getAiDecision().getSystemPrompt()),
+                    new AiChatMessageDto("user", userPrompt));
+            response = aiGrpcClient.chatCompletions(appProperties.getProjectKey(), appProperties.getAi().getSystemUserId(), "", selected,
+                    messages, java.util.UUID.randomUUID().toString(), 45);
             if(callSafety!=null)callSafety.requireCallAllowed(safetyContext);
             String content = response.content();
             if (!StringUtils.hasText(content)) {
