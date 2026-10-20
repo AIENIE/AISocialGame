@@ -49,20 +49,20 @@ public class AiCreditEscrowService {
             }
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
+            long required=budget.hasPriceQuote() ? validatedPoints(budget.getPriceQuote()) : budget.getMaxTotalTokens();
             long temp=temporary.balance(account,now);
             long available = Math.addExact(temp,account.getPermanentBalance());
-            if(available < budget.getMaxTotalTokens()) {
+            if(available < required) {
                 var held = reservations.findByUserIdAndProjectKeyAndState(request.getUserId(), request.getProjectKey(), "HELD");
                 long active = held.stream().filter(r -> executing.contains(r.requestId))
                         .mapToLong(r -> Math.addExact(r.reservedTemp,r.reservedPermanent)).sum();
-                String code = available + active >= budget.getMaxTotalTokens() ? "AI_BUDGET_BUSY"
-                        : available + held.stream().mapToLong(r -> Math.addExact(r.reservedTemp,r.reservedPermanent)).sum() >= budget.getMaxTotalTokens() ? "BUDGET_RECONCILIATION_REQUIRED" : "AI_CREDIT_INSUFFICIENT";
+                String code = available + active >= required ? "AI_BUDGET_BUSY" : "AI_CREDIT_INSUFFICIENT";
                 throw new ApiException(HttpStatus.BAD_REQUEST,"专属积分不足以预留本次 AI 调用的最高用量",code,
-                    Map.of("requiredTokens",budget.getMaxTotalTokens(), "budgetId", budget.getBudgetId()));
+                    Map.of("requiredPoints",required,"availablePoints",available, "budgetId", budget.getBudgetId()));
             }
-            long reserveTemp=Math.min(temp,budget.getMaxTotalTokens());
+            long reserveTemp=Math.min(temp,required);
             var portions=temporary.take(account,reserveTemp,now);
-            long reservePermanent=budget.getMaxTotalTokens()-reserveTemp;
+            long reservePermanent=required-reserveTemp;
             account.setPermanentBalance(account.getPermanentBalance()-reservePermanent);
             accounts.saveAndFlush(account);
             AiCreditReservation row=new AiCreditReservation(); row.id=UUID.randomUUID().toString();
@@ -70,6 +70,7 @@ public class AiCreditEscrowService {
             row.projectKey=request.getProjectKey(); row.userId=request.getUserId(); row.budgetId=budget.getBudgetId();
             row.state="HELD"; row.reservedTemp=reserveTemp; row.reservedPermanent=reservePermanent;
             row.tempPortionsJson=encode(portions); row.updatedAt=System.currentTimeMillis();
+            if (budget.hasPriceQuote()) row.billingQuoteBase64=Base64.getEncoder().encodeToString(budget.getPriceQuote().toByteArray());
             reservations.saveAndFlush(row);
             ledger.insertLedgerEntry("ai-hold:"+row.id,row.userId,"AI_RESERVE",-reserveTemp,-reservePermanent,0,0,
                 "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
@@ -84,10 +85,11 @@ public class AiCreditEscrowService {
             boolean success=status.getState()==BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED;
             boolean notSent=status.getState()==BudgetCallState.BUDGET_CALL_STATE_FAILED_NOT_SENT;
             if(!success && !notSent) { row.updatedAt=System.currentTimeMillis(); reservations.save(row); return; }
-            long billed=success ? status.getTotalTokens() : 0;
+            long usage=success ? status.getTotalTokens() : 0;
+            long billed=success ? billedPoints(row,status) : 0;
             if(success && (!status.getUsageAuthoritative() || !status.hasChat()
                 || status.getPromptTokens()<0 || status.getCompletionTokens()<0
-                || billed!=Math.addExact(status.getPromptTokens(),status.getCompletionTokens())
+                || usage!=Math.addExact(status.getPromptTokens(),status.getCompletionTokens())
                 || status.getChat().getPromptTokens()!=status.getPromptTokens()
                 || status.getChat().getCompletionTokens()!=status.getCompletionTokens()
                 || billed>Math.addExact(row.reservedTemp,row.reservedPermanent))) throw unavailable();
@@ -110,8 +112,7 @@ public class AiCreditEscrowService {
                 new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,Math.addExact(tempBefore,row.reservedTemp),
                     Math.addExact(permanentBefore,row.reservedPermanent),null));
             if(success) ledger.insertLedgerEntry("ai-consume:"+row.id,row.userId,"CONSUME",-debitTemp,-debitPermanent,0,0,"AI_BUDGET",
-                Map.of("budgetId",row.budgetId,"modelKey",status.getChat().getModelKey(),"promptTokens",String.valueOf(status.getPromptTokens()),
-                    "completionTokens",String.valueOf(status.getCompletionTokens()),"billedTokens",String.valueOf(billed)),null,account,
+                settlementMetadata(row,status,billed),null,account,
                 new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,Math.addExact(tempBefore,row.reservedTemp)-debitTemp,
                     Math.addExact(permanentBefore,row.reservedPermanent)-debitPermanent,null));
             if(expiredTemp>0) ledger.insertLedgerEntry("ai-expire:"+row.id,row.userId,"EXPIRE",-expiredTemp,0,0,0,
@@ -126,6 +127,42 @@ public class AiCreditEscrowService {
             var row = reservations.lock(id).orElseThrow();
             if ("HELD".equals(row.state)) { row.updatedAt = System.currentTimeMillis(); reservations.save(row); }
         });
+    }
+    private static long validatedPoints(BudgetPriceQuote quote) {
+        try {
+            var cost=new java.math.BigDecimal(quote.getMaxCost());
+            long points=cost.multiply(java.math.BigDecimal.valueOf(100)).setScale(0,java.math.RoundingMode.CEILING).longValueExact();
+            if (!"CNY".equals(quote.getCurrency()) || quote.getPriceVersionId()<=0 || quote.getPointsPerCurrency()!=100
+                    || cost.signum()<0 || points!=quote.getMaxCreditPoints() || quote.getPriceSha256().length()!=64) throw unavailable();
+            return points;
+        } catch (IllegalArgumentException | ArithmeticException invalid) { throw unavailable(); }
+    }
+    private static BudgetPriceQuote quote(AiCreditReservation row) {
+        try { return BudgetPriceQuote.parseFrom(Base64.getDecoder().decode(row.billingQuoteBase64)); }
+        catch (Exception invalid) { throw unavailable(); }
+    }
+    private static long billedPoints(AiCreditReservation row,GetBudgetCallStatusResponse status) {
+        if (row.billingQuoteBase64==null) return status.getTotalTokens();
+        var quote=quote(row);validatedPoints(quote);
+        if (!status.hasPriceQuote() || !quote.equals(status.getPriceQuote()) || !status.hasCharge()
+                || !status.getChat().hasBudgetCharge() || !status.getCharge().equals(status.getChat().getBudgetCharge())) throw unavailable();
+        var charge=status.getCharge();
+        try {
+            var cost=new java.math.BigDecimal(charge.getTotalCost());
+            long points=cost.multiply(java.math.BigDecimal.valueOf(100)).setScale(0,java.math.RoundingMode.CEILING).longValueExact();
+            if (!charge.getCurrency().equals(quote.getCurrency()) || charge.getPriceVersionId()!=quote.getPriceVersionId()
+                    || !charge.getPriceSha256().equals(quote.getPriceSha256()) || cost.signum()<0
+                    || cost.compareTo(new java.math.BigDecimal(quote.getMaxCost()))>0 || points!=charge.getCreditPoints()) throw unavailable();
+            return points;
+        } catch (IllegalArgumentException | ArithmeticException invalid) { throw unavailable(); }
+    }
+    private static Map<String,String> settlementMetadata(AiCreditReservation row,GetBudgetCallStatusResponse status,long billed) {
+        var metadata=new HashMap<>(Map.of("budgetId",row.budgetId,"modelKey",status.getChat().getModelKey(),
+                "promptTokens",String.valueOf(status.getPromptTokens()),"completionTokens",String.valueOf(status.getCompletionTokens())));
+        if (row.billingQuoteBase64==null) metadata.put("billedTokens",String.valueOf(billed));
+        else { metadata.put("billedPoints",String.valueOf(billed)); metadata.put("currency",status.getCharge().getCurrency());
+            metadata.put("totalCost",status.getCharge().getTotalCost()); metadata.put("priceVersionId",String.valueOf(status.getCharge().getPriceVersionId())); }
+        return metadata;
     }
     private String encode(List<TemporaryCreditService.Portion> portions) {
         try { return json.writeValueAsString(portions); } catch(Exception ex) { throw new IllegalStateException(ex); }

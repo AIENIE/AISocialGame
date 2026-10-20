@@ -18,4 +18,5 @@ public class AiCreditReservation {
     @Lob @Column(name="temp_portions_json",nullable=false,columnDefinition="TEXT") public String tempPortionsJson;
     @Column(name="updated_at",nullable=false) public long updatedAt;
     @Lob @Column(name="result_base64",columnDefinition="LONGTEXT") public String resultBase64;
+    @Lob @Column(name="billing_quote_base64",columnDefinition="LONGTEXT") public String billingQuoteBase64;
 }

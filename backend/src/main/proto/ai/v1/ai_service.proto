@@ -42,6 +42,18 @@ message ModelOption {
   string model_key = 9;
   // Always present on updated servers; absent on older servers.
   ModelThinkingCapabilities thinking = 10;
+  // Absent on older servers. Describes eligible routes, not user/project authorization.
+  ModelChatCapabilities chat_capabilities = 11;
+}
+
+message ModelChatCapabilities {
+  bool budget_declared = 1;
+  bool budget_available = 2;
+  bool supports_tools = 3;
+  int64 max_prompt_tokens = 4;
+  int64 max_output_tokens = 5;
+  string budget_unavailable_reason = 6;
+  bool tools_declared = 7;
 }
 
 message ThinkingOption {
@@ -82,6 +94,9 @@ message ChatMessage {
   optional string tool_call_id = 3;
   optional string tool_calls_json = 4;
   optional string reasoning_content = 5;
+  // Opaque adapter continuation, returned in native_response_json.message.provider_state.
+  // Echo on the corresponding assistant message; never expose as user-facing content.
+  optional string provider_state = 6;
 }
 
 message ChatCompletionsRequest {
@@ -97,7 +112,7 @@ message ChatCompletionsRequest {
   // 超限返回 INVALID_ARGUMENT，调用方应缩短历史后再请求，不得原样重试。
   repeated ChatMessage messages = 6;
 
-  // 可选图片输入（URL 或 data URI）。仅在模型支持识图时生效。
+  // 可选图片输入（URL 或 data URI）。不支持识图时外发前拒绝。
   string img = 7;
 
   // 可选：覆盖模型默认思考开关。true 启用；false 显式关闭；
@@ -116,6 +131,8 @@ message ChatCompletionsRequest {
   optional string budget_credential = 12;
   // Opt-in structured unary generation on an explicitly verified route.
   optional string json_schema = 13;
+  // Optional total output bound, including reasoning, for unary and streaming chat.
+  // A budgeted request must use the same bound as PrepareCallBudget.
   optional int32 max_output_tokens = 14;
   optional string evaluation_run_id = 15;
 }
@@ -134,6 +151,10 @@ message ChatCompletionsResponse {
   // Optional provider metadata; absent means unknown. Reasoning is included in completion_tokens.
   optional string finish_reason = 8;
   optional int64 reasoning_tokens = 9;
+  // False means legacy unary token estimates; explicit zero may be authoritative.
+  optional bool usage_authoritative = 10;
+  // Present only for an explicitly requested CNY budget; persisted with the original result.
+  optional BudgetCharge budget_charge = 11;
 }
 
 enum ChatStreamEventType {
@@ -167,6 +188,8 @@ message ChatCompletionsStreamEvent {
   optional bool reasoning_prefix_applied = 12;
   // Only COMPLETED; assembled, bounded native response. Never execute partial arguments.
   optional string native_response_json = 13;
+  optional int64 reasoning_tokens = 14;
+  optional bool usage_authoritative = 15;
 }
 
 message EmbeddingsRequest {
@@ -311,6 +334,28 @@ message PrepareCallBudgetRequest {
   int64 max_output_tokens = 4;
   // 1..3; includes every provider retry and failover attempt.
   int32 max_provider_attempts = 5;
+  // Optional opt-in monetary reservation. Currently only CNY is supported; absent keeps legacy token accounting.
+  optional string billing_currency = 6;
+}
+
+message BudgetPriceQuote {
+  string currency = 1;
+  int64 price_version_id = 2;
+  // Decimal strings in currency units, never floating point.
+  string max_cost = 3;
+  int64 points_per_currency = 4;
+  // ceil(max_cost * points_per_currency); token bounds remain separate.
+  int64 max_credit_points = 5;
+  string price_sha256 = 6;
+}
+
+message BudgetCharge {
+  string currency = 1;
+  int64 price_version_id = 2;
+  string total_cost = 3;
+  // Integer wallets charge ceil(total_cost * 100) once per completed request; zero cost charges zero.
+  int64 credit_points = 4;
+  string price_sha256 = 5;
 }
 
 message PrepareCallBudgetResponse {
@@ -323,6 +368,7 @@ message PrepareCallBudgetResponse {
   int64 max_completion_tokens = 7;
   int64 max_total_tokens = 8;
   int32 max_provider_attempts = 9;
+  optional BudgetPriceQuote price_quote = 10;
 }
 
 message GetBudgetCallStatusRequest {
@@ -350,6 +396,9 @@ message GetBudgetCallStatusResponse {
     EmbeddingsResponse embeddings = 11;
     OcrParseResponse ocr = 12;
   }
+  optional BudgetPriceQuote price_quote = 13;
+  // Present only with a committed monetary success, including authoritative usage.
+  optional BudgetCharge charge = 14;
 }
 
 service AiGatewayService {

@@ -66,6 +66,11 @@
       "ordinal": 13,
       "kind": "upgrade",
       "file": "20261019_ai_model_config.sql"
+    },
+    {
+      "ordinal": 14,
+      "kind": "upgrade",
+      "file": "20261020_ai_budget_money.sql"
     }
   ],
   "execution_plans": [
@@ -83,7 +88,8 @@
         10,
         11,
         12,
-        13
+        13,
+        14
       ]
     },
     {
@@ -99,7 +105,8 @@
         10,
         11,
         12,
-        13
+        13,
+        14
       ]
     }
   ],

@@ -42,21 +42,33 @@ public class BoundedAiClient {
         finally { escrow.endRequest(request.getRequestId()); }
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
-        String identity = AiCreditEscrowService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        return reservations.findByIdentityHash(identity).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
+        return reservations.findByIdentityHash(identity(request)).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
     }
     private ChatCompletionsResponse execute(ChatCompletionsRequest request, int deadlineSeconds, Runnable beforeSend) {
+        var previous=reservations.findByIdentityHash(identity(request)).orElse(null);
+        if (previous!=null) {
+            if (!previous.requestHash.equals(AiCreditEscrowService.hash(request.toByteArray())))
+                throw new ApiException(HttpStatus.CONFLICT,"AI 请求标识与原内容不一致","BUDGET_REQUEST_CONFLICT",Map.of());
+            if ("HELD".equals(previous.state)) {
+                try { reconcile(previous); } catch (RuntimeException failure) { throw pending(previous); }
+                previous=reservations.findById(previous.id).orElseThrow();
+            }
+            if ("SETTLED".equals(previous.state)) return result(previous);
+            if ("RELEASED".equals(previous.state)) throw notSent();
+            throw pending(previous);
+        }
         long remainingSeconds=Math.min(89,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;
         try {
             budget=stub.withDeadlineAfter(Math.min(5,remainingSeconds),TimeUnit.SECONDS).prepareCallBudget(PrepareCallBudgetRequest.newBuilder()
-                .setChat(request).setMaxOutputTokens(maxOutput).setMaxProviderAttempts(1).build());
+                .setChat(request).setMaxOutputTokens(maxOutput).setMaxProviderAttempts(1).setBillingCurrency("CNY").build());
         } catch (io.grpc.StatusRuntimeException failure) {
             // Preparing a budget never invokes the supplier.
             if (transientFailure(failure)) throw notSent();
             throw failure;
         }
+        if (!budget.hasPriceQuote()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 服务尚未提供金额预算","BUDGET_PRICING_UNAVAILABLE",Map.of());
         var claim=escrow.reserve(request,budget);
         if(claim.acquired()) {
             try {
@@ -72,14 +84,14 @@ public class BoundedAiClient {
                     .chatCompletions(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
             } catch(RuntimeException failure) {
                 // Querying is safe; neither this path nor the worker retries inference.
-                try { reconcile(claim.reservation(), deadline); } catch(RuntimeException queryFailure) { failure.addSuppressed(queryFailure); }
+                try { reconcile(claim.reservation()); } catch(RuntimeException queryFailure) { failure.addSuppressed(queryFailure); }
                 var committed=reservations.findById(claim.reservation().id).orElseThrow();
                 if("SETTLED".equals(committed.state)) return result(committed);
                 if ("RELEASED".equals(committed.state) && transientFailure(failure)) throw notSent();
                 throw pending(claim.reservation());
             }
         }
-        try { reconcile(claim.reservation(), deadline); } catch (RuntimeException failure) { throw pending(claim.reservation()); }
+        try { reconcile(claim.reservation()); } catch (RuntimeException failure) { throw pending(claim.reservation()); }
         var committed=reservations.findById(claim.reservation().id).orElseThrow();
         if("SETTLED".equals(committed.state)) return result(committed);
         if ("RELEASED".equals(committed.state)) throw notSent();
@@ -89,6 +101,9 @@ public class BoundedAiClient {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI 调用结果正在对账", "BUDGET_RECONCILIATION_REQUIRED",
                 Map.of("budgetId", row.budgetId, "settlementState", row.state));
     }
+    private static String identity(ChatCompletionsRequest request) {
+        return AiCreditEscrowService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
     private static boolean transientFailure(RuntimeException failure) {
         return java.util.Set.of(io.grpc.Status.Code.UNAVAILABLE, io.grpc.Status.Code.DEADLINE_EXCEEDED,
                 io.grpc.Status.Code.RESOURCE_EXHAUSTED).contains(io.grpc.Status.fromThrowable(failure).getCode());
@@ -96,13 +111,9 @@ public class BoundedAiClient {
     private static ApiException notSent() {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI 请求尚未发送，可重试", "AI_REQUEST_NOT_SENT", Map.of());
     }
-    private static ApiException pending() {
-        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI 调用结果正在对账，已预留额度不会重复扣取", "BUDGET_RECONCILIATION_REQUIRED", Map.of());
-    }
-    private void reconcile(AiCreditReservation row, long deadline) {
-        long remaining = deadline - System.nanoTime();
-        if (remaining <= 0) throw pending();
-        var status=stub.withDeadlineAfter(Math.min(TimeUnit.SECONDS.toNanos(5), remaining),TimeUnit.NANOSECONDS).getBudgetCallStatus(GetBudgetCallStatusRequest.newBuilder()
+    private void reconcile(AiCreditReservation row) {
+        // A timed-out generation must not also consume the read-only settlement window.
+        var status=stub.withDeadlineAfter(5,TimeUnit.SECONDS).getBudgetCallStatus(GetBudgetCallStatusRequest.newBuilder()
             .setBudgetId(row.budgetId).setProjectKey(row.projectKey).setUserId(row.userId).setRequestId(row.requestId)
             .setOperation(BudgetOperation.BUDGET_OPERATION_CHAT).build());
         escrow.reconcile(row.id,status);
@@ -111,7 +122,7 @@ public class BoundedAiClient {
     public void reconcilePending() {
         // Continue settling old holds even while new inference is disabled.
         for(var row:reservations.findByStateOrderByUpdatedAtAsc("HELD",PageRequest.of(0,5))) {
-            try { reconcile(row, System.nanoTime() + TimeUnit.SECONDS.toNanos(5)); } catch(RuntimeException failure) {
+            try { reconcile(row); } catch(RuntimeException failure) {
                 log.warn("AI budget reconciliation pending reservationId={} rpcCode={}",row.id,io.grpc.Status.fromThrowable(failure).getCode());
                 escrow.markChecked(row.id);
             }

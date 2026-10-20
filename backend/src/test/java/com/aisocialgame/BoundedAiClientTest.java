@@ -18,8 +18,11 @@ class BoundedAiClientTest {
     Server server; ManagedChannel channel;
     AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
     final AtomicInteger sends=new AtomicInteger(),prepares=new AtomicInteger();
+    long generationDelayMs, statusDelayMs;
+    final java.util.concurrent.atomic.AtomicLong statusWindowMs=new java.util.concurrent.atomic.AtomicLong();
     final java.util.concurrent.atomic.AtomicReference<PrepareCallBudgetRequest> prepared = new java.util.concurrent.atomic.AtomicReference<>();
-    final PrepareCallBudgetResponse budget=PrepareCallBudgetResponse.newBuilder().setBudgetId("budget").setBudgetCredential("credential").build();
+    PrepareCallBudgetResponse budget=PrepareCallBudgetResponse.newBuilder().setBudgetId("budget").setBudgetCredential("credential")
+            .setPriceQuote(BudgetPriceQuote.newBuilder().setCurrency("CNY").setMaxCreditPoints(226)).build();
     final ChatCompletionsResponse response=ChatCompletionsResponse.newBuilder().setContent("committed").setPromptTokens(10).setCompletionTokens(5).build();
     final GetBudgetCallStatusResponse status=GetBudgetCallStatusResponse.newBuilder().setBudgetId("budget").setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setChat(response).build();
     @BeforeEach void start() throws Exception {
@@ -29,9 +32,11 @@ class BoundedAiClientTest {
                 prepared.set(request);prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
             }
             @Override public void chatCompletions(ChatCompletionsRequest request,StreamObserver<ChatCompletionsResponse> observer){
-                sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());observer.onError(Status.DEADLINE_EXCEEDED.asRuntimeException());
+                sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());pause(generationDelayMs);observer.onError(Status.DEADLINE_EXCEEDED.asRuntimeException());
             }
             @Override public void getBudgetCallStatus(GetBudgetCallStatusRequest request,StreamObserver<GetBudgetCallStatusResponse> observer){
+                statusWindowMs.set(Context.current().getDeadline().timeRemaining(java.util.concurrent.TimeUnit.MILLISECONDS));
+                pause(statusDelayMs);
                 assertEquals("same-request",request.getRequestId());observer.onNext(status);observer.onCompleted();
             }
         }).build().start();
@@ -39,6 +44,9 @@ class BoundedAiClientTest {
         stub=AiGatewayServiceGrpc.newBlockingStub(channel);
     }
     @AfterEach void stop(){channel.shutdownNow();server.shutdownNow();}
+    private static void pause(long millis) {
+        try { Thread.sleep(millis); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+    }
     @Test void lostResponseUsesCommittedStatusWithoutRepeatingInference() {
         var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
         var client=new BoundedAiClient(stub,escrow,reservations,count,true,8192);
@@ -49,6 +57,7 @@ class BoundedAiClientTest {
         when(reservations.findById(row.id)).thenAnswer(invocation->Optional.of(row));
         assertEquals(response,client.chat(request,45));assertEquals(response,client.chat(request,45));
         assertEquals(8192,prepared.get().getMaxOutputTokens());
+        assertEquals("CNY",prepared.get().getBillingCurrency());
         assertEquals(1,sends.get());verify(count,times(1)).consume();
     }
     @Test void disabledAndInsufficientCreditNeverReachInference() {
@@ -72,6 +81,41 @@ class BoundedAiClientTest {
         for(int i=0;i<2;i++) assertEquals("BUDGET_RECONCILIATION_REQUIRED",
                 assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,45)).getCode());
         assertEquals("HELD",row.state); assertEquals(1,sends.get()); verify(count,times(1)).consume();
+    }
+
+    @Test void expiredGenerationWindowStillQueriesAndSettlesCommittedResult() {
+        generationDelayMs=1100; statusDelayMs=100;
+        var escrow=mock(AiCreditEscrowService.class); var reservations=mock(AiCreditReservationRepository.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,100);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        var row=new AiCreditReservation(); row.id="late-result"; row.budgetId="budget"; row.requestId="same-request";
+        row.userId=85; row.projectKey="aisocialgame"; row.state="HELD";
+        when(escrow.reserve(request,budget)).thenReturn(new AiCreditEscrowService.Claim(row,true));
+        when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        doAnswer(invocation->{row.state="SETTLED";row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());return null;})
+                .when(escrow).reconcile(row.id,status);
+        assertEquals(response,client.chat(request,1));
+        assertTrue(statusWindowMs.get()>3000,"Settlement must receive its own query timeout");
+        assertEquals(1,sends.get()); assertEquals("SETTLED",row.state);
+    }
+    @Test void missingMonetaryQuoteNeverFallsBackToTokenReservation() {
+        budget=budget.toBuilder().clearPriceQuote().build();
+        var escrow=mock(AiCreditEscrowService.class);
+        var client=new BoundedAiClient(stub,escrow,mock(AiCreditReservationRepository.class),mock(AiCallBudgetService.class),true,8192);
+        assertEquals("BUDGET_PRICING_UNAVAILABLE",assertThrows(com.aisocialgame.exception.ApiException.class,
+                ()->client.chat(ChatCompletionsRequest.newBuilder().setRequestId("same-request").build(),45)).getCode());
+        verify(escrow,never()).reserve(any(),any()); assertEquals(0,sends.get());
+    }
+    @Test void committedReceiptReplaysBeforePreparingAnyNewPrice() {
+        var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        var row=new AiCreditReservation();row.state="SETTLED";row.requestHash=AiCreditEscrowService.hash(request.toByteArray());
+        row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));
+        assertEquals(response,new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192).chat(request,1));
+        assertEquals(0,prepares.get());assertEquals(0,sends.get());
+        assertEquals("BUDGET_REQUEST_CONFLICT",assertThrows(com.aisocialgame.exception.ApiException.class,
+                ()->new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192).chat(request.toBuilder().setModel("changed").build(),1)).getCode());
     }
 
     @Test void confirmedNotSentFailureIsTheOnlyRetryableExecutionError() {

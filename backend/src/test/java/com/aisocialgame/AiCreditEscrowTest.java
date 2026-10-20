@@ -49,7 +49,7 @@ class AiCreditEscrowTest {
                 .setPromptTokens(input).setCompletionTokens(output)).build();
     }
     CreditAccount account(){return accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow();}
-    @Test void activeHoldWaitsButUnknownHoldNeverTriggersFreshInference() {
+    @Test void activeHoldWaitsAndInsufficientCreditIsNotMisreportedAsNewRequestReconciliation() {
         escrow.beginRequest(request.getRequestId());
         try {
             var first = escrow.reserve(request,budget);
@@ -60,10 +60,33 @@ class AiCreditEscrowTest {
             assertEquals("AI_BUDGET_BUSY",busy.getCode());
             escrow.endRequest(request.getRequestId());
             var pending = assertThrows(com.aisocialgame.exception.ApiException.class,()->escrow.reserve(next,nextBudget));
-            assertEquals("BUDGET_RECONCILIATION_REQUIRED",pending.getCode());
+            assertEquals("AI_CREDIT_INSUFFICIENT",pending.getCode());
             escrow.reconcile(first.reservation().id,success(20,10));
             assertTrue(escrow.reserve(next,nextBudget).acquired());
         } finally { escrow.endRequest(request.getRequestId()); }
+    }
+
+    @Test void monetaryReservationSettlesByPriceWhileLegacyUnknownHoldRemainsUntouched() {
+        var old=escrow.reserve(request,budget);
+        var next=request.toBuilder().setRequestId(UUID.randomUUID().toString()).build();
+        var quote=BudgetPriceQuote.newBuilder().setCurrency("CNY").setPriceVersionId(6).setMaxCost("0.250000")
+                .setPointsPerCurrency(100).setMaxCreditPoints(25).setPriceSha256("a".repeat(64)).build();
+        var money=budget.toBuilder().setBudgetId(UUID.randomUUID().toString()).setRequestSha256(AiCreditEscrowService.hash(next.toByteArray()))
+                .setPriceQuote(quote).build();
+        var claim=escrow.reserve(next,money);
+        assertEquals(25,claim.reservation().reservedPermanent);assertEquals(35,account().getPermanentBalance());
+        assertFalse(escrow.reserve(next,money).acquired());
+        var charge=BudgetCharge.newBuilder().setCurrency("CNY").setPriceVersionId(6).setTotalCost("0.020000")
+                .setCreditPoints(2).setPriceSha256(quote.getPriceSha256()).build();
+        var status=success(20,10).toBuilder().setBudgetId(money.getBudgetId()).setRequestSha256(money.getRequestSha256())
+                .setPriceQuote(quote).setCharge(charge).setChat(success(20,10).getChat().toBuilder().setBudgetCharge(charge)).build();
+        assertThrows(RuntimeException.class,()->escrow.reconcile(claim.reservation().id,status.toBuilder().clearCharge().build()));
+        assertEquals("HELD",reservations.findById(claim.reservation().id).orElseThrow().state);
+        escrow.reconcile(claim.reservation().id,status);escrow.reconcile(claim.reservation().id,status);
+        assertEquals(58,account().getPermanentBalance());
+        assertEquals(-2,ledger.findByRequestId("ai-consume:"+claim.reservation().id).orElseThrow().getTokenDeltaPermanent());
+        assertEquals("HELD",reservations.findById(old.reservation().id).orElseThrow().state);
+        assertEquals(120,old.reservation().reservedTemp+old.reservation().reservedPermanent);
     }
 
     @Test void reserveAndSettleOncePreserveTempExpiryAcrossNewGrants() {
