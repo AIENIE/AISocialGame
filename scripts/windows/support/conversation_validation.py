@@ -19,6 +19,12 @@ SCENARIOS = {
 PILOTS = {"undercover:runoff_description", "werewolf:counterevidence", "turtle_soup:human_prepares_question"}
 PERSONAS = ("ai1", "ai2", "ai3", "ai4")
 
+def conversation_ledger(path):
+    # An explicitly authorized new run has no historical entries to fabricate.
+    if Path(path).read_bytes()==b"":
+        return dict(consumed=0,sha256=sha(path))
+    return ledger(path)
+
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -88,6 +94,7 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
             reservations=row.get("reservations",[]);calls=d.get("diagnostics",{}).get("calls")
             if type(calls) is not int or calls not in (1,2) or not isinstance(reservations,list) or len(reservations)!=calls: errors.append(key+":RPC_RESERVATIONS_MISSING")
             for receipt in reservations if isinstance(reservations,list) else []:
+                if receipt.get("creditState")!="SETTLED" or not nonblank(receipt.get("creditReservationId")) or not nonblank(receipt.get("budgetId")): errors.append(key+":PERSISTENT_CREDIT_RECEIPT_MISSING")
                 ordinal=receipt.get("comparisonAttempt");request=receipt.get("requestId")
                 if type(ordinal) is not int or ordinal<=0 or ordinal in reservation_ids or not nonblank(request) or request in request_ids: errors.append(key+":INVALID_RPC_RESERVATION")
                 reservation_ids.add(ordinal);request_ids.add(request)
@@ -126,9 +133,10 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
     return dict(algorithmPassed=not errors,qualityPassed=not errors and m["evidenceKind"]=="REAL_MODEL",L4Passed=False,groups=groups,measurements=measurements,problems=sorted(set(errors)),reviewType="CODING_AGENT_NOT_INDEPENDENT_HUMAN_BLIND_REVIEW")
 
 def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phase):
+    historical_hold_check(g.get("historicalHoldException"))
     require(g.get("authorizationStatus")=="APPROVED" and all(nonblank(g.get(k)) for k in ("approvedBy","approvalReference","callerId")),"EXPLICIT_GRANT_REQUIRED")
-    require(g.get("enableOriginalCaller") is True and g.get("disableCallerOnExit") is True,"CALLER_OPERATIONS_NOT_AUTHORIZED")
-    require(g.get("callerRecordId")==33 and type(g.get("callerRecordId")) is int and g.get("callerId")=="aisocialgame-realism-v2-20260912","ORIGINAL_CALLER_REQUIRED")
+    require(g.get("callerLifecycle")=="SHARED" and g.get("enableOriginalCaller") is False and g.get("disableCallerOnExit") is False,"SHARED_CALLER_MUST_REMAIN_UNCHANGED")
+    require(type(g.get("callerRecordId")) is int and g["callerRecordId"]>0,"VALID_CALLER_RECORD_REQUIRED")
     require(datetime.fromisoformat(g["expiresAt"].replace("Z","+00:00"))>datetime.now(timezone.utc),"GRANT_EXPIRED")
     for key in ("batchId","sourceFingerprint","buildId"):
         require(g.get(key)==m[key],"GRANT_VERSION_MISMATCH")
@@ -136,10 +144,21 @@ def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phas
     require(g.get("manifestSha256")==sha(manifest_path) and g.get("bundleSha256")==sha(bundle_path) and g.get("artifactSha256")==jar_hash,"GRANT_ARTIFACT_MISMATCH")
     base=g.get("baselineConsumed");cap=g.get("cumulativeComparisonLimit")
     require(type(base) is int and type(cap) is int and 0<=base<=consumed<cap<=base+192,"GRANT_LIMIT_INVALID")
+    require(base!=0 or g.get("ledgerOrigin")=="NEW_AUTHORIZED_BATCH","NEW_LEDGER_AUTHORIZATION_REQUIRED")
     lines=Path(ledger_path).read_bytes().splitlines(keepends=True)
     require(hashlib.sha256(b"".join(lines[:base])).hexdigest()==g.get("baselineLedgerSha256"),"LEDGER_PREFIX_CHANGED")
-    require(phase!="PILOT" or consumed<base+24,"PILOT_LIMIT_EXHAUSTED")
+    variant=SET+":"+m["batchId"]
+    pilot_calls=sum(1 for line in lines[base:] if (row:=json.loads(line)).get("variant")==variant and row.get("scenarioId") in m["pilotIds"])
+    require(phase!="PILOT" or pilot_calls<24,"PILOT_LIMIT_EXHAUSTED")
     return g
+
+def historical_hold_check(hold):
+    if hold is None: return
+    fields={"id","budget_id","request_id","project_key","user_id","state","reserved_temp","reserved_permanent"}
+    require(isinstance(hold,dict) and set(hold)==fields,"INVALID_HISTORICAL_HOLD")
+    require(all(nonblank(hold[k]) for k in ("id","budget_id","request_id")),"INVALID_HISTORICAL_HOLD_IDENTITY")
+    require(hold["project_key"]=="aisocialgame" and type(hold["user_id"]) is int and hold["user_id"]==85 and hold["state"]=="HELD","INVALID_HISTORICAL_HOLD_SCOPE")
+    require(type(hold["reserved_temp"]) is int and hold["reserved_temp"]>=0 and type(hold["reserved_permanent"]) is int and hold["reserved_permanent"]>0,"INVALID_HISTORICAL_HOLD_AMOUNT")
 
 def main():
     p=argparse.ArgumentParser()
@@ -154,13 +173,13 @@ def main():
         return 0 if result["qualityPassed"] else 2
     actual=artifact(Path(args.root),Path(args.jar),verify=True)
     require(all(m[k]==actual[k] for k in ("sourceFingerprint","buildId")),"CURRENT_BUILD_MISMATCH")
-    summary=ledger(args.ledger);g=None
+    summary=conversation_ledger(args.ledger);g=None
     if args.mode=="gate":
         require(m["evidenceKind"]=="REAL_MODEL","REAL_MANIFEST_REQUIRED")
         g=grant_check(m,load_json(args.grant),args.ledger,args.manifest,args.bundle,actual["artifactSha256"],summary["consumed"],args.phase)
         proof=load_json(args.prerequisites)
         age=(datetime.now(timezone.utc)-datetime.fromisoformat(proof["collectedAt"].replace("Z","+00:00"))).total_seconds()
-        require(0<=age<=900 and proof.get("batchId")==m["batchId"] and proof.get("callerId")==g["callerId"] and proof.get("callerState")=="ACTIVE" and proof.get("model")=="deepseek-flash" and proof.get("tlsVerified") is True and proof.get("matrixVerified") is True and nonblank(proof.get("readbackEvidenceSha256")),"FRESH_CALLER_AND_TLS_READBACK_REQUIRED")
+        require(0<=age<=900 and proof.get("batchId")==m["batchId"] and proof.get("callerId")==g["callerId"] and proof.get("callerRecordId")==g["callerRecordId"] and proof.get("callerState")=="ACTIVE" and proof.get("model")=="deepseek-flash" and proof.get("tlsVerified") is True and proof.get("matrixVerified") is True and proof.get("persistentCreditEscrow") is True and nonblank(proof.get("readbackEvidenceSha256")),"FRESH_CALLER_AND_TLS_READBACK_REQUIRED")
         if args.prior: resume_check(m,load_json(args.prior))
         if args.phase=="REMAINING":
             result=measure(m,b,load_json(args.evidence),load_json(args.review),sha(args.evidence),True)
@@ -173,7 +192,7 @@ def main():
                 comparisonLedger=str(Path(args.ledger).resolve()),pilotMaximumNewRequests=24,maximumNewRequests=192,
                 proposedPilotCumulativeLimit=summary["consumed"]+24,proposedFullCumulativeLimit=summary["consumed"]+192,
                 authorizationStatus="NOT_AUTHORIZED",approvedBy=None,approvalReference=None,expiresAt=None,
-                model="deepseek-flash",callerRecordId=33,callerId="aisocialgame-realism-v2-20260912",callerState="UNKNOWN",enableOriginalCaller=False,disableCallerOnExit=False)
+                model="deepseek-flash",callerRecordId=None,callerId=None,callerState="UNKNOWN",callerLifecycle="SHARED",enableOriginalCaller=False,disableCallerOnExit=False)
     print(json.dumps(result,ensure_ascii=True,indent=2));return 0
 
 if __name__=="__main__":

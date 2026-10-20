@@ -20,7 +20,7 @@ class AiControllerBudgetTest {
     void streamingRejectsBeforeCommittingSseResponseOrAcquiringPermit() {
         TaskExecutor executor = mock(TaskExecutor.class);
         AiStreamConcurrencyLimiter limiter = new AiStreamConcurrencyLimiter(1);
-        AiController controller = new AiController(new AiProxyService(mock(AiGrpcClient.class), new AppProperties()), executor, limiter);
+        AiController controller = new AiController(new AiProxyService(new AiGrpcClient(), new AppProperties()), executor, limiter);
         User user = new User(); user.setId("user"); user.setExternalUserId(42L);
         ApiException failure = assertThrows(ApiException.class, () -> controller.chatStream(new AiChatRequest(), user));
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, failure.getStatus());

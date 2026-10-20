@@ -1,8 +1,14 @@
 function Get-AienieWorkspaceRoot {
-    $cursor=Get-Item (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-    while($null -ne $cursor){
-        if((Test-Path (Join-Path $cursor.FullName 'aienie-infra/infrastructure/catalog/environment-matrix.yaml')) -and (Test-Path (Join-Path $cursor.FullName 'aienie-doc/system-matrix'))){return $cursor.FullName}
-        $cursor=$cursor.Parent
+    $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+    $candidates=@($repo)
+    $common=& git -C $repo rev-parse --path-format=absolute --git-common-dir 2>$null
+    if($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $common -PathType Container)){$candidates+=Split-Path $common -Parent}
+    foreach($candidate in $candidates){
+        $cursor=Get-Item -LiteralPath $candidate
+        while($null -ne $cursor){
+            if((Test-Path (Join-Path $cursor.FullName 'aienie-infra/infrastructure/catalog/environment-matrix.yaml')) -and (Test-Path (Join-Path $cursor.FullName 'aienie-doc/system-matrix'))){return $cursor.FullName}
+            $cursor=$cursor.Parent
+        }
     }
     throw 'Canonical Aienie workspace is unavailable.'
 }

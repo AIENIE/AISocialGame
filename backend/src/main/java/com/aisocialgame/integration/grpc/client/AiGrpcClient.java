@@ -36,6 +36,15 @@ public class AiGrpcClient {
     // field by reflection only to test gRPC cancellation and TLS mechanics.
     private boolean isolatedTransportFixture;
 
+    @Autowired(required = false)
+    private com.aisocialgame.service.credit.BoundedAiClient boundedClient;
+
+    public void requireChatReady() {
+        if (isolatedTransportFixture) return;
+        if (boundedClient == null) requireBoundedBudget();
+        boundedClient.requireReady();
+    }
+
     @Autowired
     private AiGatewayServiceGrpc.AiGatewayServiceBlockingStub aiStub;
 
@@ -43,9 +52,6 @@ public class AiGrpcClient {
     private com.aisocialgame.service.ai.v2.AiCallBudgetService callBudget;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.service.safety.AiCallAdmission admission;
-
-    @Autowired
-    private com.aisocialgame.service.credit.BoundedAiClient boundedClient;
 
     @Autowired
     private AiModelConfigService modelConfigs;
@@ -73,29 +79,28 @@ public class AiGrpcClient {
 
     public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, String model,
                                         List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds, false);
+        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds);
     }
 
-    /** Only the undercover generation path opts into the restored budget transport. */
     public AiChatResult undercoverChatCompletions(String projectKey, long userId, String sessionId, String model,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds, true);
+        return chat(projectKey, userId, sessionId, AiModelSelection.defaults(model), messages, requestId, deadlineSeconds);
     }
 
     public AiChatResult chatCompletions(String projectKey, long userId, String sessionId, AiModelSelection selection,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds, false);
+        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds);
     }
 
     public AiChatResult undercoverChatCompletions(String projectKey, long userId, String sessionId, AiModelSelection selection,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
-        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds, true);
+        return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds);
     }
 
     private AiChatResult chat(String projectKey, long userId, String sessionId, AiModelSelection selection,
-            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds, boolean undercover) {
+            List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
         AppProperties.requireCanonicalProjectKey(projectKey);
-        if (undercover) boundedClient.requireReady(); else requireBoundedBudget();
+        requireChatReady();
         if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
         String model = selection.modelKey();
         var registered = new java.util.concurrent.atomic.AtomicBoolean();
@@ -103,7 +108,7 @@ public class AiGrpcClient {
             if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
             if (admission != null) { admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model)); registered.set(true); }
         };
-        if (!undercover) beforeSend.run();
+        if (isolatedTransportFixture) beforeSend.run();
         boolean answered=false;
         try {
             ChatCompletionsRequest.Builder builder = ChatCompletionsRequest.newBuilder()
@@ -127,13 +132,14 @@ public class AiGrpcClient {
                             .build());
                 }
             }
-            if (!undercover && callBudget != null) callBudget.consume();
+            if (isolatedTransportFixture && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
-            var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds, beforeSend) : stub.chatCompletions(builder.build());
+            var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
+                    : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
             if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);
             if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
-            var metadata = undercover ? boundedClient.metadata(builder.build()) : java.util.Map.<String,Object>of();
+            var metadata = isolatedTransportFixture ? java.util.Map.<String,Object>of() : boundedClient.metadata(builder.build());
             return new AiChatResult(response.getContent(), response.getModelKey(), response.getPromptTokens(), response.getCompletionTokens(),
                     response.hasFinishReason() ? response.getFinishReason() : null, response.hasReasoningTokens() ? response.getReasoningTokens() : null,
                     (String) metadata.get("budgetId"), (String) metadata.get("settlementState"));

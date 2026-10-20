@@ -6,15 +6,16 @@ import java.util.*;
 /** Explicit, local-only schema adapter. Never starts application services. */
 class GameRealismLocalData {
     public static void main(String[] args) throws Exception {
-        if (args.length != 4 || !Set.of("inspect", "migrate").contains(args[0])) throw new IllegalArgumentException("Use the verified PowerShell migration entry.");
+        if (args.length != 5 || !Set.of("inspect", "migrate").contains(args[0])) throw new IllegalArgumentException("Use the verified PowerShell migration entry.");
         Map<String, String> env = readEnvironment(Path.of(args[1]));
         for (String key : List.of("ENV", "APP_ENV", "SPRING_PROFILES_ACTIVE")) {
             if (env.containsKey(key) && !env.get(key).equals("local")) throw new IllegalArgumentException("Only local environment is supported");
         }
         // Supplied only after the shared matrix/runtime resolver succeeds; no default or port fallback.
         String url = args[3];
-        if (!url.matches("jdbc:mysql://localbase\\.testhut\\.top:[0-9]{1,5}/aisocialgame\\?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=30000")) throw new IllegalArgumentException("Unverified local target");
-        try (Connection connection = DriverManager.getConnection(url, required(env, "SPRING_DATASOURCE_USERNAME"), required(env, "SPRING_DATASOURCE_PASSWORD"))) {
+        if (!url.matches("jdbc:mysql://localmysql\\.testhut\\.top:[0-9]{1,5}/aisocialgame\\?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=30000")) throw new IllegalArgumentException("Unverified local target");
+        if (args[4].isBlank()) throw new IllegalArgumentException("Missing database user");
+        try (Connection connection = DriverManager.getConnection(url, args[4], required(env, "SPRING_DATASOURCE_PASSWORD"))) {
             System.out.println("Local ai-social-game schema: " + connection.getCatalog());
             if (!"aisocialgame".equals(connection.getCatalog())) throw new IllegalStateException("Unexpected database");
             printColumns(connection);

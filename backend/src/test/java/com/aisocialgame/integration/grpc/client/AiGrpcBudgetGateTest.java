@@ -28,7 +28,9 @@ class AiGrpcBudgetGateTest {
         verifyNoInteractions(channel);
     }
 
-    @Test void onlyUndercoverUsesTheBoundedClientAndPreservesRequestIdentity() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void chatUsesTheBoundedClientAndPreservesRequestIdentity(boolean undercover) {
         var channel = mock(Channel.class);
         var bounded = mock(com.aisocialgame.service.credit.BoundedAiClient.class);
         var client = new AiGrpcClient();
@@ -36,16 +38,19 @@ class AiGrpcBudgetGateTest {
         ReflectionTestUtils.setField(client, "boundedClient", bounded);
         when(bounded.chat(any(), eq(19), any(Runnable.class))).thenReturn(fireflychat.ai.v1.ChatCompletionsResponse.newBuilder()
                 .setContent("model response").setModelKey("deepseek-flash").setPromptTokens(10).setCompletionTokens(5).build());
-        var result = client.undercoverChatCompletions("aisocialgame", 85, "match:actor", "deepseek-flash",
-                List.of(new AiChatMessageDto("user", "visible observation")), "job:0", 19);
+        when(bounded.metadata(any())).thenReturn(java.util.Map.of("budgetId", "budget", "settlementState", "SETTLED"));
+        var messages = List.of(new AiChatMessageDto("user", "visible observation"));
+        var result = undercover
+                ? client.undercoverChatCompletions("aisocialgame", 85, "match:actor", "deepseek-flash", messages, "job:0", 19)
+                : client.chatCompletions("aisocialgame", 85, "match:actor", "deepseek-flash", messages, "job:0", 19);
         assertEquals("model response", result.content());
+        assertEquals("budget", result.budgetId()); assertEquals("SETTLED", result.settlementState());
         var request = org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
         verify(bounded).chat(request.capture(), eq(19), any(Runnable.class)); verify(bounded).requireReady();
         assertEquals("job:0", request.getValue().getRequestId());
         assertFalse(request.getValue().hasThinkingEnabled());
         assertEquals(fireflychat.ai.v1.ThinkingEffort.THINKING_EFFORT_UNSPECIFIED, request.getValue().getThinkingEffort());
         assertEquals("match:actor", request.getValue().getSessionId()); assertEquals(85, request.getValue().getUserId());
-        assertBudgetUnavailable(() -> client.chatCompletions("aisocialgame", 85, "", "deepseek-flash", List.of()));
         verifyNoInteractions(channel);
     }
 

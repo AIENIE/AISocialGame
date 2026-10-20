@@ -57,15 +57,26 @@ class ConversationValidationTests(unittest.TestCase):
         self.assertFalse(measure(self.m,self.b,self.e,self.r,"synthetic-hash",True)["algorithmPassed"])
     def test_unapproved_proposal_cannot_authorize(self):
         with self.assertRaises(ValueError):grant_check(self.m,dict(authorizationStatus="NOT_AUTHORIZED"),"unused","unused","unused","hash",74,"PILOT")
+    def test_historical_exception_is_singular_explicit_and_integral(self):
+        hold=dict(id="reservation",budget_id="budget",request_id="request",project_key="aisocialgame",user_id=85,state="HELD",reserved_temp=0,reserved_permanent=1049600)
+        historical_hold_check(None)
+        historical_hold_check(hold)
+        for invalid in ([hold],dict(hold,user_id=86),dict(hold,project_key="other"),dict(hold,state="SETTLED"),dict(hold,reserved_permanent=1.5),dict(hold,reserved_temp=True),dict(hold,request_id=""),dict(hold,ignoreAll=True)):
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):historical_hold_check(invalid)
+    def test_empty_batch_has_zero_actual_attempts_without_fabricated_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            p=Path(directory)/'new.jsonl';p.write_bytes(b'')
+            self.assertEqual(conversation_ledger(p),dict(consumed=0,sha256=sha(p)))
+            self.assertEqual(p.read_bytes(),b'')
     def test_authorization_binds_artifacts_prefix_cap_expiry_and_caller_operations(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);journal=root/'journal.jsonl';manifest=root/'manifest.json';bundle=root/'bundle.json'
             journal.write_bytes(b'{"comparisonAttempt":1}\n');manifest.write_text('{}');bundle.write_text('{}')
-            g=dict(authorizationStatus="APPROVED",approvedBy="synthetic",approvalReference="test-only",callerId="aisocialgame-realism-v2-20260912",callerRecordId=33,enableOriginalCaller=True,disableCallerOnExit=True,
+            g=dict(authorizationStatus="APPROVED",approvedBy="synthetic",approvalReference="test-only",callerId="aisocialgame",callerRecordId=37,callerLifecycle="SHARED",enableOriginalCaller=False,disableCallerOnExit=False,
                 expiresAt="2099-01-01T00:00:00Z",model="deepseek-flash",comparisonLedger=str(journal),manifestSha256=sha(manifest),bundleSha256=sha(bundle),artifactSha256="jar",
                 baselineConsumed=1,cumulativeComparisonLimit=193,baselineLedgerSha256=sha(journal),**{k:self.m[k] for k in ("batchId","buildId","sourceFingerprint")})
             grant_check(self.m,g,journal,manifest,bundle,"jar",1,"PILOT")
-            for change in (dict(cumulativeComparisonLimit=194),dict(cumulativeComparisonLimit=True),dict(expiresAt="2000-01-01T00:00:00Z"),dict(enableOriginalCaller=False),dict(manifestSha256="bad"),dict(baselineLedgerSha256="bad"),dict(buildId="bad")):
+            for change in (dict(cumulativeComparisonLimit=194),dict(cumulativeComparisonLimit=True),dict(expiresAt="2000-01-01T00:00:00Z"),dict(enableOriginalCaller=True),dict(disableCallerOnExit=True),dict(callerRecordId=0),dict(manifestSha256="bad"),dict(baselineLedgerSha256="bad"),dict(buildId="bad")):
                 with self.subTest(change=change),self.assertRaises(ValueError):grant_check(self.m,dict(g,**change),journal,manifest,bundle,"jar",1,"PILOT")
 
 if __name__=="__main__":unittest.main()
