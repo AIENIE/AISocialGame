@@ -71,6 +71,7 @@ public class BoundedAiClient {
         if (!budget.hasPriceQuote()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 服务尚未提供金额预算","BUDGET_PRICING_UNAVAILABLE",Map.of());
         var claim=escrow.reserve(request,budget);
         if(claim.acquired()) {
+            boolean executionStarted=false;
             try {
                 long remaining=deadline-System.nanoTime();
                 remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
@@ -80,9 +81,13 @@ public class BoundedAiClient {
                 remaining = deadline-System.nanoTime();
                 remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
                 if (remaining <= 0) throw io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException();
+                executionStarted=true;
                 stub.withDeadlineAfter(remaining,TimeUnit.NANOSECONDS)
                     .chatCompletions(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
             } catch(RuntimeException failure) {
+                // Local admission/deadline failures have not attempted the execution RPC.
+                // Keep the hold until the prepared server budget expires, but preserve the actual cause.
+                if (!executionStarted) throw failure;
                 // Querying is safe; neither this path nor the worker retries inference.
                 try { reconcile(claim.reservation()); } catch(RuntimeException queryFailure) { failure.addSuppressed(queryFailure); }
                 var committed=reservations.findById(claim.reservation().id).orElseThrow();

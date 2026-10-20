@@ -117,6 +117,17 @@ class BoundedAiClientTest {
         assertEquals("BUDGET_REQUEST_CONFLICT",assertThrows(com.aisocialgame.exception.ApiException.class,
                 ()->new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192).chat(request.toBuilder().setModel("changed").build(),1)).getCode());
     }
+    @Test void localAdmissionFailureKeepsItsCauseWithoutSendingOrClaimingReconciliation() {
+        var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").build();
+        var row=new AiCreditReservation();row.id="not-dispatched";row.state="HELD";
+        when(escrow.reserve(request,budget)).thenReturn(new AiCreditEscrowService.Claim(row,true));
+        var blocked=new com.aisocialgame.service.safety.AiCallBlockedException(com.aisocialgame.service.safety.AiCallBlockedException.Reason.CALL_BUDGET_EXHAUSTED);
+        doThrow(blocked).when(count).consume();
+        assertSame(blocked,assertThrows(com.aisocialgame.service.safety.AiCallBlockedException.class,
+                ()->new BoundedAiClient(stub,escrow,reservations,count,true,8192).chat(request,45)));
+        assertEquals(0,sends.get());assertEquals("HELD",row.state);verify(escrow,never()).reconcile(anyString(),any());
+    }
 
     @Test void confirmedNotSentFailureIsTheOnlyRetryableExecutionError() {
         var escrow=mock(AiCreditEscrowService.class); var reservations=mock(AiCreditReservationRepository.class);
