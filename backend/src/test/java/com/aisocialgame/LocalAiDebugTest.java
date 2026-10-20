@@ -79,6 +79,8 @@ class LocalAiDebugTest {
         job.setStatus("DISCARDED"); job.getDiagnostics().put("terminalReason", "TURN_OBSOLETE"); jobs.saveAndFlush(job); recorder.finished(job);
         recorder.response(job.getId() + ":1", finalResponse); recorder.response(job.getId() + ":1", finalResponse);
         var row = records.findById(job.getId()).orElseThrow();
+        assertEquals(AiTurnGenerator.UNDERCOVER_PROMPT_VERSION, row.payload.get("promptVersion"));
+        assertEquals(AiPromptProjection.UNDERCOVER_VERSION, row.payload.get("inputFormatVersion"));
         assertEquals(2, row.attemptCount); assertEquals(2, row.responseCount);
         assertEquals(200L, row.promptTokens); assertEquals(40L, row.completionTokens); assertEquals(80L, row.cacheReadTokens);
         assertEquals(24L, row.reasoningTokens); assertNull(row.cacheWriteTokens); assertTrue(row.usageComplete);

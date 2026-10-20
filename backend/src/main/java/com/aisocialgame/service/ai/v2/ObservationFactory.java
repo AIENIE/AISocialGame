@@ -31,7 +31,8 @@ public class ObservationFactory {
         important.addAll(AiMemoryEntries.evidenceIds(memory));
         Map<String, Object> privateFacts = rules.privateData(state, actorId);
         collectEventIds(privateFacts, important);
-        int start = Math.max(0, visible.size() - 48);
+        // Undercover decisions are rebuilt from the whole visible game, not from authored memory.
+        int start = "undercover".equals(state.getGameId()) ? 0 : Math.max(0, visible.size() - 48);
         List<Map<String, Object>> selected = new ArrayList<>();
         for (int i = 0; i < visible.size(); i++) if (i >= start || important.contains(visible.get(i).get("eventId"))
                 || rules.retainObservationEvent(visible.get(i))) selected.add(visible.get(i));

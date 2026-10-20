@@ -60,7 +60,7 @@ class ObservationFactoryTest {
         assertTrue(spectator.contains("PUBLIC_VISIBLE")); assertFalse(spectator.contains("OWN_VISIBLE"));
     }
 
-    @Test void importantOldEvidenceSurvivesWindowingButMemoryCannotOverrideAnEventAcl() {
+    @Test void undercoverRetainsTheWholeVisibleHistoryButMemoryCannotOverrideAnEventAcl() {
         GameState state = wordState();
         event(state, "SPEAK", "p1", null, "较早的一条公开线索", Map.of());
         String important = lastEventId(state);
@@ -69,7 +69,7 @@ class ObservationFactoryTest {
         for (int i = 0; i < 60; i++) event(state, "SPEAK", "p1", null, "后续公开线索" + i, Map.of());
         state.getData().put("aiMemoriesV2", Map.of("p0", Map.of("beliefs", Map.of("p1", Map.of("evidenceEventIds", List.of(important, secret))))));
         VisibleObservation observation = observe(state, "p0");
-        assertEquals(49, observation.events().size());
+        assertEquals(61, observation.events().size());
         assertTrue(observation.events().stream().anyMatch(e -> important.equals(e.get("eventId"))));
         assertTrue(observation.events().stream().noneMatch(e -> secret.equals(e.get("eventId"))));
         assertFalse(observation.events().toString().contains("FORBIDDEN_OLD_EVIDENCE"));
@@ -125,7 +125,7 @@ class ObservationFactoryTest {
         }
     }
 
-    @Test void sharedSpeechRetentionKeepsOnlyLastEightOwnEventsBeyondTheWindow() {
+    @Test void undercoverRetainsAllOwnStatementsBeyondTheRecentWindow() {
         GameState state = wordState();
         List<String> own = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -133,7 +133,8 @@ class ObservationFactoryTest {
         }
         for (int i = 0; i < 60; i++) event(state, "PUBLIC_NOTICE", null, null, "后续事件" + i, Map.of());
         var observation = observe(state, "p0");
-        assertEquals(56, observation.events().size());
+        assertEquals(70, observation.events().size());
+        assertTrue(observation.events().stream().map(e -> e.get("eventId")).toList().containsAll(own));
         assertEquals(own.subList(2, 10), maps(AiGrounding.context(observation).get("ownStatements")).stream().map(e -> e.get("eventId")).toList());
     }
 
@@ -147,7 +148,7 @@ class ObservationFactoryTest {
                 "commitments", List.of("旧版承诺", Map.of("text", "待核对承诺", "eventId", privateId)))));
         for (int i = 0; i < 60; i++) event(state, "PUBLIC_NOTICE", null, null, "事件" + i, Map.of());
         var observation = observe(state, "p0");
-        assertEquals(50, observation.events().size());
+        assertEquals(62, observation.events().size());
         assertTrue(observation.events().stream().anyMatch(e -> publicId.equals(e.get("eventId"))));
         assertTrue(observation.events().stream().anyMatch(e -> privateId.equals(e.get("eventId"))));
         assertFalse(observation.events().stream().anyMatch(e -> secretId.equals(e.get("eventId"))));

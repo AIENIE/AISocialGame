@@ -73,9 +73,14 @@ class AiConversationScenariosTest {
             assertEquals(1, decision.diagnostics().get("calls"), "length/style must not trigger repair");
             assertEquals(before, json.writeValueAsString(o));
             var input = json.readTree(captured.getFirst());
-            assertEquals(3, input.path("inputFormatVersion").asInt());
-            assertEquals(json.valueToTree(o.persona()), input.at("/observation/persona"));
-            assertEquals(json.valueToTree(conversation), input.path("conversation"));
+            assertEquals(AiPromptProjection.version(o.gameId()), input.path("inputFormatVersion").asInt());
+            if ("undercover".equals(o.gameId())) {
+                assertEquals(o.persona().get("speechStyle"), input.at("/persona/speechStyle").asText());
+                assertFalse(input.has("observation")); assertFalse(input.has("conversation"));
+            } else {
+                assertEquals(json.valueToTree(o.persona()), input.at("/observation/persona"));
+                assertEquals(json.valueToTree(conversation), input.path("conversation"));
+            }
             assertFalse(context.contains("message")); assertFalse(context.contains("content"));
             int eventCount = maps(session.state.getData().get("events")).size();
             session.rule.apply(session.state, session.actor, decision.action(), session.now);

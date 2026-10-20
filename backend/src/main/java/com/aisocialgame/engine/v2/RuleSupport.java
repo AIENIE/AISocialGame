@@ -22,7 +22,7 @@ public final class RuleSupport {
                     p.setConnectionStatus("ONLINE"); p.setLastActiveAt(now); return p;
                 }).toList()));
         state.getData().put("ruleVersion", 2);
-        state.getData().put("promptVersion", com.aisocialgame.service.ai.v2.AiTurnGenerator.PROMPT_VERSION);
+        state.getData().put("promptVersion", com.aisocialgame.service.ai.v2.AiTurnGenerator.promptVersion(room.getGameId()));
         state.getData().put("archiveId", "archive-" + UUID.randomUUID());
         state.getData().put("randomSeed", UUID.randomUUID().getMostSignificantBits());
         state.getData().put("rules", new LinkedHashMap<>(room.getConfig()));

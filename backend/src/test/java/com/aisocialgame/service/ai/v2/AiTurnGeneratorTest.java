@@ -94,12 +94,12 @@ class AiTurnGeneratorTest {
         Set<String> guides = new HashSet<>();
         for (int i = 0; i < 4; i++) {
             var payload = json.readTree(messages.getAllValues().get(i).getLast().content());
-            var profile = payload.path("observation").path("persona");
-            assertEquals("ai" + (i + 1), profile.path("id").asText());
-            assertEquals(1, profile.path("presetVersion").asInt());
-            assertEquals(4, profile.path("behaviorGuide").size());
-            guides.add(profile.path("behaviorGuide").toString());
-            assertTrue(messages.getAllValues().get(i).getFirst().content().contains("behaviorGuide"));
+            var profile = payload.path("persona");
+            assertEquals(4, profile.size());
+            assertEquals(com.aisocialgame.model.PersonaPresets.all().get(i).getSpeechStyle(), profile.path("speechStyle").asText());
+            guides.add(profile.path("strategyStyle").asText());
+            assertFalse(profile.has("id")); assertFalse(profile.has("behaviorGuide"));
+            assertTrue(messages.getAllValues().get(i).getFirst().content().contains("按persona"));
         }
         assertEquals(4, guides.size());
         verify(repository, never()).save(any());
@@ -126,11 +126,13 @@ class AiTurnGeneratorTest {
         reply("not json", validSpeech());
         assertFalse(generator.generate(adapter, speechObservation(), "reuse").fallback());
         verify(adapter, times(1)).instruction(any());
-        verify(adapter, times(1)).conversation(any());
+        verify(adapter, never()).conversation(any());
         var captured = messageCaptor();
         verify(client, times(2)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), captured.capture(), anyString(), anyInt());
-        assertEquals(json.readTree(captured.getAllValues().getFirst().getLast().content()).path("conversation"),
-                json.readTree(captured.getAllValues().getLast().getLast().content()).path("conversation"));
+        var firstPayload = json.readTree(captured.getAllValues().getFirst().getLast().content());
+        var repairPayload = json.readTree(captured.getAllValues().getLast().getLast().content());
+        assertEquals(firstPayload.path("events"), repairPayload.path("events"));
+        assertFalse(firstPayload.has("conversation")); assertFalse(repairPayload.has("conversation"));
         reset(client);
         when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
                 .thenThrow(io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException());
@@ -199,15 +201,20 @@ class AiTurnGeneratorTest {
     @Test void malformedMemoryUsesTheExistingSingleRepairAndCarriesASpecificDiagnostic() throws Exception {
         Map<String, Object> malformed = map(json.readValue(validSpeech(), Map.class));
         malformed.put("memoryUpdates", Map.of("hypotheses", List.of(Map.of("text", "猜想", "content", "另一猜想"))));
+        malformed.put("observationCopy", "REDUNDANT_MODEL_OUTPUT");
         reply(json.writeValueAsString(malformed), validSpeech());
         AiTurnDecision result = generator.generate(rules, speechObservation(), "memory-repair");
         assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
-        assertEquals(AiTurnGenerator.PROMPT_VERSION, result.diagnostics().get("promptVersion"));
+        assertEquals(AiTurnGenerator.UNDERCOVER_PROMPT_VERSION, result.diagnostics().get("promptVersion"));
+        assertEquals(AiPromptProjection.UNDERCOVER_VERSION, result.diagnostics().get("inputFormatVersion"));
         var attempts = maps(result.diagnostics().get("attempts"));
         assertTrue(strings(attempts.getFirst().get("flags")).contains("CONFLICTING_MEMORY_FIELDS"));
         ArgumentCaptor<List<AiChatMessageDto>> messages = messageCaptor();
         verify(client, times(2)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), anyString(), anyInt());
-        assertTrue(messages.getAllValues().getLast().getLast().content().contains("不填写round/source"));
+        var repaired = json.readTree(messages.getAllValues().getLast().getLast().content());
+        assertTrue(repaired.path("correction").asText().contains("省略memoryUpdates"));
+        assertFalse(repaired.path("previousOutput").has("memoryUpdates"));
+        assertFalse(repaired.path("previousOutput").has("observationCopy"));
     }
 
     @Test void correctionSharesTheFiftySecondBudgetIncludingValidationTime() throws Exception {
@@ -408,11 +415,22 @@ class AiTurnGeneratorTest {
         assertEquals("它通常放在厨房里使用。", result.speech());
         ArgumentCaptor<List<AiChatMessageDto>> messages = messageCaptor();
         verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), anyString(), anyInt());
-        assertTrue(messages.getValue().getLast().content().contains("informationSources"));
+        var blankInput = json.readTree(messages.getValue().getLast().content());
+        assertTrue(blankInput.at("/self/blank").asBoolean()); assertFalse(blankInput.path("self").has("word"));
+        assertFalse(blankInput.has("informationSources"));
         reset(client);
         reply(payload("SPEAK", "我不是没说用途，刚才已经说过了。", null), validSpeech());
         result = generator.generate(rules, base, "history");
         assertFalse(result.fallback()); assertTrue(result.diagnostics().get("attempts").toString().contains("UNSUPPORTED_SELF_HISTORY"));
+        var historyMessages = messageCaptor();
+        verify(client, times(2)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), historyMessages.capture(), anyString(), anyInt());
+        var initial = json.readTree(historyMessages.getAllValues().getFirst().getLast().content());
+        var repair = json.readTree(historyMessages.getAllValues().getLast().getLast().content());
+        assertTrue(repair.path("correction").asText().contains("self.playerId"));
+        assertFalse(repair.path("correction").asText().contains("continuity"));
+        assertFalse(repair.path("correction").asText().contains("observation.events"));
+        assertEquals(initial.path("events"), repair.path("events"));
+        assertEquals(initial.path("self"), repair.path("self"));
     }
 
     @Test void repeatedSpeechRepairsAndFallbackRotatesUsingActualHistory() throws Exception {

@@ -22,9 +22,13 @@ public final class AiJobDiagnostics {
         return result;
     }
     public static void initialize(AiTurnJob job, Instant now, ZoneId zone) {
+        initialize(job, now, zone, text(job.getObservation().get("gameId")));
+    }
+    public static void initialize(AiTurnJob job, Instant now, ZoneId zone, String gameId) {
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("formatVersion", 1); d.put("createdEpochMs", now.toEpochMilli()); d.put("clockSource", "UTC_EPOCH");
-        d.put("runtimeZone", zone.getId()); d.put("promptVersion", AiTurnGenerator.PROMPT_VERSION);
+        d.put("runtimeZone", zone.getId()); d.put("promptVersion", AiTurnGenerator.promptVersion(gameId));
+        d.put("inputFormatVersion", AiPromptProjection.version(gameId));
         d.putAll(AiBuildIdentity.current());
         job.setDiagnostics(d);
     }

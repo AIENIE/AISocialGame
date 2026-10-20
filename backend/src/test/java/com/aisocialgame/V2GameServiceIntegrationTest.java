@@ -163,8 +163,10 @@ class V2GameServiceIntegrationTest {
         assertEquals(1, traces.findAll().stream().filter(t -> queued.getId().equals(t.getQuality().get("jobId"))).count());
         var trace = traces.findAll().stream().filter(t -> queued.getId().equals(t.getQuality().get("jobId"))).findFirst().orElseThrow();
         assertEquals(1, trace.getQuality().get("presetVersion"));
-        assertEquals(AiTurnGenerator.PROMPT_VERSION, trace.getQuality().get("promptVersion"));
+        assertEquals(AiTurnGenerator.UNDERCOVER_PROMPT_VERSION, trace.getQuality().get("promptVersion"));
         var diagnostic = jobs.findById(queued.getId()).orElseThrow().getDiagnostics();
+        assertEquals(AiTurnGenerator.UNDERCOVER_PROMPT_VERSION, diagnostic.get("promptVersion"));
+        assertEquals(AiPromptProjection.UNDERCOVER_VERSION, diagnostic.get("inputFormatVersion"));
         assertEquals("MODEL_ACTION_APPLIED", diagnostic.get("terminalReason"));
         assertTrue(diagnostic.containsKey("queueMs"));
         assertTrue(diagnostic.containsKey("observationMs"));

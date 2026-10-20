@@ -68,7 +68,7 @@ class AiRealismScenarioFixturesTest {
             if (Boolean.TRUE.equals(observation.privateFacts().get("blank"))) {
                 assertEquals("", observation.privateFacts().get("word"));
                 assertFalse(observation.privateFacts().containsKey("wordKnowledge"));
-                assertEquals(1, observation.knowledge().size());
+                assertTrue(observation.knowledge().isEmpty());
             }
             if ("turtle_soup".equals(scenario.gameId())) {
                 assertTrue(observation.privateFacts().isEmpty());

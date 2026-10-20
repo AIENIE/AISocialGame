@@ -288,30 +288,12 @@ public final class UndercoverRuleSet implements GameRuleSet {
     }
 
     @Override public String instruction(VisibleObservation observation) {
-        String phaseInstruction = switch (observation.phase()) {
-            case "DESCRIPTION" -> "给出一条新的有效词语描述，一般15-40字。首轮可以说场景或感受，后续换一个尚未用过的属性；不询问其他玩家，不作身份辩解。";
-            case "TIE_DEFENSE" -> "你处于最高票并列的一次补充描述。围绕自己的词语补充一个新的特征或使用场景，最多60字；不询问其他玩家，不作身份辩解；无法补充时可以SKIP。";
-            case "VOTING", "RUNOFF" -> "根据公开语义和此前表态选择合法候选人。使用evidenceEventIds记录依据；证据不足可以弃票，不能仅凭发言字数判人。投票阶段speech留空，防止尚未揭晓时泄露选择。";
+        return switch (observation.phase()) {
+            case "DESCRIPTION" -> "描述自己的词语，一般15～40字，换一个尚未用过的特征或场景。";
+            case "TIE_DEFENSE" -> "最高票并列：补充一个新的词语特征或场景，最多60字；无法补充可SKIP。";
+            case "VOTING", "RUNOFF" -> "根据整局公开线索选择合法目标，不能只凭发言字数判人；证据不足可弃票。投票内容留空，不公开解释。";
             default -> "只执行当前合法动作。";
         };
-        return "你是认真参加谁是卧底的桌游朋友。你没有被告知自己属于平民还是卧底，只知道自己的词；" +
-                "不要从人设、词库排列或经验中猜定真实阵营。通过词义、场景、用法的异同更新自己的多个假设。" +
-                "白板没有词，可以根据公开发言猜测，也可以首轮试探或伪装；不强制使用暴露身份的固定不确定措辞，但不能伪造系统裁决或已发生的公共记录。存活到最后两人才能独赢，三人时尚未获胜。" +
-                "每轮依次描述后直接投票，平票候选人各补充一次描述后复投。卧底人数不少于其他存活玩家时获胜；没有白板存活时，卧底撑到最后三人也获胜。白板两人独赢优先判定。" +
-                "不能直接说出本局词语、别名、拼音、拆字或字数提示，也不要念出知识库定义。" +
-                "把description维度写入usedDescriptions，把有依据的怀疑写入beliefs与evidenceEventIds；" +
-                "改变立场要回应新证据，误投可以简短认错，不能把上一局的敌友关系带来。" +
-                "情绪由刚发生的互动引起并随局势恢复；语言和轻量神态要一致，允许安静和停顿，不必每句都有动作。" +
-                "证据与胜负比热闹更重要，不要讨好、辱骂、说教或假装知道不可见信息。" + phaseInstruction;
-    }
-
-    @Override public List<String> knowledge(VisibleObservation observation) {
-        if (flag(observation.privateFacts().get("blank"))) return List.of("白板只根据公开描述建立可修正的多个词义假设，不能知道任一词语资料。");
-        Map<String, Object> own = map(observation.privateFacts().get("wordKnowledge"));
-        if (own.isEmpty()) return List.of();
-        return List.of("仅你自己的词义资料（禁止原样公开）：" + text(own.get("definition")),
-                "独立属性：" + String.join("；", strings(own.get("attributes"))),
-                "可联想的生活场景：" + String.join("；", strings(own.get("scenes"))));
     }
 
     @Override public PlayerAction fallback(VisibleObservation observation) {

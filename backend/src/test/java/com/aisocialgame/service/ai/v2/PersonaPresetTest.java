@@ -89,7 +89,7 @@ class PersonaPresetTest {
                 assertEquals(preset.getBehaviorGuide(), observation.persona().get("behaviorGuide"));
                 assertEquals(1, observation.persona().get("presetVersion"));
                 assertFalse(json.writeValueAsString(observation).contains("SECRET_OPPONENT_MARKER"));
-                assertEquals(AiTurnGenerator.PROMPT_VERSION, state.getData().get("promptVersion"));
+                assertEquals(AiTurnGenerator.promptVersion(game), state.getData().get("promptVersion"));
             }
         }
     }

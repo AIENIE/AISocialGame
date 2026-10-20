@@ -50,6 +50,8 @@ public class LocalAiDebugRecorder {
         if (roomId == null) return;
         write(jobId, () -> initial(roomId, observation, jobId), row -> {
             row.status = "RUNNING"; row.modelKey = selection.modelKey();
+            row.payload.put("promptVersion", AiTurnGenerator.promptVersion(observation.gameId()));
+            row.payload.put("inputFormatVersion", AiPromptProjection.version(observation.gameId()));
             row.payload.put("modelSelection", selection.toMap());
             var sample = attempt(row, attempt);
             sample.put("requestId", jobId + ":" + attempt);
@@ -143,8 +145,8 @@ public class LocalAiDebugRecorder {
         row.roundNumber = observation.round(); row.kind = observation.turnKind(); row.status = "QUEUED";
         row.createdAt = LocalDateTime.now(); row.updatedAt = row.createdAt;
         row.payload.put("actor", observation.self()); row.payload.put("persona", observation.persona());
-        row.payload.put("promptVersion", AiTurnGenerator.PROMPT_VERSION);
-        row.payload.put("inputFormatVersion", AiPromptProjection.VERSION);
+        row.payload.put("promptVersion", AiTurnGenerator.promptVersion(observation.gameId()));
+        row.payload.put("inputFormatVersion", AiPromptProjection.version(observation.gameId()));
         row.payload.put("attempts", new LinkedHashMap<String, Object>());
         return row;
     }

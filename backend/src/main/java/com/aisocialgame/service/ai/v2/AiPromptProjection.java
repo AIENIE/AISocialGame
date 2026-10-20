@@ -5,13 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import static com.aisocialgame.engine.v2.RuleSupport.*;
 
-/** Model-only view. JSON pointers reference this payload, never a live state or hidden event. */
+/** Model-only views over detached, actor-visible observations. */
 public final class AiPromptProjection {
     public static final int VERSION = 3;
+    public static final int UNDERCOVER_VERSION = 4;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private AiPromptProjection() {}
 
+    public static int version(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_VERSION : VERSION; }
+
     public static Map<String, Object> project(GameAiAdapter adapter, VisibleObservation o) {
+        if ("undercover".equals(o.gameId())) return undercover(adapter, o);
         Map<String, Object> observation = JSON.convertValue(o, Map.class);
         List<Map<String, Object>> sources = new ArrayList<>();
         List<Map<String, Object>> events = maps(observation.get("events"));
@@ -76,6 +80,72 @@ public final class AiPromptProjection {
             }).toList());
         }
         return payload;
+    }
+
+    private static Map<String, Object> undercover(GameAiAdapter adapter, VisibleObservation o) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("inputFormatVersion", UNDERCOVER_VERSION);
+        payload.put("instruction", adapter.instruction(o));
+        payload.put("phase", o.phase()); payload.put("round", o.round());
+        Map<String, Object> self = new LinkedHashMap<>(); self.put("playerId", o.actorId());
+        if (flag(o.privateFacts().get("blank")) || "BLANK".equals(o.self().get("role"))) self.put("blank", true);
+        else {
+            String word = text(o.privateFacts().getOrDefault("word", o.self().get("word")));
+            if (!word.isBlank()) self.put("word", word);
+        }
+        payload.put("self", self);
+        payload.put("players", o.players().stream().map(player -> {
+            Map<String, Object> visible = fields(player, "playerId", "displayName", "seatNumber", "alive");
+            if (Boolean.FALSE.equals(player.get("alive"))) visible.putAll(fields(player, "role"));
+            return visible;
+        }).toList());
+        Map<String, Object> rules = new LinkedHashMap<>();
+        rules.put("hasBlank", flag(o.rules().get("hasBlank")) || flag(self.get("blank")));
+        if (!o.players().isEmpty()) rules.put("spyCount", "manual".equals(o.rules().get("spyMode"))
+                ? number(o.rules().get("spyCount"), 1) : o.players().size() <= 6 ? 1 : 2);
+        payload.put("rules", rules);
+        Map<String, Object> persona = fields(o.persona(), "trait", "speechStyle", "strategyStyle");
+        String difficulty = text(map(o.persona().get("difficulty")).get("guide"));
+        if (difficulty.isBlank()) difficulty = text(AiRoundReflection.difficulty(number(o.rules().get("aiDifficulty"),
+                number(o.persona().get("difficultyLevel"), 2))).get("guide"));
+        persona.put("difficulty", difficulty); payload.put("persona", persona);
+        payload.put("events", o.events().stream().map(AiPromptProjection::undercoverEvent).filter(e -> !e.isEmpty()).toList());
+        payload.put("legalActions", o.legalActions().stream().map(a -> {
+            Map<String, Object> action = new LinkedHashMap<>(); action.put("type", a.type());
+            if (!a.targets().isEmpty()) action.put("targets", a.targets());
+            if (a.maxLength() > 0) action.put("maxLength", a.maxLength());
+            return action;
+        }).toList());
+        return payload;
+    }
+
+    private static Map<String, Object> undercoverEvent(Map<String, Object> event) {
+        String type = text(event.get("type"));
+        Map<String, Object> data = map(event.get("data"));
+        boolean speech = AiSpeechEvents.isSpeech(event);
+        boolean skipped = Set.of("SKIP", "TIMEOUT").contains(type);
+        if (!speech && !skipped && !Set.of("VOTE_REVEAL", "TIE", "ELIMINATED", "NO_ELIMINATION").contains(type)) return Map.of();
+        if (skipped && ("VOTE".equals(data.get("action")) || Set.of("VOTING", "RUNOFF").contains(text(event.get("phase"))))) return Map.of();
+        Map<String, Object> result = fields(event, "eventId", "type", "round", "actorId");
+        if (Set.of("TIE_DEFENSE", "RUNOFF").contains(text(event.get("phase")))) result.put("phase", event.get("phase"));
+        if (speech) result.put("content", AiGrounding.content(event));
+        else switch (type) {
+            case "VOTE_REVEAL" -> result.putAll(fields(data, "votes"));
+            case "TIE" -> result.putAll(fields(data, "candidates"));
+            case "ELIMINATED" -> result.putAll(fields(data, "role"));
+            case "NO_ELIMINATION" -> result.putAll(fields(data, "consecutiveRounds"));
+            default -> { }
+        }
+        return result;
+    }
+
+    private static Map<String, Object> fields(Map<String, Object> source, String... keys) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null && !(value instanceof String s && s.isBlank())) result.put(key, value);
+        }
+        return result;
     }
     private static Map<String, String> ref(String pointer) { return Map.of("$ref", pointer); }
     private static String escape(String key) { return key.replace("~", "~0").replace("/", "~1"); }

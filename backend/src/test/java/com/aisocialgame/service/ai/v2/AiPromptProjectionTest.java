@@ -3,6 +3,7 @@ package com.aisocialgame.service.ai.v2;
 import com.aisocialgame.engine.v2.turtlesoup.*;
 import com.aisocialgame.engine.v2.undercover.*;
 import com.aisocialgame.engine.v2.werewolf.*;
+import com.aisocialgame.engine.v2.RuleSupport;
 import com.aisocialgame.model.PersonaPresets;
 import com.fasterxml.jackson.databind.*;
 import org.junit.jupiter.api.Test;
@@ -17,9 +18,10 @@ class AiPromptProjectionTest {
     final TurtleSoupRuleSet soupRules = new TurtleSoupRuleSet(soups);
     final AiRealismScenarioFixtures fixtures = new AiRealismScenarioFixtures(List.of(new UndercoverRuleSet(words), new WerewolfRuleSet(), soupRules), words, soups);
 
-    @Test void allGamesAndPresetsRetainExactDataWhileLongHistoryShrinks() throws Exception {
+    @Test void otherGamesAndPresetsRetainExactDataWhileLongHistoryShrinks() throws Exception {
         List<Map<String, Object>> samples = new ArrayList<>();
         for (var scenario : fixtures.load()) for (var persona : PersonaPresets.all()) for (boolean longHistory : List.of(false, true)) {
+            if ("undercover".equals(scenario.gameId())) continue;
             var base = scenario.observation();
             List<Map<String, Object>> events = new ArrayList<>(base.events());
             if (longHistory) for (int i = 0; i < 48; i++) events.add(Map.of("eventId", "long-" + i, "actorId", base.actorId(),
@@ -53,14 +55,96 @@ class AiPromptProjectionTest {
     }
 
     @Test void repeatedEventContentBecomesAResolvableReferenceWithoutChangingHistoricalQuotes() {
-        var adapter = new UndercoverRuleSet(words);
-        var o = new VisibleObservation("undercover", "i", "DESCRIPTION", 1, "p", "SPEAK", Map.of(), List.of(), Map.of(),
+        var adapter = new WerewolfRuleSet();
+        var o = new VisibleObservation("werewolf", "i", "DAY_DISCUSS", 1, "p", "SPEAK", Map.of(), List.of(), Map.of(),
                 List.of(Map.of("eventId", "e", "actorId", "p", "type", "SPEAK", "message", "逐字保留的引用", "data", Map.of("content", "逐字保留的引用"))),
                 Map.of(), List.of(), Map.of(), Map.of(), List.of());
         JsonNode projected = json.valueToTree(AiPromptProjection.project(adapter, o));
         assertTrue(projected.at("/observation/events/0/data/content").has("$ref"));
         assertEquals(json.valueToTree(o.events()), resolve(projected.at("/observation/events"), projected, 0));
         assertEquals("逐字保留的引用", resolve(projected.at("/informationSources/events/0/value/statement"), projected, 0).asText());
+    }
+
+    @Test void undercoverUsesOnlyItsOwnWordPublicRecordsAndShortPersonaAcrossAllFixtures() throws Exception {
+        for (var scenario : fixtures.load()) {
+            if (!"undercover".equals(scenario.gameId())) continue;
+            var base = scenario.observation();
+            for (var persona : PersonaPresets.all()) {
+                Map<String, Object> profile = json.convertValue(persona, Map.class);
+                profile.put("difficulty", AiRoundReflection.difficulty(persona.getDifficultyLevel()));
+                Map<String, Object> privateFacts = new LinkedHashMap<>(base.privateFacts());
+                privateFacts.put("wordKnowledge", Map.of("definition", "DEFINITION_MUST_NOT_BE_SENT", "attributes", List.of("ATTRIBUTE_MUST_NOT_BE_SENT"),
+                        "scenes", List.of("SCENE_MUST_NOT_BE_SENT"), "forbiddenTerms", List.of("ALIAS_MUST_NOT_BE_SENT")));
+                var o = new VisibleObservation(base.gameId(), base.instanceId(), base.phase(), base.round(), base.actorId(), base.turnKind(),
+                        base.self(), base.players(), Map.of("wordPack", "PACK_MUST_NOT_BE_SENT", "wordPairId", "PAIR_MUST_NOT_BE_SENT", "knowledgeVersion", "VERSION_MUST_NOT_BE_SENT"),
+                        base.events(), privateFacts, base.legalActions(), profile, Map.of("approvedExperience", "EXPERIENCE_MUST_NOT_BE_SENT", "beliefs", Map.of("p2", "BELIEF_MUST_NOT_BE_SENT")),
+                        List.of("KNOWLEDGE_MUST_NOT_BE_SENT"));
+                String before = json.writeValueAsString(o);
+                JsonNode projected = json.valueToTree(AiPromptProjection.project(scenario.adapter(), o));
+                assertEquals(AiPromptProjection.UNDERCOVER_VERSION, projected.path("inputFormatVersion").asInt());
+                assertFalse(projected.toString().contains("MUST_NOT_BE_SENT"), scenario.id());
+                for (String absent : List.of("observation", "informationSources", "continuity", "referenceFormat", "conversation", "outputExamples", "memory", "knowledge", "privateFacts"))
+                    assertFalse(projected.has(absent), absent);
+                assertFalse(projected.toString().contains("$ref"));
+                assertEquals(persona.getSpeechStyle(), projected.at("/persona/speechStyle").asText());
+                assertEquals(persona.getStrategyStyle(), projected.at("/persona/strategyStyle").asText());
+                assertEquals(4, projected.path("persona").size());
+                assertEquals(AiRoundReflection.difficulty(persona.getDifficultyLevel()).get("guide"), projected.at("/persona/difficulty").asText());
+                assertEquals(o.actorId(), projected.at("/self/playerId").asText());
+                if (RuleSupport.flag(o.privateFacts().get("blank"))) {
+                    assertTrue(projected.at("/self/blank").asBoolean()); assertFalse(projected.path("self").has("word"));
+                } else assertEquals(o.privateFacts().get("word"), projected.at("/self/word").asText());
+                projected.path("players").forEach(player -> { assertFalse(player.has("word")); if (player.path("alive").asBoolean()) assertFalse(player.has("role")); });
+                assertEquals(before, json.writeValueAsString(o), "projection must not mutate a frozen observation");
+            }
+        }
+    }
+
+    @Test void undercoverHistoryRetainsEveryMeaningfulRecordOnceAndKeepsRunoffSeparate() {
+        var adapter = new UndercoverRuleSet(words);
+        List<Map<String, Object>> events = new ArrayList<>();
+        events.add(Map.of("eventId", "assigned", "type", "WORD_ASSIGNED", "data", Map.of("word", "唯一秘密词")));
+        events.add(Map.of("eventId", "start", "type", "ROUND_START", "message", "不要发送的流程通知"));
+        for (int i = 0; i < 65; i++) events.add(Map.of("eventId", "speech-" + i, "type", "SPEAK", "actorId", "p1", "round", i / 6 + 1,
+                "message", "一号：原始描述" + i, "data", Map.of("content", "原始描述" + i)));
+        events.add(Map.of("eventId", "cast", "type", "VOTE_CAST", "actorId", "p1"));
+        events.add(Map.of("eventId", "private-vote", "type", "VOTE_TARGET", "actorId", "p0", "targetId", "p1"));
+        events.add(Map.of("eventId", "reveal", "type", "VOTE_REVEAL", "round", 11, "data", Map.of("votes", Map.of("p0", "p1", "p1", "abstain"), "tally", Map.of("p1", 1))));
+        events.add(Map.of("eventId", "tie", "type", "TIE", "round", 11, "data", Map.of("candidates", List.of("p1", "p2"))));
+        events.add(Map.of("eventId", "extra", "type", "SPEAK", "phase", "TIE_DEFENSE", "round", 11, "actorId", "p1", "data", Map.of("content", "补充描述原文")));
+        events.add(Map.of("eventId", "skip", "type", "SKIP", "phase", "TIE_DEFENSE", "round", 11, "actorId", "p2", "data", Map.of("reason", "REQUEST_FAILED")));
+        events.add(Map.of("eventId", "timeout", "type", "TIMEOUT", "phase", "DESCRIPTION", "round", 11, "actorId", "p3", "data", Map.of("action", "SPEAK", "reason", "TIMEOUT")));
+        events.add(Map.of("eventId", "vote-timeout", "type", "TIMEOUT", "phase", "RUNOFF", "round", 11, "actorId", "p3", "data", Map.of("action", "VOTE")));
+        events.add(Map.of("eventId", "runoff", "type", "VOTE_REVEAL", "phase", "RUNOFF", "round", 11, "data", Map.of("votes", Map.of("p0", "p2", "p3", "abstain"))));
+        events.add(Map.of("eventId", "out", "type", "ELIMINATED", "round", 11, "actorId", "p2", "data", Map.of("role", "CIVILIAN")));
+        events.add(Map.of("eventId", "none", "type", "NO_ELIMINATION", "round", 12, "data", Map.of("consecutiveRounds", 1)));
+        var o = new VisibleObservation("undercover", "internal-instance", "RUNOFF", 13, "p0", "VOTE", Map.of("word", "唯一秘密词"), List.of(), Map.of(),
+                events, Map.of("word", "唯一秘密词"), List.of(), Map.of(), Map.of(), List.of());
+        Map<String, Object> payload = AiPromptProjection.project(adapter, o);
+        var history = RuleSupport.maps(payload.get("events"));
+        assertEquals(73, history.size());
+        assertEquals(events.stream().map(e -> e.get("eventId")).filter(id -> !Set.of("assigned", "start", "cast", "private-vote", "vote-timeout").contains(id)).toList(),
+                history.stream().map(e -> e.get("eventId")).toList());
+        assertEquals("原始描述0", history.getFirst().get("content")); assertFalse(history.getFirst().containsKey("message"));
+        assertEquals("RUNOFF", history.stream().filter(e -> "runoff".equals(e.get("eventId"))).findFirst().orElseThrow().get("phase"));
+        assertEquals(Map.of("p0", "p1", "p1", "abstain"), history.get(65).get("votes"));
+        assertFalse(history.toString().contains("tally")); assertFalse(history.toString().contains("REQUEST_FAILED"));
+        assertEquals(1, json.valueToTree(payload).findValues("word").size(), "the assigned word appears in exactly one field");
+    }
+
+    @Test void undercoverPublishesOnlyTheEffectiveInitialSpyCountAndPhaseInstruction() {
+        var adapter = new UndercoverRuleSet(words);
+        for (String phase : List.of("DESCRIPTION", "TIE_DEFENSE", "VOTING", "RUNOFF")) {
+            var players = java.util.stream.IntStream.range(0, 10).mapToObj(i -> Map.<String, Object>of("playerId", "p" + i, "alive", i < 4)).toList();
+            for (String mode : List.of("auto", "manual")) {
+                var o = new VisibleObservation("undercover", "i", phase, 4, "p0", "unused", Map.of(), players, Map.of("spyMode", mode, "spyCount", 3),
+                        List.of(), Map.of(), List.of(), Map.of(), Map.of(), List.of());
+                var payload = AiPromptProjection.project(adapter, o);
+                assertEquals("auto".equals(mode) ? 2 : 3, RuleSupport.map(payload.get("rules")).get("spyCount"));
+                assertEquals(adapter.instruction(o), payload.get("instruction"));
+                assertTrue(adapter.knowledge(o).isEmpty());
+            }
+        }
     }
 
     @Test void directedReplyExamplePassesTheActualParserAndRequiredCitationCheck() throws Exception {

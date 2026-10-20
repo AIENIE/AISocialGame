@@ -313,7 +313,7 @@ public class V2GameService {
             if (jobs.existsById(id)) continue;
             AiTurnJob job = new AiTurnJob(); job.setId(id); job.setRoomId(state.getRoomId()); job.setInstanceId(RuleSupport.text(state.getData().get("archiveId")));
             job.setActorId(turn.actorId()); job.setKind(turn.kind()); job.setTurnKey(turn.key());
-            AiJobDiagnostics.initialize(job, java.time.Instant.now(), java.time.ZoneId.systemDefault());
+            AiJobDiagnostics.initialize(job, java.time.Instant.now(), java.time.ZoneId.systemDefault(), state.getGameId());
             long observing = System.nanoTime();
             job.setObservation(RuleSupport.map(JSON.convertValue(observations.build(state, rules, turn), Map.class)));
             job.getDiagnostics().put("observationMs", Math.max(0, (System.nanoTime() - observing) / 1_000_000));
@@ -460,7 +460,7 @@ public class V2GameService {
         Map<String, Integer> commitmentStatuses = new LinkedHashMap<>();
         RuleSupport.maps(committedMemory.get("commitments")).forEach(e -> commitmentStatuses.merge(RuleSupport.text(e.get("status")), 1, Integer::sum));
         Map<String, Object> quality = new LinkedHashMap<>(Map.of("flags", qualityFlags.stream().distinct().toList(), "fallback", decision.fallback(),
-                "calls", RuleSupport.number(metrics.get("calls"), 0), "promptVersion", RuleSupport.text(metrics.getOrDefault("promptVersion", AiTurnGenerator.PROMPT_VERSION)),
+                "calls", RuleSupport.number(metrics.get("calls"), 0), "promptVersion", RuleSupport.text(metrics.getOrDefault("promptVersion", AiTurnGenerator.promptVersion(observation.gameId()))),
                 "attempts", RuleSupport.maps(metrics.get("attempts")), "repaired", Boolean.TRUE.equals(metrics.get("repaired")), "jobId", job.getId(),
                 "commitmentStatuses", commitmentStatuses, "memoryFormatVersion", AiMemoryEntries.FORMAT_VERSION, "memorySnapshotStage", "POST_ACTION"));
         quality.put("presetVersion", RuleSupport.number(observation.persona().get("presetVersion"), 0));
