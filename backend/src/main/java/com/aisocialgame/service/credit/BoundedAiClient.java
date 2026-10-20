@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class BoundedAiClient {
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BoundedAiClient.class);
     private final AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
     private final AiCreditEscrowService escrow;
@@ -37,9 +38,18 @@ public class BoundedAiClient {
     }
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds,Runnable beforeSend) {
         requireReady();
+        request = originalDebugFlag(request);
         escrow.beginRequest(request.getRequestId());
         try { return execute(request, deadlineSeconds, beforeSend); }
         finally { escrow.endRequest(request.getRequestId()); }
+    }
+    // Old reservations are bound to the exact request bytes, including absence of diagnostic flags.
+    private ChatCompletionsRequest originalDebugFlag(ChatCompletionsRequest request) {
+        if (!request.hasIncludeDebug()) return request;
+        var original = reservations.findByIdentityHash(identity(request)).orElse(null);
+        if (original == null || original.requestHash.equals(AiCreditEscrowService.hash(request.toByteArray()))) return request;
+        var legacy = request.toBuilder().clearIncludeDebug().build();
+        return original.requestHash.equals(AiCreditEscrowService.hash(legacy.toByteArray())) ? legacy : request;
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
         return reservations.findByIdentityHash(identity(request)).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
@@ -122,6 +132,7 @@ public class BoundedAiClient {
             .setBudgetId(row.budgetId).setProjectKey(row.projectKey).setUserId(row.userId).setRequestId(row.requestId)
             .setOperation(BudgetOperation.BUDGET_OPERATION_CHAT).build());
         escrow.reconcile(row.id,status);
+        if (debugRecorder != null && status.hasChat()) debugRecorder.response(row.requestId, status.getChat(), status.getUsageAuthoritative() ? Boolean.TRUE : null);
     }
     @Scheduled(fixedDelayString="${app.ai.budget-reconcile-delay-ms:30000}")
     public void reconcilePending() {

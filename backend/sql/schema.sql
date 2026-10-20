@@ -502,3 +502,36 @@ CREATE TABLE IF NOT EXISTS ai_function_model_configs (
   updated_at DATETIME(6) NOT NULL,
   version BIGINT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Local-only diagnostic payloads. Additive and repeatable; existing history is untouched.
+CREATE TABLE IF NOT EXISTS local_ai_debug_turns (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  room_id VARCHAR(64) NOT NULL,
+  game_id VARCHAR(64) NOT NULL,
+  instance_id VARCHAR(96) NOT NULL,
+  actor_id VARCHAR(64) NOT NULL,
+  actor_name VARCHAR(128) NULL,
+  seat_number INT NULL,
+  role_key VARCHAR(64) NULL,
+  phase VARCHAR(64) NULL,
+  round_number INT NOT NULL,
+  kind VARCHAR(40) NULL,
+  status VARCHAR(24) NULL,
+  terminal_reason VARCHAR(128) NULL,
+  model_key VARCHAR(128) NULL,
+  prompt_tokens BIGINT NULL,
+  completion_tokens BIGINT NULL,
+  cache_read_tokens BIGINT NULL,
+  cache_write_tokens BIGINT NULL,
+  reasoning_tokens BIGINT NULL,
+  usage_authoritative BOOLEAN NULL,
+  usage_complete BOOLEAN NOT NULL DEFAULT FALSE,
+  attempt_count INT NOT NULL DEFAULT 0,
+  response_count INT NOT NULL DEFAULT 0,
+  latency_ms BIGINT NULL,
+  created_at DATETIME(6) NULL,
+  updated_at DATETIME(6) NULL,
+  payload LONGTEXT NOT NULL,
+  version BIGINT NULL,
+  KEY idx_local_ai_debug_instance (room_id, instance_id, created_at, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

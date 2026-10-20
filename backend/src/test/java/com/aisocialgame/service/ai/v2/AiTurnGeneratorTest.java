@@ -41,6 +41,22 @@ class AiTurnGeneratorTest {
         generator = new AiTurnGenerator(client, properties, memories, safety, nanoTime::get);
     }
 
+    @Test void diagnosticHooksCaptureBothAttemptsAndTheExactCorrectionMessages() throws Exception {
+        var debug = mock(com.aisocialgame.service.debug.LocalAiDebugRecorder.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(generator, "debugRecorder", debug);
+        when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
+                .thenReturn(new AiChatResult("invalid", "mock-only", 10, 5)).thenReturn(new AiChatResult(validSpeech(), "mock-only", 20, 8));
+        try (var scope = AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room("room", "undercover"))) {
+            assertFalse(generator.generate(rules, speechObservation(), "debug-job").fallback());
+        }
+        @SuppressWarnings("unchecked") ArgumentCaptor<List<AiChatMessageDto>> input = ArgumentCaptor.forClass(List.class);
+        verify(debug, times(2)).begin(eq("room"), any(), eq("debug-job"), anyInt(), input.capture(), any(), anyLong());
+        assertTrue(input.getAllValues().get(1).get(1).content().contains("correction"));
+        assertFalse(input.getAllValues().get(0).get(1).content().contains("previousOutput"));
+        verify(debug).evaluated(eq("debug-job"), eq(0), argThat(metrics -> metrics.get("flags").toString().contains("INVALID_JSON_ENVELOPE")), eq("PARSE"));
+        verify(debug).parsed(eq("debug-job"), eq(1), anyMap());
+    }
+
     @Test void confirmedOutputLimitIsSettledButNeverAppliedOrRetried() {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
             .thenReturn(new AiChatResult("", "mock-only", 300, 8192, "length", 8192L, "budget-x", "SETTLED"));

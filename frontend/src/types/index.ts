@@ -73,6 +73,7 @@ export interface RoomSeat {
 }
 
 export interface Room {
+  aiDebugAvailable?: boolean;
   id: string;
   gameId: string;
   name: string;

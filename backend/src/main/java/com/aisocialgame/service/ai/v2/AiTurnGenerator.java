@@ -34,6 +34,7 @@ public class AiTurnGenerator {
     private final AiMemoryServiceV2 memories;
     private final AiSafetyService safety;
     @Autowired private AiModelConfigService modelConfigs;
+    @Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private final String playerSystem;
     private final String hostSystem;
     private final String undercoverSystem;
@@ -97,6 +98,7 @@ public class AiTurnGenerator {
             Map<String, Object> sample = new LinkedHashMap<>(); sample.put("attempt", attempt);
             attempts.add(sample);
             String stage = "INPUT_PREPARATION";
+            boolean budgetDeferred = false;
             try {
                 long preparation = nanoTime.getAsLong();
                 Map<String, Object> payload;
@@ -121,6 +123,8 @@ public class AiTurnGenerator {
                 sample.put("requestRemainingMs", TimeUnit.NANOSECONDS.toMillis(remainingNanos(started, budgetNanos)));
                 if (undercover && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
                 sample.put("requestId", jobId + ":" + attempt);
+                if (debugRecorder != null) debugRecorder.begin(AiCallScope.context(properties.getAi().getSystemUserId(), selected.modelKey()).getRoomId(),
+                        observation, jobId, attempt, messages, selected, requestSeconds * 1000L);
                 calls++;
                 AiChatResult response;
                 stage = "RPC";
@@ -152,6 +156,7 @@ public class AiTurnGenerator {
                         failures = List.of("INVALID_JSON_ENVELOPE"); continue;
                     }
                     lastOutput = RuleSupport.map(JSON.readValue(raw, Map.class));
+                    if (debugRecorder != null) debugRecorder.parsed(jobId, attempt, lastOutput);
                     decision = parse(lastOutput);
                 } finally { sample.put("parseMs", elapsed(parsing)); }
                 stage = "VALIDATION";
@@ -174,6 +179,7 @@ public class AiTurnGenerator {
             } catch (Exception ex) {
                 if (undercover && ex instanceof com.aisocialgame.exception.ApiException api) {
                     if ("AI_BUDGET_BUSY".equals(api.getCode())) {
+                        budgetDeferred = true;
                         calls--; attempts.remove(sample);
                         Map<String,Object> saved = new LinkedHashMap<>();
                         saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
@@ -187,7 +193,14 @@ public class AiTurnGenerator {
                 failures = List.of("RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
                 sample.put("failureStage", stage);
                 if (!(undercover && "RPC".equals(stage) && retryable(ex))) break;
-            } finally { sample.put("flags", failures); }
+            } finally {
+                sample.put("flags", failures);
+                if (debugRecorder != null) {
+                    var recorded = new LinkedHashMap<>(sample);
+                    if (budgetDeferred) recorded.put("flags", List.of("AI_BUDGET_BUSY"));
+                    debugRecorder.evaluated(jobId, attempt, recorded, stage);
+                }
+            }
         }
         if (remainingNanos(started, budgetNanos) == 0) failures = deadlineFailure(failures);
         long fallbackStarted = nanoTime.getAsLong();

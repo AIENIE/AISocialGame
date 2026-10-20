@@ -135,6 +135,9 @@ message ChatCompletionsRequest {
   // A budgeted request must use the same bound as PrepareCallBudget.
   optional int32 max_output_tokens = 14;
   optional string evaluation_run_id = 15;
+  // Unary only, ENV=local and authenticated/authorized AISocialGame caller only.
+  // Observes the existing response; does not enable thinking or change generation.
+  optional bool include_debug = 16;
 }
 
 message ChatCompletionsResponse {
@@ -155,6 +158,22 @@ message ChatCompletionsResponse {
   optional bool usage_authoritative = 10;
   // Present only for an explicitly requested CNY budget; persisted with the original result.
   optional BudgetCharge budget_charge = 11;
+  optional ChatDebugInfo debug_info = 12;
+}
+
+// Local diagnostics only. Never echo into conversation history or business memory.
+message ChatDebugInfo {
+  enum ReasoningKind {
+    REASONING_KIND_UNSPECIFIED = 0;
+    NOT_PROVIDED = 1;
+    TEXT = 2;
+    SUMMARY = 3;
+  }
+  string reasoning_text = 1;
+  ReasoningKind reasoning_kind = 2;
+  // Missing is unknown; reported zero is preserved. Both are subsets of prompt_tokens.
+  optional int64 cache_read_tokens = 3;
+  optional int64 cache_write_tokens = 4;
 }
 
 enum ChatStreamEventType {

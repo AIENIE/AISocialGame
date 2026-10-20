@@ -24,6 +24,7 @@ import { useRoomActionController } from "./useRoomActionController";
 import { GameContext, PrivateActionContext, PrivateDetails, RoomRules } from "./RoomGameDetails";
 import { privateLabel } from "./roomIdentity";
 import { roomPhase, useRoomText } from "./roomText";
+import { AiDebugButton } from "./AiDebugButton";
 import "./room.css";
 
 type Runtime = ReturnType<typeof useRoomRuntime>;
@@ -102,7 +103,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
     <GameRoomFrame gameId={state.gameId} title={room.name} stage={stage} phaseText={roomPhase(state.phase, i18n.language)} task={task} round={state.round}
       phaseEndsAt={state.phaseEndsAt || state.extra?.actionEndsAt} connected={runtime.socket.connected} showReconnectAction={runtime.socket.showReconnectAction} onReconnect={runtime.socket.reconnect}
       players={roster()} headerExtra={playing && label ? <Button variant="secondary" size="sm" className="room-private-chip" onClick={() => setDrawer("private")} aria-label={`${copy("details")} · ${label}`}><LockKeyhole className="mr-1 h-3 w-3 shrink-0" /><span className="truncate" data-testid="undercover-private-word">{label}</span></Button> : undefined}
-      menu={<><Button size="icon" variant="ghost" aria-label={copy("history")} onClick={() => setDrawer("history")}><History className="h-4 w-4" /></Button>
+      menu={<>{room.aiDebugAvailable && <AiDebugButton gameId={state.gameId} roomId={room.id} roomName={room.name} userKey={runtime.userKey} instanceId={state.extra?.archiveId} />}<Button size="icon" variant="ghost" aria-label={copy("history")} onClick={() => setDrawer("history")}><History className="h-4 w-4" /></Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={copy("more")}><MoreHorizontal className="h-5 w-5" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><RoomNumber code={room.roomCode} /><DropdownMenuItem onClick={() => setDrawer("players")}>{copy("players")}</DropdownMenuItem>
             {playing ? <DropdownMenuItem onClick={() => setDrawer("private")}>{copy(state.gameId === "turtle_soup" ? "clues" : "details")}</DropdownMenuItem> : <><DropdownMenuItem onClick={() => setDrawer("setup")}>{copy(stage === "settlement" ? "nextSetup" : "addSeat")}</DropdownMenuItem><DropdownMenuItem onClick={() => setDrawer("rules")}>{copy("rules")}</DropdownMenuItem></>}

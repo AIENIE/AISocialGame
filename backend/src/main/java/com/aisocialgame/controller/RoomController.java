@@ -24,6 +24,7 @@ import java.util.Locale;
 @RequestMapping("/api/games/{gameId}/rooms")
 public class RoomController {
 
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugService aiDebug;
     private final RoomService roomService;
     private final com.aisocialgame.service.RoomAccessPolicy access;
 
@@ -60,7 +61,9 @@ public class RoomController {
         roomService.entry(gameId, roomId);
         access.requireLobbyRead(roomId, user.getId());
         Room room = roomService.getRoom(roomId);
-        return ResponseEntity.ok(new RoomResponse(room));
+        var response = new RoomResponse(room);
+        response.setAiDebugAvailable(aiDebug != null && aiDebug.available(roomId, user.getId()));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{roomId}/join")

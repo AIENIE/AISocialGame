@@ -71,6 +71,11 @@
       "ordinal": 14,
       "kind": "upgrade",
       "file": "20261020_ai_budget_money.sql"
+    },
+    {
+      "ordinal": 15,
+      "kind": "upgrade",
+      "file": "20261020_local_ai_debug.sql"
     }
   ],
   "execution_plans": [
@@ -89,7 +94,8 @@
         11,
         12,
         13,
-        14
+        14,
+        15
       ]
     },
     {
@@ -106,7 +112,8 @@
         11,
         12,
         13,
-        14
+        14,
+        15
       ]
     }
   ],

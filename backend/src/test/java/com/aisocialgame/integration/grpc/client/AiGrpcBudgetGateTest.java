@@ -49,6 +49,25 @@ class AiGrpcBudgetGateTest {
         verifyNoInteractions(channel);
     }
 
+    @Test void localRoomRequestsOptInAndPersistTheOriginalProtoBeforeParsing() {
+        var bounded = mock(com.aisocialgame.service.credit.BoundedAiClient.class);
+        var debug = mock(com.aisocialgame.service.debug.LocalAiDebugRecorder.class);
+        when(debug.enabled()).thenReturn(true);
+        var response = fireflychat.ai.v1.ChatCompletionsResponse.newBuilder().setContent("invalid original text")
+                .setDebugInfo(fireflychat.ai.v1.ChatDebugInfo.newBuilder().setReasoningText("original thought")).build();
+        when(bounded.chat(any(), anyInt(), any(Runnable.class))).thenReturn(response);
+        var client = new AiGrpcClient(); ReflectionTestUtils.setField(client, "aiStub", AiGatewayServiceGrpc.newBlockingStub(mock(Channel.class)));
+        ReflectionTestUtils.setField(client, "boundedClient", bounded); ReflectionTestUtils.setField(client, "debugRecorder", debug);
+        try (var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER").room("room", "undercover"))) {
+            client.undercoverChatCompletions("aisocialgame", 85, "session", "model", List.of(new AiChatMessageDto("user", "input")), "job:0", 19);
+        }
+        client.undercoverChatCompletions("aisocialgame", 85, "session", "model", List.of(), "unscoped:0", 19);
+        var requests = org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
+        verify(bounded, times(2)).chat(requests.capture(), eq(19), any(Runnable.class));
+        assertTrue(requests.getAllValues().getFirst().getIncludeDebug()); assertFalse(requests.getAllValues().getLast().hasIncludeDebug());
+        verify(debug).response("job:0", response); verify(debug, never()).response(eq("unscoped:0"), any());
+    }
+
     @Test void waitingForCreditDoesNotConsumeAdmissionOrPoisonTheRequestId() {
         var bounded=mock(com.aisocialgame.service.credit.BoundedAiClient.class);
         var admission=mock(com.aisocialgame.service.safety.AiCallAdmission.class);

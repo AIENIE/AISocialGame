@@ -24,6 +24,7 @@ import java.util.*;
 
 @Service
 public class V2GameService {
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(V2GameService.class);
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private static final Set<String> EMOJIS = Set.of("👍", "🤔", "😂", "😱", "😡", "😭", "😎", "💀");
@@ -236,6 +237,7 @@ public class V2GameService {
             finishJob(job, "SUCCEEDED", decision.fallback() ? "FALLBACK_APPLIED" : "MODEL_ACTION_APPLIED");
             AiRoundReflection.closeRounds(state);
             recordTrace(state, job, observation, decision, before);
+            if (debugRecorder != null) debugRecorder.applied(job.getId(), decision);
             persist(room, state, rules, false); prepareJob(state, rules);
         });
     }
@@ -317,6 +319,7 @@ public class V2GameService {
             job.getDiagnostics().put("observationMs", Math.max(0, (System.nanoTime() - observing) / 1_000_000));
             job.getDiagnostics().put("queuedEpochMs", java.time.Instant.now().toEpochMilli());
             jobs.save(job);
+            if (debugRecorder != null) debugRecorder.queued(job);
             if (!undercover || !Set.of("VOTING", "RUNOFF").contains(state.getPhase())) break;
         }
     }
@@ -534,6 +537,7 @@ public class V2GameService {
     private void finishJob(AiTurnJob job, String status, String reason) {
         job.setStatus(status); job.setCompletedAt(LocalDateTime.now());
         AiJobDiagnostics.completed(job, reason, java.time.Instant.now()); jobs.saveAndFlush(job);
+        if (debugRecorder != null) debugRecorder.finished(job);
         Object created = job.getDiagnostics().get("createdEpochMs");
         afterCommit(() -> {
             long end = java.time.Instant.now().toEpochMilli();

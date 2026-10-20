@@ -142,4 +142,17 @@ class BoundedAiClientTest {
         assertEquals(1,sends.get());
     }
 
+    @Test void diagnosticOptInDoesNotChangeAnExistingReservationFingerprintOrResend() {
+        var escrow = mock(AiCreditEscrowService.class); var reservations = mock(AiCreditReservationRepository.class);
+        var client = new BoundedAiClient(stub, escrow, reservations, mock(AiCallBudgetService.class), true, 8192);
+        var original = ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        var row = new AiCreditReservation(); row.id = "original"; row.state = "SETTLED";
+        row.requestHash = AiCreditEscrowService.hash(original.toByteArray()); row.resultBase64 = Base64.getEncoder().encodeToString(response.toByteArray());
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));
+        assertEquals(response, client.chat(original.toBuilder().setIncludeDebug(true).build(), 45));
+        assertEquals(0, sends.get()); assertEquals(0, prepares.get()); verify(escrow, never()).reserve(any(), any());
+        assertEquals("BUDGET_REQUEST_CONFLICT", assertThrows(com.aisocialgame.exception.ApiException.class,
+                () -> client.chat(original.toBuilder().setIncludeDebug(true).setModel("different").build(), 45)).getCode());
+    }
+
 }

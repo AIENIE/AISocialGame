@@ -29,6 +29,7 @@ import java.util.UUID;
 
 @Component
 public class AiGrpcClient {
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
 
     // No production override: every paid AISocialGame inference must first use
     // an authoritative budget credential. Isolated transport fixtures set this
@@ -112,6 +113,9 @@ public class AiGrpcClient {
                     .setSessionId(sessionId == null ? "" : sessionId)
                     .setModel(model == null ? "" : model);
             selection.apply(builder);
+            var debugContext = com.aisocialgame.service.safety.AiCallScope.context(userId, model);
+            if (debugRecorder != null && debugRecorder.enabled() && debugContext.getRoomId() != null && "AI_PLAYER".equals(debugContext.getSource()))
+                builder.setIncludeDebug(true);
             if (messages != null) {
                 for (AiChatMessageDto message : messages) {
                     if (message == null) {
@@ -126,6 +130,7 @@ public class AiGrpcClient {
             if (!undercover && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
             var response = undercover ? boundedClient.chat(builder.build(), deadlineSeconds, beforeSend) : stub.chatCompletions(builder.build());
+            if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);
             if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
             var metadata = undercover ? boundedClient.metadata(builder.build()) : java.util.Map.<String,Object>of();

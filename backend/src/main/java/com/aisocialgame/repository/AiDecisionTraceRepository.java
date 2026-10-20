@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AiDecisionTraceRepository extends JpaRepository<AiDecisionTrace, Long>, JpaSpecificationExecutor<AiDecisionTrace> {
+    java.util.List<AiDecisionTrace> findByRoomIdAndInstanceIdAndActorPlayerId(String roomId, String instanceId, String actorPlayerId);
     boolean existsByRoomIdAndActionAndPersonaId(String roomId, String action, String personaId);
     long countByInstanceId(String instanceId);
     long countByInstanceIdAndFallbackTrue(String instanceId);

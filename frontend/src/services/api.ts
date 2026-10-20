@@ -1,3 +1,4 @@
+import type { AiDebugInstance, AiDebugSummary, AiDebugTurn, AiDebugDetail } from "@/types/aiDebug";
 import axios from "axios";
 import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
@@ -565,3 +566,19 @@ export const adminApi = {
 };
 
 export default api;
+
+
+export const localAiDebugApi = {
+  async instances(gameId: string, roomId: string, page = 0, signal?: AbortSignal): Promise<PagedResponse<AiDebugInstance>> {
+    return (await api.get(`/games/${encodeURIComponent(gameId)}/rooms/${encodeURIComponent(roomId)}/debug/ai/instances`, { params: { page, size: 20 }, signal })).data;
+  },
+  async summary(gameId: string, roomId: string, instanceId: string, signal?: AbortSignal): Promise<AiDebugSummary> {
+    return (await api.get(`/games/${encodeURIComponent(gameId)}/rooms/${encodeURIComponent(roomId)}/debug/ai/summary`, { params: { instanceId }, signal })).data;
+  },
+  async turns(gameId: string, roomId: string, params: { instanceId: string; round?: number; phase?: string; actorId?: string; status?: string; page: number }, signal?: AbortSignal): Promise<PagedResponse<AiDebugTurn>> {
+    return (await api.get(`/games/${encodeURIComponent(gameId)}/rooms/${encodeURIComponent(roomId)}/debug/ai/turns`, { params: { ...params, size: 50 }, signal })).data;
+  },
+  async detail(gameId: string, roomId: string, jobId: string, signal?: AbortSignal): Promise<AiDebugDetail> {
+    return (await api.get(`/games/${encodeURIComponent(gameId)}/rooms/${encodeURIComponent(roomId)}/debug/ai/turns/${encodeURIComponent(jobId)}`, { signal })).data;
+  },
+};

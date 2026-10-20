@@ -16,6 +16,43 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratedPlanMySqlTest {
     @TempDir Path temporary;
 
+    @Test void localDebugUpgradeIsRepeatableAndPreservesPrivatePayloadsAndExistingData() throws Exception {
+        var generated = new GeneratedMigrationFixture(temporary);
+        try (var server = connect(null); var statement = server.createStatement()) {
+            for (String suffix : List.of("local_debug", "local_debug_snapshot"))
+                statement.execute("CREATE DATABASE `" + database(suffix) + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try (var db = connect("local_debug"); var snapshot = connect("local_debug_snapshot")) {
+            var scripts = generated.freshScripts();
+            var increment = scripts.stream().filter(path -> path.getFileName().toString().equals("20261020_local_ai_debug.sql")).findFirst().orElseThrow();
+            // The pre-feature current-structure fixture isolates this increment from unrelated frozen historical scripts.
+            String current = Files.readString(Path.of("sql/schema.sql"));
+            String addition = Files.readString(increment);
+            assertTrue(current.endsWith(addition));
+            Path previousStructure = temporary.resolve("before-local-debug.sql");
+            Files.writeString(previousStructure, current.substring(0, current.length() - addition.length()));
+            ClosureMySqlMigrationTest.script(db, previousStructure.toString());
+            assertEquals(List.of(List.of("0")), ClosureMySqlMigrationTest.rows(db, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='local_ai_debug_turns'"));
+            ClosureMySqlMigrationTest.sql(db, "UPDATE ai_model_catalog SET models_json='[\"preserve-this-model\"]',version=42 WHERE id=1");
+            var before = ClosureMySqlMigrationTest.rows(db, "SELECT models_json,version FROM ai_model_catalog");
+            ClosureMySqlMigrationTest.script(db, increment.toString());
+            ClosureMySqlMigrationTest.script(snapshot, "sql/schema.sql");
+            String columns = "SELECT column_name,column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='local_ai_debug_turns' ORDER BY ordinal_position";
+            String indexes = "SELECT index_name,seq_in_index,column_name,non_unique FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='local_ai_debug_turns' ORDER BY index_name,seq_in_index";
+            assertEquals(ClosureMySqlMigrationTest.rows(db, columns), ClosureMySqlMigrationTest.rows(snapshot, columns));
+            assertEquals(ClosureMySqlMigrationTest.rows(db, indexes), ClosureMySqlMigrationTest.rows(snapshot, indexes));
+            try (var insert = db.prepareStatement("INSERT INTO local_ai_debug_turns(id,room_id,game_id,instance_id,actor_id,round_number,payload) VALUES('debug-job','room','undercover','game-1','ai-1',1,?)")) {
+                insert.setString(1, "{\"attempts\":{\"0\":{\"rawOutput\":\"" + "完整原文".repeat(10000) + "\",\"cacheReadTokens\":0},\"1\":{\"state\":\"ERROR\"}}}");
+                insert.executeUpdate();
+            }
+            var saved = ClosureMySqlMigrationTest.rows(db, "SELECT id,payload,prompt_tokens,cache_read_tokens FROM local_ai_debug_turns");
+            ClosureMySqlMigrationTest.script(db, increment.toString()); ClosureMySqlMigrationTest.script(db, increment.toString());
+            assertEquals(saved, ClosureMySqlMigrationTest.rows(db, "SELECT id,payload,prompt_tokens,cache_read_tokens FROM local_ai_debug_turns"));
+            assertEquals(before, ClosureMySqlMigrationTest.rows(db, "SELECT models_json,version FROM ai_model_catalog"));
+            evidence("local-ai-debug-migration", java.util.Map.of("currentSchemaMatches", true, "privatePayloadPreserved", true, "existingDataPreserved", true, "repeatRuns", 2));
+        }
+    }
+
     @Test void modelConfigurationMatchesCurrentSchemaAndRepeatedMigrationPreservesSavedChoices() throws Exception {
         var generated = new GeneratedMigrationFixture(temporary);
         try (var server = connect(null); var statement = server.createStatement()) {

@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 public class RoomResponse {
+    private boolean aiDebugAvailable;
+    public boolean isAiDebugAvailable() { return aiDebugAvailable; }
+    public void setAiDebugAvailable(boolean available) { aiDebugAvailable = available; }
     private String id;
     private String roomCode;
     private java.time.LocalDateTime waitingSince;
