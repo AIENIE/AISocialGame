@@ -162,7 +162,6 @@ Windows 本地入口为 `scripts/windows/Test-GameRealismV2Comparison.ps1`：
 ./scripts/windows/Measure-GameRealismV2.ps1 -EnvironmentFile '<现有私有环境文件>' -EvidenceFile '<仓库外六局证据.json>' -OutputFile '<仓库外新的量化结果.json>'
 ```
 
-该入口只使用已有 JDK、Maven 缓存中的 MySQL/Jackson 依赖，不构建或启动服务。数据库路线固定为本地共享 `localbase` 的 `aisocialgame`；私有环境只提供数据库认证，不能改成其他数据库目标。输入证据的 `scenarios[].roomId` 必须是合法 UUID，最多 12 个，不接受重复值。输出文件必须位于仓库外且尚不存在。
 
 查询只读取白名单房间的 trace 数值/模型键/质量标志、任务状态与必要时间，以及固定 `game-realism-v2-live-20260912` 预算行。结果按总计、房间和实际模型汇总生成尝试次数、观察到的 token、降级率、生成耗时均值和最近秩 p95。首轮存在 `QUEUED` 或 `RUNNING` 时，65 秒后再次查询同一任务，记录持续待处理数量与超 60 秒运行数量；这不单独证明任务卡死。没有待处理任务时不会等待第二轮。
 

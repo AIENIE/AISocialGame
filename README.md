@@ -115,7 +115,6 @@ mysql \
 4. 调试进程会读取权限为 `0600` 且未入库的 `../env.local`，未显式提供 `SERVER_PORT` 时会回退到 `BACKEND_PORT`。首次使用前先 `cp env.example env.local && chmod 600 env.local` 并填入真实值。
 5. 启动成功后，可访问 `http://127.0.0.1:11031/actuator/health` 验证服务状态。
 
-### Windows 本机调试启动（共享 localbase）
 
 共享 MySQL、Redis、Qdrant 和 AI/User/Pay 公共服务通过规范的 local* 域名访问；产品进程在 Windows 原生运行。准备好仓库外的 `%LOCALAPPDATA%\Aienie\secrets\aisocialgame.env` 后，一键启动：
 
@@ -133,7 +132,6 @@ mysql \
 
 前台脚本日志直接输出到当前控制台，Ctrl+C 停止。首次运行若 `frontend/node_modules` 缺失会自动执行 `pnpm install --frozen-lockfile`；`Start-Backend.ps1` 可用 `-EnvironmentFile` 覆盖默认密钥文件路径。
 
-调试入口不修改 hosts、ACL，不要求管理员权限或 UAC，也不访问 Config Center 或监控状态写入器。后端和前端分别限制在 `127.0.0.1:11031`、`127.0.0.1:11030`；跨服务只访问 `localbase.testhut.top` 和三个 `local*.testhut.top` TLS 服务。完整边界见 [`doc/operations/windows-native.md`](doc/operations/windows-native.md)。
 
 ## 域名与端口
 

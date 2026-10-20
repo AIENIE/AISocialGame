@@ -11,7 +11,7 @@ MustFail {Assert-ClosureGrant $grant}
 MustFail {Assert-ClosureGrant @{authorized=$false}}
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('closure target test '+[guid]::NewGuid().ToString('N')+'.env')
 try {
-    @('ENV=local','AIENIE_RUNTIME_PLANE=windows-local','SPRING_DATASOURCE_URL=jdbc:mysql://localbase.testhut.top:13306/aisocialgame') | Set-Content -LiteralPath $fixture
+    @('ENV=local','AIENIE_RUNTIME_PLANE=windows-local','SPRING_DATASOURCE_URL=jdbc:mysql://localmysql.testhut.top:13306/aisocialgame') | Set-Content -LiteralPath $fixture
     $script:dbCalls=0
     function java.exe {$script:dbCalls++;throw 'No Java/database execution allowed'}
     MustFail {& (Join-Path $PSScriptRoot '../Migrate-GameRealismV2.ps1') -EnvironmentFile $fixture}

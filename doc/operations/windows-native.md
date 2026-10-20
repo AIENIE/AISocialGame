@@ -40,7 +40,6 @@ UAC 或提权。文件保存凭据与 caller-auth 值；本地端口、身份、
 `http://127.0.0.1:11031/actuator/health` 返回 HTTP 200 且顶层 `status=UP`。
 
 Windows 产品实例与 `aienie-wsl` 依赖平面分离。MySQL、Redis、Qdrant 使用
-`localbase.testhut.top`；公共服务 AI/User/Pay 调用三个 `local*.testhut.top`
 TLS 端点。Java 使用当前 JDK/JVM 信任库。脚本不会把公共服务重定向到 Windows
 回环端口，也不启用 trust-all 或明文回退。
 

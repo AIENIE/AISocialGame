@@ -7,12 +7,12 @@ export default defineConfig(() => {
   const backendPort = process.env.VITE_LOCAL_BACKEND_PORT || "11031";
   const backendTarget = `http://localhost:${backendPort}`;
   const allowedHosts = [
-    "localhost",
-    "127.0.0.1",
-    "localsocialgame.testhut.top",
-    "socialgame.testhut.top",
-    "aisocialgame.aienie.com",
-  ];
+  "localhost",
+  "127.0.0.1",
+  "localsocialgame.testhut.top",
+  "socialgame.testhut.top",
+  "socialgame.seekerhut.com",
+];
 
   return {
     server: {

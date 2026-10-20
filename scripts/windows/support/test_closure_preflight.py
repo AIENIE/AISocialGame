@@ -15,12 +15,12 @@ ROOT=Path(__file__).resolve().parents[3]
 
 class PreflightTest(unittest.TestCase):
     def setUp(self):
-        self.catalog={"components":[dict(canonical_component_id="shared-mysql",runtime=dict(host="aienie-6",plane="staging-shared-data",listeners=[dict(protocol="mysql",port=13306)]),endpoints=dict(develop=dict(canonical_domain="localbase.testhut.top",host_ref="local-services-aienie-devvm",listeners=[dict(name="mysql",protocol="mysql",port=23306,bind_scope="lan-private")])),state=dict(current="verified-running",verified_at="2026-09-22"),data=dict(authority="authoritative"),security=dict(tls="disabled-in-verified-staging"))]}
-        self.values=dict(ENV="local",AIENIE_RUNTIME_PLANE="windows-local",SPRING_DATASOURCE_URL="jdbc:mysql://localbase.testhut.top:23306/aisocialgame?useSSL=false")
+        self.catalog={"components":[dict(canonical_component_id="shared-mysql",runtime=dict(host="aienie-6",plane="staging-shared-data",listeners=[dict(protocol="mysql",port=13306)]),endpoints=dict(develop=dict(canonical_domain="localmysql.testhut.top",host_ref="local-services-aienie-devvm",listeners=[dict(name="mysql",protocol="mysql",port=23306,bind_scope="lan-private")])),state=dict(current="verified-running",verified_at="2026-09-22"),data=dict(authority="authoritative"),security=dict(tls="disabled-in-verified-staging"))]}
+        self.values=dict(ENV="local",AIENIE_RUNTIME_PLANE="windows-local",SPRING_DATASOURCE_URL="jdbc:mysql://localmysql.testhut.top:23306/aisocialgame?useSSL=false")
 
     def test_matching_target_and_conflicts_never_use_a_fallback(self):
         self.assertEqual("PASS",resolve(self.catalog,self.values,"a"*64)["status"])
-        for url in ("jdbc:mysql://localbase.testhut.top:13306/aisocialgame", "jdbc:mysql://other:23306/aisocialgame", "jdbc:mysql://localbase.testhut.top:23306/other", "jdbc:mysql://localbase.testhut.top:23306/aisocialgame?sessionVariables=evil"):
+        for url in ("jdbc:mysql://localmysql.testhut.top:13306/aisocialgame", "jdbc:mysql://other:23306/aisocialgame", "jdbc:mysql://localmysql.testhut.top:23306/other", "jdbc:mysql://localmysql.testhut.top:23306/aisocialgame?sessionVariables=evil"):
             values={**self.values,"SPRING_DATASOURCE_URL":url}
             target=resolve(self.catalog,values,"a"*64)
             self.assertEqual("UNKNOWN",target["status"])

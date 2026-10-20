@@ -16,7 +16,6 @@
 | TypeScript | `tsc -p tsconfig.app.json --noEmit` 通过 |
 | 前端单元测试 | 6 个文件、35 个测试全部通过 |
 | ESLint | 无错误；100 个警告，未进行无关清理 |
-| 本地 MySQL 增量迁移 | canonical `localbase` 的 `aisocialgame` 库连续执行两次成功，验证幂等 |
 | 应用数据库校验 | 后端以 `ddl-auto=validate` 启动成功 |
 | 标准受管启动与状态 | 验收期间前后端健康；收尾已用 `Stop-Local.ps1` 停止本次进程，复核 11030/11031 无监听 |
 | 浏览器基础界面 | `https://localsocialgame.testhut.top/` 大厅正常加载三款游戏 |

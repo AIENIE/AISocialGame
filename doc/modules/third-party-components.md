@@ -2,7 +2,6 @@
 
 ## 依赖清单
 
-当前项目依赖以下外部组件（本地环境默认统一对接 `localbase.testhut.top`）：
 
 - MySQL
 - Redis
@@ -15,9 +14,9 @@
   - `env.example`
   - `scripts/windows/Start-Backend.ps1`（Windows 本机调试固定端点）
 - 默认连接：
-  - MySQL：`localbase.testhut.top:23306`
-  - Redis：`localbase.testhut.top:26379`
-  - Qdrant：`http://localbase.testhut.top:26333`
+  - MySQL：`localmysql.testhut.top:23306`
+  - Redis：`localredis.testhut.top:26379`
+  - Qdrant：`http://localqdrant.testhut.top:26333`
 
 ## 服务发现与域名策略
 

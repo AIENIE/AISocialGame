@@ -1,6 +1,0 @@
-{
-  "dependencies": 338,
-  "findings": 4,
-  "high": 0,
-  "source": "backend/target/dependency-check-report.json"
-}
