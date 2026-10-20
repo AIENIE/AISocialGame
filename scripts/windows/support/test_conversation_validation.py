@@ -44,6 +44,8 @@ class ConversationValidationTests(unittest.TestCase):
     def test_inventory_duplicates_versions_and_resume_metadata(self):
         self.m["samples"].append(self.m["samples"][0])
         with self.assertRaises(ValueError):inventory(self.m)
+        self.m=copy.deepcopy(self.__class__.m);self.m["promptVersion"]="social-v2.8"
+        with self.assertRaisesRegex(ValueError,"INVALID_PROMPT"):inventory(self.m)
         self.m=copy.deepcopy(self.__class__.m);self.m["evaluationSetVersion"]="closure-v2"
         with self.assertRaises(ValueError):inventory(self.m)
         self.m=copy.deepcopy(self.__class__.m);self.e["samples"][0]["personaId"]="ai4"

@@ -28,9 +28,11 @@ class GeneratedPlanMySqlTest {
             // The pre-feature current-structure fixture isolates this increment from unrelated frozen historical scripts.
             String current = Files.readString(Path.of("sql/schema.sql"));
             String addition = Files.readString(increment);
-            assertTrue(current.endsWith(addition));
+            int additionStart = current.indexOf(addition);
+            assertTrue(additionStart >= 0);
+            assertEquals(additionStart, current.lastIndexOf(addition));
             Path previousStructure = temporary.resolve("before-local-debug.sql");
-            Files.writeString(previousStructure, current.substring(0, current.length() - addition.length()));
+            Files.writeString(previousStructure, current.substring(0, additionStart) + current.substring(additionStart + addition.length()));
             ClosureMySqlMigrationTest.script(db, previousStructure.toString());
             assertEquals(List.of(List.of("0")), ClosureMySqlMigrationTest.rows(db, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='local_ai_debug_turns'"));
             ClosureMySqlMigrationTest.sql(db, "UPDATE ai_model_catalog SET models_json='[\"preserve-this-model\"]',version=42 WHERE id=1");

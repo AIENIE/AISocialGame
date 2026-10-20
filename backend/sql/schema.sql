@@ -535,3 +535,29 @@ CREATE TABLE IF NOT EXISTS local_ai_debug_turns (
   version BIGINT NULL,
   KEY idx_local_ai_debug_instance (room_id, instance_id, created_at, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_auth_subject_locks (
+ subject_id VARCHAR(128) PRIMARY KEY
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_emergency_codes (
+ record_id CHAR(36) PRIMARY KEY,
+ subject_id VARCHAR(128) NOT NULL,
+ code_hash VARCHAR(255) NOT NULL,
+ ciphertext TEXT NOT NULL,
+ nonce VARBINARY(32) NOT NULL,
+ key_version VARCHAR(64) NOT NULL,
+ created_at DATETIME(6) NOT NULL,
+ used_at DATETIME(6) NULL,
+ KEY idx_admin_emergency_subject(subject_id,used_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_emergency_challenge_versions (
+ challenge_hash CHAR(64) PRIMARY KEY,
+ credential_version BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_emergency_upgrade (
+ version_id INT PRIMARY KEY,
+ completed_at DATETIME(6) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

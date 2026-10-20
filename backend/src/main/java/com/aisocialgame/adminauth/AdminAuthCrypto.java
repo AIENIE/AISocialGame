@@ -50,6 +50,23 @@ public class AdminAuthCrypto {
     }
 
     public EncryptedValue encrypt(String plaintext) {
+        return encrypt(plaintext, TOTP_AAD_PREFIX);
+    }
+
+    public EncryptedValue encryptRecovery(String subject, String recordId, String plaintext) {
+        return encrypt(plaintext, "aisocialgame-admin-emergency-v1|" + subject + "|" + recordId + "|");
+    }
+
+    public String decryptRecovery(String subject, String recordId, String ciphertext, byte[] nonce, String version) {
+        return decrypt(ciphertext, nonce, version, "aisocialgame-admin-emergency-v1|" + subject + "|" + recordId + "|");
+    }
+
+    public String randomRecoveryCode() {
+        String hex = java.util.HexFormat.of().withUpperCase().formatHex(randomBytes(16));
+        return hex.substring(0, 8) + "-" + hex.substring(8, 16) + "-" + hex.substring(16, 24) + "-" + hex.substring(24);
+    }
+
+    private EncryptedValue encrypt(String plaintext, String aad) {
         SecretKeySpec key = encryptionKeys.get(activeKeyVersion);
         if (key == null) {
             throw new IllegalStateException("Active administrator TOTP encryption key is unavailable");
@@ -58,7 +75,7 @@ public class AdminAuthCrypto {
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(128, nonce));
-            cipher.updateAAD((TOTP_AAD_PREFIX + activeKeyVersion).getBytes(StandardCharsets.UTF_8));
+            cipher.updateAAD((aad + activeKeyVersion).getBytes(StandardCharsets.UTF_8));
             return new EncryptedValue(
                     Base64.getEncoder().encodeToString(cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8))),
                     nonce,
@@ -69,6 +86,10 @@ public class AdminAuthCrypto {
     }
 
     public String decrypt(String ciphertext, byte[] nonce, String keyVersion) {
+        return decrypt(ciphertext, nonce, keyVersion, TOTP_AAD_PREFIX);
+    }
+
+    private String decrypt(String ciphertext, byte[] nonce, String keyVersion, String aad) {
         SecretKeySpec key = encryptionKeys.get(keyVersion);
         if (key == null || nonce == null || nonce.length != 12) {
             throw new IllegalStateException("Administrator TOTP key version is unavailable");
@@ -76,7 +97,7 @@ public class AdminAuthCrypto {
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, nonce));
-            cipher.updateAAD((TOTP_AAD_PREFIX + keyVersion).getBytes(StandardCharsets.UTF_8));
+            cipher.updateAAD((aad + keyVersion).getBytes(StandardCharsets.UTF_8));
             return new String(cipher.doFinal(Base64.getDecoder().decode(ciphertext)), StandardCharsets.UTF_8);
         } catch (Exception ex) {
             throw new IllegalStateException("Unable to decrypt administrator credential", ex);

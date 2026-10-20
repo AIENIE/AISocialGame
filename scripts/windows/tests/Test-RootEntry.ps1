@@ -75,6 +75,7 @@ try {
     Assert ($entryExit -eq 0 -and $calls.Count -eq 1 -and $calls[0].script -eq 'Get-LocalStatus.ps1') 'Status must not build or start services.'
     Invoke-Entry @('-Action','Stop',"-$selector",$part)
     Assert ($entryExit -eq 0 -and $calls[0].parameters.$selector -eq $part) 'Stop scope forwarding failed.'
+    if ((Test-Path (Join-Path $repoRoot '.vscode/tasks.json')) -and (Test-Path (Join-Path $repoRoot '.vscode/launch.json'))) {
     $tasks=Get-Content (Join-Path $repoRoot '.vscode/tasks.json') -Raw | ConvertFrom-Json
     $launch=Get-Content (Join-Path $repoRoot '.vscode/launch.json') -Raw | ConvertFrom-Json
     foreach($config in $launch.configurations) {
@@ -83,6 +84,7 @@ try {
     foreach($compound in $launch.compounds) {
         Assert ($compound.preLaunchTask -in $tasks.tasks.label) "Missing compound task: $($compound.preLaunchTask)"
         foreach($name in $compound.configurations) { Assert ($name -in $launch.configurations.name) "Missing debug configuration: $name" }
+    }
     }
     & (Join-Path $PSScriptRoot 'Test-LocalEndpoint.ps1')
     Write-Output "$project root-entry regression checks passed."

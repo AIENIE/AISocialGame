@@ -14,7 +14,7 @@
     "SPRING_DATASOURCE_PASSWORD": [
       "spring.datasource.password"
     ],
-    "SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY": [
+    "SPRING_DATASOURCE_HIKARI_CONNECTIONTESTQUERY": [
       "spring.datasource.hikari.connection-test-query"
     ],
     "SPRING_JPA_HIBERNATE_DDL_AUTO": [
@@ -261,6 +261,12 @@
       "app.external.userservice-jwt.secret",
       "app.external.payservice-jwt.secret",
       "app.external.aiservice-hmac-secret"
+    ],
+    "SERVER_ADDRESS": [
+      "server.address"
+    ],
+    "AIENIE_ADMIN_EMERGENCY_ACCEPTANCE": [
+      "runtime.acceptance.admin-emergency-codes"
     ]
   }
 }

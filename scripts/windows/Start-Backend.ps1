@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$EnvironmentFile = (Join-Path $(Join-Path $(if ($env:AIENIE_RUNTIME_ROOT) { $env:AIENIE_RUNTIME_ROOT } else { Join-Path $PSScriptRoot '../../../../aienie-runtime' }) 'private/app-secrets') 'aisocialgame.env'),
+    [ValidateRange(1024,65535)][int]$BackendPort = 11031,
+    [switch]$IsolatedAcceptance,
     [switch]$EnableBackendDebug
 )
 
@@ -114,24 +116,30 @@ function Test-PortListening([int]$Port) {
 }
 
 $privateValues = Read-PrivateEnvironment $EnvironmentFile
+if ($privateValues.ContainsKey('SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY')) {
+    throw 'Configure Hikari connection-test-query in the companion YAML; the ambiguous legacy environment spelling is unsupported.'
+}
 . (Join-Path $repoRoot 'scripts\config-pair\ConfigurationPair.ps1')
 $yamlValues = Read-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
 foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
 . (Join-Path $PSScriptRoot 'LocalGrpcTrust.ps1')
 $localGrpcTrust = Get-LocalGrpcTrustUri
 . (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
-$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile
+$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile -IsolatedAcceptance:$IsolatedAcceptance
+. (Join-Path $PSScriptRoot 'AdminEmergencyAcceptance.ps1')
+Assert-AdminEmergencyAcceptance -Values $privateValues -YamlValues $yamlValues -SharedTarget $sharedTarget -BackendPort $BackendPort -IsolatedAcceptance:$IsolatedAcceptance
 $inheritedValues = @{}
 foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) { $inheritedValues[[string]$entry.Key] = [string]$entry.Value }
 Assert-LocalOnlyEnvironment $inheritedValues
 Assert-LocalOnlyEnvironment $privateValues
 Assert-UserServiceJwtEnvironment $privateValues
 
-if (Test-PortListening 11031) {
+if (Test-PortListening $BackendPort) {
     throw 'Port 11031 is already listening. Stop the owning process before starting the debug backend.'
 }
 
 foreach ($name in @('JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS', 'MAVEN_OPTS', 'SPRING_APPLICATION_JSON',
+        'SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY',
         'APP_EXTERNAL_GRPC_AUTH_REQUIRED', 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN',
         'APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID', 'APP_EXTERNAL_USERSERVICE_JWT_ISSUER',
         'GRPC_SHARED_SECRET', 'APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE',
@@ -154,7 +162,8 @@ Import-ConfigPairValues -ProjectRoot $repoRoot -EnvironmentFile $EnvironmentFile
 $env:SPRING_PROFILES_ACTIVE = 'local'
 $env:AIENIE_RUNTIME_PLANE = 'windows-local'
 $env:SERVER_ADDRESS = '127.0.0.1'
-$env:VITE_LOCAL_BACKEND_PORT = '11031'
+$env:VITE_LOCAL_BACKEND_PORT = [string]$BackendPort
+$env:SERVER_PORT = [string]$BackendPort
 $env:USER_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'
 $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
@@ -162,7 +171,7 @@ $env:AI_GRPC_NEGOTIATION_TYPE = 'TLS'
 $backendPom = Join-Path $repoRoot 'backend\pom.xml'
 $mvn = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
 
-Write-Host 'Starting AISocialGame backend (debug) on http://127.0.0.1:11031 - press Ctrl+C to stop.'
+Write-Host "Starting AISocialGame backend (debug) on http://127.0.0.1:$BackendPort - press Ctrl+C to stop."
 $mavenArgs = @('-f', $backendPom, '-q', 'spring-boot:run')
 if ($EnableBackendDebug) { $mavenArgs += '-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:51031' }
 & $mvn @mavenArgs

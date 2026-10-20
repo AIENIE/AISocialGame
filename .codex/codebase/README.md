@@ -16,4 +16,4 @@
 - `doc/structure.md`：项目结构说明。
 - `doc/modules/`：GameEngine、海龟汤、安全治理、性能稳定性等模块说明。
 - `doc/api/`：API 文档。
-- `doc/milestones/`：阶段开发记录。
+- `doc/milestones.md`：活动里程碑与未完成验收。

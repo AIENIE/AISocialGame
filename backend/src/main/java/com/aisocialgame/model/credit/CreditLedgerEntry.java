@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -51,8 +50,7 @@ public class CreditLedgerEntry {
     @Column(length = 64)
     private String source;
 
-    @Lob
-    @Column(name = "metadata_json")
+    @Column(name = "metadata_json", columnDefinition = "LONGTEXT")
     private String metadataJson;
 
     @Column(name = "related_entry_id")
@@ -180,4 +178,3 @@ public class CreditLedgerEntry {
         return createdAt;
     }
 }
-

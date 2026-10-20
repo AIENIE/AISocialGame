@@ -35,7 +35,7 @@ def inventory(manifest):
     require(same_header(manifest, expected_set=SET), "INVALID_HEADER")
     for k, v in dict(sampleCount=96, maxDiscreteCalls=192, inputFormatVersion=3, memoryFormatVersion=4).items():
         require(type(manifest.get(k)) is int and manifest[k] == v, "INVALID_PROFILE")
-    require(manifest.get("promptVersion") == "social-v2.8", "INVALID_PROMPT")
+    require(manifest.get("promptVersion") == "social-v2.10", "INVALID_PROMPT")
     expected = {}
     for game, scenarios in SCENARIOS.items():
         for persona in PERSONAS:
