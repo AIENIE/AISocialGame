@@ -67,9 +67,9 @@ const labels: Record<string, readonly [string, string]> = {
     "席",
     "seats"
   ],
-  "桌并发": [
-    "桌並行",
-    "concurrent tables"
+  "逐局学习": [
+    "逐局學習",
+    "Learn game by game"
   ],
   "局": [
     "局",

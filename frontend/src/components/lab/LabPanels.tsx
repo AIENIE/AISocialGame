@@ -26,26 +26,26 @@ export function LabProgress({ experiment, tr = plain }: { experiment: LabExperim
   return <div className="lab-hero"><div><div className="lab-eyebrow">{tr("对局尝试")}</div><div className="lab-big-number">{trained}<small>/ {experiment.targetGames}</small></div></div>
     <div className="lab-progress"><div className="flex justify-between gap-4 text-xs"><span>{tr("已处理至")} #{experiment.reviewedThrough}</span><LabState state={experiment.status} tr={tr} /></div>
       <div className="lab-track"><span style={{ width: percent(Math.min(1,trained/experiment.targetGames)) }} /></div>
-      <div className="mt-3 text-xs text-emerald-100/70">{experiment.playerCount} {tr("席")} · {experiment.concurrency} {tr("桌并发")} · {tr("谁是卧底")}</div></div></div>;
+      <div className="mt-3 text-xs text-emerald-100/70">{experiment.playerCount} {tr("席")} · {tr("逐局学习")} · {tr("谁是卧底")}</div></div></div>;
 }
 export function LabExperimentRows({ rows, admin = false, tr = plain }: { rows: LabExperiment[]; admin?: boolean; tr?: LabTranslate }) {
   return <div className="lab-list">{rows.length ? rows.map(experiment => <Link className="lab-list-row" key={experiment.id} to={(admin?"/admin/lab/":"/lab/")+experiment.id}>
-    <div><h3>{experiment.name}</h3><p className="lab-small mt-1">{tr("谁是卧底")} · {experiment.playerCount} {tr("席")} · {experiment.concurrency} {tr("桌并发")}</p></div>
+    <div><h3>{experiment.name}</h3><p className="lab-small mt-1">{tr("谁是卧底")} · {experiment.playerCount} {tr("席")} · {tr("逐局学习")}</p></div>
     <div><LabState state={experiment.status} tr={tr} /><div className="lab-small mt-2 lab-number">{experiment.attemptedGames} / {experiment.targetGames} {tr("局")}</div></div>
     <div className="lab-list-cost lab-small">{tr("已扣积分折合")}<br /><span className="lab-number">¥{money(experiment.cost.spentPoints)}</span></div>
     <ArrowUpRight size={18} className="text-emerald-700" /></Link>) : <div className="lab-empty"><FlaskConical className="mx-auto mb-3 opacity-40" size={28} />{tr("还没有实验")}</div>}</div>;
 }
-export function LabLiveMatches({ matches, participantMatchId, tr = plain }: { matches: LabMatch[]; participantMatchId?: string; tr?: LabTranslate }) {
+export function LabLiveMatches({ matches, participantMatchId, adminExperimentId, tr = plain }: { matches: LabMatch[]; participantMatchId?: string; adminExperimentId?: string; tr?: LabTranslate }) {
   return <section className="lab-section"><h2><Radio size={16} />{tr("正在进行")}</h2><div className="lab-live">
     {matches.length ? matches.map(match => <article className="lab-table" key={match.id}><LabState state={match.status} tr={tr} /><strong>{tr("对局")} #{match.sequenceNumber}</strong>
-      <Button asChild size="sm" variant="outline"><Link to={participantMatchId===match.id ? "/room/undercover/"+match.roomId : "/spectate/undercover/"+match.roomId}>{tr(participantMatchId===match.id?"进入对局":"观战")}<ArrowUpRight className="ml-2" size={14} /></Link></Button></article>) : <p className="lab-small">{tr("当前没有运行中的对局")}</p>}
+      <Button asChild size="sm" variant="outline"><Link to={adminExperimentId?`/admin/lab/${adminExperimentId}/matches/${match.id}`:participantMatchId===match.id ? "/room/undercover/"+match.roomId : "/spectate/undercover/"+match.roomId}>{tr(participantMatchId===match.id?"进入对局":"观战")}<ArrowUpRight className="ml-2" size={14} /></Link></Button></article>) : <p className="lab-small">{tr("当前没有运行中的对局")}</p>}
   </div></section>;
 }
-export function LabMatchHistory({ page, tr = plain }: { page: LabPage<LabMatch>; tr?: LabTranslate }) {
+export function LabMatchHistory({ page, admin = false, tr = plain }: { page: LabPage<LabMatch>; admin?: boolean; tr?: LabTranslate }) {
   return <div className="lab-scroll"><table className="lab-history"><thead><tr><th>#</th><th>{tr("状态")}</th><th>{tr("样本")}</th><th>{tr("获胜 AI")}</th><th>{tr("回放")}</th></tr></thead>
     <tbody>{page.items.map(match => <tr key={match.id}><td className="lab-number">{match.sequenceNumber}</td><td><LabState state={match.status} tr={tr} />{match.reason && <div className="lab-small mt-1">{match.reason}</div>}</td>
       <td>{tr(match.variant || "训练")}</td><td>{match.results?.filter(player=>player.ai&&player.won).map(player=>player.name).join(" / ") || "—"}</td>
-      <td>{match.archiveId ? <Link className="text-emerald-700 underline underline-offset-4" to={"/replay/"+match.archiveId}>{tr("查看")}</Link> : "—"}</td></tr>)}</tbody></table>
+      <td>{match.archiveId ? <Link className="text-emerald-700 underline underline-offset-4" to={(admin?"/admin/replays/":"/replay/")+match.archiveId}>{tr("查看")}</Link> : "—"}</td></tr>)}</tbody></table>
     {!page.items.length && <div className="lab-empty">{tr("对局记录将在运行后出现")}</div>}</div>;
 }
 export function LabEvaluationResults({ evaluations, tr = plain }: { evaluations: LabEvaluation[]; tr?: LabTranslate }) {

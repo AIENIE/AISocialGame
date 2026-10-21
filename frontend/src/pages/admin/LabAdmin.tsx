@@ -9,7 +9,7 @@ import { AdminDataState } from "@/components/admin/AdminDataState";
 import { LabExperimentRows, LabCostPanel, LabProgress, LabLiveMatches, LabMatchHistory, LabEvaluationResults, LabPager } from "@/components/lab/LabPanels";
 import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
 import type { CatalogModel } from "@/types/aiModelConfig";
-import type { LabAgent, LabSelection, LabExperience, CreateLabExperiment } from "@/types/lab";
+import type { LabAgent, LabSelection, LabExperience, CreateLabExperiment, LabParticipantInput } from "@/types/lab";
 
 const emptySelection:LabSelection={modelKey:"",thinkingMode:"DEFAULT",thinkingEffort:null};
 function failure(error:unknown) { toast.error(getApiErrorMessage(error,"实验室操作失败，编辑内容已保留")); }
@@ -61,10 +61,9 @@ function AdminLabIndex() {
   const [creating,setCreating]=useState(!!from);
   const [page,setPage]=useState(0);
   const [name,setName]=useState("卧底策略实验");
-  const [selected,setSelected]=useState<string[]>([]);
-  const [playerCount,setPlayerCount]=useState(6);
+  const [selected,setSelected]=useState<LabParticipantInput[]>();
+  const [selectedCount,setPlayerCount]=useState<number>();
   const [targetGames,setTargetGames]=useState(100);
-  const [concurrency,setConcurrency]=useState(1);
   const [wordPack,setWordPack]=useState("daily");
   const [hasBlank,setHasBlank]=useState(false);
   const [budget,setBudget]=useState("10.00");
@@ -75,22 +74,21 @@ function AdminLabIndex() {
   const agents=useQuery({queryKey:["admin","lab","agents"],queryFn:adminLabApi.agents});
   const catalog=useQuery({queryKey:["admin","model-config"],queryFn:adminApi.modelConfiguration});
   const source=useQuery({queryKey:["admin","lab","source",inheritId],queryFn:()=>adminLabApi.detail(inheritId),enabled:!!inheritId});
+  const playerCount=selectedCount??(from?source.data?.playerCount??6:6);
+  const chosen=selected??(from?source.data?.configuration?.roster.map(agent=>({agentId:agent.agentId,initialExperienceId:source.data?.configuration?.experiences[agent.participantId]?.experienceId}))??[]:[]);
+  const changeSlot=(index:number,value:LabParticipantInput)=>setSelected(Array.from({length:playerCount},(_,seat)=>seat===index?value:chosen[seat]??{agentId:""}));
   const sync=useMutation({mutationFn:adminApi.syncModelConfiguration,onSuccess:data=>{client.setQueryData(["admin","model-config"],data);toast.success("模型目录已同步");},onError:failure});
   const create=useMutation({
     mutationFn:async()=>{
-      const chosen=selected.length?selected:from?source.data?.configuration?.roster.map(agent=>agent.agentId)??[]:[];
       const configured=coach.modelKey?coach:{...coach,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??catalog.data?.models[0]?.modelKey??""};
-      const inherited=source.data?.configuration?.experiences??{};
-      const request:CreateLabExperiment={name,agentIds:chosen,playerCount,targetGames,concurrency,wordPack,hasBlank,
-        budgetPoints:Math.round(Number(budget)*100),coach:configured,
-        initialExperienceIds:Object.fromEntries(chosen.filter(id=>inherited[id]&&inherited[id].experienceId!=="initial").map(id=>[id,inherited[id].experienceId]))};
+      const request:CreateLabExperiment={name,participants:chosen.slice(0,playerCount).map(slot=>({...slot,initialExperienceId:slot.initialExperienceId==="initial"?undefined:slot.initialExperienceId})),playerCount,targetGames,wordPack,hasBlank,
+        budgetPoints:Math.round(Number(budget)*100),coach:configured};
       return adminLabApi.create(request);
     },
     onSuccess:experiment=>{void client.invalidateQueries({queryKey:["admin","lab"]});navigate("/admin/lab/"+experiment.id);},onError:failure,
   });
-  const chosen=selected.length?selected:from?source.data?.configuration?.roster.map(agent=>agent.agentId)??[]:[];
   const models=catalog.data?.models??[];
-  const newExperiment=()=>{setCreating(true);setSelected((agents.data??[]).slice(0,6).map(agent=>agent.id));setCoach({...emptySelection,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??models[0]?.modelKey??""});};
+  const newExperiment=()=>{setCreating(true);setPlayerCount(6);setInheritId("");setSourceId("");setSelected(Array.from({length:6},(_,index)=>({agentId:agents.data?.[index%(agents.data?.length||1)]?.id??""})));setCoach({...emptySelection,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??models[0]?.modelKey??""});};
   return <div className="lab-workspace">
     <header className="lab-heading"><div><div className="lab-eyebrow">NEXUS / RESEARCH CONTROL</div><h1>AI 实验室</h1><p>以完整对局积累经验，用固定对手检验变化。</p></div>
       <div className="lab-actions"><Button variant="outline" size="sm" onClick={()=>sync.mutate()} disabled={sync.isPending}><RefreshCcw size={14} className="mr-2" />同步模型</Button><Button size="sm" onClick={newExperiment}><Plus size={14} className="mr-2" />新建实验</Button></div></header>
@@ -99,39 +97,44 @@ function AdminLabIndex() {
     {!models.length&&<p className="lab-note">请先同步模型目录，再创建独立 AI 档案。目录读取不会产生推理费用。</p>}
     {creating&&<form className="lab-form space-y-5" onSubmit={(event:FormEvent)=>{event.preventDefault();create.mutate();}}><h2 className="font-semibold">新建卧底实验</h2>
       <div className="lab-form-grid"><label className="lab-field">实验名称<input value={name} maxLength={100} required onChange={event=>setName(event.target.value)} /></label>
-        <label className="lab-field">席位数<select value={playerCount} onChange={event=>setPlayerCount(Number(event.target.value))}>{[4,5,6,7,8,9,10].map(count=><option key={count}>{count}</option>)}</select></label>
+        <label className="lab-field">席位数<select value={playerCount} onChange={event=>{const count=Number(event.target.value);setSelected(Array.from({length:count},(_,index)=>chosen[index]??{agentId:agents.data?.[0]?.id??""}));setPlayerCount(count);}}>{[4,5,6,7,8,9,10].map(count=><option key={count}>{count}</option>)}</select></label>
         <label className="lab-field">目标对局数<input type="number" min={1} max={10000} value={targetGames} onChange={event=>setTargetGames(Number(event.target.value))} required /></label>
-        <label className="lab-field">并发桌数<input type="number" min={1} max={3} value={concurrency} onChange={event=>setConcurrency(Number(event.target.value))} required /></label>
         <label className="lab-field">内置词库<select value={wordPack} onChange={event=>setWordPack(event.target.value)}><option value="daily">日常生活</option><option value="idiom">成语俗语</option><option value="acg">二次元</option><option value="tech">硬核科技</option></select></label>
         <label className="lab-field">费用上限（人民币）<input type="number" min="0.01" step="0.01" value={budget} required onChange={event=>setBudget(event.target.value)} /></label>
         <label className="lab-field"><input type="checkbox" checked={hasBlank} onChange={event=>setHasBlank(event.target.checked)} />加入白板玩家</label></div>
-      <div><h3 className="text-sm font-medium">实验阵容 · 已选 {chosen.length} / {playerCount}</h3><div className="lab-agent-choice">{agents.data?.map(agent=><label key={agent.id}><input type="checkbox" checked={chosen.includes(agent.id)} onChange={event=>setSelected(event.target.checked?[...chosen,agent.id]:chosen.filter(id=>id!==agent.id))} />{agent.name}</label>)}</div>
+      <div><h3 className="text-sm font-medium">实验阵容 · {playerCount} 个独立副本</h3><p className="lab-small my-3">同一档案可多次选择，各副本独立学习；每局开场随机座次，复盘完成后再开始下一局。</p><div className="lab-form-grid">{Array.from({length:playerCount},(_,index)=>{
+        const slot=chosen[index]??{agentId:""};
+        const sources=source.data?.configuration?.roster.filter(profile=>profile.agentId===slot.agentId)??[];
+        return <div key={index} className="lab-table space-y-3"><label className="lab-field">副本 {index+1}<select aria-label={`副本 ${index+1} 的 AI 档案`} value={slot.agentId} required onChange={event=>changeSlot(index,{agentId:event.target.value})}><option value="">选择 AI 档案</option>{agents.data?.map(agent=><option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>
+          {!!source.data&&<label className="lab-field">继承经验<select aria-label={`副本 ${index+1} 的继承经验`} value={slot.initialExperienceId??""} onChange={event=>changeSlot(index,{...slot,initialExperienceId:event.target.value||undefined})}><option value="">从空经验开始</option>{sources.map(profile=>{const head=source.data?.configuration?.experiences[profile.participantId];return head&&head.experienceId!=="initial"?<option key={profile.participantId} value={head.experienceId}>{profile.name} · v{head.sequenceNumber}</option>:null;})}</select></label>}
+        </div>;
+      })}</div>
         {!agents.data?.length&&<p className="lab-small mt-2">先到“独立 AI 档案”创建阵容。</p>}</div>
       <div><h3 className="text-sm font-medium mb-3">统一复盘教练</h3><ModelSelectionFields models={models} value={coach.modelKey?coach:{...coach,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??models[0]?.modelKey??""}} change={setCoach} prefix="coach" /></div>
       <div className="lab-form-grid"><label className="lab-field">继承经验来源实验 ID（可选）<input value={sourceId} onChange={event=>setSourceId(event.target.value)} placeholder="空白表示从初始经验开始" /></label><Button variant="outline" className="self-end" type="button" onClick={()=>setInheritId(sourceId.trim())}>读取来源经验</Button></div>
-      {source.data&&<p className="lab-small">将继承“{source.data.name}”中已选 AI 当前的经验版本。模型和人格从当前档案复制。</p>}
+      {source.data&&<p className="lab-small">来源：“{source.data.name}”。逐副本选择继承经验；模型和人格从当前档案复制。</p>}
       {source.error&&<p className="lab-error" role="alert">{getApiErrorMessage(source.error,"来源实验读取失败")}</p>}
       <p className="lab-note">创建后为草稿，需要手动启动。对局、修正、复盘与评测共享费用上限；实验对局不计普通排名、成就和奖励。</p>
       {create.error&&<p className="lab-error" role="alert">{getApiErrorMessage(create.error,"创建失败")}</p>}
-      <div className="lab-actions"><Button type="submit" disabled={create.isPending||chosen.length!==playerCount||!models.length}>创建实验草稿</Button><Button type="button" variant="ghost" onClick={()=>setCreating(false)}>取消</Button></div>
+      <div className="lab-actions"><Button type="submit" disabled={create.isPending||chosen.length<playerCount||chosen.slice(0,playerCount).some(slot=>!slot.agentId)||!models.length}>创建实验草稿</Button><Button type="button" variant="ghost" onClick={()=>setCreating(false)}>取消</Button></div>
     </form>}
     {tab==="agents"?<AgentEditor models={models} agents={agents.data??[]} reload={()=>void agents.refetch()} />:
       list.data?<><LabExperimentRows rows={list.data.items} admin /><LabPager page={page} total={list.data.total} size={20} change={setPage} /></>:<AdminDataState loading={list.isPending} error={list.error} retry={()=>void list.refetch()} />}
   </div>;
 }
 
-function ExperienceComparison({versions,roster,heads,rollback,disabled}:{versions:LabExperience[];roster:{agentId:string;name:string}[];heads:Record<string,{experienceId:string}>;rollback:(id:string)=>void;disabled:boolean}) {
+function ExperienceComparison({versions,roster,heads,rollback,disabled}:{versions:LabExperience[];roster:{participantId:string;name:string}[];heads:Record<string,{experienceId:string}>;rollback:(id:string)=>void;disabled:boolean}) {
   const [selectedAgent,setAgent]=useState("");
   const [before,setBefore]=useState("");
   const [after,setAfter]=useState("");
-  const agentId=selectedAgent||roster[0]?.agentId||"";
-  const entries=versions.filter(version=>version.agentId===agentId);
+  const agentId=selectedAgent||roster[0]?.participantId||"";
+  const entries=versions.filter(version=>version.participantId===agentId);
   const earlier=entries.find(version=>version.id===before)||entries[1];
   const later=entries.find(version=>version.id===after)||entries[0];
-  return <div><div className="lab-form-grid"><label className="lab-field">AI 档案<select value={agentId} onChange={event=>{setAgent(event.target.value);setBefore("");setAfter("");}}>{roster.map(agent=><option key={agent.agentId} value={agent.agentId}>{agent.name}</option>)}</select></label><p className="lab-small self-end">每个版本保留来源对局与证据事件。回退生成新版本，仅影响之后开局。</p></div>
+  return <div><div className="lab-form-grid"><label className="lab-field">AI 副本<select value={agentId} onChange={event=>{setAgent(event.target.value);setBefore("");setAfter("");}}>{roster.map(agent=><option key={agent.participantId} value={agent.participantId}>{agent.name}</option>)}</select></label><p className="lab-small self-end">每个版本保留来源对局与证据事件。回退生成新版本，仅影响之后开局。</p></div>
     <div className="lab-compare">{[{title:"较早版本",value:earlier,choose:setBefore},{title:"比较版本",value:later,choose:setAfter}].map(column=><section key={column.title}><label className="lab-field">{column.title}<select value={column.value?.id??""} onChange={event=>column.choose(event.target.value)}><option value="">无版本</option>{entries.map(version=><option key={version.id} value={version.id}>v{version.sequenceNumber}{heads[agentId]?.experienceId===version.id?" · 当前":""} · {version.createdAt.replace("T"," ").slice(0,16)}</option>)}</select></label>
       <div className="lab-memory mt-3">{column.value?.summary||"当前页没有可比较的经验。"}</div>
-      {column.value&&<div className="lab-actions mt-3">{column.value.evidence.archiveId&&<Button asChild size="sm" variant="outline"><Link to={"/replay/"+column.value.evidence.archiveId}>来源回放</Link></Button>}<Button size="sm" variant="outline" disabled={disabled} onClick={()=>rollback(column.value!.id)}>回退到此经验</Button></div>}</section>)}</div>
+      {column.value&&<div className="lab-actions mt-3">{column.value.evidence.archiveId&&<Button asChild size="sm" variant="outline"><Link to={"/admin/replays/"+column.value.evidence.archiveId}>来源回放</Link></Button>}<Button size="sm" variant="outline" disabled={disabled} onClick={()=>rollback(column.value!.id)}>回退到此经验</Button></div>}</section>)}</div>
     {later&&<p className="lab-small">证据事件：{later.evidence.eventIds?.join(" · ")||"管理员回退"}{earlier?.summary===later.summary?" · 两版内容相同":""}</p>}
   </div>;
 }
@@ -148,7 +151,7 @@ function AdminLabDetail({id}:{id:string}) {
   const experiment=query.data;
   const configuration=experiment?.configuration;
   const roster=configuration?.roster??[];
-  const target=agentId||roster[0]?.agentId||"";
+  const target=agentId||roster[0]?.participantId||"";
   const targetVersion=candidate||configuration?.experiences[target]?.experienceId||"";
   const evaluate=useMutation({mutationFn:()=>adminLabApi.evaluate(id,target,targetVersion,pairs),onSuccess:refresh,onError:failure});
   if(!experiment) return <AdminDataState loading={query.isPending} error={query.error} retry={()=>void query.refetch()} />;
@@ -165,23 +168,23 @@ function AdminLabDetail({id}:{id:string}) {
     </div>
     <LabProgress experiment={experiment} />
     {experiment.reason&&<div className="lab-error" role="status">{experiment.reason} · 已保留已完成对局和原请求账务，请处理后恢复。</div>}
-    <div className="lab-columns mt-7"><div><LabLiveMatches matches={experiment.activeMatches??[]} />
-      <section className="lab-section"><h2>冻结阵容</h2><div className="lab-scroll"><table className="lab-history"><thead><tr><th>AI 档案</th><th>模型</th><th>当前经验</th></tr></thead><tbody>{roster.map(agent=><tr key={agent.agentId}><td>{agent.name}</td><td className="break-all">{agent.modelSelection.modelKey}<div className="lab-small">{agent.modelSelection.thinkingMode} {agent.modelSelection.thinkingEffort}</div></td><td className="lab-number">v{configuration?.experiences[agent.agentId]?.sequenceNumber??0}</td></tr>)}</tbody></table></div></section>
+    <div className="lab-columns mt-7"><div><LabLiveMatches matches={experiment.activeMatches??[]} adminExperimentId={id} />
+      <section className="lab-section"><h2>冻结阵容</h2><div className="lab-scroll"><table className="lab-history"><thead><tr><th>AI 副本</th><th>模型</th><th>当前经验</th></tr></thead><tbody>{roster.map(agent=><tr key={agent.participantId}><td>{agent.name}</td><td className="break-all">{agent.modelSelection.modelKey}<div className="lab-small">{agent.modelSelection.thinkingMode} {agent.modelSelection.thinkingEffort}</div></td><td className="lab-number">v{configuration?.experiences[agent.participantId]?.sequenceNumber??0}</td></tr>)}</tbody></table></div></section>
     </div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} /></div>
     <section className="lab-section"><h2><GitCompareArrows size={17} />经验版本与比较</h2>
       {versions.data?<><ExperienceComparison versions={versions.data.items} roster={roster} heads={configuration?.experiences??{}} disabled={!idle||rollback.isPending} rollback={version=>rollback.mutate(version)} /><LabPager page={experiencePage} total={versions.data.total} size={30} change={setExperiencePage} /></>:<AdminDataState loading={versions.isPending} error={versions.error} retry={()=>void versions.refetch()} />}
     </section>
     <section className="lab-section"><h2>发起对照评测</h2><p className="lab-small mb-4">训练完成或暂停后，选一个 AI 与经验版本。固定初始对手，评测不复盘、不写入经验，费用仍计入本实验。</p>
       <form className="lab-form-grid" onSubmit={event=>{event.preventDefault();evaluate.mutate();}}>
-        <label className="lab-field">评测对象<select value={target} onChange={event=>{setAgent(event.target.value);setCandidate("");}}>{roster.map(agent=><option key={agent.agentId} value={agent.agentId}>{agent.name}</option>)}</select></label>
+        <label className="lab-field">评测对象<select value={target} onChange={event=>{setAgent(event.target.value);setCandidate("");}}>{roster.map(agent=><option key={agent.participantId} value={agent.participantId}>{agent.name}</option>)}</select></label>
         <label className="lab-field">训练后经验版本<select value={targetVersion} onChange={event=>setCandidate(event.target.value)}><option value="">选择经验</option>
           {targetVersion&&!versions.data?.items.some(version=>version.id===targetVersion)&&<option value={targetVersion}>{targetVersion==="initial"?"尚无训练经验":"当前生效版本"}</option>}
-          {versions.data?.items.filter(version=>version.agentId===target).map(version=><option value={version.id} key={version.id}>v{version.sequenceNumber}</option>)}</select></label>
+          {versions.data?.items.filter(version=>version.participantId===target).map(version=><option value={version.id} key={version.id}>v{version.sequenceNumber}</option>)}</select></label>
         <label className="lab-field">成对样本数<input type="number" min={1} max={1000} value={pairs} onChange={event=>setPairs(Number(event.target.value))} /></label>
         <Button type="submit" className="self-end" disabled={!idle||!targetVersion||targetVersion==="initial"||evaluate.isPending}>启动对照评测</Button>
       </form><LabEvaluationResults evaluations={experiment.evaluations??[]} />
     </section>
-    <section className="lab-section"><h2>对局历史</h2>{history.data?<><LabMatchHistory page={history.data} /><LabPager page={page} total={history.data.total} size={20} change={setPage} /></>:<AdminDataState loading={history.isPending} error={history.error} retry={()=>void history.refetch()} />}</section>
+    <section className="lab-section"><h2>对局历史</h2>{history.data?<><LabMatchHistory page={history.data} admin /><LabPager page={page} total={history.data.total} size={20} change={setPage} /></>:<AdminDataState loading={history.isPending} error={history.error} retry={()=>void history.refetch()} />}</section>
   </div>;
 }
 export default function LabAdmin() { const {id}=useParams(); return id?<AdminLabDetail key={id} id={id}/>:<AdminLabIndex/>; }

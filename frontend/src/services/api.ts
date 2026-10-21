@@ -1,5 +1,5 @@
 import type { AiDebugInstance, AiDebugSummary, AiDebugTurn, AiDebugDetail } from "@/types/aiDebug";
-import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment } from "@/types/lab";
+import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment, LabObservation } from "@/types/lab";
 import axios from "axios";
 import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
@@ -55,11 +55,12 @@ const api = axios.create({
   withCredentials: true,
 });
 
-const adminExpiredListeners = new Set<() => void>();
-export const subscribeAdminAuthExpired = (listener: () => void) => { adminExpiredListeners.add(listener); return () => { adminExpiredListeners.delete(listener); }; };
+const adminExpiredListeners = new Set<(source?: string) => void>();
+export const subscribeAdminAuthExpired = (listener: (source?: string) => void) => { adminExpiredListeners.add(listener); return () => { adminExpiredListeners.delete(listener); }; };
 const authExpiredListeners = new Set<() => void>();
 let sessionRequests = new AbortController();
 api.interceptors.request.use(config => {
+  if(!config.url?.startsWith("/admin") && config.headers["X-Auth-Token"]!==api.defaults.headers.common["X-Auth-Token"]) throw new axios.CanceledError("Session changed");
   if (!config.url?.startsWith("/admin")) config.signal = config.signal
     ? AbortSignal.any([config.signal as AbortSignal, sessionRequests.signal]) : sessionRequests.signal;
   return config;
@@ -71,9 +72,12 @@ export const subscribeAuthExpired = (listener: () => void) => {
 const expireToken = (token: unknown) => {
   if (token && token === api.defaults.headers.common["X-Auth-Token"]) authExpiredListeners.forEach(listener => listener());
 };
-api.interceptors.response.use(response => response, error => {
+api.interceptors.response.use(response => {
+  if(!response.config.url?.startsWith("/admin") && response.config.headers["X-Auth-Token"]!==api.defaults.headers.common["X-Auth-Token"]) throw new axios.CanceledError("Session changed");
+  return response;
+}, error => {
   if (error.response?.status === 401) {
-    if (error.config?.url?.startsWith("/admin")) adminExpiredListeners.forEach(listener => listener());
+    if (error.config?.url?.startsWith("/admin")) adminExpiredListeners.forEach(listener => listener(error.config.url));
     else expireToken(error.config?.headers?.["X-Auth-Token"]);
   }
   return Promise.reject(error);
@@ -122,8 +126,9 @@ export const aiApi = {
   ): Promise<void> {
     const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
     const token = api.defaults.headers.common["X-Auth-Token"] as string | undefined;
+    const sessionSignal=sessionRequests.signal;
     const response = await fetch(`${base}/ai/chat/stream`, {
-      signal: AbortSignal.any([AbortSignal.timeout(65_000), sessionRequests.signal]),
+      signal: AbortSignal.any([AbortSignal.timeout(65_000), sessionSignal]),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,6 +143,7 @@ export const aiApi = {
       throw new HttpApiError(response.status, typeof body.code === "string" ? body.code : undefined,
         typeof body.message === "string" ? body.message : "流式请求失败");
     }
+    if(sessionSignal.aborted) throw new axios.CanceledError("Session changed");
     if (!response.body) {
       throw new Error("流式请求失败");
     }
@@ -147,6 +153,7 @@ export const aiApi = {
     let buffer = "";
     while (true) {
       const { done, value } = await reader.read();
+      if(sessionSignal.aborted) { await reader.cancel(); throw new axios.CanceledError("Session changed"); }
       if (done) {
         break;
       }
@@ -351,12 +358,25 @@ const adminApiClient = axios.create({
   withCredentials: true,
 });
 
-type ProofRetryConfig = import("axios").InternalAxiosRequestConfig & { __adminProofRetried?: boolean };
+let adminSessionGeneration=0;
+let adminSessionRequests=new AbortController();
+export const advanceAdminSession = () => { adminSessionGeneration+=1; adminSessionRequests.abort(); adminSessionRequests=new AbortController(); };
+type ProofRetryConfig = import("axios").InternalAxiosRequestConfig & { __adminProofRetried?: boolean; __adminSessionGeneration?: number };
+adminApiClient.interceptors.request.use((config:ProofRetryConfig)=>{
+  if(config.__adminSessionGeneration!==undefined && config.__adminSessionGeneration!==adminSessionGeneration) throw new axios.CanceledError("Admin session changed");
+  config.__adminSessionGeneration=adminSessionGeneration;
+  config.signal=config.signal?AbortSignal.any([config.signal as AbortSignal,adminSessionRequests.signal]):adminSessionRequests.signal;
+  return config;
+});
 
-adminApiClient.interceptors.response.use(undefined, async (error) => {
+adminApiClient.interceptors.response.use(response=>{
+  if((response.config as ProofRetryConfig).__adminSessionGeneration!==adminSessionGeneration) throw new axios.CanceledError("Admin session changed");
+  return response;
+}, async (error) => {
   const response = error?.response;
-  if (response?.status === 401) adminExpiredListeners.forEach(listener => listener());
   const config = error?.config as ProofRetryConfig | undefined;
+  if(config && config.__adminSessionGeneration!==adminSessionGeneration) throw new axios.CanceledError("Admin session changed");
+  if (response?.status === 401 && !config?.url?.startsWith("/admin/auth/login")) adminExpiredListeners.forEach(listener => listener(config?.url));
   if (response?.status !== 428 || response?.data?.code !== "ADMIN_OPERATION_PROOF_REQUIRED"
       || !response?.data?.challengeId || !config || config.__adminProofRetried) {
     throw error;
@@ -584,6 +604,7 @@ export const labApi = {
   withdraw: async (id: string): Promise<void> => { await api.delete("/lab/experiments/"+id+"/enrollment"); },
 };
 export const adminLabApi = {
+  observe: async (id: string, matchId: string, signal?: AbortSignal): Promise<LabObservation> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/spectate`,{signal})).data,
   list: async (page = 0): Promise<LabPage<LabExperiment>> => (await adminApiClient.get("/admin/lab/experiments", { params: { page, size: 20 } })).data,
   detail: async (id: string): Promise<LabExperiment> => (await adminApiClient.get("/admin/lab/experiments/"+id)).data,
   matches: async (id: string, page = 0): Promise<LabPage<LabMatch>> => (await adminApiClient.get("/admin/lab/experiments/"+id+"/matches", { params: { page, size: 20 } })).data,
@@ -594,7 +615,7 @@ export const adminLabApi = {
   control: async (id: string, action: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/control/"+action); },
   retryReview: async (id: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/retry-review"); },
   rollback: async (id: string, version: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/rollback/"+version); },
-  evaluate: async (id: string, agentId: string, candidateExperienceId: string, pairs: number): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/evaluations",{agentId,candidateExperienceId,pairs}); },
+  evaluate: async (id: string, participantId: string, candidateExperienceId: string, pairs: number): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/evaluations",{participantId,candidateExperienceId,pairs}); },
 };
 
 export const localAiDebugApi = {
