@@ -12,7 +12,7 @@ public interface GameArchiveRepository extends JpaRepository<GameArchive, String
 
     @org.springframework.data.jpa.repository.Query("""
         select a from GameArchive a
-        where (:gameId is null or a.gameId=:gameId)
+        where a.source='NORMAL' and (:gameId is null or a.gameId=:gameId)
           and (:fromTime is null or a.finishedAt>=:fromTime)
           and (:toTime is null or a.finishedAt<=:toTime)
           and (:playerId is null or exists (select p from ArchiveParticipant p where p.id.archiveId=a.id and p.id.playerId=:playerId))

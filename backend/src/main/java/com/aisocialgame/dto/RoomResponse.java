@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Map;
 
 public class RoomResponse {
+    private String source;
+    private String labExperimentId;
+    public String getSource() { return source; }
+    public String getLabExperimentId() { return labExperimentId; }
     private boolean aiDebugAvailable;
     public boolean isAiDebugAvailable() { return aiDebugAvailable; }
     public void setAiDebugAvailable(boolean available) { aiDebugAvailable = available; }
@@ -27,6 +31,8 @@ public class RoomResponse {
     private String hostUserId;
 
     public RoomResponse(Room room) {
+        this.source = room.getSource();
+        this.labExperimentId = room.isLab() ? String.valueOf(com.aisocialgame.engine.v2.RuleSupport.map(room.getPrivateConfig().get("lab")).get("experimentId")) : null;
         this.id = room.getId();
         this.roomCode = room.getRoomCode();
         this.waitingSince = room.getWaitingSince();

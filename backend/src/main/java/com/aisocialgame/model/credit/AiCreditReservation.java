@@ -19,4 +19,9 @@ public class AiCreditReservation {
     @Column(name="updated_at",nullable=false) public long updatedAt;
     @Lob @Column(name="result_base64",columnDefinition="LONGTEXT") public String resultBase64;
     @Lob @Column(name="billing_quote_base64",columnDefinition="LONGTEXT") public String billingQuoteBase64;
+    @Column(length=36) public String labExperimentId;
+    @Column(length=36) public String labMatchId;
+    @Column(length=24) public String labPurpose;
+    public Long billedPoints;
+    @Column(precision=24,scale=6) public java.math.BigDecimal billedCost;
 }

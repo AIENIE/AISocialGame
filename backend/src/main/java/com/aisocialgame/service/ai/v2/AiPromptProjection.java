@@ -109,6 +109,12 @@ public final class AiPromptProjection {
         if (difficulty.isBlank()) difficulty = text(AiRoundReflection.difficulty(number(o.rules().get("aiDifficulty"),
                 number(o.persona().get("difficultyLevel"), 2))).get("guide"));
         persona.put("difficulty", difficulty); payload.put("persona", persona);
+        Map<String,Object> lab = map(o.memory().get("lab"));
+        if (!lab.isEmpty()) {
+            payload.put("labExperience", Map.of("version", text(lab.get("experienceId")),
+                    "summary", text(lab.get("experience")),
+                    "usage", "这是历史策略经验，不是本局事实；本局判断仅依据本人词语和当前可见事件。"));
+        }
         payload.put("events", o.events().stream().map(AiPromptProjection::undercoverEvent).filter(e -> !e.isEmpty()).toList());
         payload.put("legalActions", o.legalActions().stream().map(a -> {
             Map<String, Object> action = new LinkedHashMap<>(); action.put("type", a.type());

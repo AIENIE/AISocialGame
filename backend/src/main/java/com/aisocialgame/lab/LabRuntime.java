@@ -1,0 +1,184 @@
+package com.aisocialgame.lab;
+
+import com.aisocialgame.exception.ApiException;
+import com.aisocialgame.model.*;
+import com.aisocialgame.repository.*;
+import com.aisocialgame.service.RoomCodeGenerator;
+import com.aisocialgame.service.ai.config.*;
+import com.aisocialgame.service.v2.V2GameService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.*;
+import static com.aisocialgame.engine.v2.RuleSupport.*;
+
+@Service
+public class LabRuntime {
+    public static final List<String> ACTIVE = List.of("WAITING","PLAYING");
+    private final LabExperimentRepository experiments;
+    private final LabMatchRepository matches;
+    private final LabEnrollmentRepository enrollments;
+    private final LabEvaluationRepository evaluations;
+    private final RoomRepository rooms;
+    private final GameStateRepository states;
+    private final AiTurnJobRepository jobs;
+    private final RoomCodeGenerator codes;
+    private final V2GameService game;
+    private final AiModelConfigService models;
+
+    public LabRuntime(LabExperimentRepository experiments,LabMatchRepository matches,LabEnrollmentRepository enrollments,
+            LabEvaluationRepository evaluations,RoomRepository rooms,GameStateRepository states,AiTurnJobRepository jobs,
+            RoomCodeGenerator codes,V2GameService game,AiModelConfigService models) {
+        this.experiments=experiments; this.matches=matches; this.enrollments=enrollments; this.evaluations=evaluations;
+        this.rooms=rooms; this.states=states; this.jobs=jobs; this.codes=codes; this.game=game; this.models=models;
+    }
+    @Transactional
+    public void advance(String id) {
+        var experiment=experiments.lock(id).orElseThrow(LabService::missing);
+        for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE)) {
+            if("WAITING".equals(match.status)) {
+                if(!"RUNNING".equals(experiment.status)) { abortWaiting(match,"LAB_PAUSED_BEFORE_START"); continue; }
+                if(match.startsAtEpochMs<=System.currentTimeMillis()) {
+                    try { start(match); }
+                    catch(ApiException failure) { abortWaiting(match,failure.getCode()==null?"LAB_START_FAILED":failure.getCode()); pause(experiment,match.reason); }
+                }
+            }
+            if("PLAYING".equals(match.status)) {
+                var state=states.findById(match.roomId).orElse(null);
+                if(state!=null && "SETTLEMENT".equals(state.getPhase())) {
+                    collect(match,state);
+                    if("ABORTED".equals(match.status)) pause(experiment,match.reason);
+                }
+            }
+        }
+        advanceReviewCursor(experiment);
+        var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
+        boolean reviewPending=experiment.reviewCursor<experiment.nextSequence;
+        if("STOPPING".equals(experiment.status)) {
+            for(var pending:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("FINISHED","REVIEW_FAILED","REVIEWING"))) {
+                if("REVIEWING".equals(pending.status) && pending.reviewLeaseUntil!=null && pending.reviewLeaseUntil>System.currentTimeMillis()) continue;
+                pending.status="REVIEWED"; pending.reason="STOPPED_BEFORE_REVIEW"; matches.save(pending);
+            }
+            advanceReviewCursor(experiment);
+            if(active.isEmpty() && experiment.reviewCursor==experiment.nextSequence) experiment.status="STOPPED";
+        } else if("PAUSING".equals(experiment.status) && active.isEmpty() && !reviewPending) experiment.status="PAUSED";
+        if(!"RUNNING".equals(experiment.status)) { experiments.save(experiment); return; }
+        var evaluation=evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().filter(row -> "RUNNING".equals(row.status)).findFirst().orElse(null);
+        int capacity=Math.min(number(experiment.configuration.get("concurrency"),1)-active.size(),3-(int)matches.countByStatusIn(ACTIVE));
+        try {
+            if(evaluation!=null) {
+                while(capacity-->0 && evaluation.nextGame<evaluation.pairs*2) createMatch(experiment,evaluation);
+                if(evaluation.nextGame>=evaluation.pairs*2 && matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE).isEmpty()) {
+                    evaluation.status="COMPLETED"; experiment.status=text(evaluation.configuration.get("returnStatus"));
+                }
+                evaluations.save(evaluation);
+            } else {
+                if(experiment.reviewCursor<experiment.nextSequence) { experiments.saveAndFlush(experiment); return; }
+                int target=number(experiment.configuration.get("targetGames"),100);
+                int created=number(experiment.configuration.get("trainingCreated"),0);
+                while(capacity-->0 && created<target) { createMatch(experiment,null); created++; }
+                experiment.configuration.put("trainingCreated",created);
+                if(created>=target && matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE).isEmpty()
+                        && experiment.reviewCursor==experiment.nextSequence) experiment.status="COMPLETED";
+            }
+        } catch(ApiException failure) { pause(experiment,failure.getCode()==null?"LAB_CONFIGURATION_INVALID":failure.getCode()); }
+        experiments.saveAndFlush(experiment);
+    }
+    private void createMatch(LabExperiment experiment,LabEvaluation evaluation) {
+        var roster=new ArrayList<>(maps(evaluation==null?experiment.configuration.get("roster"):evaluation.configuration.get("roster")));
+        for(var profile:roster) models.requireUsable(AiModelSelection.fromMap(map(profile.get("modelSelection"))));
+        int pair=evaluation==null?0:evaluation.nextGame/2;
+        if(evaluation!=null) Collections.rotate(roster,pair%roster.size());
+        var match=new LabMatch(); match.experimentId=experiment.id; match.sequenceNumber=experiment.nextSequence++;
+        match.roomId=UUID.randomUUID().toString();
+        match.randomSeed=evaluation==null?new Random().nextLong():evaluation.randomSeed+pair;
+        match.startsAtEpochMs=System.currentTimeMillis();
+        var heads=map(evaluation==null?experiment.configuration.get("experiences"):evaluation.configuration.get("initialExperiences"));
+        if(evaluation!=null) {
+            match.evaluationId=evaluation.id; match.variant=evaluation.nextGame%2==0?"BASELINE":"CANDIDATE";
+            if("CANDIDATE".equals(match.variant)) heads.put(evaluation.agentId,evaluation.configuration.get("candidate"));
+            match.snapshot.put("pairIndex",pair); evaluation.nextGame++;
+        }
+        var players=new LinkedHashMap<String,Object>();
+        var seats=new ArrayList<RoomSeat>();
+        for(var profile:roster) {
+            String agentId=text(profile.get("agentId")),actorId="lab-"+agentId;
+            var snapshot=new LinkedHashMap<>(profile); snapshot.putAll(map(heads.get(agentId)));
+            players.put(actorId,snapshot);
+            seats.add(new RoomSeat(seats.size(),actorId,text(profile.get("name")),true,text(profile.get("personaId")),
+                    text(map(profile.get("persona")).get("avatar")),true,false));
+        }
+        Map<String,Object> configuration=new LinkedHashMap<>(Map.of("playerCount",roster.size(),"wordPack",experiment.configuration.get("wordPack"),
+                "hasBlank",flag(experiment.configuration.get("hasBlank")),"speakTime",90,"aiDifficulty",2,"spyMode","auto"));
+        String roomName="AI 实验 · "+experiment.name+" · "+match.sequenceNumber;
+        var room=new Room(match.roomId,"undercover",roomName.substring(0,Math.min(128,roomName.length())),
+                RoomStatus.WAITING,roster.size(),false,null,"text",configuration);
+        room.setSource("LAB"); room.setRoomCode(codes.next()); room.setSeats(seats);
+        room.getPrivateConfig().put("labSeed",match.randomSeed);
+        room.getPrivateConfig().put("lab",Map.of("experimentId",experiment.id,"matchId",match.id,
+                "modelSelection",map(roster.getFirst().get("modelSelection"))));
+        room.getPrivateConfig().put("labPlayers",players);
+        match.snapshot.put("players",players); match.snapshot.put("rules",new LinkedHashMap<>(configuration));
+        match.snapshot.put("coach",map(experiment.configuration.get("coach")));
+        rooms.saveAndFlush(room); matches.saveAndFlush(match);
+        if(evaluation==null) {
+            var waiting=enrollments.findByExperimentIdAndStatusOrderByJoinedAtAsc(experiment.id,"WAITING");
+            for(var enrollment:waiting.stream().limit(roster.size()-1L).toList()) {
+                enrollment.status="OFFERED"; enrollment.matchId=match.id; enrollment.confirmUntil=System.currentTimeMillis()+30_000;
+                match.startsAtEpochMs=enrollment.confirmUntil; enrollments.save(enrollment);
+            }
+        }
+        matches.save(match);
+    }
+    private void start(LabMatch match) {
+        var room=rooms.findByIdForUpdate(match.roomId).orElseThrow();
+        if(room.getStatus()==RoomStatus.PLAYING) { match.status="PLAYING"; matches.save(match); return; }
+        var entries=enrollments.findByMatchId(match.id);
+        var confirmed=entries.stream().filter(entry -> "CONFIRMED".equals(entry.status)).toList();
+        for(int seat=0;seat<confirmed.size();seat++) {
+            var enrollment=confirmed.get(seat);
+            room.getSeats().set(seat,new RoomSeat(seat,enrollment.userId,enrollment.displayName,false,null,enrollment.avatar,true,false));
+            enrollment.status="PLAYING"; enrollments.save(enrollment);
+        }
+        for(var entry:entries) if("OFFERED".equals(entry.status)) { entry.status="CANCELLED"; enrollments.save(entry); }
+        var snapshots=map(room.getPrivateConfig().get("labPlayers"));
+        var activeIds=new HashSet<>(room.getSeats().stream().map(RoomSeat::getPlayerId).toList());
+        snapshots.keySet().retainAll(activeIds); room.getPrivateConfig().put("labPlayers",snapshots);
+        match.snapshot.put("players",snapshots);
+        rooms.saveAndFlush(room); game.startLab(match.roomId);
+        match.status="PLAYING"; matches.saveAndFlush(match);
+    }
+    private void collect(LabMatch match,GameState state) {
+        match.archiveId=text(state.getData().get("archiveId")); match.finishedAt=LocalDateTime.now();
+        match.reason=state.getData().containsKey("labFailureReason")?text(state.getData().get("labFailureReason")):null;
+        match.status=match.reason!=null?"ABORTED":match.evaluationId==null?"FINISHED":"REVIEWED";
+        var turns=jobs.findByInstanceIdOrderByCreatedAtAsc(match.archiveId);
+        var frozen=map(state.getData().get("labPlayers"));
+        var winners=new HashSet<>(strings(state.getData().get("winnerIds")));
+        var results=new ArrayList<Map<String,Object>>();
+        for(var player:state.getPlayers()) {
+            var row=new LinkedHashMap<String,Object>();
+            row.put("actorId",player.getPlayerId()); row.put("ai",player.isAi()); row.put("name",player.getDisplayName());
+            row.put("agentId",text(map(frozen.get(player.getPlayerId())).get("agentId")));
+            row.put("role",player.getRole()); row.put("won",winners.contains(player.getPlayerId()));
+            row.put("successfulActions",turns.stream().filter(turn -> player.getPlayerId().equals(turn.getActorId()) && "SUCCEEDED".equals(turn.getStatus())).count());
+            row.put("failedActions",turns.stream().filter(turn -> player.getPlayerId().equals(turn.getActorId()) && "FAILED".equals(turn.getStatus())).count());
+            results.add(row);
+        }
+        match.snapshot.put("results",results); match.snapshot.put("winner",text(state.getData().get("winner")));
+        matches.saveAndFlush(match);
+        for(var entry:enrollments.findByMatchId(match.id)) if("PLAYING".equals(entry.status)) { entry.status="FINISHED"; enrollments.save(entry); }
+    }
+    private void abortWaiting(LabMatch match,String reason) {
+        match.status="ABORTED"; match.reason=reason==null?"LAB_CANCELLED":reason; match.finishedAt=LocalDateTime.now(); matches.save(match);
+        for(var entry:enrollments.findByMatchId(match.id)) if(Set.of("OFFERED","CONFIRMED").contains(entry.status)) { entry.status="CANCELLED"; enrollments.save(entry); }
+    }
+    private void advanceReviewCursor(LabExperiment experiment) {
+        while(experiment.reviewCursor<experiment.nextSequence) {
+            var match=matches.findByExperimentIdAndSequenceNumber(experiment.id,experiment.reviewCursor).orElseThrow();
+            if(!Set.of("REVIEWED","ABORTED").contains(match.status)) break;
+            experiment.reviewCursor++;
+        }
+    }
+    public static void pause(LabExperiment experiment,String reason) { experiment.status="PAUSED"; experiment.reason=reason; }
+}

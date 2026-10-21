@@ -165,6 +165,7 @@ public class RoomService {
             }
         }
 
+        if (room.isLab()) throw new ApiException(HttpStatus.CONFLICT, "请通过 AI 实验室报名参战", "LAB_ENROLLMENT_REQUIRED", Map.of());
         if (room.getSeats().size() >= room.getMaxPlayers()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满", "ROOM_FULL", Map.of());
         }

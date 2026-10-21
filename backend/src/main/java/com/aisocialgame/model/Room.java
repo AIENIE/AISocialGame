@@ -23,6 +23,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "rooms", uniqueConstraints = @jakarta.persistence.UniqueConstraint(name = "uk_rooms_code", columnNames = "room_code"))
 public class Room {
+    @Column(nullable=false,length=16)
+    private String source = "NORMAL";
+    public String getSource() { return source; }
+    public void setSource(String value) { source = value; }
+    public boolean isLab() { return "LAB".equals(source); }
     @Id
     @Column(length = 36)
     private String id;

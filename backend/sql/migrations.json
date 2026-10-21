@@ -81,6 +81,11 @@
       "ordinal": 16,
       "kind": "upgrade",
       "file": "20261004_admin_emergency_codes.sql"
+    },
+    {
+      "ordinal": 17,
+      "kind": "upgrade",
+      "file": "20261021_ai_lab.sql"
     }
   ],
   "execution_plans": [
@@ -101,7 +106,8 @@
         13,
         14,
         15,
-        16
+        16,
+        17
       ]
     },
     {
@@ -120,7 +126,8 @@
         13,
         14,
         15,
-        16
+        16,
+        17
       ]
     }
   ],

@@ -158,6 +158,8 @@ public class AiTurnCoordinator {
             if (job == null || !"QUEUED".equals(job.getStatus())) return null;
             if (modelConfigs != null && !job.getDiagnostics().containsKey("modelSelection")) {
                 var prior = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")).get("modelSelection"));
+                var frozen = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("memory")).get("lab")).get("modelSelection"));
+                if (prior.isEmpty() && !frozen.isEmpty()) prior = frozen;
                 job.getDiagnostics().put("modelSelection", prior.isEmpty() ? modelConfigs.resolve(
                         com.aisocialgame.engine.v2.RuleSupport.text(V2GameService.observationPayload(job).get("gameId")), job.getActorId()).toMap() : prior);
             }
@@ -193,7 +195,8 @@ public class AiTurnCoordinator {
             AiTurnDecision decision;
             var checkpoint = new java.util.LinkedHashMap<>(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")));
             if (job.getDiagnostics().containsKey("modelSelection")) checkpoint.put("modelSelection", job.getDiagnostics().get("modelSelection"));
-            try (var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
+            try (var labScope = com.aisocialgame.lab.LabCallContext.open(com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(observation.memory()).get("lab")), "TURN");
+                 var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
                     .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))).model(selectedModel(job)))) {
                 decision = generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, checkpoint);
             }

@@ -21,6 +21,12 @@ public class ObservationFactory {
         Map<String, Object> publicRules = new LinkedHashMap<>(rules.observationRules(state));
         publicRules.put("ruleVersion", 2);
         Map<String, Object> memory = RuleSupport.HOST.equals(actorId) ? Map.of() : memories.snapshot(state, actorId);
+        if (state.getData().containsKey("lab")) {
+            memory = new LinkedHashMap<>(memory);
+            Map<String,Object> lab = new LinkedHashMap<>(RuleSupport.map(state.getData().get("lab")));
+            lab.putAll(RuleSupport.map(RuleSupport.map(state.getData().get("labPlayers")).get(actorId)));
+            memory.put("lab", lab);
+        }
         List<Map<String, Object>> visible = visibleEvents(state, actorId);
         Set<String> important = new HashSet<>();
         List<Map<String, Object>> ownSpeech = visible.stream().filter(e -> actorId.equals(e.get("actorId"))
@@ -66,6 +72,8 @@ public class ObservationFactory {
         return result;
     }
     private Map<String, Object> persona(GameState state, String actorId) {
+        Map<String,Object> frozen = RuleSupport.map(RuleSupport.map(RuleSupport.map(state.getData().get("labPlayers")).get(actorId)).get("persona"));
+        if (!frozen.isEmpty()) return frozen;
         GamePlayerState actor = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId)).findFirst().orElse(null);
         Persona persona = actor == null ? null : personas.findById(actor.getPersonaId());
         if (persona == null) return Map.of("name", RuleSupport.HOST.equals(actorId) ? "主持人" : "代管玩家", "trait", "认真、克制，尊重玩家此前立场", "presetVersion", 0);

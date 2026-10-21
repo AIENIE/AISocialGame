@@ -2,7 +2,9 @@
     [string]$EvidenceDirectory,
     [ValidateRange(0,65535)][int]$Port=0,
     [ValidateSet('8.4.11','8.0.45')][string]$ServerVersion='8.4.11',
-    [switch]$VerifyFailureCleanup
+    [switch]$VerifyFailureCleanup,
+    [string]$MigrationTests='ClosureMySqlMigrationTest,GeneratedPlanMySqlTest',
+    [switch]$MigrationsOnly
 )
 Set-StrictMode -Version Latest; $ErrorActionPreference='Stop'
 if([Environment]::OSVersion.Platform -ne 'Win32NT' -or $PSVersionTable.PSVersion.Major -lt 7){throw 'Requires PowerShell 7 on Windows.'}
@@ -64,12 +66,14 @@ try {
     if(-not $ready){throw 'Temporary MySQL readiness timed out.'}
     if($VerifyFailureCleanup){throw 'Intentional isolated runner cleanup check.'}
     $env:AIENIE_CLOSURE_MYSQL='1';$env:AIENIE_CLOSURE_MYSQL_PORT=[string]$Port;$env:AIENIE_CLOSURE_MYSQL_RUN=$runId;$env:AIENIE_CLOSURE_MYSQL_PASSWORD=$password;$env:AIENIE_CLOSURE_MYSQL_EVIDENCE=$evidence;$env:AIENIE_CLOSURE_MYSQL_VERSION=$version
-    & mvn.cmd -q -f (Join-Path $root 'backend/pom.xml') '-Dtest=ClosureMySqlMigrationTest,GeneratedPlanMySqlTest' test *> (Join-Path $evidence 'migrations.log')
+    & mvn.cmd -q -f (Join-Path $root 'backend/pom.xml') "-Dtest=$MigrationTests" test *> (Join-Path $evidence 'migrations.log')
     if($LASTEXITCODE){throw 'MySQL migration tests failed; see migrations.log.'}
+    if(-not $MigrationsOnly) {
     & mvn.cmd -q -f (Join-Path $root 'backend/pom.xml') '-Dtest=ClosureMySqlAdmissionTest,ClosureMySqlGameIntegrationTest,ClosureMySqlCommunityTest,ClosureMySqlSettlementTest' test *> (Join-Path $evidence 'behavior.log')
     if($LASTEXITCODE){throw 'MySQL behavior tests failed; see behavior.log.'}
     & mvn.cmd -q -f (Join-Path $root 'backend/pom.xml') '-Dtest=ClosureMySqlArchiveScaleTest' test *> (Join-Path $evidence 'archive-scale.log')
     if($LASTEXITCODE){throw 'MySQL archive scale test failed; see archive-scale.log.'}
+    }
     $success=$true
 } finally {
     foreach($key in $prior.Keys){[Environment]::SetEnvironmentVariable($key,$prior[$key],'Process')}

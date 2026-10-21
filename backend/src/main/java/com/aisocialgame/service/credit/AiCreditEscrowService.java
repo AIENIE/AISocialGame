@@ -15,6 +15,8 @@ import java.util.*;
 
 @Service
 public class AiCreditEscrowService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.aisocialgame.lab.LabBudgetService labBudgets;
     public record Claim(AiCreditReservation reservation, boolean acquired) {}
     private final AiCreditReservationRepository reservations;
     private final CreditAccountRepository accounts;
@@ -50,6 +52,7 @@ public class AiCreditEscrowService {
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
             long required=budget.hasPriceQuote() ? validatedPoints(budget.getPriceQuote()) : budget.getMaxTotalTokens();
+            if (labBudgets != null) labBudgets.checkReservation(required);
             long temp=temporary.balance(account,now);
             long available = Math.addExact(temp,account.getPermanentBalance());
             if(available < required) {
@@ -69,6 +72,7 @@ public class AiCreditEscrowService {
             row.identityHash=identity; row.requestHash=digest; row.requestId=request.getRequestId();
             row.projectKey=request.getProjectKey(); row.userId=request.getUserId(); row.budgetId=budget.getBudgetId();
             row.state="HELD"; row.reservedTemp=reserveTemp; row.reservedPermanent=reservePermanent;
+            if (labBudgets != null) labBudgets.bind(row);
             row.tempPortionsJson=encode(portions); row.updatedAt=System.currentTimeMillis();
             if (budget.hasPriceQuote()) row.billingQuoteBase64=Base64.getEncoder().encodeToString(budget.getPriceQuote().toByteArray());
             reservations.saveAndFlush(row);
@@ -118,6 +122,10 @@ public class AiCreditEscrowService {
             if(expiredTemp>0) ledger.insertLedgerEntry("ai-expire:"+row.id,row.userId,"EXPIRE",-expiredTemp,0,0,0,
                 "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
             row.state=success ? "SETTLED" : "RELEASED";
+            if (row.labExperimentId != null) {
+                row.billedPoints = billed;
+                row.billedCost = success && status.hasCharge() ? new java.math.BigDecimal(status.getCharge().getTotalCost()) : java.math.BigDecimal.ZERO;
+            }
             if(success) row.resultBase64=Base64.getEncoder().encodeToString(status.getChat().toByteArray());
             row.updatedAt=System.currentTimeMillis(); reservations.saveAndFlush(row);
         });

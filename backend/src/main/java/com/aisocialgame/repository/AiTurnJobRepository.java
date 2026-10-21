@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AiTurnJobRepository extends JpaRepository<AiTurnJob, String> {
+    List<AiTurnJob> findByInstanceIdOrderByCreatedAtAsc(String instanceId);
     interface DebugRef {
         String getId(); String getStatus(); java.util.Map<String,Object> getDiagnostics();
     }

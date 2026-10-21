@@ -16,6 +16,31 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratedPlanMySqlTest {
     @TempDir Path temporary;
 
+    @Test void aiLabUpgradeMatchesSnapshotIsRepeatableAndPreservesExistingConfiguration() throws Exception {
+        var generated=new GeneratedMigrationFixture(temporary);
+        try(var server=connect(null);var statement=server.createStatement()) {
+            for(String suffix:List.of("lab","lab_snapshot")) statement.execute("CREATE DATABASE `"+database(suffix)+"` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try(var db=connect("lab");var snapshot=connect("lab_snapshot")) {
+            var increment=generated.freshScripts().stream().filter(path -> path.getFileName().toString().equals("20261021_ai_lab.sql")).findFirst().orElseThrow();
+            String current=Files.readString(Path.of("sql/schema.sql")),addition=Files.readString(increment);
+            int start=current.indexOf(addition); assertTrue(start>=0); assertEquals(start,current.lastIndexOf(addition));
+            Path previous=temporary.resolve("before-lab.sql"); Files.writeString(previous,current.substring(0,start)+current.substring(start+addition.length()));
+            ClosureMySqlMigrationTest.script(db,previous.toString());
+            ClosureMySqlMigrationTest.sql(db,"UPDATE ai_model_catalog SET models_json='[\"preserved\"]',version=71 WHERE id=1");
+            var before=ClosureMySqlMigrationTest.rows(db,"SELECT models_json,version FROM ai_model_catalog");
+            ClosureMySqlMigrationTest.script(db,increment.toString()); ClosureMySqlMigrationTest.script(db,increment.toString());
+            ClosureMySqlMigrationTest.script(snapshot,"sql/schema.sql");
+            String columns="SELECT table_name,column_name,column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND (LEFT(table_name,4)='lab_' OR table_name IN ('rooms','game_archives','ai_credit_reservations')) ORDER BY table_name,ordinal_position";
+            String indexes="SELECT table_name,index_name,seq_in_index,column_name,non_unique FROM information_schema.statistics WHERE table_schema=DATABASE() AND (LEFT(table_name,4)='lab_' OR table_name IN ('rooms','game_archives','ai_credit_reservations')) ORDER BY table_name,index_name,seq_in_index";
+            assertEquals(ClosureMySqlMigrationTest.rows(db,columns),ClosureMySqlMigrationTest.rows(snapshot,columns));
+            assertEquals(ClosureMySqlMigrationTest.rows(db,indexes),ClosureMySqlMigrationTest.rows(snapshot,indexes));
+            assertEquals(before,ClosureMySqlMigrationTest.rows(db,"SELECT models_json,version FROM ai_model_catalog"));
+            assertEquals(List.of(List.of("6")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,4)='lab_'"));
+            evidence("ai-lab-migration",java.util.Map.of("currentSchemaMatches",true,"existingDataPreserved",true,"repeatRuns",2,"newTables",6));
+        }
+    }
+
     @Test void localDebugUpgradeIsRepeatableAndPreservesPrivatePayloadsAndExistingData() throws Exception {
         var generated = new GeneratedMigrationFixture(temporary);
         try (var server = connect(null); var statement = server.createStatement()) {

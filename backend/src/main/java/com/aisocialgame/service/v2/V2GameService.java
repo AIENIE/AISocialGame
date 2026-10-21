@@ -102,12 +102,17 @@ public class V2GameService {
         return response(room, state, viewer == null ? null : viewer.getId());
     }
     public GameStateResponse start(String gameId, String roomId, User user) {
+        return start(gameId, roomId, user, false);
+    }
+    public void startLab(String roomId) { start("undercover", roomId, null, true); }
+    private GameStateResponse start(String gameId, String roomId, User user, boolean laboratory) {
         return lifecycle.withActiveRoom(roomId, gameId, room -> {
-            requireHost(room, user);
+            if (laboratory) RuleSupport.require(room.isLab(), "仅实验室调度器可以启动实验房间");
+            else { RuleSupport.require(!room.isLab(), "实验房间由实验室调度"); requireHost(room, user); }
             GameState previous = states.findByIdForUpdate(roomId).orElse(null);
             if (previous != null && !"SETTLEMENT".equals(previous.getPhase())) {
                 RuleSupport.require(RuleSupport.number(previous.getData().get("ruleVersion"), 1) == 2, "请先完成当前旧版本对局");
-                return response(room, previous, user.getId());
+                return response(room, previous, user == null ? null : user.getId());
             }
             GameRuleSet rules = rules(gameId);
             var configuration=GameConfiguration.validate(rules.definition(),room.getConfig()); RuleSupport.require(configuration.valid(),configuration.message());
@@ -123,7 +128,7 @@ public class V2GameService {
             RuleSupport.event(state, "start", null, null, "对局开始，按房间展示的规则进行。", Map.of("ruleVersion", 2));
             room.setStatus(RoomStatus.PLAYING); room.setWaitingSince(null); rooms.save(room);
             persist(room, state, rules, true); prepareJob(state, rules);
-            return response(room, state, user.getId());
+            return response(room, state, user == null ? null : user.getId());
         });
     }
     public GameStateResponse action(String gameId, String roomId, User user, PlayerAction action) {
@@ -273,6 +278,12 @@ public class V2GameService {
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (rules.isTurnCurrent(state, turn)) {
+                if (room.isLab()) {
+                    state.getData().put("labFailureReason", RuleSupport.strings(generation.get("qualityFlags")).stream().findFirst().orElse(reason));
+                    state.getData().put("winner", "ABORTED"); state.setPhase("SETTLEMENT"); state.setPhaseEndsAt(null);
+                    RuleSupport.event(state, "LAB_INTERRUPTED", null, null, "实验对局中断，等待管理员处理。", Map.of("reason", reason));
+                    finishJob(job, "FAILED", reason); persist(room, state, rules, true); return;
+                }
                 LocalDateTime now = LocalDateTime.now();
                 // A genuinely expired phase must use its clock transition; submitting SKIP
                 // through a rule's normal action path can itself reject an expired action.
@@ -316,6 +327,8 @@ public class V2GameService {
             AiJobDiagnostics.initialize(job, java.time.Instant.now(), java.time.ZoneId.systemDefault(), state.getGameId());
             long observing = System.nanoTime();
             job.setObservation(RuleSupport.map(JSON.convertValue(observations.build(state, rules, turn), Map.class)));
+            Map<String,Object> labSelection = RuleSupport.map(RuleSupport.map(RuleSupport.map(job.getObservation().get("memory")).get("lab")).get("modelSelection"));
+            if (!labSelection.isEmpty()) job.getDiagnostics().put("modelSelection", labSelection);
             job.getDiagnostics().put("observationMs", Math.max(0, (System.nanoTime() - observing) / 1_000_000));
             job.getDiagnostics().put("queuedEpochMs", java.time.Instant.now().toEpochMilli());
             jobs.save(job);
@@ -360,8 +373,8 @@ public class V2GameService {
         }
         if ("SETTLEMENT".equals(state.getPhase()) && !Boolean.TRUE.equals(state.getData().get("v2Settled"))) {
             state.getData().put("winnerIds", new ArrayList<>(rules.winningPlayerIds(state)));
-            memories.finishGame(state);
-            if (!"custom".equals(room.getConfig().get("wordPack"))) stats.recordResult(String.valueOf(state.getData().get("archiveId")), state.getGameId(), state.getPlayers(), rules.winningPlayerIds(state));
+            if (!room.isLab()) memories.finishGame(state);
+            if (!room.isLab() && !"custom".equals(room.getConfig().get("wordPack"))) stats.recordResult(String.valueOf(state.getData().get("archiveId")), state.getGameId(), state.getPlayers(), rules.winningPlayerIds(state));
             archives.archiveFinishedGame(state, room); state.getData().put("v2Settled", true);
             room.setStatus(RoomStatus.WAITING); room.setWaitingSince(LocalDateTime.now()); rooms.save(room);
         }
@@ -377,7 +390,10 @@ public class V2GameService {
         return safety.controls(AiSafetyContext.source("GAME").room(state.getRoomId(),state.getGameId()));
     }
     private boolean automationBlocked(GameState state,String actorId) {
-        return automationBlocked(state,actorId,configuredModel(state.getGameId(),actorId));
+        var lab = RuleSupport.map(state.getData().get("lab"));
+        var profile = RuleSupport.map(RuleSupport.map(state.getData().get("labPlayers")).get(actorId));
+        var selected = RuleSupport.map(profile.getOrDefault("modelSelection",lab.get("modelSelection")));
+        return automationBlocked(state,actorId,selected.isEmpty() ? configuredModel(state.getGameId(),actorId) : RuleSupport.text(selected.get("modelKey")));
     }
     private String configuredModel(String gameId,String actorId) {
         return modelConfigs == null ? appProperties == null ? null : appProperties.getAi().getDefaultModel() : modelConfigs.resolve(gameId,actorId).modelKey();
