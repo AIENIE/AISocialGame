@@ -26,6 +26,7 @@ import Replays from "./pages/Replays";
 import ReplayPlayer from "./pages/ReplayPlayer";
 import Guide from "./pages/Guide";
 import SpectatorRoom from "./pages/SpectatorRoom";
+import Lab from "./pages/Lab";
 
 /**
  * 用户入口：非 /admin 路由统一由 I18nextProvider 包裹。
@@ -77,6 +78,8 @@ const UserApp = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/ai-chat" element={<AiChat />} />
+                  <Route path="/lab" element={<Lab />} />
+                  <Route path="/lab/:id" element={<Lab />} />
                   <Route path="/rankings" element={<Rankings />} />
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/replays" element={<Replays />} />

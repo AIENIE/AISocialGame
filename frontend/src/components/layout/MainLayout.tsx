@@ -15,7 +15,7 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const { user, loading, logout, displayName, redirectToSsoLogin } = useAuth();
   const [quickMatchOpen, setQuickMatchOpen] = useState(false);
-  const privateNav = [{ path: "/community", label: "nav.community" }, { path: "/ai-chat", label: "nav.aiChat" }, { path: "/rankings", label: "nav.rankings" }, { path: "/replays", label: "nav.replays" }];
+  const privateNav = [{ path: "/lab", label: "nav.lab" }, { path: "/community", label: "nav.community" }, { path: "/ai-chat", label: "nav.aiChat" }, { path: "/rankings", label: "nav.rankings" }, { path: "/replays", label: "nav.replays" }];
   const nav = [{ path: "/", label: "nav.home" }, ...(user ? privateNav : []), { path: "/guide", label: "nav.guide" }];
   const active = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)) ? "text-primary" : "text-muted-foreground";
   if (user && /^\/room\/(undercover|werewolf|turtle_soup)\//.test(location.pathname)) return <main className="room-route"><Outlet /></main>;

@@ -73,6 +73,8 @@ export interface RoomSeat {
 }
 
 export interface Room {
+  source?: "NORMAL" | "LAB";
+  labExperimentId?: string | null;
   aiDebugAvailable?: boolean;
   id: string;
   gameId: string;

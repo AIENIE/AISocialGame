@@ -1,4 +1,5 @@
 import type { AiDebugInstance, AiDebugSummary, AiDebugTurn, AiDebugDetail } from "@/types/aiDebug";
+import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment } from "@/types/lab";
 import axios from "axios";
 import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
@@ -573,6 +574,28 @@ export const adminApi = {
 
 export default api;
 
+
+export const labApi = {
+  list: async (page = 0): Promise<LabPage<LabExperiment>> => (await api.get("/lab/experiments", { params: { page, size: 20 } })).data,
+  detail: async (id: string): Promise<LabExperiment> => (await api.get("/lab/experiments/"+id)).data,
+  matches: async (id: string, page = 0): Promise<LabPage<LabMatch>> => (await api.get("/lab/experiments/"+id+"/matches", { params: { page, size: 20 } })).data,
+  enroll: async (id: string): Promise<void> => { await api.post("/lab/experiments/"+id+"/enrollment"); },
+  confirm: async (id: string): Promise<void> => { await api.post("/lab/experiments/"+id+"/enrollment/confirm"); },
+  withdraw: async (id: string): Promise<void> => { await api.delete("/lab/experiments/"+id+"/enrollment"); },
+};
+export const adminLabApi = {
+  list: async (page = 0): Promise<LabPage<LabExperiment>> => (await adminApiClient.get("/admin/lab/experiments", { params: { page, size: 20 } })).data,
+  detail: async (id: string): Promise<LabExperiment> => (await adminApiClient.get("/admin/lab/experiments/"+id)).data,
+  matches: async (id: string, page = 0): Promise<LabPage<LabMatch>> => (await adminApiClient.get("/admin/lab/experiments/"+id+"/matches", { params: { page, size: 20 } })).data,
+  experiences: async (id: string, page = 0): Promise<LabPage<LabExperience>> => (await adminApiClient.get("/admin/lab/experiments/"+id+"/experiences", { params: { page } })).data,
+  agents: async (): Promise<LabAgent[]> => (await adminApiClient.get("/admin/lab/agents")).data,
+  saveAgent: async (request: CreateLabAgent, id?: string): Promise<LabAgent> => (await (id ? adminApiClient.put("/admin/lab/agents/"+id,request) : adminApiClient.post("/admin/lab/agents",request))).data,
+  create: async (request: CreateLabExperiment): Promise<LabExperiment> => (await adminApiClient.post("/admin/lab/experiments",request)).data,
+  control: async (id: string, action: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/control/"+action); },
+  retryReview: async (id: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/retry-review"); },
+  rollback: async (id: string, version: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/rollback/"+version); },
+  evaluate: async (id: string, agentId: string, candidateExperienceId: string, pairs: number): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/evaluations",{agentId,candidateExperienceId,pairs}); },
+};
 
 export const localAiDebugApi = {
   async instances(gameId: string, roomId: string, page = 0, signal?: AbortSignal): Promise<PagedResponse<AiDebugInstance>> {

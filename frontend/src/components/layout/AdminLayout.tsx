@@ -8,6 +8,7 @@ const navItems = [
   { path: "/admin/billing", label: "积分查询" },
   { path: "/admin/ai", label: "AI 质检" },
   { path: "/admin/models", label: "模型配置" },
+  { path: "/admin/lab", label: "AI 实验室" },
   { path: "/admin/security", label: "认证安全" },
   { path: "/admin/safety", label: "安全运营" },
   { path: "/admin/integration", label: "服务联通" },
