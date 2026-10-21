@@ -54,7 +54,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     let hidden=false;
     const hide = () => { hidden=true; generation.current += 1; authenticating.current=false; advanceAdminSession(); setLoading(false); };
     const show = () => { if(hidden) { hidden=false; void checkSession(true); } };
-    const focus = () => { if(adminRef.current && !authenticating.current && !hidden) void checkSession(true); };
+    const focus = () => { if(!authenticating.current && !hidden) void checkSession(true); };
     window.addEventListener("pagehide", hide);
     window.addEventListener("pageshow", show);
     window.addEventListener("focus", focus);
@@ -62,7 +62,10 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     return () => { generation.current += 1; advanceAdminSession(); window.removeEventListener("pagehide", hide); window.removeEventListener("pageshow",show); window.removeEventListener("focus",focus); };
   }, [retry,checkSession]);
   useEffect(() => subscribeAdminAuthExpired(source => {
-    if(source && source!=="/admin/auth/me") { void checkSession(true); return; }
+    if(source && source!=="/admin/auth/me" && source!=="/admin/auth/logout") {
+      if(!authenticating.current) void checkSession(true);
+      return;
+    }
     generation.current += 1; authenticating.current=false; adminRef.current=null; setAdmin(null); setLoading(false); setError(false);
     resetQueries();
   }), [resetQueries,checkSession]);
@@ -92,15 +95,16 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
   const logout = async () => {
     const request = ++generation.current;
-    authenticating.current=false; advanceAdminSession();
+    authenticating.current=true; advanceAdminSession();
     window.dispatchEvent(new Event("admin-auth-reset"));
-    setLoading(false);
+    setLoading(true);
     try {
       await adminApi.logout();
       if (request === generation.current) {
         applyPrincipal(null); resetQueries();
       }
     } catch { if (request === generation.current) toast.error("退出失败，请重试。"); }
+    finally { if(request===generation.current) { authenticating.current=false; setLoading(false); } }
   };
 
   const value = {

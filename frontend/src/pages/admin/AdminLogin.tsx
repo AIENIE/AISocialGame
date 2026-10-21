@@ -35,6 +35,10 @@ const AdminLogin = () => {
     setStage("PASSWORD"); setPasswordRecovery(false); setLoading(false);
   });
 
+  useEffect(()=>{
+    if(!auth.loading && auth.admin?.sessionScope==="FULL" && stage==="PASSWORD") navigate(returnTo,{replace:true});
+  },[auth.loading,auth.admin?.sessionScope,stage,navigate,returnTo]);
+
   useEffect(() => {
     const request = begin();
     void adminApi.policy().then(value => { if (current(request)) setPolicy(value); }).catch(() => { if (current(request)) setPolicy(null); });

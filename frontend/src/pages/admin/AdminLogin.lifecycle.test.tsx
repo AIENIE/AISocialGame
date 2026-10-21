@@ -33,6 +33,11 @@ it("returns to the requested management page after normal login",async()=>{
   state.login.mockResolvedValue({state:"AUTHENTICATED",sessionScope:"FULL"});await render();await submit();
   expect(state.navigate).toHaveBeenCalledWith("/admin/lab/experiment?view=history#round");
 });
+it("resumes the original page when another tab has already restored a full administrator session",async()=>{
+  window.history.replaceState(null,"","/admin/login?returnTo="+encodeURIComponent("/admin/lab/experiment/matches/match"));
+  state.admin={username:"B",displayName:"Admin B",sessionScope:"FULL",authMode:"password",expiresAt:"session-B"};
+  await render();expect(state.navigate).toHaveBeenCalledWith("/admin/lab/experiment/matches/match",{replace:true});
+});
 it("rejects a late enrollment seed and allows a new enrollment after pageshow", async () => {
   await render();
   state.login.mockResolvedValue({ state: "ENROLLMENT_REQUIRED", challengeId: "challenge" });

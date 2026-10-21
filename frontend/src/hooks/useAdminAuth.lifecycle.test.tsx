@@ -75,3 +75,14 @@ it("retains the administrator identity and cache after a temporary background va
   await act(async()=>window.dispatchEvent(new Event("focus")));
   expect(container.textContent).toContain("A");expect(client.getQueryData(["admin","lab"])).toBe("CURRENT");
 });
+it("does not let a focus refresh supersede an in-flight logout",async()=>{
+  state.me.mockResolvedValue({username:"A",sessionScope:"FULL",expiresAt:"session-A"});await render();
+  const pending=deferred<void>();state.logout.mockReturnValueOnce(pending.promise);await click("logout");
+  await act(async()=>window.dispatchEvent(new Event("focus")));
+  expect(state.me).toHaveBeenCalledTimes(1);
+  await act(async()=>pending.resolve());expect(container.textContent).not.toContain("A");
+});
+it("recognizes a management session restored by another tab when the anonymous tab regains focus",async()=>{
+  await render();state.me.mockResolvedValue({username:"B",sessionScope:"FULL",expiresAt:"session-B"});
+  await act(async()=>window.dispatchEvent(new Event("focus")));expect(container.textContent).toContain("B");
+});
