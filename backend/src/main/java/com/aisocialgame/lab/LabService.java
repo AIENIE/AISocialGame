@@ -200,19 +200,25 @@ public class LabService {
         return result;
     }
     private static Map<String,Object> evaluationStats(List<LabMatch> rows,String agentId,String variant,Set<Integer> usable) {
-        var players=rows.stream().filter(row -> variant.equals(row.variant) && usable.contains(number(row.snapshot.get("pairIndex"),-1)))
+        var completed=rows.stream().filter(row -> variant.equals(row.variant) && Set.of("REVIEWED","ABORTED").contains(row.status)).toList();
+        var players=completed.stream().filter(row -> usable.contains(number(row.snapshot.get("pairIndex"),-1)))
                 .flatMap(row -> maps(row.snapshot.get("results")).stream()).filter(player -> agentId.equals(player.get("agentId"))).toList();
+        var allActions=completed.stream().flatMap(row -> maps(row.snapshot.get("results")).stream())
+                .filter(player -> agentId.equals(player.get("agentId"))).toList();
         long wins=players.stream().filter(player -> flag(player.get("won"))).count();
-        long actions=players.stream().mapToLong(player -> number(player.get("successfulActions"),0)).sum();
-        long failures=players.stream().mapToLong(player -> number(player.get("failedActions"),0)).sum();
+        long actions=allActions.stream().mapToLong(player -> number(player.get("successfulActions"),0)).sum();
+        long failures=allActions.stream().mapToLong(player -> number(player.get("failedActions"),0)).sum();
+        long failedGames=completed.stream().filter(row -> "ABORTED".equals(row.status) || row.reason!=null).count();
         var roles=new LinkedHashMap<String,Object>();
         for(String role:List.of("CIVILIAN","UNDERCOVER","BLANK")) {
             var group=players.stream().filter(player -> role.equals(player.get("role"))).toList();
-            roles.put(role,Map.of("games",group.size(),"wins",group.stream().filter(player -> flag(player.get("won"))).count()));
+            long roleWins=group.stream().filter(player -> flag(player.get("won"))).count();
+            roles.put(role,Map.of("games",group.size(),"wins",roleWins,"winRate",group.isEmpty()?0d:(double)roleWins/group.size()));
         }
         return Map.of("games",players.size(),"wins",wins,"winRate",players.isEmpty()?0d:(double)wins/players.size(),
                 "validActionRate",actions+failures==0?0d:(double)actions/(actions+failures),
-                "failureRate",actions+failures==0?0d:(double)failures/(actions+failures),"roles",roles);
+                "failureRate",completed.isEmpty()?0d:(double)failedGames/completed.size(),"roles",roles,
+                "attemptedGames",completed.size(),"failedGames",failedGames);
     }
     private Map<String,Object> summary(LabExperiment experiment) {
         var result=new LinkedHashMap<String,Object>();

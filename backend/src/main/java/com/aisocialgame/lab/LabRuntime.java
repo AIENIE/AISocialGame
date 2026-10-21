@@ -60,7 +60,12 @@ public class LabRuntime {
                 pending.status="REVIEWED"; pending.reason="STOPPED_BEFORE_REVIEW"; matches.save(pending);
             }
             advanceReviewCursor(experiment);
-            if(active.isEmpty() && experiment.reviewCursor==experiment.nextSequence) experiment.status="STOPPED";
+            if(active.isEmpty() && experiment.reviewCursor==experiment.nextSequence) {
+                experiment.status="STOPPED";
+                for(var evaluation:evaluations.findByExperimentIdOrderByCreatedAtDesc(id)) if("RUNNING".equals(evaluation.status)) {
+                    evaluation.status="STOPPED"; evaluations.save(evaluation);
+                }
+            }
         } else if("PAUSING".equals(experiment.status) && active.isEmpty() && !reviewPending) experiment.status="PAUSED";
         if(!"RUNNING".equals(experiment.status)) { experiments.save(experiment); return; }
         var evaluation=evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().filter(row -> "RUNNING".equals(row.status)).findFirst().orElse(null);
@@ -113,7 +118,7 @@ public class LabRuntime {
         String roomName="AI 实验 · "+experiment.name+" · "+match.sequenceNumber;
         var room=new Room(match.roomId,"undercover",roomName.substring(0,Math.min(128,roomName.length())),
                 RoomStatus.WAITING,roster.size(),false,null,"text",configuration);
-        room.setSource("LAB"); room.setRoomCode(codes.next()); room.setSeats(seats);
+        room.setSource("LAB"); room.setRoomCode(nextRoomCode()); room.setSeats(seats);
         room.getPrivateConfig().put("labSeed",match.randomSeed);
         room.getPrivateConfig().put("lab",Map.of("experimentId",experiment.id,"matchId",match.id,
                 "modelSelection",map(roster.getFirst().get("modelSelection"))));
@@ -133,7 +138,7 @@ public class LabRuntime {
     private void start(LabMatch match) {
         var room=rooms.findByIdForUpdate(match.roomId).orElseThrow();
         if(room.getStatus()==RoomStatus.PLAYING) { match.status="PLAYING"; matches.save(match); return; }
-        var entries=enrollments.findByMatchId(match.id);
+        var entries=enrollments.findByMatchIdOrderByJoinedAtAscIdAsc(match.id);
         var confirmed=entries.stream().filter(entry -> "CONFIRMED".equals(entry.status)).toList();
         for(int seat=0;seat<confirmed.size();seat++) {
             var enrollment=confirmed.get(seat);
@@ -147,6 +152,13 @@ public class LabRuntime {
         match.snapshot.put("players",snapshots);
         rooms.saveAndFlush(room); game.startLab(match.roomId);
         match.status="PLAYING"; matches.saveAndFlush(match);
+    }
+    private String nextRoomCode() {
+        for(int attempt=0;attempt<32;attempt++) {
+            String candidate=codes.next();
+            if(!rooms.existsByRoomCode(candidate)) return candidate;
+        }
+        throw new ApiException(org.springframework.http.HttpStatus.CONFLICT,"暂时无法分配实验房间码","LAB_ROOM_CODE_UNAVAILABLE",Map.of());
     }
     private void collect(LabMatch match,GameState state) {
         match.archiveId=text(state.getData().get("archiveId")); match.finishedAt=LocalDateTime.now();
@@ -167,11 +179,11 @@ public class LabRuntime {
         }
         match.snapshot.put("results",results); match.snapshot.put("winner",text(state.getData().get("winner")));
         matches.saveAndFlush(match);
-        for(var entry:enrollments.findByMatchId(match.id)) if("PLAYING".equals(entry.status)) { entry.status="FINISHED"; enrollments.save(entry); }
+        for(var entry:enrollments.findByMatchIdOrderByJoinedAtAscIdAsc(match.id)) if("PLAYING".equals(entry.status)) { entry.status="FINISHED"; enrollments.save(entry); }
     }
     private void abortWaiting(LabMatch match,String reason) {
         match.status="ABORTED"; match.reason=reason==null?"LAB_CANCELLED":reason; match.finishedAt=LocalDateTime.now(); matches.save(match);
-        for(var entry:enrollments.findByMatchId(match.id)) if(Set.of("OFFERED","CONFIRMED").contains(entry.status)) { entry.status="CANCELLED"; enrollments.save(entry); }
+        for(var entry:enrollments.findByMatchIdOrderByJoinedAtAscIdAsc(match.id)) if(Set.of("OFFERED","CONFIRMED").contains(entry.status)) { entry.status="CANCELLED"; enrollments.save(entry); }
     }
     private void advanceReviewCursor(LabExperiment experiment) {
         while(experiment.reviewCursor<experiment.nextSequence) {

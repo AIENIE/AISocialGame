@@ -31,6 +31,10 @@ const labels: Record<string, readonly [string, string]> = {
     "未結預留",
     "Outstanding holds"
   ],
+  "待对账金额（已含于预留）": [
+    "待對帳金額（已含於預留）",
+    "Awaiting settlement (included in holds)"
+  ],
   "剩余可预留": [
     "剩餘可預留",
     "Available for reservation"
@@ -158,6 +162,14 @@ const labels: Record<string, readonly [string, string]> = {
   "有效行动率": [
     "有效行動率",
     "Valid action rate"
+  ],
+  "已结束尝试 / 失败": [
+    "已結束嘗試 / 失敗",
+    "Finished attempts / failed"
+  ],
+  "胜率仅含完整配对；有效行动率包含中断局的已执行行动，失败率按已结束尝试计算。": [
+    "勝率僅含完整配對；有效行動率包含中斷局的已執行行動，失敗率按已結束嘗試計算。",
+    "Win rates use complete pairs only. Action validity includes executed actions from interrupted games; failure rates include all finished attempts."
   ],
   "失败率": [
     "失敗率",

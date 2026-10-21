@@ -16,6 +16,7 @@ export function LabCostPanel({ cost, limit, tr = plain }: { cost: LabCost; limit
     <div className="lab-ledger"><span>{tr("费用上限")}</span><strong>¥{money(limit)}</strong></div>
     <div className="lab-ledger"><span>{tr("已扣积分折合")}</span><strong>¥{money(cost.spentPoints)}</strong></div>
     <div className="lab-ledger"><span>{tr("未结预留")}</span><strong>¥{money(cost.heldPoints)}</strong></div>
+    <div className="lab-ledger"><span>{tr("待对账金额（已含于预留）")}</span><strong>¥{money(cost.pendingPoints)}</strong></div>
     <div className="lab-ledger border-t"><span>{tr("剩余可预留")}</span><strong>¥{money(Math.max(0, limit-cost.spentPoints-cost.heldPoints))}</strong></div>
     <div className="lab-small mt-5">{tr("供应商费用")} ¥{Number(cost.actualCost).toFixed(6)}<br />{cost.totalCalls} {tr("笔调用")} · {cost.pendingCalls} {tr("笔待对账")}</div>
     <p className="lab-small mt-4">{tr("对局、修正、复盘与评测共用此额度。未知费用保留预留，等待对账。")}</p></aside>;
@@ -53,9 +54,11 @@ export function LabEvaluationResults({ evaluations, tr = plain }: { evaluations:
     {evaluations.map(evaluation=><article className="lab-table mb-3" key={evaluation.id}><div className="flex flex-wrap items-center justify-between gap-3"><LabState state={evaluation.status} tr={tr} /><span className="lab-small">{evaluation.validPairs} / {evaluation.pairs} {tr("组成对样本")}</span></div>
       <div className="lab-scroll mt-3"><table className="lab-history"><thead><tr><th>{tr("指标")}</th><th>{tr("初始经验")}</th><th>{tr("训练后经验")}</th></tr></thead><tbody>
         <tr><td>{tr("胜率")}</td><td>{percent(evaluation.baseline.winRate)}</td><td>{percent(evaluation.candidate.winRate)}</td></tr>
+        <tr><td>{tr("已结束尝试 / 失败")}</td><td>{evaluation.baseline.attemptedGames} / {evaluation.baseline.failedGames}</td><td>{evaluation.candidate.attemptedGames} / {evaluation.candidate.failedGames}</td></tr>
         <tr><td>{tr("有效行动率")}</td><td>{percent(evaluation.baseline.validActionRate)}</td><td>{percent(evaluation.candidate.validActionRate)}</td></tr>
         <tr><td>{tr("失败率")}</td><td>{percent(evaluation.baseline.failureRate)}</td><td>{percent(evaluation.candidate.failureRate)}</td></tr>
-        {["CIVILIAN","UNDERCOVER","BLANK"].map(role=><tr key={role}><td>{tr(role)}</td><td>{evaluation.baseline.roles[role]?.wins ?? 0} / {evaluation.baseline.roles[role]?.games ?? 0}</td><td>{evaluation.candidate.roles[role]?.wins ?? 0} / {evaluation.candidate.roles[role]?.games ?? 0}</td></tr>)}</tbody></table></div>
+        {["CIVILIAN","UNDERCOVER","BLANK"].map(role=><tr key={role}><td>{tr(role)}</td><td>{percent(evaluation.baseline.roles[role]?.winRate ?? 0)} · {evaluation.baseline.roles[role]?.wins ?? 0} / {evaluation.baseline.roles[role]?.games ?? 0}</td><td>{percent(evaluation.candidate.roles[role]?.winRate ?? 0)} · {evaluation.candidate.roles[role]?.wins ?? 0} / {evaluation.candidate.roles[role]?.games ?? 0}</td></tr>)}</tbody></table></div>
+      <p className="lab-small mt-3">{tr("胜率仅含完整配对；有效行动率包含中断局的已执行行动，失败率按已结束尝试计算。")}</p>
       <p className="lab-small mt-3">{tr("胜率差异")} <span className="lab-number">{evaluation.winRateDifference>=0?"+":""}{percent(evaluation.winRateDifference)}</span></p></article>)}</section>;
 }
 export function LabPager({ page, total, size, change, tr = plain }: { page: number; total: number; size: number; change: (page: number)=>void; tr?: LabTranslate }) {

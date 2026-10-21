@@ -2,7 +2,7 @@ import type { ThinkingMode, ThinkingEffort } from "./aiModelConfig";
 
 export interface LabSelection { modelKey: string; thinkingMode: ThinkingMode; thinkingEffort: ThinkingEffort | null }
 export interface LabAgent { id: string; name: string; personaId: string; modelSelection: LabSelection; version: number }
-export interface LabCost { spentPoints: number; heldPoints: number; pendingCalls: number; totalCalls: number; actualCost: number | string }
+export interface LabCost { spentPoints: number; heldPoints: number; pendingPoints: number; pendingCalls: number; totalCalls: number; actualCost: number | string }
 export interface LabExperienceHead { experienceId: string; experience: string; sequenceNumber: number }
 export interface LabFrozenAgent { agentId: string; name: string; personaId: string; persona: Record<string, unknown>; modelSelection: LabSelection }
 export interface LabConfiguration {
@@ -17,8 +17,8 @@ export interface LabMatch {
   snapshot?: Record<string, unknown>;
 }
 export interface LabEvaluationStats {
-  games: number; wins: number; winRate: number; validActionRate: number; failureRate: number;
-  roles: Record<string, { games: number; wins: number }>;
+  games: number; wins: number; winRate: number; validActionRate: number; failureRate: number; attemptedGames: number; failedGames: number;
+  roles: Record<string, { games: number; wins: number; winRate: number }>;
 }
 export interface LabEvaluation {
   id: string; agentId: string; status: string; pairs: number; completedGames: number; validPairs: number;

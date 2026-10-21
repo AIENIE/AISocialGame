@@ -5,9 +5,9 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Lab from "./Lab";
 import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
-import { LabCostPanel } from "@/components/lab/LabPanels";
+import { LabCostPanel, LabEvaluationResults } from "@/components/lab/LabPanels";
 import { labText } from "@/i18n/labTexts";
-import type { LabExperiment } from "@/types/lab";
+import type { LabExperiment, LabEvaluationStats } from "@/types/lab";
 import type { CatalogModel } from "@/types/aiModelConfig";
 
 let language="zh-CN";
@@ -19,7 +19,7 @@ let container:HTMLDivElement,root:Root,client:QueryClient;
 const experiment=():LabExperiment=>({
   id:"experiment",name:"Test laboratory",status:"RUNNING",budgetPoints:1000,createdAt:"2026-10-21T12:00:00",
   attemptedGames:1,reviewedThrough:0,playerCount:6,targetGames:100,concurrency:1,wordPack:"daily",hasBlank:false,
-  cost:{spentPoints:12,heldPoints:88,pendingCalls:1,totalCalls:2,actualCost:"0.000001"},
+  cost:{spentPoints:12,heldPoints:88,pendingPoints:88,pendingCalls:1,totalCalls:2,actualCost:"0.000001"},
   enrollment:{status:"OFFERED",matchId:"match",confirmUntil:Date.now()+30_000},evaluations:[],
   activeMatches:[{id:"match",sequenceNumber:1,roomId:"room",status:"WAITING",startsAtEpochMs:Date.now()+30000,createdAt:"2026-10-21T12:00:00"}],
 });
@@ -71,6 +71,18 @@ it("separates actual provider cost from wallet charges and outstanding holds in 
   expect(container.textContent).toContain("¥0.00");
   expect(container.textContent).toContain("0.000001");
   expect(container.textContent).toContain("awaiting reconciliation");
+  expect(container.textContent).toContain("included in holds");
   expect(labText("zh-TW","AI 实验室")).toBe("AI 實驗室");
   expect(labText("zh-CN","PAUSING")).toBe("本局后暂停");
+});
+it("shows aborted evaluation attempts and role win rates without implying improvement",()=>{
+  const stats:LabEvaluationStats={games:1,wins:1,winRate:1,validActionRate:0.8,failureRate:0.5,attemptedGames:2,failedGames:1,
+    roles:{CIVILIAN:{games:1,wins:1,winRate:1}}};
+  act(()=>root.render(<LabEvaluationResults evaluations={[{id:"evaluation",agentId:"agent",status:"PAUSED",pairs:2,completedGames:3,validPairs:1,
+    baseline:stats,candidate:{...stats,wins:0,winRate:0},winRateDifference:-1}]} tr={text=>labText("en",text)}/>));
+  expect(container.textContent).toContain("Finished attempts / failed");
+  expect(container.textContent).toContain("2 / 1");
+  expect(container.textContent).toContain("50.0%");
+  expect(container.textContent).toContain("100.0% · 1 / 1");
+  expect(container.textContent).toContain("failure rates include all finished attempts");
 });

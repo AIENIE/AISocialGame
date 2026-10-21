@@ -32,6 +32,7 @@ public class LabBudgetService {
     public Map<String,Object> totals(String experimentId) {
         var totals = reservations.labTotals(experimentId);
         return Map.of("spentPoints", totals.getSpentPoints(), "heldPoints", totals.getHeldPoints(),
-                "pendingCalls", totals.getPendingCalls(), "totalCalls", totals.getTotalCalls(), "actualCost", totals.getActualCost());
+                "pendingCalls", totals.getPendingCalls(), "pendingPoints", totals.getHeldPoints(),
+                "totalCalls", totals.getTotalCalls(), "actualCost", totals.getActualCost());
     }
 }
