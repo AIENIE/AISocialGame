@@ -16,7 +16,7 @@ type Stage = "PASSWORD" | "TOTP" | "ENROLL" | "RECOVERY" | "REBIND" | "CODES";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const returnTo=safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
+  const [returnTo]=useState(()=>safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
   const auth = useAdminAuth();
   const { startRebind } = auth;
   const [policy, setPolicy] = useState<AdminAuthPolicy | null>(null);

@@ -38,6 +38,13 @@ it("resumes the original page when another tab has already restored a full admin
   state.admin={username:"B",displayName:"Admin B",sessionScope:"FULL",authMode:"password",expiresAt:"session-B"};
   await render();expect(state.navigate).toHaveBeenCalledWith("/admin/lab/experiment/matches/match",{replace:true});
 });
+it("keeps the original destination while navigation and authentication updates overlap",async()=>{
+  const destination="/admin/lab/experiment/matches/match";
+  window.history.replaceState(null,"","/admin/login?returnTo="+encodeURIComponent(destination));await render();
+  window.history.replaceState(null,"",destination);
+  state.admin={username:"B",displayName:"Admin B",sessionScope:"FULL",authMode:"password",expiresAt:"session-B"};
+  await render();expect(state.navigate).toHaveBeenCalledWith(destination,{replace:true});expect(state.navigate).not.toHaveBeenCalledWith("/admin",{replace:true});
+});
 it("rejects a late enrollment seed and allows a new enrollment after pageshow", async () => {
   await render();
   state.login.mockResolvedValue({ state: "ENROLLMENT_REQUIRED", challengeId: "challenge" });
