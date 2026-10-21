@@ -86,6 +86,11 @@
       "ordinal": 17,
       "kind": "upgrade",
       "file": "20261021_ai_lab.sql"
+    },
+    {
+      "ordinal": 18,
+      "kind": "upgrade",
+      "file": "20261021_ai_lab_participants.sql"
     }
   ],
   "execution_plans": [
@@ -107,7 +112,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ]
     },
     {
@@ -127,7 +133,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ]
     }
   ],

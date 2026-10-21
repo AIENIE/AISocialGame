@@ -69,7 +69,7 @@ public class LabRuntime {
         } else if("PAUSING".equals(experiment.status) && active.isEmpty() && !reviewPending) experiment.status="PAUSED";
         if(!"RUNNING".equals(experiment.status)) { experiments.save(experiment); return; }
         var evaluation=evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().filter(row -> "RUNNING".equals(row.status)).findFirst().orElse(null);
-        int capacity=Math.min(number(experiment.configuration.get("concurrency"),1)-active.size(),3-(int)matches.countByStatusIn(ACTIVE));
+        int capacity=active.isEmpty() && matches.countByStatusIn(ACTIVE)<3?1:0;
         try {
             if(evaluation!=null) {
                 while(capacity-->0 && evaluation.nextGame<evaluation.pairs*2) createMatch(experiment,evaluation);
@@ -93,7 +93,6 @@ public class LabRuntime {
         var roster=new ArrayList<>(maps(evaluation==null?experiment.configuration.get("roster"):evaluation.configuration.get("roster")));
         for(var profile:roster) models.requireUsable(AiModelSelection.fromMap(map(profile.get("modelSelection"))));
         int pair=evaluation==null?0:evaluation.nextGame/2;
-        if(evaluation!=null) Collections.rotate(roster,pair%roster.size());
         var match=new LabMatch(); match.experimentId=experiment.id; match.sequenceNumber=experiment.nextSequence++;
         match.roomId=UUID.randomUUID().toString();
         match.randomSeed=evaluation==null?new Random().nextLong():evaluation.randomSeed+pair;
@@ -101,14 +100,14 @@ public class LabRuntime {
         var heads=map(evaluation==null?experiment.configuration.get("experiences"):evaluation.configuration.get("initialExperiences"));
         if(evaluation!=null) {
             match.evaluationId=evaluation.id; match.variant=evaluation.nextGame%2==0?"BASELINE":"CANDIDATE";
-            if("CANDIDATE".equals(match.variant)) heads.put(evaluation.agentId,evaluation.configuration.get("candidate"));
+            if("CANDIDATE".equals(match.variant)) heads.put(evaluation.participantId,evaluation.configuration.get("candidate"));
             match.snapshot.put("pairIndex",pair); evaluation.nextGame++;
         }
         var players=new LinkedHashMap<String,Object>();
         var seats=new ArrayList<RoomSeat>();
         for(var profile:roster) {
-            String agentId=text(profile.get("agentId")),actorId="lab-"+agentId;
-            var snapshot=new LinkedHashMap<>(profile); snapshot.putAll(map(heads.get(agentId)));
+            String participantId=LabService.participantId(profile),actorId="lab-"+participantId;
+            var snapshot=new LinkedHashMap<>(profile); snapshot.put("participantId",participantId); snapshot.putAll(map(heads.get(participantId)));
             players.put(actorId,snapshot);
             seats.add(new RoomSeat(seats.size(),actorId,text(profile.get("name")),true,text(profile.get("personaId")),
                     text(map(profile.get("persona")).get("avatar")),true,false));
@@ -150,6 +149,12 @@ public class LabRuntime {
         var activeIds=new HashSet<>(room.getSeats().stream().map(RoomSeat::getPlayerId).toList());
         snapshots.keySet().retainAll(activeIds); room.getPrivateConfig().put("labPlayers",snapshots);
         match.snapshot.put("players",snapshots);
+        if(!match.snapshot.containsKey("seatOrder")) {
+            var shuffled=new ArrayList<>(room.getSeats());
+            Collections.shuffle(shuffled,new Random(match.randomSeed));
+            for(int seat=0;seat<shuffled.size();seat++) shuffled.get(seat).setSeatNumber(seat);
+            room.setSeats(shuffled); match.snapshot.put("seatOrder",shuffled.stream().map(RoomSeat::getPlayerId).toList());
+        }
         rooms.saveAndFlush(room); game.startLab(match.roomId);
         match.status="PLAYING"; matches.saveAndFlush(match);
     }
@@ -172,6 +177,7 @@ public class LabRuntime {
             var row=new LinkedHashMap<String,Object>();
             row.put("actorId",player.getPlayerId()); row.put("ai",player.isAi()); row.put("name",player.getDisplayName());
             row.put("agentId",text(map(frozen.get(player.getPlayerId())).get("agentId")));
+            row.put("participantId",LabService.participantId(map(frozen.get(player.getPlayerId()))));
             row.put("role",player.getRole()); row.put("won",winners.contains(player.getPlayerId()));
             row.put("successfulActions",turns.stream().filter(turn -> player.getPlayerId().equals(turn.getActorId()) && "SUCCEEDED".equals(turn.getStatus())).count());
             row.put("failedActions",turns.stream().filter(turn -> player.getPlayerId().equals(turn.getActorId()) && "FAILED".equals(turn.getStatus())).count());

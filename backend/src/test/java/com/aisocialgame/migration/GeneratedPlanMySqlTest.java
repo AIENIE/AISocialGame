@@ -23,13 +23,14 @@ class GeneratedPlanMySqlTest {
         }
         try(var db=connect("lab");var snapshot=connect("lab_snapshot")) {
             var increment=generated.freshScripts().stream().filter(path -> path.getFileName().toString().equals("20261021_ai_lab.sql")).findFirst().orElseThrow();
-            String current=Files.readString(Path.of("sql/schema.sql")),addition=Files.readString(increment);
+            String current=Files.readString(Path.of("sql/schema.sql")).replace(Files.readString(Path.of("sql/20261021_ai_lab_participants.sql")),""),addition=Files.readString(increment);
             int start=current.indexOf(addition); assertTrue(start>=0); assertEquals(start,current.lastIndexOf(addition));
             Path previous=temporary.resolve("before-lab.sql"); Files.writeString(previous,current.substring(0,start)+current.substring(start+addition.length()));
             ClosureMySqlMigrationTest.script(db,previous.toString());
             ClosureMySqlMigrationTest.sql(db,"UPDATE ai_model_catalog SET models_json='[\"preserved\"]',version=71 WHERE id=1");
             var before=ClosureMySqlMigrationTest.rows(db,"SELECT models_json,version FROM ai_model_catalog");
             ClosureMySqlMigrationTest.script(db,increment.toString()); ClosureMySqlMigrationTest.script(db,increment.toString());
+            ClosureMySqlMigrationTest.script(db,"sql/20261021_ai_lab_participants.sql");
             ClosureMySqlMigrationTest.script(snapshot,"sql/schema.sql");
             String columns="SELECT table_name,column_name,column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND (LEFT(table_name,4)='lab_' OR table_name IN ('rooms','game_archives','ai_credit_reservations')) ORDER BY table_name,ordinal_position";
             String indexes="SELECT table_name,index_name,seq_in_index,column_name,non_unique FROM information_schema.statistics WHERE table_schema=DATABASE() AND (LEFT(table_name,4)='lab_' OR table_name IN ('rooms','game_archives','ai_credit_reservations')) ORDER BY table_name,index_name,seq_in_index";
@@ -38,6 +39,34 @@ class GeneratedPlanMySqlTest {
             assertEquals(before,ClosureMySqlMigrationTest.rows(db,"SELECT models_json,version FROM ai_model_catalog"));
             assertEquals(List.of(List.of("6")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,4)='lab_'"));
             evidence("ai-lab-migration",java.util.Map.of("currentSchemaMatches",true,"existingDataPreserved",true,"repeatRuns",2,"newTables",6));
+        }
+    }
+
+    @Test void labParticipantUpgradePreservesLegacyVersionsAndAllowsIndependentCopies() throws Exception {
+        var generated=new GeneratedMigrationFixture(temporary);
+        try(var server=connect(null);var statement=server.createStatement()) {
+            for(String suffix:List.of("participants","participants_snapshot")) statement.execute("CREATE DATABASE `"+database(suffix)+"` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try(var db=connect("participants");var snapshot=connect("participants_snapshot")) {
+            var increment=generated.freshScripts().stream().filter(path -> path.getFileName().toString().equals("20261021_ai_lab_participants.sql")).findFirst().orElseThrow();
+            String current=Files.readString(Path.of("sql/schema.sql")),addition=Files.readString(increment);
+            assertTrue(current.contains(addition));
+            Path previous=temporary.resolve("before-participants.sql"); Files.writeString(previous,current.replace(addition,""));
+            ClosureMySqlMigrationTest.script(db,previous.toString());
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_experiences(id,experiment_id,agent_id,sequence_number,summary,evidence,created_at) VALUES('old-version','old-experiment','same-agent',1,'保留历史经验','{}',NOW(6))");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_evaluations(id,experiment_id,agent_id,pairs,next_game,random_seed,status,configuration,created_at) VALUES('old-evaluation','old-experiment','same-agent',1,0,17,'COMPLETED','{}',NOW(6))");
+            ClosureMySqlMigrationTest.script(db,increment.toString()); ClosureMySqlMigrationTest.script(db,increment.toString());
+            assertEquals(List.of(List.of("same-agent","same-agent","保留历史经验")),ClosureMySqlMigrationTest.rows(db,"SELECT agent_id,participant_id,summary FROM lab_experiences"));
+            assertEquals(List.of(List.of("same-agent")),ClosureMySqlMigrationTest.rows(db,"SELECT participant_id FROM lab_evaluations"));
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_experiences(id,experiment_id,agent_id,participant_id,sequence_number,summary,evidence,created_at) VALUES('copy-version','old-experiment','same-agent','copy-participant',1,'独立副本经验','{}',NOW(6))");
+            ClosureMySqlMigrationTest.script(db,increment.toString());
+            assertEquals(List.of(List.of("copy-participant")),ClosureMySqlMigrationTest.rows(db,"SELECT participant_id FROM lab_experiences WHERE id='copy-version'"));
+            ClosureMySqlMigrationTest.script(snapshot,"sql/schema.sql");
+            String columns="SELECT table_name,column_name,column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name IN ('lab_experiences','lab_evaluations') ORDER BY table_name,ordinal_position";
+            String indexes="SELECT table_name,index_name,seq_in_index,column_name,non_unique FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name IN ('lab_experiences','lab_evaluations') ORDER BY table_name,index_name,seq_in_index";
+            assertEquals(ClosureMySqlMigrationTest.rows(db,columns),ClosureMySqlMigrationTest.rows(snapshot,columns));
+            assertEquals(ClosureMySqlMigrationTest.rows(db,indexes),ClosureMySqlMigrationTest.rows(snapshot,indexes));
+            evidence("lab-participants-migration",java.util.Map.of("currentSchemaMatches",true,"legacyVersionsPreserved",true,"independentCopies",true,"repeatRuns",3));
         }
     }
 

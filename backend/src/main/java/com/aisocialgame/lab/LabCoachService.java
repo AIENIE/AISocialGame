@@ -22,7 +22,7 @@ public class LabCoachService {
         为每个 AI 分别整合上一版经验和本局有证据支持的策略，关注描述信息量、投票、白板、自爆时机和判断修正。
         经验是可修正的策略建议，不是事实或保证；不要因为获胜就认定每个决策正确。
         只保存泛化策略，不记录词语答案、玩家姓名、原句或某个座位的固定身份。每个 summary 为 1 至 1200 字。
-        仅返回 JSON：{"experiences":[{"agentId":"输入中的档案ID","summary":"整合后的策略经验","evidenceEventIds":["输入中的公开事件ID"]}]}。
+        仅返回 JSON：{"experiences":[{"participantId":"输入中的独立副本ID","summary":"整合后的策略经验","evidenceEventIds":["输入中的公开事件ID"]}]}。
         必须且只能为输入 agents 中的每个 AI 返回一条经验，引用至少一个本局公开事件；不要输出 Markdown 或思考过程。
         """;
     private final LabExperimentRepository experiments;
@@ -82,14 +82,14 @@ public class LabCoachService {
                 var heads=map(experiment.configuration.get("experiences"));
                 var players=map(match.snapshot.get("players"));
                 var profiles=new ArrayList<Map<String,Object>>();
-                for(Object value:players.values()) {
-                    var player=map(value);
-                    profiles.add(Map.of("agentId",player.get("agentId"),"actorId","lab-"+player.get("agentId"),
-                            "previousExperience",text(map(heads.get(text(player.get("agentId")))).get("experience"))));
+                for(var entry:players.entrySet()) {
+                    var player=map(entry.getValue()); String participantId=LabService.participantId(player);
+                    profiles.add(Map.of("agentId",player.get("agentId"),"participantId",participantId,"actorId",entry.getKey(),
+                            "previousExperience",text(map(heads.get(participantId)).get("experience"))));
                 }
                 try {
                     String input=json.writeValueAsString(Map.of("agents",profiles,"events",publicEvents,"results",match.snapshot.get("results")));
-                    match.snapshot.put("reviewRequest",Map.of("roomId",match.roomId,"selection",match.snapshot.get("coach"),
+                    match.snapshot.put("reviewRequest",Map.of("roomId",match.roomId,"identityField","participantId","selection",match.snapshot.get("coach"),
                             "messages",List.of(Map.of("role","system","content",SYSTEM),Map.of("role","user","content",input))));
                     match.snapshot.put("reviewEventIds",publicEvents.stream().map(event -> text(event.get("eventId"))).toList());
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
@@ -104,26 +104,28 @@ public class LabCoachService {
             var experiment=experiments.lock(claim.experimentId()).orElseThrow();
             var match=matches.lock(claim.matchId()).orElseThrow();
             if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
-            var expected=new HashSet<String>();
-            map(match.snapshot.get("players")).values().forEach(value -> expected.add(text(map(value).get("agentId"))));
+            var profiles=new HashMap<String,Map<String,Object>>();
+            map(match.snapshot.get("players")).values().forEach(value -> { var profile=map(value); profiles.put(LabService.participantId(profile),profile); });
+            var expected=profiles.keySet();
+            String identityField=text(claim.request().getOrDefault("identityField","agentId"));
             var entries=maps(output.get("experiences"));
             var actual=new HashSet<String>();
             var eventIds=new HashSet<>(strings(match.snapshot.get("reviewEventIds")));
             for(var entry:entries) {
-                String agentId=text(entry.get("agentId")),summary=text(entry.get("summary")).strip();
+                String participantId=text(entry.get(identityField)),summary=text(entry.get("summary")).strip();
                 var evidence=strings(entry.get("evidenceEventIds"));
-                if(!expected.contains(agentId) || !actual.add(agentId) || summary.isBlank() || summary.length()>1200
+                if(!expected.contains(participantId) || !actual.add(participantId) || summary.isBlank() || summary.length()>1200
                         || evidence.isEmpty() || !eventIds.containsAll(evidence)) throw invalid();
             }
             if(!actual.equals(expected)) throw invalid();
             var heads=map(experiment.configuration.get("experiences"));
             for(var entry:entries) {
-                String agentId=text(entry.get("agentId"));
-                var version=new LabExperience(); version.experimentId=experiment.id; version.agentId=agentId;
-                version.sequenceNumber=experiences.latestSequence(experiment.id,agentId)+1;
-                version.summary=text(entry.get("summary")).strip(); version.previousId=text(map(heads.get(agentId)).get("experienceId"));
+                String participantId=text(entry.get(identityField));
+                var version=new LabExperience(); version.experimentId=experiment.id; version.agentId=text(profiles.get(participantId).get("agentId"));
+                version.participantId=participantId; version.sequenceNumber=experiences.latestSequence(experiment.id,participantId)+1;
+                version.summary=text(entry.get("summary")).strip(); version.previousId=text(map(heads.get(participantId)).get("experienceId"));
                 version.evidence=Map.of("matchId",match.id,"archiveId",match.archiveId,"eventIds",strings(entry.get("evidenceEventIds")),"requestId",claim.requestId());
-                experiences.saveAndFlush(version); heads.put(agentId,LabService.experienceHead(version));
+                experiences.saveAndFlush(version); heads.put(participantId,LabService.experienceHead(version));
             }
             experiment.configuration.put("experiences",heads);
             match.status="REVIEWED"; match.reason=null; match.reviewLeaseUntil=null;

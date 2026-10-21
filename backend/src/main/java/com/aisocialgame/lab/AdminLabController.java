@@ -18,6 +18,7 @@ public class AdminLabController {
     @PostMapping("/experiments") public Map<String,Object> create(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Experiment request) { return service.create(request,operator); }
     @GetMapping("/experiments/{id}") public Map<String,Object> detail(@CurrentAdmin String operator,@PathVariable String id) { return service.detail(id,null,true); }
     @GetMapping("/experiments/{id}/matches") public Map<String,Object> matches(@CurrentAdmin String operator,@PathVariable String id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return service.matchPage(id,page,size,true); }
+    @GetMapping("/experiments/{id}/matches/{matchId}/spectate") public Map<String,Object> observe(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId) { return service.observe(id,matchId); }
     @GetMapping("/experiments/{id}/experiences") public Map<String,Object> experiences(@CurrentAdmin String operator,@PathVariable String id,@RequestParam(defaultValue="0") int page) { return service.experiencePage(id,page); }
     @PostMapping("/experiments/{id}/control/{action}") public Map<String,Object> control(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String action) { return service.control(id,action); }
     @PostMapping("/experiments/{id}/rollback/{experienceId}") public void rollback(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String experienceId) { service.rollback(id,experienceId); }

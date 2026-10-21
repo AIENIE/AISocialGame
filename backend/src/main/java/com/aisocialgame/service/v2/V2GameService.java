@@ -101,6 +101,12 @@ public class V2GameService {
         if (viewer != null) connections.markActive(viewer.getId(), roomId);
         return response(room, state, viewer == null ? null : viewer.getId());
     }
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public GameStateResponse labSpectatorState(String roomId) {
+        Room room=room(roomId,"undercover",false);
+        if(!room.isLab()) throw new ApiException(HttpStatus.BAD_REQUEST,"不是实验室对局");
+        return response(room,states.findById(roomId).orElse(null),null);
+    }
     public GameStateResponse start(String gameId, String roomId, User user) {
         return start(gameId, roomId, user, false);
     }

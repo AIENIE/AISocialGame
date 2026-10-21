@@ -6,6 +6,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface LabExperienceRepository extends JpaRepository<LabExperience, String> {
     Page<LabExperience> findByExperimentIdOrderByCreatedAtDesc(String experimentId, Pageable page);
-    @Query("select coalesce(max(e.sequenceNumber),0) from LabExperience e where e.experimentId=:experimentId and e.agentId=:agentId")
-    int latestSequence(@Param("experimentId") String experimentId, @Param("agentId") String agentId);
+    @Query("select coalesce(max(e.sequenceNumber),0) from LabExperience e where e.experimentId=:experimentId and e.participantId=:participantId")
+    int latestSequence(@Param("experimentId") String experimentId, @Param("participantId") String participantId);
 }

@@ -13,12 +13,15 @@ public final class LabRequests {
                             String thinkingEffort) {
         public AiModelSelection snapshot() { return new AiModelSelection(null, modelKey, thinkingMode, thinkingEffort, 0); }
     }
+    public record Participant(@NotBlank String agentId, String initialExperienceId) {}
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("concurrency")
     public record Experiment(@NotBlank @Size(max=128) String name,
-                             @NotNull @Size(min=4,max=10) List<String> agentIds,
+                             @Size(min=4,max=10) List<@NotBlank String> agentIds,
                              @Min(4) @Max(10) int playerCount, @Min(1) @Max(10000) int targetGames,
-                             @Min(1) @Max(3) int concurrency, @NotBlank String wordPack, boolean hasBlank,
+                             @NotBlank String wordPack, boolean hasBlank,
                              @Min(1) long budgetPoints, @NotNull @Valid Selection coach,
-                             Map<String,String> initialExperienceIds) {}
-    public record Evaluation(@NotBlank String agentId, @Min(1) @Max(1000) int pairs,
+                             Map<String,String> initialExperienceIds,
+                             @Size(min=4,max=10) List<@NotNull @Valid Participant> participants) {}
+    public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
                              @NotBlank String candidateExperienceId) {}
 }

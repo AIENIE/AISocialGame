@@ -4,6 +4,8 @@ import com.aisocialgame.engine.v2.RuleSupport;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.*;
 import com.aisocialgame.repository.PersonaRepository;
+import com.aisocialgame.repository.RoomRepository;
+import com.aisocialgame.service.v2.V2GameService;
 import com.aisocialgame.service.ai.config.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
@@ -27,13 +29,17 @@ public class LabService {
     private final AiModelConfigService models;
     private final LabBudgetService budgets;
     private final ObjectMapper json;
+    private final RoomRepository rooms;
+    private final V2GameService game;
 
     public LabService(LabExperimentRepository experiments, LabAgentRepository agents, LabExperienceRepository experiences,
             LabMatchRepository matches, LabEnrollmentRepository enrollments, LabEvaluationRepository evaluations,
-            PersonaRepository personas, AiModelConfigService models, LabBudgetService budgets, ObjectMapper json) {
+            PersonaRepository personas, AiModelConfigService models, LabBudgetService budgets, ObjectMapper json,
+            RoomRepository rooms, V2GameService game) {
         this.experiments=experiments; this.agents=agents; this.experiences=experiences; this.matches=matches;
         this.enrollments=enrollments; this.evaluations=evaluations; this.personas=personas; this.models=models;
         this.budgets=budgets; this.json=json;
+        this.rooms=rooms; this.game=game;
     }
     public List<LabAgent> agents() { return agents.findAllByOrderByCreatedAtAsc(); }
     @Transactional
@@ -46,33 +52,44 @@ public class LabService {
     }
     @Transactional
     public Map<String,Object> create(LabRequests.Experiment request, String operator) {
-        require(request.agentIds().size() == request.playerCount() && new HashSet<>(request.agentIds()).size() == request.playerCount(), "每个席位需要不同的 AI 档案");
+        require(request.participants()==null || request.agentIds()==null,"请仅提交一种实验阵容");
+        var participants=request.participants();
+        if(participants==null && request.agentIds()!=null) participants=request.agentIds().stream().map(agentId ->
+                new LabRequests.Participant(agentId,request.initialExperienceIds()==null?null:request.initialExperienceIds().get(agentId))).toList();
+        require(participants!=null && participants.size()==request.playerCount(),"每个席位需要一个 AI 档案");
         require(Set.of("daily","idiom","acg","tech").contains(request.wordPack()), "实验室仅支持内置词库");
         models.requireUsable(request.coach().snapshot());
         var experiment=new LabExperiment(); experiment.name=request.name().strip(); experiment.createdBy=operator;
         experiment.budgetPoints=request.budgetPoints();
         var roster=new ArrayList<Map<String,Object>>();
         var heads=new LinkedHashMap<String,Object>();
-        for (String agentId:request.agentIds()) {
+        var copyNumbers=new HashMap<String,Integer>();
+        var counts=new HashMap<String,Long>();
+        for(var participant:participants) counts.merge(participant.agentId(),1L,Long::sum);
+        for (var participant:participants) {
+            String agentId=participant.agentId();
             var agent=agents.findById(agentId).orElseThrow(LabService::missing);
             models.requireUsable(AiModelSelection.fromMap(agent.modelSelection));
             var persona=PersonaPresets.complete(personas.findById(agent.personaId));
             Map<String,Object> profile=map(json.convertValue(persona,Map.class));
             var player=new LinkedHashMap<String,Object>();
-            player.put("agentId",agent.id); player.put("name",agent.name); player.put("personaId",agent.personaId);
+            String participantId=UUID.randomUUID().toString();
+            int copyNumber=copyNumbers.merge(agentId,1,Integer::sum);
+            String name=counts.get(agentId)>1?agent.name.substring(0,Math.min(59,agent.name.length()))+" #"+copyNumber:agent.name;
+            player.put("agentId",agent.id); player.put("participantId",participantId); player.put("name",name); player.put("personaId",agent.personaId);
             player.put("persona",profile); player.put("modelSelection",new LinkedHashMap<>(agent.modelSelection));
             roster.add(player);
             Map<String,Object> initial=new LinkedHashMap<>(Map.of("experienceId","initial","experience","","sequenceNumber",0));
-            String inherited=request.initialExperienceIds()==null ? null : request.initialExperienceIds().get(agentId);
+            String inherited=participant.initialExperienceId();
             if(inherited!=null && !inherited.isBlank()) {
                 var source=experiences.findById(inherited).orElseThrow(LabService::missing);
                 require(agentId.equals(source.agentId), "经验与 AI 档案不匹配");
                 initial.put("experienceId",source.id); initial.put("experience",source.summary);
             }
-            heads.put(agentId,initial);
+            heads.put(participantId,initial);
         }
         experiment.configuration.putAll(Map.of("playerCount",request.playerCount(),"targetGames",request.targetGames(),
-                "concurrency",request.concurrency(),"wordPack",request.wordPack(),"hasBlank",request.hasBlank(),
+                "wordPack",request.wordPack(),"hasBlank",request.hasBlank(),
                 "roster",roster,"coach",request.coach().snapshot().toMap(),"initialExperiences",heads,
                 "experiences",new LinkedHashMap<>(heads)));
         experiments.saveAndFlush(experiment);
@@ -89,9 +106,22 @@ public class LabService {
         result.put("evaluations",evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().map(this::evaluationView).toList());
         if(userId!=null) result.put("enrollment",enrollments.findByExperimentIdAndUserId(id,userId).map(this::enrollmentView).orElse(Map.of()));
         if(administrator) {
-            result.put("configuration",experiment.configuration);
+            var configuration=new LinkedHashMap<>(experiment.configuration);
+            configuration.remove("concurrency"); configuration.put("roster",roster(configuration));
+            result.put("configuration",configuration);
             result.put("reviewFailed",!matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("REVIEW_FAILED")).isEmpty());
         }
+        return result;
+    }
+    public Map<String,Object> observe(String id,String matchId) {
+        var match=matches.findById(matchId).orElseThrow(LabService::missing);
+        require(id.equals(match.experimentId),"对局不属于此实验");
+        var room=rooms.findById(match.roomId).orElseThrow(LabService::missing);
+        require(room.isLab(),"不是实验室对局");
+        var result=new LinkedHashMap<String,Object>(); result.put("match",matchView(match));
+        result.put("room",Map.of("id",room.getId(),"name",room.getName(),"roomCode",text(room.getRoomCode())));
+        try { result.put("state",game.labSpectatorState(match.roomId)); }
+        catch(ApiException failure) { if(match.archiveId==null || !"ROOM_EXPIRED".equals(failure.getCode())) throw failure; }
         return result;
     }
     public Map<String,Object> matchPage(String id, int page, int size, boolean administrator) {
@@ -132,11 +162,12 @@ public class LabService {
         var source=experiences.findById(experienceId).orElseThrow(LabService::missing);
         require(id.equals(source.experimentId),"经验不属于此实验");
         var heads=map(experiment.configuration.get("experiences"));
-        require(heads.containsKey(source.agentId),"经验与实验阵容不匹配");
+        require(heads.containsKey(source.participantId),"经验与实验阵容不匹配");
         var version=new LabExperience(); version.experimentId=id; version.agentId=source.agentId;
-        version.sequenceNumber=experiences.latestSequence(id,source.agentId)+1; version.summary=source.summary;
-        version.previousId=text(map(heads.get(source.agentId)).get("experienceId")); version.evidence=Map.of("rollbackOf",source.id);
-        experiences.saveAndFlush(version); heads.put(source.agentId,experienceHead(version));
+        version.participantId=source.participantId;
+        version.sequenceNumber=experiences.latestSequence(id,source.participantId)+1; version.summary=source.summary;
+        version.previousId=text(map(heads.get(source.participantId)).get("experienceId")); version.evidence=Map.of("rollbackOf",source.id);
+        experiences.saveAndFlush(version); heads.put(source.participantId,experienceHead(version));
         experiment.configuration.put("experiences",heads); experiments.save(experiment);
     }
     @Transactional
@@ -172,9 +203,16 @@ public class LabService {
         require(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING","FINISHED","REVIEWING","REVIEW_FAILED")).isEmpty(),"请先处理未完成对局或复盘");
         require(evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().noneMatch(existing -> "RUNNING".equals(existing.status)),"已有评测正在运行");
         var candidate=experiences.findById(request.candidateExperienceId()).orElseThrow(LabService::missing);
-        require(id.equals(candidate.experimentId) && request.agentId().equals(candidate.agentId),"经验与评测对象不匹配");
-        require(maps(experiment.configuration.get("roster")).stream().anyMatch(profile -> request.agentId().equals(profile.get("agentId"))),"AI 不属于此实验");
-        var evaluation=new LabEvaluation(); evaluation.experimentId=id; evaluation.agentId=request.agentId(); evaluation.pairs=request.pairs();
+        String target=request.participantId();
+        if(target==null || target.isBlank()) {
+            var compatible=roster(experiment.configuration).stream().filter(profile -> text(profile.get("agentId")).equals(request.agentId())).toList();
+            require(compatible.size()==1,"请选择具体的 AI 副本"); target=participantId(compatible.getFirst());
+        }
+        require(id.equals(candidate.experimentId) && target.equals(candidate.participantId),"经验与评测对象不匹配");
+        String participantId=target;
+        require(roster(experiment.configuration).stream().anyMatch(profile -> participantId.equals(participantId(profile))),"AI 不属于此实验");
+        var evaluation=new LabEvaluation(); evaluation.experimentId=id; evaluation.agentId=candidate.agentId;
+        evaluation.participantId=participantId; evaluation.pairs=request.pairs();
         evaluation.randomSeed=new Random().nextLong();
         evaluation.configuration.putAll(Map.of("roster",maps(experiment.configuration.get("roster")),
                 "initialExperiences",map(experiment.configuration.get("initialExperiences")),
@@ -185,7 +223,7 @@ public class LabService {
     public Map<String,Object> evaluationView(LabEvaluation evaluation) {
         var rows=matches.findByEvaluationIdOrderBySequenceNumberAsc(evaluation.id);
         var result=new LinkedHashMap<String,Object>();
-        result.put("id",evaluation.id); result.put("agentId",evaluation.agentId); result.put("status",evaluation.status);
+        result.put("id",evaluation.id); result.put("agentId",evaluation.agentId); result.put("participantId",evaluation.participantId); result.put("status",evaluation.status);
         result.put("pairs",evaluation.pairs); result.put("completedGames",rows.stream().filter(row -> "REVIEWED".equals(row.status)).count());
         var usable=new HashSet<Integer>();
         for(var row:rows) if("REVIEWED".equals(row.status) && row.reason==null) {
@@ -193,18 +231,18 @@ public class LabService {
             if(rows.stream().filter(other -> number(other.snapshot.get("pairIndex"),-2)==pair && "REVIEWED".equals(other.status) && other.reason==null).count()==2) usable.add(pair);
         }
         result.put("validPairs",usable.size());
-        var baseline=evaluationStats(rows,evaluation.agentId,"BASELINE",usable);
-        var candidate=evaluationStats(rows,evaluation.agentId,"CANDIDATE",usable);
+        var baseline=evaluationStats(rows,evaluation.participantId,"BASELINE",usable);
+        var candidate=evaluationStats(rows,evaluation.participantId,"CANDIDATE",usable);
         result.put("baseline",baseline); result.put("candidate",candidate);
         result.put("winRateDifference",((Number)candidate.get("winRate")).doubleValue()-((Number)baseline.get("winRate")).doubleValue());
         return result;
     }
-    private static Map<String,Object> evaluationStats(List<LabMatch> rows,String agentId,String variant,Set<Integer> usable) {
+    private static Map<String,Object> evaluationStats(List<LabMatch> rows,String participantId,String variant,Set<Integer> usable) {
         var completed=rows.stream().filter(row -> variant.equals(row.variant) && Set.of("REVIEWED","ABORTED").contains(row.status)).toList();
         var players=completed.stream().filter(row -> usable.contains(number(row.snapshot.get("pairIndex"),-1)))
-                .flatMap(row -> maps(row.snapshot.get("results")).stream()).filter(player -> agentId.equals(player.get("agentId"))).toList();
+                .flatMap(row -> maps(row.snapshot.get("results")).stream()).filter(player -> participantId.equals(participantId(player))).toList();
         var allActions=completed.stream().flatMap(row -> maps(row.snapshot.get("results")).stream())
-                .filter(player -> agentId.equals(player.get("agentId"))).toList();
+                .filter(player -> participantId.equals(participantId(player))).toList();
         long wins=players.stream().filter(player -> flag(player.get("won"))).count();
         long actions=allActions.stream().mapToLong(player -> number(player.get("successfulActions"),0)).sum();
         long failures=allActions.stream().mapToLong(player -> number(player.get("failedActions"),0)).sum();
@@ -225,7 +263,7 @@ public class LabService {
         result.putAll(Map.of("id",experiment.id,"name",experiment.name,"status",experiment.status,"budgetPoints",experiment.budgetPoints,
                 "createdAt",experiment.createdAt,"attemptedGames",number(experiment.configuration.get("trainingCreated"),0),"reviewedThrough",experiment.reviewCursor-1));
         if(experiment.reason!=null) result.put("reason",experiment.reason);
-        for(String key:List.of("playerCount","targetGames","concurrency","wordPack","hasBlank")) result.put(key,experiment.configuration.get(key));
+        for(String key:List.of("playerCount","targetGames","wordPack","hasBlank")) result.put(key,experiment.configuration.get(key));
         result.put("cost",budgets.totals(experiment.id));
         return result;
     }
@@ -247,6 +285,14 @@ public class LabService {
     }
     public static Map<String,Object> experienceHead(LabExperience experience) {
         return Map.of("experienceId",experience.id,"experience",experience.summary,"sequenceNumber",experience.sequenceNumber);
+    }
+    public static String participantId(Map<String,Object> profile) {
+        return text(profile.getOrDefault("participantId",profile.get("agentId")));
+    }
+    public static List<Map<String,Object>> roster(Map<String,Object> configuration) {
+        return maps(configuration.get("roster")).stream().map(profile -> {
+            var normalized=new LinkedHashMap<>(profile); normalized.put("participantId",participantId(profile)); return (Map<String,Object>)normalized;
+        }).toList();
     }
     public static ApiException missing() { return new ApiException(HttpStatus.NOT_FOUND,"实验室记录不存在"); }
 }

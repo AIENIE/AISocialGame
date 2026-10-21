@@ -15,7 +15,7 @@ public final class ClosureMySqlSupport {
     }
     public static String password() {return Objects.requireNonNull(System.getenv("AIENIE_CLOSURE_MYSQL_PASSWORD"));}
     public static String database(String suffix) {
-        if(!Set.of("fresh","legacy","v2","runtime","admission","plan_fresh","plan_legacy","plan_recorded","trace_column_partial","trace_index_partial","public_column_partial","public_index_partial","room_lifecycle","model_config","model_config_snapshot","local_debug","local_debug_snapshot","lab","lab_snapshot").contains(suffix)) throw new IllegalArgumentException("Test database only");
+        if(!Set.of("fresh","legacy","v2","runtime","admission","plan_fresh","plan_legacy","plan_recorded","trace_column_partial","trace_index_partial","public_column_partial","public_index_partial","room_lifecycle","model_config","model_config_snapshot","local_debug","local_debug_snapshot","lab","lab_snapshot","participants","participants_snapshot").contains(suffix)) throw new IllegalArgumentException("Test database only");
         return "closure_"+run()+"_"+suffix;
     }
     public static String url(String suffix) {

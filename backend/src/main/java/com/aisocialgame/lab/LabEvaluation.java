@@ -11,6 +11,7 @@ public class LabEvaluation {
     @Id @Column(length = 36) public String id = UUID.randomUUID().toString();
     @Column(nullable = false, length = 36) public String experimentId;
     @Column(nullable = false, length = 36) public String agentId;
+    @Column(name = "participant_id", nullable = false, length = 36) public String participantId;
     @Column(nullable = false) public int pairs;
     @Column(nullable = false) public int nextGame;
     @Column(nullable = false) public long randomSeed;

@@ -50,6 +50,7 @@ class LabIntegrationTest {
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean com.aisocialgame.service.RoomCodeGenerator codes;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Autowired GameArchiveRepository archives;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean com.aisocialgame.websocket.PlayerConnectionService connections;
     @MockitoBean AiModelConfigService models;
     @MockitoBean AiGrpcClient client;
     final LabRequests.Selection selection=new LabRequests.Selection("fixture-model",AiModelSelection.ThinkingMode.DEFAULT,null);
@@ -58,12 +59,12 @@ class LabIntegrationTest {
         for(var experiment:experiments.findAll()) { experiment.status="STOPPED"; experiments.save(experiment); }
         for(var match:matches.findAll()) { match.status="ABORTED"; matches.save(match); }
     }
-    @Test void threePersistentTablesFreezeProfilesAndRecoverWithoutDuplicateGamesOrGlobalRewards() {
+    @Test void serialExperimentsFreezeProfilesAndRecoverWithoutDuplicateGamesOrGlobalRewards() {
         String id=create(6,3);
         service.control(id,"start");
         lab.advance(id); lab.advance(id);
         var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE);
-        assertEquals(3,active.size());
+        assertEquals(1,active.size());
         for(var match:active) {
             var state=states.findById(match.roomId).orElseThrow();
             assertTrue(state.getPlayers().stream().allMatch(GamePlayerState::isAi));
@@ -71,16 +72,16 @@ class LabIntegrationTest {
             assertEquals("fixture-model",map(job.getDiagnostics().get("modelSelection")).get("modelKey"));
             assertEquals("initial",map(map(job.getObservation().get("memory")).get("lab")).get("experienceId"));
         }
-        lab.advance(id); assertEquals(3,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
+        lab.advance(id); assertEquals(1,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
         service.control(id,"pause");
         for(var match:active) finish(match);
         lab.advance(id);
         stubCoach();
-        for(int review=0;review<3;review++) { assertTrue(coach.process(id)); lab.advance(id); }
+        assertTrue(coach.process(id)); lab.advance(id);
         assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
-        assertEquals(12,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
+        assertEquals(4,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
         assertFalse(coach.process(id));
-        verify(client,times(3)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
+        verify(client,times(1)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
         service.control(id,"resume"); lab.advance(id); lab.advance(id);
         var next=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).getFirst();
         var job=jobs.findByRoomIdAndStatusIn(next.roomId,List.of("QUEUED")).getFirst();
@@ -103,8 +104,10 @@ class LabIntegrationTest {
         match.startsAtEpochMs=0; matches.saveAndFlush(match); lab.advance(id);
         var room=rooms.findById(match.roomId).orElseThrow();
         assertEquals(2,room.getSeats().stream().filter(seat -> !seat.isAi()).count());
-        assertEquals(first.getId(),room.getSeats().getFirst().getPlayerId());
-        assertEquals(second.getId(),room.getSeats().get(1).getPlayerId());
+        assertEquals(Set.of(first.getId(),second.getId()),new HashSet<>(room.getSeats().stream().filter(seat -> !seat.isAi()).map(RoomSeat::getPlayerId).toList()));
+        var order=room.getSeats().stream().map(RoomSeat::getPlayerId).toList();
+        assertEquals(order,matches.findById(match.id).orElseThrow().snapshot.get("seatOrder"));
+        lab.advance(id); assertEquals(order,rooms.findById(match.roomId).orElseThrow().getSeats().stream().map(RoomSeat::getPlayerId).toList());
         assertEquals("CANCELLED",enrollments.findByExperimentIdAndUserId(id,third.getId()).orElseThrow().status);
         assertThrows(RuntimeException.class,()->service.enrollmentAction(id,first,false));
     }
@@ -127,18 +130,20 @@ class LabIntegrationTest {
         assertEquals(0,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,1)).getTotalElements());
         verifyNoInteractions(client);
     }
-    @Test void oneThousandPersistedGamesPublishOnceAcrossThreeTablesAndRecreatedSchedulers() {
+    @Test void oneThousandPersistedGamesPublishOnceSeriallyAcrossRecreatedSchedulers() {
         String id=create(1000,3); service.control(id,"start"); stubCoach();
         var recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models);
         var recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager);
         var transaction=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
-        int reviewed=0,largestBatch=0;
+        int reviewed=0,largestBatch=0; var seatOrders=new HashSet<List<String>>();
         for(int cycle=0;cycle<2000 && !"COMPLETED".equals(experiments.findById(id).orElseThrow().status);cycle++) {
             var scheduler=recoveredRuntime;
             transaction.executeWithoutResult(status -> { scheduler.advance(id); scheduler.advance(id); });
             var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE);
-            largestBatch=Math.max(largestBatch,active.size()); assertTrue(active.size()<=3);
-            for(var match:active) if("PLAYING".equals(match.status)) finish(match,true);
+            largestBatch=Math.max(largestBatch,active.size()); assertTrue(active.size()<=1);
+            for(var match:active) if("PLAYING".equals(match.status)) {
+                seatOrders.add(strings(match.snapshot.get("seatOrder"))); finish(match,true);
+            }
             transaction.executeWithoutResult(status -> scheduler.advance(id));
             for(int slot=0;slot<3;slot++) {
                 if(recoveredCoach.process(id)) reviewed++;
@@ -150,7 +155,8 @@ class LabIntegrationTest {
             }
         }
         assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
-        assertEquals(1000,reviewed); assertEquals(3,largestBatch);
+        assertEquals(1000,reviewed); assertEquals(1,largestBatch);
+        assertTrue(seatOrders.size()>1);
         var history=matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,1000)).getContent();
         assertEquals(1000,history.size()); assertEquals(1000,history.stream().map(match -> match.archiveId).distinct().count());
         assertTrue(history.stream().allMatch(match -> "REVIEWED".equals(match.status) && archives.existsById(match.archiveId)));
@@ -187,15 +193,43 @@ class LabIntegrationTest {
         stubCoach(); coach.retry(id); service.control(id,"pause"); coach.process(id); lab.advance(id);
         var version=experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getContent().getFirst();
         service.rollback(id,version.id);
-        assertEquals(2,experiences.latestSequence(id,version.agentId));
+        assertEquals(2,experiences.latestSequence(id,version.participantId));
+    }
+    @Test void legacyRosterAndFrozenCoachRequestKeepTheirOriginalIdentities() throws Exception {
+        String id=create(1,3); var experiment=experiments.findById(id).orElseThrow();
+        var heads=new LinkedHashMap<String,Object>();
+        var oldRoster=maps(experiment.configuration.get("roster"));
+        var oldHeads=map(experiment.configuration.get("experiences"));
+        for(var profile:oldRoster) { heads.put(text(profile.get("agentId")),oldHeads.get(LabService.participantId(profile))); profile.remove("participantId"); }
+        experiment.configuration.put("roster",oldRoster); experiment.configuration.put("experiences",heads);
+        experiment.configuration.put("initialExperiences",new LinkedHashMap<>(heads)); experiments.saveAndFlush(experiment);
+        service.control(id,"start"); lab.advance(id); lab.advance(id);
+        var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow(); finish(match,true); lab.advance(id);
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"fixture unknown","BUDGET_RECONCILIATION_REQUIRED",Map.of()));
+        coach.process(id); match=matches.findById(match.id).orElseThrow();
+        var frozen=map(match.snapshot.get("reviewRequest")); frozen.remove("identityField");
+        var messages=maps(frozen.get("messages"));
+        var input=map(json.readValue(text(messages.getLast().get("content")),Map.class));
+        var oldAgents=maps(input.get("agents")); oldAgents.forEach(profile -> profile.remove("participantId")); input.put("agents",oldAgents);
+        messages.getLast().put("content",json.writeValueAsString(input)); frozen.put("messages",messages); match.snapshot.put("reviewRequest",frozen);
+        matches.saveAndFlush(match); String requestId=text(match.snapshot.get("reviewRequestId"));
+        stubCoach(); coach.retry(id); coach.process(id); lab.advance(id);
+        var completed=matches.findById(match.id).orElseThrow();
+        assertEquals(frozen,completed.snapshot.get("reviewRequest")); assertEquals(requestId,completed.snapshot.get("reviewRequestId"));
+        assertEquals("REVIEWED",completed.status);
+        assertTrue(experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).stream().allMatch(version -> version.agentId.equals(version.participantId)));
+        assertFalse(map(service.detail(id,null,true).get("configuration")).containsKey("concurrency"));
     }
     @Test void pairedEvaluationFreezesOpponentsAndNeverPublishesExperience() {
         String id=create(1,2); service.control(id,"start"); lab.advance(id); lab.advance(id);
         finish(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).getFirst());
         lab.advance(id); stubCoach(); coach.process(id); lab.advance(id);
         var experience=experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getContent().getFirst();
-        var evaluation=service.evaluate(id,new LabRequests.Evaluation(experience.agentId,1,experience.id));
+        var evaluation=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,null,1,experience.id));
         lab.advance(id); lab.advance(id);
+        var first=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id"))).getFirst();
+        finish(first); lab.advance(id); lab.advance(id);
         var pair=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id")));
         assertEquals(2,pair.size()); assertEquals(pair.getFirst().randomSeed,pair.getLast().randomSeed);
         var baseline=states.findById(pair.getFirst().roomId).orElseThrow();
@@ -207,16 +241,64 @@ class LabIntegrationTest {
         assertFalse(coach.process(id));
         assertEquals(4,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
         assertEquals(1,service.evaluationView(newEvaluation(text(evaluation.get("id")))).get("validPairs"));
-        var stopped=service.evaluate(id,new LabRequests.Evaluation(experience.agentId,1,experience.id));
+        var stopped=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,null,1,experience.id));
         lab.advance(id); service.control(id,"stop"); lab.advance(id);
         assertEquals("STOPPED",newEvaluation(text(stopped.get("id"))).status);
         assertEquals("STOPPED",experiments.findById(id).orElseThrow().status);
     }
     @Autowired LabEvaluationRepository evaluations;
+    @Test void differentExperimentsUseTheGlobalResourceLimitWithoutOverlappingTheirOwnGames() {
+        var ids=new ArrayList<String>();
+        for(int index=0;index<4;index++) { String id=create(2,3); ids.add(id); service.control(id,"start"); lab.advance(id); lab.advance(id); }
+        assertEquals(3,matches.countByStatusIn(LabRuntime.ACTIVE));
+        for(String id:ids) assertTrue(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).size()<=1);
+        assertTrue(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(ids.getLast(),LabRuntime.ACTIVE).isEmpty());
+    }
+    @Test void duplicateProfilesKeepIndependentExperiencesInheritanceAndPairedEvaluationIdentities() {
+        String agent=service.saveAgent(null,new LabRequests.Agent("Duplicate",personas.findAll().getFirst().getId(),selection)).id;
+        var participants=java.util.stream.IntStream.range(0,4).mapToObj(index -> new LabRequests.Participant(agent,null)).toList();
+        String id=text(service.create(new LabRequests.Experiment("Copies",null,4,2,"daily",false,1000,selection,null,participants),"admin").get("id"));
+        var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
+        assertEquals(4,roster.stream().map(LabService::participantId).distinct().count());
+        assertEquals(List.of("Duplicate #1","Duplicate #2","Duplicate #3","Duplicate #4"),roster.stream().map(profile -> profile.get("name")).toList());
+        service.control(id,"start"); lab.advance(id); lab.advance(id);
+        var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
+        assertEquals(4,states.findById(match.roomId).orElseThrow().getPlayers().stream().map(GamePlayerState::getPlayerId).distinct().count());
+        clearInvocations(connections); var observed=service.observe(id,match.id);
+        verify(connections,never()).markActive(anyString(),anyString());
+        var view=json.convertValue(observed.get("state"),Map.class);
+        assertTrue(maps(view.get("players")).stream().allMatch(player -> !player.containsKey("role") || player.get("role")==null));
+        assertThrows(RuntimeException.class,()->service.observe("another-experiment",match.id));
+        service.control(id,"pause"); finish(match,true); lab.advance(id); stubCoach(); coach.process(id); lab.advance(id);
+        var versions=experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getContent();
+        assertEquals(4,versions.size()); assertEquals(4,versions.stream().map(version -> version.participantId).distinct().count());
+        var chosen=versions.getFirst(); service.rollback(id,chosen.id);
+        for(var version:versions) assertEquals(version==chosen?2:1,experiences.latestSequence(id,version.participantId));
+        var inherited=versions.stream().map(version -> new LabRequests.Participant(agent,version.id)).toList();
+        String child=text(service.create(new LabRequests.Experiment("Inherited copies",null,4,1,"daily",false,1000,selection,null,inherited),"admin").get("id"));
+        var childConfig=experiments.findById(child).orElseThrow().configuration;
+        var childRoster=LabService.roster(childConfig);
+        for(int index=0;index<4;index++) {
+            String participant=LabService.participantId(childRoster.get(index));
+            assertFalse(roster.stream().anyMatch(profile -> participant.equals(LabService.participantId(profile))));
+            assertEquals(versions.get(index).id,map(map(childConfig.get("experiences")).get(participant)).get("experienceId"));
+        }
+        assertThrows(RuntimeException.class,()->service.evaluate(id,new LabRequests.Evaluation(null,agent,1,chosen.id)));
+        var evaluation=service.evaluate(id,new LabRequests.Evaluation(chosen.participantId,null,1,chosen.id));
+        lab.advance(id); lab.advance(id);
+        var baseline=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id"))).getFirst();
+        finish(baseline,true); lab.advance(id); lab.advance(id);
+        var candidate=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id"))).getLast();
+        assertEquals(baseline.randomSeed,candidate.randomSeed);
+        assertEquals(matches.findById(baseline.id).orElseThrow().snapshot.get("seatOrder"),candidate.snapshot.get("seatOrder"));
+        var before=map(baseline.snapshot.get("players")); var after=map(candidate.snapshot.get("players"));
+        assertEquals(1,before.keySet().stream().filter(actor -> !Objects.equals(map(before.get(actor)).get("experienceId"),map(after.get(actor)).get("experienceId"))).count());
+        assertEquals(5,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,1)).getTotalElements());
+    }
     private LabEvaluation newEvaluation(String id) { return evaluations.findById(id).orElseThrow(); }
     @Test void evaluationIncludesAbortedAttemptsInFailureRatesWithoutCountingUnpairedWins() {
         String id=create(1,1);
-        var evaluation=new LabEvaluation(); evaluation.experimentId=id; evaluation.agentId="fixture-agent"; evaluation.pairs=2;
+        var evaluation=new LabEvaluation(); evaluation.experimentId=id; evaluation.agentId="fixture-agent"; evaluation.participantId="fixture-agent"; evaluation.pairs=2;
         evaluations.saveAndFlush(evaluation);
         evaluationMatch(evaluation,1,0,"BASELINE","REVIEWED",true,3,0);
         evaluationMatch(evaluation,2,0,"CANDIDATE","REVIEWED",false,5,0);
@@ -277,7 +359,9 @@ class LabIntegrationTest {
     private String create(int games,int concurrency) {
         var ids=new ArrayList<String>();
         for(int seat=0;seat<4;seat++) ids.add(service.saveAgent(null,new LabRequests.Agent("AI "+seat,personas.findAll().get(seat).getId(),selection)).id);
-        return text(service.create(new LabRequests.Experiment("Lab fixture",ids,4,games,concurrency,"daily",false,1000,selection,Map.of()),"admin").get("id"));
+        String id=text(service.create(new LabRequests.Experiment("Lab fixture",ids,4,games,"daily",false,1000,selection,Map.of(),null),"admin").get("id"));
+        var experiment=experiments.findById(id).orElseThrow(); experiment.configuration.put("concurrency",concurrency); experiments.saveAndFlush(experiment);
+        return id;
     }
     private User user(String name) { var user=new User(); user.setId(UUID.randomUUID().toString()); user.setNickname(name); return user; }
     private void finish(LabMatch match) {
@@ -305,7 +389,7 @@ class LabIntegrationTest {
             List<AiChatMessageDto> messages=invocation.getArgument(4);
             var input=map(json.readValue(messages.getLast().content(),Map.class));
             String event=text(maps(input.get("events")).getFirst().get("eventId"));
-            var entries=maps(input.get("agents")).stream().map(agent -> Map.of("agentId",agent.get("agentId"),"summary","先核对多轮描述再判断，避免单凭风格投票。","evidenceEventIds",List.of(event))).toList();
+            var entries=maps(input.get("agents")).stream().map(agent -> Map.of("agentId",agent.get("agentId"),"participantId",agent.getOrDefault("participantId",agent.get("agentId")),"summary","先核对多轮描述再判断，避免单凭风格投票。","evidenceEventIds",List.of(event))).toList();
             return new AiChatResult(json.writeValueAsString(Map.of("experiences",entries)),"fixture-model",1,1);
         });
     }
