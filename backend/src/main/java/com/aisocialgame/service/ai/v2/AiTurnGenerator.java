@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 @Service
 public class AiTurnGenerator {
     public static final String PROMPT_VERSION = "social-v2.10";
-    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.0";
+    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.1";
     public static final long MAX_DECISION_MILLIS = 50_000;
     public static final long UNDERCOVER_DECISION_MILLIS = 89_000;
     private static final int MAX_REQUEST_SECONDS = 45;
@@ -270,7 +270,7 @@ public class AiTurnGenerator {
             if (action.getTargetPlayerId() != null && !action.getTargetPlayerId().isBlank() && !capability.targets().contains(action.getTargetPlayerId())) errors.add("ILLEGAL_TARGET");
             if (!capability.targets().isEmpty() && !action.isAbstain() && (action.getTargetPlayerId() == null || action.getTargetPlayerId().isBlank())) errors.add("MISSING_TARGET");
             String content = RuleSupport.text(action.getContent());
-            if (Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS", "ASK_QUESTION", "SUBMIT_SOLUTION").contains(action.getType()) && content.isBlank()) errors.add("EMPTY_SPEECH");
+            if (Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS", "ASK_QUESTION", "SUBMIT_SOLUTION", "SELF_DESTRUCT").contains(action.getType()) && content.isBlank()) errors.add("EMPTY_SPEECH");
             if (capability.maxLength() > 0 && content.codePointCount(0, content.length()) > capability.maxLength()) errors.add("CONTENT_TOO_LONG");
         }
         if (!RuleSupport.text(action.getContent()).strip().equals(decision.speech())) errors.add("SPEECH_ACTION_MISMATCH");

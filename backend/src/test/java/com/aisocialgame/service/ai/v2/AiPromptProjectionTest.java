@@ -172,6 +172,19 @@ class AiPromptProjectionTest {
         assertEquals(8,checked);
     }
 
+    @Test void selfDestructHistoryContainsThePublicGuessAndResultWithoutTheHiddenCorrectAnswer() {
+        var adapter = new UndercoverRuleSet(words);
+        var o = new VisibleObservation("undercover", "i", "VOTING", 2, "p0", "VOTE", Map.of(), List.of(), Map.of(),
+                List.of(Map.of("eventId", "boom", "type", "SELF_DESTRUCT", "round", 2, "actorId", "p1", "phase", "VOTING",
+                        "data", Map.of("content", "猜测原文", "success", false, "civilianWord", "HIDDEN_ANSWER"))),
+                Map.of("word", "咖啡"), List.of(com.aisocialgame.engine.v2.LegalAction.text("SELF_DESTRUCT", "自爆猜词", 20)), Map.of(), Map.of(), List.of());
+        var payload = AiPromptProjection.project(adapter, o);
+        assertEquals(List.of(Map.of("eventId", "boom", "type", "SELF_DESTRUCT", "round", 2, "actorId", "p1", "content", "猜测原文", "success", false)), payload.get("events"));
+        assertFalse(payload.toString().contains("HIDDEN_ANSWER"));
+        assertEquals(List.of(Map.of("type", "SELF_DESTRUCT", "maxLength", 20)), payload.get("legalActions"));
+        assertEquals(Map.of("content", "猜测原文", "success", false), adapter.confirmedFacts(o.events().getFirst()));
+    }
+
     private JsonNode resolve(JsonNode node, JsonNode root, int depth) {
         assertTrue(depth < 25, "reference cycle");
         if (node.isObject() && node.size() == 1 && node.has("$ref")) {

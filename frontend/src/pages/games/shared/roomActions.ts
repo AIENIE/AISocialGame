@@ -21,7 +21,7 @@ export function roomActions(state: GameState): LegalAction[] {
 export function actionLabel(action: LegalAction, copy: RoomText): string {
   const labels: Record<string, RoomTextKey> = { SPEAK: "speak", ASK_PLAYER: "askPlayer", ANSWER_PLAYER: "answer", DISCUSS: "discuss",
     ASK_QUESTION: "askHost", SUBMIT_SOLUTION: "solution", VOTE: "vote", SKIP: "skip", HUNTER_SHOOT: "shoot",
-    REQUEST_HINT: "hint", REVEAL_SOLUTION: "reveal", WOLF_KILL: "wolfKill", SEER_CHECK: "seerCheck", GUARD_PROTECT: "guard",
+    REQUEST_HINT: "hint", REVEAL_SOLUTION: "reveal", SELF_DESTRUCT: "selfDestruct", WOLF_KILL: "wolfKill", SEER_CHECK: "seerCheck", GUARD_PROTECT: "guard",
     WITCH_SAVE: "heal", WITCH_POISON: "poison", WEREWOLF: "wolfKill", SEER: "seerCheck", GUARD: "guard" };
   const key = labels[action.nightAction || action.type];
   return key ? copy(key) : action.label;

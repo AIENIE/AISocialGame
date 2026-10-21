@@ -522,6 +522,27 @@ class AiTurnGeneratorTest {
         verify(client,times(3)).undercoverChatCompletions(anyString(),anyLong(),anyString(),eq(selection),anyList(),anyString(),anyInt());
         verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),eq(selection),anyList(),eq("fixed-model:1"),anyInt());
     }
+    @Test void selfDestructAcceptsWrongAndOwnWordGuessesWithoutRepairInSpeechAndBallotWindows() throws Exception {
+        for (String phase : List.of("DESCRIPTION", "TIE_DEFENSE", "VOTING", "RUNOFF")) {
+            for (String guess : List.of("咖啡", "没有依据的错误词")) {
+                reset(client);
+                var base = speechObservation();
+                var o = new VisibleObservation(base.gameId(), base.instanceId(), phase, base.round(), base.actorId(), base.turnKind(),
+                        base.self(), base.players(), base.rules(), base.events(), base.privateFacts(),
+                        List.of(LegalAction.text("SELF_DESTRUCT", "自爆猜词", 20)), base.persona(), base.memory(), base.knowledge());
+                reply(payload("SELF_DESTRUCT", guess, null));
+                var decision = generator.generate(rules, o, "self-destruct-" + phase + guess);
+                assertFalse(decision.fallback()); assertEquals("SELF_DESTRUCT", decision.action().getType());
+                assertEquals(guess, decision.action().getContent()); assertEquals(1, decision.diagnostics().get("calls"));
+                verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt());
+                var empty = generator.parse(Map.of("action", Map.of("type", "SELF_DESTRUCT", "content", "")));
+                assertTrue(generator.validate(rules, o, empty).contains("EMPTY_SPEECH"));
+                var leak = generator.parse(Map.of("action", Map.of("type", "SELF_DESTRUCT", "content", guess), "presentation", Map.of("gesture", "咖啡")));
+                assertTrue(generator.validate(rules, o, leak).contains("SECRET_WORD_LEAK"));
+            }
+        }
+    }
+
     private VisibleObservation voteObservation() {
         VisibleObservation o = speechObservation();
         return new VisibleObservation(o.gameId(), o.instanceId(), "VOTING", o.round(), o.actorId(), "VOTE", o.self(), o.players(), o.rules(), o.events(), o.privateFacts(),

@@ -8,7 +8,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 /** Model-only views over detached, actor-visible observations. */
 public final class AiPromptProjection {
     public static final int VERSION = 3;
-    public static final int UNDERCOVER_VERSION = 4;
+    public static final int UNDERCOVER_VERSION = 5;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private AiPromptProjection() {}
 
@@ -124,7 +124,7 @@ public final class AiPromptProjection {
         Map<String, Object> data = map(event.get("data"));
         boolean speech = AiSpeechEvents.isSpeech(event);
         boolean skipped = Set.of("SKIP", "TIMEOUT").contains(type);
-        if (!speech && !skipped && !Set.of("VOTE_REVEAL", "TIE", "ELIMINATED", "NO_ELIMINATION").contains(type)) return Map.of();
+        if (!speech && !skipped && !Set.of("VOTE_REVEAL", "TIE", "ELIMINATED", "NO_ELIMINATION", "SELF_DESTRUCT").contains(type)) return Map.of();
         if (skipped && ("VOTE".equals(data.get("action")) || Set.of("VOTING", "RUNOFF").contains(text(event.get("phase"))))) return Map.of();
         Map<String, Object> result = fields(event, "eventId", "type", "round", "actorId");
         if (Set.of("TIE_DEFENSE", "RUNOFF").contains(text(event.get("phase")))) result.put("phase", event.get("phase"));
@@ -133,6 +133,7 @@ public final class AiPromptProjection {
             case "VOTE_REVEAL" -> result.putAll(fields(data, "votes"));
             case "TIE" -> result.putAll(fields(data, "candidates"));
             case "ELIMINATED" -> result.putAll(fields(data, "role"));
+            case "SELF_DESTRUCT" -> result.putAll(fields(data, "content", "success"));
             case "NO_ELIMINATION" -> result.putAll(fields(data, "consecutiveRounds"));
             default -> { }
         }

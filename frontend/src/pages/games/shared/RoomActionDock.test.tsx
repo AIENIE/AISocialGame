@@ -90,3 +90,35 @@ it.each([
   await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
   expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SPEAK", content: "下雨时我会用到它。" });
 });
+
+it.each(["zh-CN", "zh-TW", "en"])("confirms a self-destruct guess, preserves drafts on cancel and sends only once in %s", async locale => {
+  language = locale;
+  let resolve!: () => void;
+  const send = vi.fn(() => new Promise<void>(done => { resolve = done; }));
+  const actions: LegalAction[] = [{ type: "SPEAK", label: "描述", targets: [], maxLength: 90 }, { type: "SELF_DESTRUCT", label: "自爆猜词", targets: [], maxLength: 20 }];
+  act(() => root.render(<Harness value={state(actions, "description", "DESCRIPTION")} send={send} />));
+  const modes = container.querySelectorAll<HTMLButtonElement>('.room-action-modes button');
+  expect(modes[0].getAttribute("aria-pressed")).toBe("true");
+  act(() => modes[1].click());
+  fill("长".repeat(21)); expect(container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.disabled).toBe(true);
+  fill("自行车"); click('[data-testid="v2-action-submit"]'); expect(send).not.toHaveBeenCalled();
+  const dialog = () => document.querySelector('[role="alertdialog"]')!;
+  expect(dialog().textContent).toContain("自行车");
+  act(() => dialog().querySelector<HTMLButtonElement>('button')!.click());
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull(); expect(container.querySelector("textarea")!.value).toBe("自行车");
+  click('[data-testid="v2-action-submit"]');
+  const confirm = dialog().querySelectorAll<HTMLButtonElement>('button')[1];
+  act(() => { confirm.click(); confirm.click(); });
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SELF_DESTRUCT", content: "自行车" });
+  await act(async () => resolve());
+});
+
+it("closes an unsubmitted self-destruct confirmation when the opportunity changes", () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const actions: LegalAction[] = [{ type: "SELF_DESTRUCT", label: "自爆猜词", targets: [], maxLength: 20 }];
+  act(() => root.render(<Harness value={state(actions)} send={send} />));
+  fill("单车"); click('[data-testid="v2-action-submit"]');
+  expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+  act(() => root.render(<Harness value={state([], "after-elimination")} send={send} />));
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull(); expect(send).not.toHaveBeenCalled();
+});

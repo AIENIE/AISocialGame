@@ -511,11 +511,67 @@ class V2GameServiceIntegrationTest {
         assertEquals("SETTLEMENT", facade.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
     }
 
-    private Room room(boolean ai) {
+    @Test void civilianSelfDestructPreservesBallotsPersistsOnceAndDiscardsOldAiResults() {
+        Room room = room(false, 6); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
+        GameState state = states.findById(room.getId()).orElseThrow();
+        for (int i = 0; i < state.getPlayers().size(); i++) {
+            var p = state.getPlayers().get(i); p.setRole(i == 0 ? "UNDERCOVER" : "CIVILIAN");
+            p.setWord(RuleSupport.text(state.getData().get(i == 0 ? "undercoverWord" : "civilianWord"))); p.setAi(i >= 2);
+        }
+        String voter = state.getPlayers().get(0).getPlayerId(), actor = state.getPlayers().get(1).getPlayerId();
+        RuleSupport.phase(state, "VOTING", null, 60, java.time.LocalDateTime.now());
+        state.getData().put("votes", new LinkedHashMap<>()); states.saveAndFlush(state); runtime.tick(room.getId());
+        runtime.action("undercover", room.getId(), user(voter), RuleSupport.action("VOTE", "", actor));
+        AiTurnJob old = coordinator.claim(queued(room.getId()).getId());
+        var before = runtime.state("undercover", room.getId(), user(actor));
+        PlayerAction boom = RuleSupport.action("SELF_DESTRUCT", before.getMyWord(), null);
+        boom.setRequestId(UUID.randomUUID().toString()); boom.setExpectedPhaseToken(String.valueOf(before.getExtra().get("phaseToken")));
+        var after = runtime.action("undercover", room.getId(), user(actor), boom);
+        assertEquals("VOTING", after.getPhase()); assertEquals(before.getPhaseEndsAt(), after.getPhaseEndsAt());
+        assertFalse(after.getPlayers().stream().filter(p -> actor.equals(p.getPlayerId())).findFirst().orElseThrow().isAlive());
+        var log = after.getLogs().stream().filter(e -> "SELF_DESTRUCT".equals(e.getType())).findFirst().orElseThrow();
+        assertEquals(before.getMyWord(), log.getMetadata().get("content")); assertEquals(false, log.getMetadata().get("success"));
+        assertEquals("DISCARDED", jobs.findById(old.getId()).orElseThrow().getStatus());
+        runtime.complete(old.getId(), new AiTurnDecision(RuleSupport.action("VOTE", "", actor), "", Map.of(), List.of(), Map.of(), false, Map.of()));
+        runtime.action("undercover", room.getId(), user(actor), boom);
+        GameState persisted = states.findById(room.getId()).orElseThrow();
+        assertEquals(Map.of(voter, actor), RuleSupport.map(persisted.getData().get("votes")));
+        assertEquals(1, persisted.getLogs().stream().filter(e -> "SELF_DESTRUCT".equals(e.getType())).count());
+        assertEquals(4, jobs.findByRoomIdAndStatusIn(room.getId(), List.of("QUEUED")).size());
+        PlayerAction stale = RuleSupport.action("SKIP", "", null); stale.setExpectedPhaseToken(boom.getExpectedPhaseToken());
+        assertEquals("PHASE_CHANGED", assertThrows(ApiException.class, () -> runtime.action("undercover", room.getId(), user(old.getActorId()), stale)).getCode());
+        for (var p : persisted.getPlayers()) if (p.isAlive() && !voter.equals(p.getPlayerId())) runtime.action("undercover", room.getId(), user(p.getPlayerId()), RuleSupport.action("SKIP", "", null));
+        persisted = states.findById(room.getId()).orElseThrow();
+        assertEquals(2, persisted.getRoundNumber()); assertEquals(0, persisted.getData().get("noEliminationRounds"));
+        assertTrue(RuleSupport.map(RuleSupport.map(persisted.getData().get("lastVoteResult")).get("tally")).isEmpty());
+        verifyNoInteractions(client);
+    }
+
+    @Test void successfulSelfDestructUsesTheNormalPersistentSettlementExactlyOnce() {
+        Room room = room(false); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
+        GameState state = states.findById(room.getId()).orElseThrow();
+        var spy = state.getPlayers().stream().filter(p -> "UNDERCOVER".equals(p.getRole())).findFirst().orElseThrow();
+        RuleSupport.phase(state, "VOTING", null, 60, java.time.LocalDateTime.now());
+        state.getData().put("votes", new LinkedHashMap<>()); states.saveAndFlush(state);
+        PlayerAction action = RuleSupport.action("SELF_DESTRUCT", RuleSupport.text(state.getData().get("civilianWord")), null);
+        action.setRequestId(UUID.randomUUID().toString());
+        var result = runtime.action("undercover", room.getId(), user(spy.getPlayerId()), action);
+        assertEquals("SETTLEMENT", result.getPhase()); assertEquals("UNDERCOVER", result.getWinner());
+        runtime.action("undercover", room.getId(), user(spy.getPlayerId()), action);
+        var persisted = states.findById(room.getId()).orElseThrow();
+        assertEquals(true, persisted.getData().get("v2Settled"));
+        assertEquals(RoomStatus.WAITING, rooms.findById(room.getId()).orElseThrow().getStatus());
+        assertEquals(1, persisted.getLogs().stream().filter(e -> "SELF_DESTRUCT".equals(e.getType())).count());
+        assertEquals(1, persisted.getLogs().stream().filter(e -> "settlement".equals(e.getType())).count());
+        assertTrue(jobs.findByRoomIdAndStatusIn(room.getId(), List.of("QUEUED", "RUNNING")).isEmpty());
+    }
+
+    private Room room(boolean ai) { return room(ai, 4); }
+    private Room room(boolean ai, int count) {
         String id = UUID.randomUUID().toString();
-        Room room = new Room(id, "undercover", "V2 integration", RoomStatus.WAITING, 4, false, null, "text", new LinkedHashMap<>(Map.of("playerCount", 4, "speakTime", 0)));
+        Room room = new Room(id, "undercover", "V2 integration", RoomStatus.WAITING, count, false, null, "text", new LinkedHashMap<>(Map.of("playerCount", count, "speakTime", 0)));
         List<RoomSeat> seats = new ArrayList<>();
-        for (int i = 0; i < 4; i++) seats.add(new RoomSeat(i, UUID.randomUUID().toString(), "玩家" + i, ai, ai ? "ai1" : null, "", true, i == 0));
+        for (int i = 0; i < count; i++) seats.add(new RoomSeat(i, UUID.randomUUID().toString(), "玩家" + i, ai, ai ? "ai1" : null, "", true, i == 0));
         room.setSeats(seats); room.setHostUserId(seats.get(0).getPlayerId()); room.syncSeatCount();
         return rooms.saveAndFlush(room);
     }

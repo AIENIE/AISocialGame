@@ -5,6 +5,15 @@ import { roomActions } from "./roomActions";
 
 const event = (seq: number, fields: Partial<GameLogEntry> = {}): GameLogEntry => ({ type: "SPEECH", message: `legacy ${seq}`, time: "2026-10-07T12:00:00", metadata: { eventId: `e${seq}`, publicSeq: seq, content: `body ${seq}` }, ...fields });
 describe("room presentation", () => {
+  it("presents self-destruct guesses as localized game events rather than ordinary descriptions", () => {
+    const attempt = event(1, { type: "SELF_DESTRUCT", metadata: { actorName: "玩家1", content: "单车", success: false } });
+    expect(isSpeechEvent(attempt)).toBe(false);
+    for (const locale of ["zh-CN", "zh-TW", "en"]) {
+      expect(systemEventMessage(attempt, locale)).toContain("单车");
+      expect(systemEventMessage(attempt, locale)).not.toBe(attempt.message);
+    }
+    expect(systemEventMessage({ ...attempt, metadata: { ...attempt.metadata, success: true } }, "en")).toContain("Undercover wins");
+  });
   it("merges snapshots and pages by stable public identity, including equal timestamps", () => {
     expect(mergeEvents([event(3), event(4)], [event(1), event(2), event(3)]).map(log => log.metadata?.publicSeq)).toEqual([1, 2, 3, 4]);
     expect(eventContent(event(1))).toBe("body 1");
