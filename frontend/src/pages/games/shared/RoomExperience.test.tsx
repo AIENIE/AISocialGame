@@ -14,9 +14,9 @@ let container: HTMLDivElement, root: Root;
 const seats = Array.from({ length: 4 }, (_, i) => ({ playerId: `p${i}`, displayName: `玩家${i + 1}`, avatar: "", seatNumber: i, ready: true, host: i === 0, ai: i > 0 }));
 const room: Room = { id: "room", gameId: "undercover", name: "测试房间", status: "WAITING", seats, maxPlayers: 6, hostUserId: "p0", isPrivate: false, config: {} };
 const gameState = (gameId: string, phase: string, archive = "game-1"): GameState => ({ roomId: "room", gameId, phase, round: 1, myPlayerId: "p0", myRole: gameId === "werewolf" ? "SEER" : "CIVILIAN", myWord: "茶杯", players: phase === "WAITING" ? [] : seats.map(s => ({ ...s, alive: true })), logs: [{ type: "SPEECH", actorId: "p1", message: "玩家2：线索", time: "2026-10-07T12:00:00", metadata: { eventId: "message", content: "可以直接阅读的发言" } }], extra: { archiveId: archive, phaseToken: phase, ruleVersion: 2, legalActions: phase === "WAITING" || phase === "SETTLEMENT" ? [] : [{ type: "SPEAK", label: "发言", targets: [], maxLength: 100 }], seerChecks: [{ targetPlayerId: "p1", round: 1, result: "WOLF" }] } });
-function render(state: GameState) {
+function render(state: GameState, overrides: Partial<Room> = {}) {
   const idle = { isPending: false, isError: false, error: null, refetch: vi.fn(), mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(undefined) };
-  vi.mocked(useRoomRuntime).mockReturnValue({ room: { ...room, gameId: state.gameId }, state, roomQuery: idle, stateQuery: idle, joinMutation: idle, personaQuery: idle, addAiMutation: idle, startMutation: idle, actionMutation: idle, authLoading: false, userKey: "p0", isHost: true, personas: [], selectedAiId: "", setSelectedAiId: vi.fn(), canAddAi: true, chatMessages: [], socket: { connected: true, showReconnectAction: false, reconnect: vi.fn(), sendChat: vi.fn() }, startGame: vi.fn(), handleActionError: vi.fn() } as unknown as ReturnType<typeof useRoomRuntime>);
+  vi.mocked(useRoomRuntime).mockReturnValue({ room: { ...room, ...overrides, gameId: state.gameId }, state, roomQuery: idle, stateQuery: idle, joinMutation: idle, personaQuery: idle, addAiMutation: idle, startMutation: idle, actionMutation: idle, authLoading: false, userKey: "p0", isHost: true, personas: [], selectedAiId: "", setSelectedAiId: vi.fn(), canAddAi: true, chatMessages: [], socket: { connected: true, showReconnectAction: false, reconnect: vi.fn(), sendChat: vi.fn() }, startGame: vi.fn(), handleActionError: vi.fn() } as unknown as ReturnType<typeof useRoomRuntime>);
   act(() => root.render(<MemoryRouter><RoomExperience gameId={state.gameId} /></MemoryRouter>));
 }
 beforeEach(() => { (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
@@ -56,4 +56,12 @@ it("resets a draft when a new archive starts", () => {
   expect(container.querySelector("textarea")!.value).toBe("上一局的草稿");
   render(gameState("undercover", "DESCRIPTION", "game-2"));
   expect(container.querySelector("textarea")!.value).toBe("");
+});
+it.each(["WAITING", "SETTLEMENT"])("keeps laboratory scheduling and roster controls outside the ordinary room setup: %s", phase => {
+  render(gameState("undercover", phase), { source: "LAB", labExperimentId: "experiment" });
+  expect(container.querySelector('[data-testid="game-start-btn"]')).toBeNull();
+  expect(container.textContent).not.toContain("下一局设置");
+  expect(container.textContent).not.toContain("邀请与补位");
+  expect(container.querySelector('a[href="/lab/experiment"]')).not.toBeNull();
+  expect(container.textContent).toContain("lab.managedGame");
 });

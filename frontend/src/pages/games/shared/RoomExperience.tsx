@@ -63,6 +63,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
     catch (error) { runtime.handleActionError(error, "game.submitSpeakFailed"); throw error; }
   });
   const playing = stage === "playing";
+  const laboratory = room.source === "LAB";
   const players: GamePlayerStateView[] = stage === "waiting" ? room.seats.map(seat => ({ ...seat, alive: true })) : state.players;
   const me = players.find(player => player.playerId === state.myPlayerId);
   const voted = state.extra?.myVote || (Array.isArray(state.extra?.votedPlayers) && state.extra.votedPlayers.includes(state.myPlayerId));
@@ -74,7 +75,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
     currentSeat={playing ? state.currentSeat : undefined} selected={control.target} targets={control.selected?.targets}
     onSelect={id => { control.selectTarget(id); if (expanded) setDrawer(null); }} pending={control.busy || !runtime.socket.connected}
     votedPlayers={Array.isArray(state.extra?.votedPlayers) ? state.extra.votedPlayers : []} ballot={stage === "waiting" ? undefined : ballot}
-    seatCount={room.maxPlayers} onAddSeat={stage === "waiting" ? () => setDrawer("setup") : undefined} expanded={expanded} />;
+    seatCount={room.maxPlayers} onAddSeat={stage === "waiting" && !laboratory ? () => setDrawer("setup") : undefined} expanded={expanded} />;
   const sendChat = (type: "TEXT" | "EMOJI" | "QUICK_PHRASE", content: string) => {
     const sent = runtime.socket.sendChat(type, content);
     if (!sent) toast.error(t("game.chat.sendFailed"));
@@ -87,9 +88,9 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   };
   const minPlayers = state.gameId === "werewolf" ? Number(room.config?.playerCount || room.maxPlayers) : state.gameId === "undercover" ? 4 : 1;
   const remaining = Math.max(0, minPlayers - room.seats.length);
-  const start = room.source === "LAB" ? <div className="room-start-bar"><span className="text-sm text-muted-foreground">{t("lab.managedGame")}</span><Button asChild variant="outline"><Link to={`/lab/${room.labExperimentId}`}>{t("nav.lab")}</Link></Button></div> : <div className="room-start-bar"><span className="text-sm text-muted-foreground">{remaining ? copy("needPlayers", { n: remaining }) : !runtime.isHost ? copy("hostStarts") : copy("prepare")}</span>
+  const start = laboratory ? <div className="room-start-bar"><span className="text-sm text-muted-foreground">{t("lab.managedGame")}</span><Button asChild variant="outline"><Link to={`/lab/${room.labExperimentId}`}>{t("nav.lab")}</Link></Button></div> : <div className="room-start-bar"><span className="text-sm text-muted-foreground">{remaining ? copy("needPlayers", { n: remaining }) : !runtime.isHost ? copy("hostStarts") : copy("prepare")}</span>
     <Button data-testid="game-start-btn" className="room-submit" disabled={!runtime.isHost || remaining > 0 || runtime.startMutation.isPending || !runtime.socket.connected} onClick={runtime.startGame}><Play className="mr-1 h-4 w-4" />{stage === "settlement" ? copy("restart") : t("lobby.startGame")}</Button></div>;
-  const setup = <div className="space-y-5"><Button variant="outline" onClick={() => void invite()}><Share2 className="mr-2 h-4 w-4" />{copy("invite")}</Button>
+  const setup = !laboratory && <div className="space-y-5"><Button variant="outline" onClick={() => void invite()}><Share2 className="mr-2 h-4 w-4" />{copy("invite")}</Button>
     <PersonaPicker personas={runtime.personas} selectedAiId={runtime.selectedAiId} onSelectedAiIdChange={runtime.setSelectedAiId} canAddAi={runtime.canAddAi && !playing}
       onAddAi={() => runtime.addAiMutation.mutate(runtime.selectedAiId)} isHost={runtime.isHost} isWaiting={!playing} full={room.seats.length >= room.maxPlayers}
       isLoading={runtime.personaQuery.isPending} isError={runtime.personaQuery.isError} onRetry={() => void runtime.personaQuery.refetch()}
@@ -106,10 +107,10 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
       menu={<>{room.labExperimentId && <Button variant="ghost" size="sm" asChild><Link to={`/lab/${room.labExperimentId}`}>{t("nav.lab")}</Link></Button>}{room.aiDebugAvailable && <AiDebugButton gameId={state.gameId} roomId={room.id} roomName={room.name} userKey={runtime.userKey} instanceId={state.extra?.archiveId} />}<Button size="icon" variant="ghost" aria-label={copy("history")} onClick={() => setDrawer("history")}><History className="h-4 w-4" /></Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={copy("more")}><MoreHorizontal className="h-5 w-5" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><RoomNumber code={room.roomCode} /><DropdownMenuItem onClick={() => setDrawer("players")}>{copy("players")}</DropdownMenuItem>
-            {playing ? <DropdownMenuItem onClick={() => setDrawer("private")}>{copy(state.gameId === "turtle_soup" ? "clues" : "details")}</DropdownMenuItem> : <><DropdownMenuItem onClick={() => setDrawer("setup")}>{copy(stage === "settlement" ? "nextSetup" : "addSeat")}</DropdownMenuItem><DropdownMenuItem onClick={() => setDrawer("rules")}>{copy("rules")}</DropdownMenuItem></>}
+            {playing ? <DropdownMenuItem onClick={() => setDrawer("private")}>{copy(state.gameId === "turtle_soup" ? "clues" : "details")}</DropdownMenuItem> : <>{!laboratory && <DropdownMenuItem onClick={() => setDrawer("setup")}>{copy(stage === "settlement" ? "nextSetup" : "addSeat")}</DropdownMenuItem>}<DropdownMenuItem onClick={() => setDrawer("rules")}>{copy("rules")}</DropdownMenuItem></>}
             <DropdownMenuSeparator /><LanguageMenuItems /></DropdownMenuContent>
         </DropdownMenu></>}
-      context={playing ? <GameContext state={state} /> : stage === "waiting" ? <div className="room-prepare-context"><div><h2 className="font-semibold">{copy("prepare")}</h2><RoomNumber code={room.roomCode} /><p className="text-xs text-muted-foreground">{t("rooms.waitRule")}</p><p className="mt-1 text-sm text-muted-foreground">{room.seats.length} / {room.maxPlayers}</p></div><Button variant="outline" size="sm" onClick={() => setDrawer("setup")}><Share2 className="mr-1 h-4 w-4" />{copy("addSeat")}</Button><details><summary>{copy("rules")}</summary><RoomRules state={state} room={room} /></details></div> : undefined}
+      context={playing ? <GameContext state={state} /> : stage === "waiting" ? <div className="room-prepare-context"><div><h2 className="font-semibold">{laboratory ? t("lab.managedGame") : copy("prepare")}</h2><RoomNumber code={room.roomCode} /><p className="text-xs text-muted-foreground">{t("rooms.waitRule")}</p><p className="mt-1 text-sm text-muted-foreground">{room.seats.length} / {room.maxPlayers}</p></div>{!laboratory && <Button variant="outline" size="sm" onClick={() => setDrawer("setup")}><Share2 className="mr-1 h-4 w-4" />{copy("addSeat")}</Button>}<details><summary>{copy("rules")}</summary><RoomRules state={state} room={room} /></details></div> : undefined}
       actions={playing ? <>
         {canReact && <div className="room-reactions" aria-label={copy("reaction")}>{["👍", "🤔", "😂", "😱"].map(emoji => <button type="button" key={emoji} aria-label={`${copy("reaction")} ${emoji}`} disabled={!runtime.socket.connected} onClick={() => sendChat("EMOJI", emoji)}>{emoji}</button>)}</div>}
         <RoomActionDock state={state} control={control} connected={runtime.socket.connected} waitingText={waiting} onChoosePlayer={() => setDrawer("players")}
@@ -120,7 +121,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
         <div className="room-settlement-results">
           {state.gameId === "turtle_soup" && <div className="mb-4 space-y-2"><h2 className="font-semibold">{t("game.solutionTitle")}</h2><p className="whitespace-pre-wrap text-sm leading-6">{String(state.extra?.solution || "")}</p></div>}
           <SettlementPanel gameId={state.gameId} state={state} />
-          <div className="mt-3 flex flex-wrap gap-2">{state.extra?.archiveId && <Button asChild variant="outline" size="sm"><Link to={`/replay/${state.extra.archiveId}`}><BookOpen className="mr-1 h-4 w-4" />{copy("replay")}</Link></Button>}<Button size="sm" variant="outline" onClick={() => setDrawer("setup")}>{copy("nextSetup")}</Button></div>
+          <div className="mt-3 flex flex-wrap gap-2">{state.extra?.archiveId && <Button asChild variant="outline" size="sm"><Link to={`/replay/${state.extra.archiveId}`}><BookOpen className="mr-1 h-4 w-4" />{copy("replay")}</Link></Button>}{!laboratory && <Button size="sm" variant="outline" onClick={() => setDrawer("setup")}>{copy("nextSetup")}</Button>}</div>
         </div><div className="room-settlement-chat">{chat()}</div>
       </div>}
     </GameRoomFrame>
