@@ -42,16 +42,17 @@ public class BoundedAiClient {
     }
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds,int outputLimit,Runnable beforeSend) {
         requireReady();
-        request = originalDebugFlag(request);
+        request = originalRequestFlags(request);
         return execute(request, deadlineSeconds, outputLimit, beforeSend);
     }
     // Old reservations are bound to the exact request bytes, including absence of diagnostic flags.
-    private ChatCompletionsRequest originalDebugFlag(ChatCompletionsRequest request) {
-        if (!request.hasIncludeDebug()) return request;
+    private ChatCompletionsRequest originalRequestFlags(ChatCompletionsRequest request) {
         var original = reservations.findByIdentityHash(identity(request)).orElse(null);
         if (original == null || original.requestHash.equals(AiCallSettlementService.hash(request.toByteArray()))) return request;
-        var legacy = request.toBuilder().clearIncludeDebug().build();
-        return original.requestHash.equals(AiCallSettlementService.hash(legacy.toByteArray())) ? legacy : request;
+        for (var legacy:java.util.List.of(request.toBuilder().clearIncludeDebug().build(),
+                request.toBuilder().clearStreamTimeouts().build(),request.toBuilder().clearStreamTimeouts().clearIncludeDebug().build()))
+            if (original.requestHash.equals(AiCallSettlementService.hash(legacy.toByteArray()))) return legacy;
+        return request;
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
         return reservations.findByIdentityHash(identity(request)).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
@@ -72,7 +73,7 @@ public class BoundedAiClient {
             return recover(previous);
         }
         if (labBudgets != null) labBudgets.checkCall();
-        long remainingSeconds=Math.min(120,Math.max(1,deadlineSeconds));
+        long remainingSeconds=Math.min(600,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;
         try {
@@ -97,8 +98,10 @@ public class BoundedAiClient {
                 remaining -= Math.min(TimeUnit.SECONDS.toNanos(2), Math.max(0, remaining / 4));
                 if (remaining <= 0) throw io.grpc.Status.DEADLINE_EXCEEDED.asRuntimeException();
                 executionStarted=true;
-                stub.withDeadlineAfter(remaining,TimeUnit.NANOSECONDS)
-                    .chatCompletions(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
+                var events=stub.withDeadlineAfter(remaining,TimeUnit.NANOSECONDS)
+                    .chatCompletionsStream(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
+                // Partial text is diagnostic only. The authoritative saved result is recovered below.
+                while (events.hasNext()) events.next();
             } catch(RuntimeException failure) {
                 // Local admission/deadline failures have not attempted the execution RPC.
                 // Preserve the local cause; the prepared request expires without a send.
@@ -127,6 +130,44 @@ public class BoundedAiClient {
     }
     private static String identity(ChatCompletionsRequest request) {
         return AiCallSettlementService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+    /** Admin diagnostics: read/reconcile the original request; this method never executes inference. */
+    public Map<String,Object> inspect(String project,long userId,String requestId) {
+        var request=ChatCompletionsRequest.newBuilder().setProjectKey(project).setUserId(userId).setRequestId(requestId).build();
+        var found=reservations.findByIdentityHash(identity(request));
+        if (found.isEmpty()) return Map.of("requestId",requestId,"state","NOT_PREPARED");
+        var row=found.get();
+        var out=new java.util.LinkedHashMap<String,Object>();out.put("requestId",requestId);out.put("budgetId",row.budgetId);
+        GetBudgetCallStatusResponse remote=null;
+        if (AiCallSettlementService.pending(row.state)) {
+            try { remote=reconcile(row); }
+            catch (RuntimeException unavailable) { out.put("queryState","UNAVAILABLE"); }
+            row=reservations.findById(row.id).orElseThrow();
+        }
+        out.put("state",row.state);out.put("billedPoints",row.billedPoints);out.put("billedCost",row.billedCost);
+        if (remote!=null) {
+            out.put("remoteState",remote.getState().name().replace("BUDGET_CALL_STATE_",""));
+            if (remote.hasStreamProgress()) {
+                out.put("partialContent",remote.getStreamProgress().getContent());
+                if (remote.getStreamProgress().hasTiming()) out.put("timing",timing(remote.getStreamProgress().getTiming()));
+            }
+        }
+        if ("SETTLED".equals(row.state)) {
+            var result=result(row);out.put("content",result.getContent());out.put("finishReason",result.getFinishReason());
+            out.put("usageAuthoritative",result.hasUsageAuthoritative() ? result.getUsageAuthoritative() : null);
+            var usage=new java.util.LinkedHashMap<String,Object>();usage.put("promptTokens",result.getPromptTokens());
+            usage.put("completionTokens",result.getCompletionTokens());usage.put("cacheTokens",result.getCacheTokens());
+            usage.put("reasoningTokens",result.hasReasoningTokens()?result.getReasoningTokens():null);out.put("usage",usage);
+            if (result.hasStreamTiming()) out.put("timing",timing(result.getStreamTiming()));
+        }
+        return out;
+    }
+    private static Map<String,Object> timing(ChatStreamTiming timing) {
+        var out=new java.util.LinkedHashMap<String,Object>();
+        out.put("providerStartedAtEpochMs",timing.hasProviderStartedAtEpochMs()?timing.getProviderStartedAtEpochMs():null);
+        out.put("firstEventMs",timing.hasFirstEventMs()?timing.getFirstEventMs():null);
+        out.put("firstTextMs",timing.hasFirstTextMs()?timing.getFirstTextMs():null);out.put("totalMs",timing.getTotalMs());
+        out.put("lastEventAtEpochMs",timing.hasLastEventAtEpochMs()?timing.getLastEventAtEpochMs():null);return out;
     }
     private static boolean transientFailure(RuntimeException failure) {
         return java.util.Set.of(io.grpc.Status.Code.UNAVAILABLE, io.grpc.Status.Code.DEADLINE_EXCEEDED,

@@ -133,9 +133,13 @@ public class AiGrpcClient {
                 }
             }
             if (isolatedTransportFixture && callBudget != null) callBudget.consume();
+            boolean coach=com.aisocialgame.lab.LabCallContext.current()!=null
+                    && java.util.Set.of("REVIEW","MANUAL_REVIEW").contains(com.aisocialgame.lab.LabCallContext.current().purpose());
+            if (coach) builder.setStreamTimeouts(fireflychat.ai.v1.ChatStreamTimeouts.newBuilder()
+                    .setFirstTextMs(300000).setIdleMs(120000).setTotalMs(600000));
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
             var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
-                    : com.aisocialgame.lab.LabCallContext.current()!=null && "REVIEW".equals(com.aisocialgame.lab.LabCallContext.current().purpose())
+                    : coach
                         ? boundedClient.chat(builder.build(),deadlineSeconds,32768,beforeSend)
                         : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
             if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);

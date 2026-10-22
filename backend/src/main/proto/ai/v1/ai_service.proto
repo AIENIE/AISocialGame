@@ -135,9 +135,11 @@ message ChatCompletionsRequest {
   // A budgeted request must use the same bound as PrepareCallBudget.
   optional int32 max_output_tokens = 14;
   optional string evaluation_run_id = 15;
-  // Unary only, ENV=local and authenticated/authorized AISocialGame caller only.
+  // ENV=local and existing authenticated/authorized callers; no project-specific debug allowlist.
   // Observes the existing response; does not enable thinking or change generation.
   optional bool include_debug = 16;
+  // Opt-in streaming limits; omitted keeps existing caller defaults. Included in request identity.
+  optional ChatStreamTimeouts stream_timeouts = 17;
 }
 
 message ChatCompletionsResponse {
@@ -159,6 +161,27 @@ message ChatCompletionsResponse {
   // Present only for an explicitly requested CNY budget; persisted with the original result.
   optional BudgetCharge budget_charge = 11;
   optional ChatDebugInfo debug_info = 12;
+  optional ChatStreamTiming stream_timing = 13;
+}
+
+// Positive milliseconds; first_text <= 300000, idle <= 120000, total <= 600000.
+message ChatStreamTimeouts {
+  int64 first_text_ms = 1;
+  int64 idle_ms = 2;
+  int64 total_ms = 3;
+}
+// Provider-relative observations, never inferred from headers or client rendering.
+message ChatStreamTiming {
+  optional int64 provider_started_at_epoch_ms = 1;
+  optional int64 first_event_ms = 2;
+  optional int64 first_text_ms = 3;
+  int64 total_ms = 4;
+  optional int64 last_event_at_epoch_ms = 5;
+}
+// Partial content is diagnostic only, never a committed result or authoritative usage.
+message ChatStreamProgress {
+  string content = 1;
+  optional ChatStreamTiming timing = 2;
 }
 
 // Local diagnostics only. Never echo into conversation history or business memory.
@@ -209,6 +232,9 @@ message ChatCompletionsStreamEvent {
   optional string native_response_json = 13;
   optional int64 reasoning_tokens = 14;
   optional bool usage_authoritative = 15;
+  optional BudgetCharge budget_charge = 16;
+  optional ChatDebugInfo debug_info = 17;
+  optional ChatStreamTiming stream_timing = 18;
 }
 
 message EmbeddingsRequest {
@@ -418,6 +444,7 @@ message GetBudgetCallStatusResponse {
   optional BudgetPriceQuote price_quote = 13;
   // Present only with a committed monetary success, including authoritative usage.
   optional BudgetCharge charge = 14;
+  optional ChatStreamProgress stream_progress = 15;
 }
 
 service AiGatewayService {

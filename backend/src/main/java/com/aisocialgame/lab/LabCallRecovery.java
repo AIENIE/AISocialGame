@@ -14,7 +14,7 @@ public final class LabCallRecovery {
         return transport==0?actionId:actionId+":transport:"+transport;
     }
     public static boolean recoverable(String code) {
-        return Set.of("AI_REQUEST_NOT_SENT","AI_RESULT_PENDING","AI_RESULT_UNKNOWN","BUDGET_RECONCILIATION_REQUIRED","AI_BUDGET_BUSY").contains(code);
+        return Set.of("AI_REQUEST_NOT_SENT","AI_RESULT_PENDING","AI_RESULT_UNKNOWN","AI_USAGE_UNKNOWN","BUDGET_RECONCILIATION_REQUIRED","AI_BUDGET_BUSY").contains(code);
     }
     /** Returns a waiting reason; terminal reasons pause the experiment with this same checkpoint. */
     public static String defer(Map<String,Object> checkpoint,ApiException failure,long now) {

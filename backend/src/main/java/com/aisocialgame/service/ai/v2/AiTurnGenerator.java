@@ -167,7 +167,7 @@ public class AiTurnGenerator {
                 sample.put("promptTokens", response.promptTokens()); sample.put("completionTokens", response.completionTokens());
                 String raw = response.content() == null ? "" : response.content().strip();
                 sample.put("outputBytes", (response.content() == null ? "" : response.content()).getBytes(StandardCharsets.UTF_8).length);
-                if (undercover && "length".equals(response.finishReason())) { failures = List.of("OUTPUT_LIMIT_REACHED"); break; }
+                if (undercover && Set.of("length","incomplete").contains(RuleSupport.text(response.finishReason()).toLowerCase(Locale.ROOT))) { failures = List.of("OUTPUT_LIMIT_REACHED"); break; }
                 if (undercover && raw.isBlank()) { failures = List.of("EMPTY_MODEL_RESPONSE"); continue; }
                 AiTurnDecision decision;
                 List<String> grounding;

@@ -32,7 +32,7 @@ class BoundedAiClientTest {
             @Override public void prepareCallBudget(PrepareCallBudgetRequest request,StreamObserver<PrepareCallBudgetResponse> observer){
                 prepared.set(request);prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
             }
-            @Override public void chatCompletions(ChatCompletionsRequest request,StreamObserver<ChatCompletionsResponse> observer){
+            @Override public void chatCompletionsStream(ChatCompletionsRequest request,StreamObserver<ChatCompletionsStreamEvent> observer){
                 sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());pause(generationDelayMs);observer.onError(executionFailure.asRuntimeException());
             }
             @Override public void getBudgetCallStatus(GetBudgetCallStatusRequest request,StreamObserver<GetBudgetCallStatusResponse> observer){

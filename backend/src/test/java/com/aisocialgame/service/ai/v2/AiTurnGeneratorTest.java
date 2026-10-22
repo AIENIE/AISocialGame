@@ -57,9 +57,11 @@ class AiTurnGeneratorTest {
         verify(debug).parsed(eq("debug-job"), eq(1), anyMap());
     }
 
-    @Test void confirmedOutputLimitIsSettledButNeverAppliedOrRetried() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"length","incomplete"})
+    void confirmedOutputLimitIsSettledButNeverAppliedOrRetried(String finishReason) throws Exception {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
-            .thenReturn(new AiChatResult("", "mock-only", 300, 8192, "length", 8192L, "budget-x", "SETTLED"));
+            .thenReturn(new AiChatResult(validSpeech(), "mock-only", 300, 8192, finishReason, 8192L, "budget-x", "SETTLED"));
         var failure = assertThrows(AiTurnGenerator.GenerationFailure.class, () -> generator.generate(rules,speechObservation(),"limit"));
         assertEquals("OUTPUT_LIMIT_REACHED",failure.getMessage());
         assertEquals(8192,failure.diagnostics().get("completionTokens"));
