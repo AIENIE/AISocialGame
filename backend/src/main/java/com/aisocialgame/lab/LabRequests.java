@@ -26,6 +26,8 @@ public final class LabRequests {
                              @Size(min=4,max=10) List<@NotNull @Valid Participant> participants) {}
     public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
                              @NotBlank String candidateExperienceId) {}
+    public record Review(@NotBlank @Pattern(regexp="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}") String operationId,
+                         @NotNull @Valid Selection coach) {}
     public record Budget(@Min(1) long budgetPoints) {
         @com.fasterxml.jackson.annotation.JsonCreator(mode=com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING)
         public static Budget from(Map<String,Object> body) {

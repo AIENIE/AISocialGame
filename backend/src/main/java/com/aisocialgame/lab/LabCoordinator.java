@@ -15,6 +15,7 @@ public class LabCoordinator {
     private final LabRuntime runtime;
     private final LabMatchRepository matches;
     private final LabCoachService coach;
+    @org.springframework.beans.factory.annotation.Autowired private LabManualReviewService manualReviews;
     private final boolean enabled;
     private final AtomicBoolean reviewing=new AtomicBoolean();
     private final ExecutorService worker=Executors.newSingleThreadExecutor(Thread.ofPlatform().name("lab-coach").daemon().factory());
@@ -27,6 +28,8 @@ public class LabCoordinator {
         if(!enabled) return;
         var indexed=new java.util.LinkedHashMap<String,LabExperiment>();
         experiments.findTop32ByStatusInOrderByCreatedAtAsc(List.of("RUNNING","PAUSING","STOPPING")).forEach(experiment -> indexed.put(experiment.id,experiment));
+        experiments.findByStatus("PAUSED").stream().filter(experiment->experiment.configuration.containsKey("manualReview"))
+                .forEach(experiment->indexed.put(experiment.id,experiment));
         matches.findTop3ByStatusInOrderByCreatedAtAsc(LabRuntime.ACTIVE).forEach(match ->
                 experiments.findById(match.experimentId).ifPresent(experiment -> indexed.put(experiment.id,experiment)));
         var active=List.copyOf(indexed.values());
@@ -36,7 +39,7 @@ public class LabCoordinator {
         }
         if(reviewing.compareAndSet(false,true)) worker.execute(() -> {
             try {
-                for(var experiment:active) if(coach.process(experiment.id)) break;
+                for(var experiment:active) if(manualReviews.process(experiment.id) || coach.process(experiment.id)) break;
             } catch(RuntimeException failure) { log.warn("Lab review deferred errorType={}",failure.getClass().getSimpleName()); }
             finally { reviewing.set(false); }
         });

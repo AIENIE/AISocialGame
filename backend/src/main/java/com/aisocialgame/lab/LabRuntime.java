@@ -36,6 +36,7 @@ public class LabRuntime {
     @Transactional
     public void advance(String id) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
+        if("PAUSED".equals(experiment.status) && experiment.configuration.containsKey("manualReview")) return;
         var current=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
         if(!"STOPPING".equals(experiment.status) || !current.isEmpty()) budgets.pauseIfReached(experiment);
         if(LabBudgetService.paused(experiment)) for(var match:current) {

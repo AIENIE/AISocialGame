@@ -27,6 +27,10 @@ public class LabBudgetService {
         var identity = LabCallContext.current();
         if (identity == null) return;
         var experiment = experiments.lock(identity.experimentId()).orElseThrow();
+        if ("MANUAL_REVIEW".equals(identity.purpose()) && "PAUSED".equals(experiment.status)
+                && identity.matchId().equals(com.aisocialgame.engine.v2.RuleSupport.map(experiment.configuration.get("manualReview")).get("matchId"))) {
+            requireRemaining(experiment);return;
+        }
         if (paused(experiment)) throw exhausted(experiment);
         if(matches!=null && states!=null && matches.findById(identity.matchId()).flatMap(match -> states.findById(match.roomId))
                 .map(state -> state.getData().containsKey("labCallPause")).orElse(false))

@@ -185,6 +185,7 @@ public class LabService {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
         switch(action) {
             case "start", "resume" -> {
+                require(!experiment.configuration.containsKey("manualReview"),"请等待单次复盘完成，实验保持暂停");
                 require(Set.of("DRAFT","PAUSED").contains(experiment.status), "实验当前不能启动");
                 require(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("REVIEW_FAILED")).isEmpty(),"请先重试失败的复盘");
                 budgets.requireRemaining(experiment);

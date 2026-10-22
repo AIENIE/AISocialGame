@@ -50,15 +50,9 @@ public class LabCoachService {
             try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
-                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),120);
+                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),600);
                 LabCallRecovery.commit(() -> recordResponse(claim,response));
-                if("length".equalsIgnoreCase(response.finishReason())) throw invalid();
-                String content=response.content()==null?"":response.content().strip();
-                if(content.startsWith("```")) content=content.replaceFirst("^```(?:json)?\\s*","").replaceFirst("\\s*```$","").strip();
-                if(content.length()>32000 || !content.startsWith("{") || !content.endsWith("}")) throw invalid();
-                Map<String,Object> output;
-                try { output=map(json.readValue(content,Map.class)); }
-                catch(com.fasterxml.jackson.core.JsonProcessingException malformed) { throw invalid(); }
+                Map<String,Object> output=parse(response,json);
                 LabCallRecovery.commit(() -> finish(claim,output));
             }
         } catch(Exception failure) {
@@ -123,7 +117,7 @@ public class LabCoachService {
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
             }
             match.snapshot.put("reviewRequestId",LabCallRecovery.requestId("lab-review:"+match.id+":"+number(match.snapshot.get("reviewAttempt"),0),recovery));
-            match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+150_000; matches.saveAndFlush(match);
+            match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+630_000; matches.saveAndFlush(match);
             return new Claim(id,match.id,text(match.snapshot.get("reviewRequestId")),map(match.snapshot.get("reviewRequest")));
         });
     }
@@ -143,10 +137,17 @@ public class LabCoachService {
             var experiment=experiments.lock(claim.experimentId()).orElseThrow();
             var match=matches.lock(claim.matchId()).orElseThrow();
             if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
+            publish(experiment,match,claim.requestId(),claim.request(),output);
+            match.status="REVIEWED"; match.reason=null; match.reviewLeaseUntil=null;
+            matches.save(match); experiments.save(experiment);
+        });
+    }
+    /** Caller holds the experiment and match locks; all participants publish in that same transaction. */
+    void publish(LabExperiment experiment,LabMatch match,String requestId,Map<String,Object> request,Map<String,Object> output) {
             var profiles=new HashMap<String,Map<String,Object>>();
             map(match.snapshot.get("players")).values().forEach(value -> { var profile=map(value); profiles.put(LabService.participantId(profile),profile); });
             var expected=profiles.keySet();
-            String identityField=text(claim.request().getOrDefault("identityField","agentId"));
+            String identityField=text(request.getOrDefault("identityField","agentId"));
             var entries=maps(output.get("experiences"));
             var actual=new HashSet<String>();
             var eventIds=new HashSet<>(strings(match.snapshot.get("reviewEventIds")));
@@ -163,18 +164,24 @@ public class LabCoachService {
                 var version=new LabExperience(); version.experimentId=experiment.id; version.agentId=text(profiles.get(participantId).get("agentId"));
                 version.participantId=participantId; version.sequenceNumber=experiences.latestSequence(experiment.id,participantId)+1;
                 version.summary=text(entry.get("summary")).strip(); version.previousId=text(map(heads.get(participantId)).get("experienceId"));
-                version.evidence=Map.of("matchId",match.id,"archiveId",match.archiveId,"eventIds",strings(entry.get("evidenceEventIds")),"requestId",claim.requestId());
+                version.evidence=Map.of("matchId",match.id,"archiveId",match.archiveId,"eventIds",strings(entry.get("evidenceEventIds")),"requestId",requestId);
                 experiences.saveAndFlush(version); heads.put(participantId,LabService.experienceHead(version));
             }
             experiment.configuration.put("experiences",heads);
-            match.status="REVIEWED"; match.reason=null; match.reviewLeaseUntil=null;
-            matches.save(match); experiments.save(experiment);
-        });
+    }
+    static Map<String,Object> parse(com.aisocialgame.integration.grpc.dto.AiChatResult response,ObjectMapper json) {
+        if(Set.of("length","incomplete").contains(text(response.finishReason()).toLowerCase(Locale.ROOT))) throw invalid();
+        String content=response.content()==null?"":response.content().strip();
+        if(content.startsWith("```")) content=content.replaceFirst("^```(?:json)?\\s*","").replaceFirst("\\s*```$","").strip();
+        if(content.length()>32000 || !content.startsWith("{") || !content.endsWith("}")) throw invalid();
+        try { return map(json.readValue(content,Map.class)); }
+        catch(com.fasterxml.jackson.core.JsonProcessingException malformed) { throw invalid(); }
     }
     public void retry(String id) {
         transaction.executeWithoutResult(status -> {
             var experiment=experiments.lock(id).orElseThrow(LabService::missing);
             require("PAUSED".equals(experiment.status),"请先暂停实验");
+            require(!experiment.configuration.containsKey("manualReview"),"请等待单次复盘完成");
             var match=matches.findByExperimentIdAndSequenceNumber(id,experiment.reviewCursor).orElseThrow(LabService::missing);
             require("REVIEW_FAILED".equals(match.status),"没有等待处理的复盘");
             budgets.requireRemaining(experiment);

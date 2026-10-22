@@ -31,6 +31,7 @@ class LabIntegrationTest {
     @Autowired LabService service;
     @Autowired LabRuntime lab;
     @Autowired LabCoachService coach;
+    @Autowired LabManualReviewService manualReviews;
     @Autowired LabExperimentRepository experiments;
     @Autowired LabMatchRepository matches;
     @Autowired LabExperienceRepository experiences;
@@ -60,6 +61,74 @@ class LabIntegrationTest {
     @BeforeEach void stopPreviousFixtures() {
         for(var experiment:experiments.findAll()) { experiment.status="STOPPED"; experiments.save(experiment); }
         for(var match:matches.findAll()) { match.status="ABORTED"; matches.save(match); }
+    }
+    @Test void manualMaxReviewIsIdempotentPublishesAllTenAndNeverStartsSecondGame() throws Exception {
+        String id=reviewedTenPlayerExperiment();
+        var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
+        var firstMessages=maps(map(match.snapshot.get("reviewRequest")).get("messages"));
+        var previousHeads=map(experiments.findById(id).orElseThrow().configuration.get("experiences"));
+        var request=new LabRequests.Review(UUID.randomUUID().toString(),new LabRequests.Selection("max-fixture",AiModelSelection.ThinkingMode.ENABLED,"MAX"));
+        var task=manualReviews.create(id,match.id,request);
+        assertEquals(task.get("taskId"),manualReviews.create(id,match.id,request).get("taskId"));
+        assertEquals("LAB_REVIEW_OPERATION_CONFLICT",assertThrows(com.aisocialgame.exception.ApiException.class,
+                ()->manualReviews.create(id,match.id,new LabRequests.Review(request.operationId(),selection))).getCode());
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->service.control(id,"resume"));
+        assertTrue(manualReviews.process(id));lab.advance(id);assertFalse(manualReviews.process(id));
+        var result=manualReviews.inspect(id,match.id,request.operationId());assertEquals("SUCCEEDED",result.get("status"));
+        assertEquals(firstMessages,maps(map(result.get("request")).get("messages")));
+        assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
+        var versions=experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30));
+        assertEquals(20,versions.getTotalElements());
+        var heads=map(experiments.findById(id).orElseThrow().configuration.get("experiences"));assertEquals(10,heads.size());
+        for(var entry:heads.entrySet()) {
+            var version=experiences.findById(text(map(entry.getValue()).get("experienceId"))).orElseThrow();
+            assertEquals(2,version.sequenceNumber);assertEquals(map(previousHeads.get(entry.getKey())).get("experienceId"),version.previousId);
+        }
+        assertEquals(1,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),eq(600));
+    }
+
+    @Test void invalidManualReviewKeepsAllHighHeadsAndDoesNotPayForCorrection() {
+        String id=reviewedTenPlayerExperiment();var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
+        var heads=map(experiments.findById(id).orElseThrow().configuration.get("experiences"));
+        var request=new LabRequests.Review(UUID.randomUUID().toString(),selection);manualReviews.create(id,match.id,request);
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenReturn(new AiChatResult("{\"experiences\":[]}","fixture-model",10,5));
+        manualReviews.process(id);assertFalse(manualReviews.process(id));lab.advance(id);
+        var task=manualReviews.inspect(id,match.id,request.operationId());assertEquals("FAILED",task.get("status"));
+        assertEquals("LAB_REVIEW_INVALID",task.get("reason"));assertNotNull(task.get("response"));
+        assertEquals(heads,experiments.findById(id).orElseThrow().configuration.get("experiences"));
+        assertEquals(10,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
+        assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
+    }
+
+    @Test void manualReviewRestartRecoversSameRequestAndOnlyNotSentChangesTransportIdentity() {
+        String id=reviewedTenPlayerExperiment();var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
+        var request=new LabRequests.Review(UUID.randomUUID().toString(),selection);var task=manualReviews.create(id,match.id,request);
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(manualReviews,"claim",id);
+        assertFalse(manualReviews.process(id));
+        readyManual(match.id,request.operationId());
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"pending","AI_RESULT_PENDING",Map.of("remoteState","RUNNING")));
+        manualReviews.process(id);
+        assertEquals(task.get("requestId"),manualReviews.inspect(id,match.id,request.operationId()).get("requestId"));
+        readyManual(match.id,request.operationId());stubCoach();manualReviews.process(id);
+        assertEquals("SUCCEEDED",manualReviews.inspect(id,match.id,request.operationId()).get("status"));
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(text(task.get("requestId"))),eq(600));
+    }
+    private void readyManual(String matchId,String operationId) {
+        var match=matches.findById(matchId).orElseThrow();var runs=map(match.snapshot.get("manualReviews"));var run=map(runs.get(operationId));
+        run.remove("leaseUntilEpochMs");var recovery=map(run.get("recovery"));recovery.remove("retryAfterEpochMs");run.put("recovery",recovery);
+        runs.put(operationId,run);match.snapshot.put("manualReviews",runs);matches.saveAndFlush(match);
+    }
+    private String reviewedTenPlayerExperiment() {
+        var agent=service.saveAgent(null,new LabRequests.Agent("Ten player fixture",personas.findAll().getFirst().getId(),selection));
+        var participants=java.util.stream.IntStream.range(0,10).mapToObj(index->new LabRequests.Participant(agent.id,null)).toList();
+        String id=text(service.create(new LabRequests.Experiment("Ten player review",null,10,10,"daily",true,1000,selection,Map.of(),participants),"admin").get("id"));
+        service.control(id,"start");lab.advance(id);lab.advance(id);service.control(id,"pause");
+        var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();finish(match,true);lab.advance(id);stubCoach();coach.process(id);lab.advance(id);
+        assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);return id;
     }
     @Test void perParticipantModelsFreezeWithoutChangingTheProfileAndRuleEliminationDoesNotAbortLearning() {
         var agent=service.saveAgent(null,new LabRequests.Agent("Same",personas.findAll().getFirst().getId(),selection));
@@ -615,7 +684,7 @@ class LabIntegrationTest {
     }
     private void stubCoach() {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation -> {
-            assertNotNull(LabCallContext.current()); assertEquals("REVIEW",LabCallContext.current().purpose());assertEquals(120,(int)invocation.getArgument(6));
+            assertNotNull(LabCallContext.current()); assertTrue(Set.of("REVIEW","MANUAL_REVIEW").contains(LabCallContext.current().purpose()));assertEquals(600,(int)invocation.getArgument(6));
             List<AiChatMessageDto> messages=invocation.getArgument(4);
             var input=map(json.readValue(messages.get(1).content(),Map.class));
             String event=text(maps(input.get("events")).getFirst().get("eventId"));

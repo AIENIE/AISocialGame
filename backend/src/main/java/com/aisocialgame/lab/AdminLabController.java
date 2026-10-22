@@ -11,6 +11,7 @@ public class AdminLabController {
     private final LabService service;
     private final LabCoachService coach;
     @org.springframework.beans.factory.annotation.Autowired private LabDiagnosticsService diagnostics;
+    @org.springframework.beans.factory.annotation.Autowired private LabManualReviewService reviews;
     public AdminLabController(LabService service,LabCoachService coach) { this.service=service; this.coach=coach; }
     @GetMapping("/agents") public List<LabAgent> agents(@CurrentAdmin String operator) { return service.agents(); }
     @PostMapping("/agents") public LabAgent createAgent(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Agent request) { return service.saveAgent(null,request); }
@@ -27,5 +28,7 @@ public class AdminLabController {
     @PostMapping("/experiments/{id}/control/{action}") public Map<String,Object> control(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String action) { if(Set.of("start","resume").contains(action)) service.preflight(id); return service.control(id,action); }
     @PostMapping("/experiments/{id}/rollback/{experienceId}") public void rollback(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String experienceId) { service.rollback(id,experienceId); }
     @PostMapping("/experiments/{id}/retry-review") public void retry(@CurrentAdmin String operator,@PathVariable String id) { coach.retry(id); }
+    @PostMapping("/experiments/{id}/matches/{matchId}/reviews") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@Valid @RequestBody LabRequests.Review request) { return reviews.create(id,matchId,request); }
+    @GetMapping("/experiments/{id}/matches/{matchId}/reviews/{operationId}") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@PathVariable String operationId) { return reviews.inspect(id,matchId,operationId); }
     @PostMapping("/experiments/{id}/evaluations") public Map<String,Object> evaluate(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Evaluation request) { return service.evaluate(id,request); }
 }
