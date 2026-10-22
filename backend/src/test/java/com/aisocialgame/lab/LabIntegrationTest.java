@@ -441,6 +441,11 @@ class LabIntegrationTest {
         assertEquals("PAUSED",service.updateBudget(id,30).get("status"));
         assertThrows(com.aisocialgame.exception.ApiException.class,()->service.updateBudget(id,0));
     }
+    @Test void budgetRequestRejectsFractionalStringAndOverflowValuesInsteadOfCoercingThem() throws Exception {
+        assertEquals(1523,json.readValue("{\"budgetPoints\":1523}",LabRequests.Budget.class).budgetPoints());
+        for(String value:List.of("12.5","\"12\"","9223372036854775808","null"))
+            assertThrows(com.fasterxml.jackson.core.JsonProcessingException.class,()->json.readValue("{\"budgetPoints\":"+value+"}",LabRequests.Budget.class));
+    }
     @Test void budgetPausedCoachKeepsTheOriginalRequestForResume() {
         String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation->{

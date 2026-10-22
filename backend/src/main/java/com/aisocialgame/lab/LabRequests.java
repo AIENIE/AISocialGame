@@ -26,5 +26,13 @@ public final class LabRequests {
                              @Size(min=4,max=10) List<@NotNull @Valid Participant> participants) {}
     public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
                              @NotBlank String candidateExperienceId) {}
-    public record Budget(@Min(1) long budgetPoints) {}
+    public record Budget(@Min(1) long budgetPoints) {
+        @com.fasterxml.jackson.annotation.JsonCreator(mode=com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING)
+        public static Budget from(com.fasterxml.jackson.databind.JsonNode body) {
+            var points=body==null?null:body.get("budgetPoints");
+            if(points==null || !points.isIntegralNumber() || !points.canConvertToLong())
+                throw new IllegalArgumentException("budgetPoints 必须为正整数");
+            return new Budget(points.longValue());
+        }
+    }
 }
