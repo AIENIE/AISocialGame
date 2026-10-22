@@ -8,6 +8,7 @@ import { labApi, getApiErrorMessage } from "@/services/api";
 import { failureText } from "@/components/lab/labFailures";
 import { Button } from "@/components/ui/button";
 import { DataState } from "@/components/DataState";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { LabExperimentRows, LabCostPanel, LabProgress, LabLiveMatches, LabMatchHistory, LabEvaluationResults, LabPager } from "@/components/lab/LabPanels";
 import { labText } from "@/i18n/labTexts";
 
@@ -17,7 +18,7 @@ function LabIndex() {
   const [page,setPage] = useState(0);
   const query = useQuery({ queryKey:["lab","list",page], queryFn:()=>labApi.list(page), refetchInterval:5000 });
   return <div className="lab-workspace">
-    <header className="lab-heading"><div><div className="lab-eyebrow">NEXUS / RESEARCH</div><h1>{tr("AI 实验室")}</h1><p>{tr("让每一局，成为下一局的经验。")}<br />{tr("观察 AI 的连续对局，参与实验，见证策略如何变化。")}</p></div><FlaskConical size={44} strokeWidth={1} className="text-emerald-700/50" /></header>
+    <header className="lab-heading"><div><div className="lab-eyebrow"><BrandLogo compact /> / RESEARCH</div><h1>{tr("AI 实验室")}</h1><p>{tr("让每一局，成为下一局的经验。")}<br />{tr("观察 AI 的连续对局，参与实验，见证策略如何变化。")}</p></div><FlaskConical size={44} strokeWidth={1} className="text-emerald-700/50" /></header>
     <p className="lab-small mb-6">{tr("管理员管理实验；真人参与使用现有游戏规则。")}</p>
     {query.isPending || query.error ? <DataState loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()} /> : <>
       <LabExperimentRows rows={query.data?.items ?? []} tr={tr} /><LabPager page={page} total={query.data?.total ?? 0} size={20} change={setPage} tr={tr} /></>}
@@ -44,7 +45,7 @@ function LabDetail({id}:{id:string}) {
   const canEnroll=["DRAFT","RUNNING","PAUSING","PAUSED"].includes(experiment.status) && !experiment.evaluations?.some(evaluation=>evaluation.status==="RUNNING");
   return <div className="lab-workspace">
     <Link to="/lab" className="lab-small mb-5 inline-flex items-center gap-2"><ArrowLeft size={14} />{tr("返回实验室")}</Link>
-    <header className="lab-heading"><div><div className="lab-eyebrow">NEXUS / RESEARCH</div><h1>{experiment.name}</h1><p>{tr("谁是卧底")} · {tr("AI 实验室")}</p></div></header>
+    <header className="lab-heading"><div><div className="lab-eyebrow"><BrandLogo compact /> / RESEARCH</div><h1>{experiment.name}</h1><p>{tr("谁是卧底")} · {tr("AI 实验室")}</p></div></header>
     <LabProgress experiment={experiment} tr={tr} />
     {experiment.reason && <div className="lab-error" role="status">{tr(experiment.status)} · {tr(failureText(experiment.reason))}</div>}
     <div className="lab-columns mt-7"><div>

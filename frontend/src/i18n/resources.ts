@@ -23,7 +23,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.lab": "AI 实验室",
       "lab.managedGame": "本房间由 AI 实验室统一调度",
       "errors.localStorageUnavailable": "无法保存到本机，请检查浏览器存储权限或可用空间。",
-      "app.title": "NexusPlay - 在线社交推理游戏平台",
+      "app.title": "seekerhut - 在线社交推理游戏平台",
       "i18n.selectLanguage": "选择语言",
 
       "nav.home": "游戏大厅",
@@ -596,7 +596,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.lab": "AI 實驗室",
       "lab.managedGame": "本房間由 AI 實驗室統一排程",
       "errors.localStorageUnavailable": "無法儲存到本機，請檢查瀏覽器儲存權限或可用空間。",
-      "app.title": "NexusPlay - 線上社交推理遊戲平台",
+      "app.title": "seekerhut - 線上社交推理遊戲平台",
       "i18n.selectLanguage": "選擇語言",
 
       "nav.home": "遊戲大廳",
@@ -1146,7 +1146,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "nav.lab": "AI Laboratory",
       "lab.managedGame": "This table is managed by the AI Laboratory",
       "errors.localStorageUnavailable": "Could not save locally. Check browser storage permissions or available space.",
-      "app.title": "NexusPlay - Online Social Deduction Games",
+      "app.title": "seekerhut - Online Social Deduction Games",
       "i18n.selectLanguage": "Select language",
 
       "nav.home": "Game Lobby",
