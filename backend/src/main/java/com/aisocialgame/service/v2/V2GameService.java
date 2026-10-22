@@ -139,7 +139,8 @@ public class V2GameService {
     }
     public GameStateResponse action(String gameId, String roomId, User user, PlayerAction action) {
         if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "请先登录");
-        return lifecycle.withActiveRoom(roomId, gameId, room -> {
+        Map<String,Object> rejection = new LinkedHashMap<>();
+        var result = lifecycle.withActiveRoom(roomId, gameId, room -> {
             GameState state = states.findByIdForUpdate(roomId).orElseThrow(() -> RuleSupport.bad("游戏尚未开始"));
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
@@ -148,7 +149,10 @@ public class V2GameService {
             GamePlayerState actor = RuleSupport.player(state, user.getId());
             String requestKey = user.getId() + ":" + RuleSupport.text(action.getRequestId());
             List<String> handled = new ArrayList<>(RuleSupport.strings(state.getData().get("handledActions")));
-            if (action.getRequestId() != null && handled.contains(requestKey)) return response(room, state, user.getId());
+            if (action.getRequestId() != null && handled.contains(requestKey)) {
+                rejection.putAll(RuleSupport.map(RuleSupport.map(state.getData().get("wordRejections")).get(requestKey)));
+                return response(room, state, user.getId());
+            }
             if (action.getExpectedPhaseToken() != null && !action.getExpectedPhaseToken().equals(viewerPhaseToken(state, rules, user.getId()))) throw new ApiException(HttpStatus.CONFLICT, "局面已更新，请重新选择操作", "PHASE_CHANGED", Map.of());
             String type = RuleSupport.text(action.getType()).toUpperCase(Locale.ROOT); action.setType(type);
             RuleSupport.require(!Set.of("HOST_VERDICT", "PASS").contains(type), "内部动作不能由玩家提交");
@@ -157,6 +161,19 @@ public class V2GameService {
                 action.setContent(safe);
             }
             actor.setConnectionStatus("ONLINE"); actor.setDisconnectedAt(null); actor.setLastActiveAt(LocalDateTime.now()); connections.markActive(user.getId(), roomId);
+            if (rules instanceof com.aisocialgame.engine.v2.undercover.UndercoverRuleSet undercover
+                    && !undercover.forbiddenTerms(state, user.getId(), action).isEmpty()) {
+                rules.apply(state, user.getId(), action, LocalDateTime.now());
+                rejection.putAll(undercover.wordFeedback(state, user.getId()));
+                if (action.getRequestId() != null) {
+                    handled.add(requestKey); state.getData().put("handledActions", handled.subList(Math.max(0, handled.size()-256), handled.size()));
+                    var rejections = RuleSupport.map(state.getData().get("wordRejections"));
+                    rejections.put(requestKey, rejection); rejections.keySet().retainAll(handled);
+                    state.getData().put("wordRejections", rejections);
+                }
+                persist(room, state, rules, false); prepareJob(state, rules);
+                return response(room, state, user.getId());
+            }
             var receipt = rules.commitmentAction(state, user.getId(), action);
             int actionStart = RuleSupport.maps(state.getData().get("events")).size();
             AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
@@ -167,6 +184,11 @@ public class V2GameService {
             rules.advance(state, LocalDateTime.now()); syncSafetyClock(state); persist(room, state, rules, false); prepareJob(state, rules);
             return response(room, state, user.getId());
         });
+        if (!rejection.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST,
+                "命中本人禁词："+String.join("、",RuleSupport.strings(rejection.get("forbiddenTerms")))
+                        +(RuleSupport.flag(rejection.get("eliminated"))?"；累计三次违规，已出局。":"；请修正，还可修正"+rejection.get("remainingCorrections")+"次，原倒计时继续。"),
+                RuleSupport.text(rejection.get("code")), rejection);
+        return result;
     }
     public boolean acceptSideChat(String roomId, String actorId, String type, String content) {
         lifecycle.requireActive(roomId);
@@ -235,6 +257,27 @@ public class V2GameService {
                 if(review.blocked() || review.redacted()) {finishJob(job,"DISCARDED","CONTENT_REVIEW_FAILED");return;}
             }
             int before = RuleSupport.maps(state.getData().get("events")).size();
+            if (rules instanceof com.aisocialgame.engine.v2.undercover.UndercoverRuleSet undercover
+                    && !undercover.forbiddenTerms(state, job.getActorId(), decision.action()).isEmpty()) {
+                rules.apply(state, job.getActorId(), decision.action(), now);
+                var feedback = undercover.wordFeedback(state, job.getActorId());
+                if (RuleSupport.flag(feedback.get("eliminated"))) finishJob(job, "FAILED", "FORBIDDEN_WORD_ELIMINATED");
+                else {
+                    var metrics = decision.diagnostics();
+                    var attempts = RuleSupport.maps(metrics.get("attempts"));
+                    var checkpoint = new LinkedHashMap<String,Object>();
+                    checkpoint.put("nextAttempt", attempts.stream().mapToInt(sample -> RuleSupport.number(sample.get("attempt"),0)).max().orElse(0)+1);
+                    checkpoint.put("calls",metrics.getOrDefault("calls",0)); checkpoint.put("responses",metrics.getOrDefault("responsesObserved",0));
+                    checkpoint.put("promptTokens",metrics.getOrDefault("promptTokens",0)); checkpoint.put("completionTokens",metrics.getOrDefault("completionTokens",0));
+                    checkpoint.put("modelKey",metrics.getOrDefault("modelKey","")); checkpoint.put("lastOutput",RuleSupport.map(metrics.get("rawOutput")));
+                    checkpoint.put("attempts",attempts); checkpoint.put("failures",List.of("SECRET_WORD_LEAK"));
+                    checkpoint.put("modelSelection",job.getDiagnostics().getOrDefault("modelSelection",Map.of()));
+                    checkpoint.put("forbiddenFeedback",feedback);
+                    job.getObservation().put("generationCheckpoint",checkpoint);
+                    job.setStatus("QUEUED"); jobs.save(job);
+                }
+                persist(room,state,rules,false); prepareJob(state,rules); return;
+            }
             var receipt = rules.commitmentAction(state, job.getActorId(), decision.action());
             AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
             rules.apply(state, job.getActorId(), decision.action(), LocalDateTime.now());

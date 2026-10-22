@@ -149,6 +149,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         }
         LegalAction capability = legalActions(state, actorId).stream().filter(a -> a.type().equals(type)).findFirst().orElseThrow(() -> bad("当前不能执行这个动作"));
         if ("SELF_DESTRUCT".equals(type)) {
+            clearWordFeedback(state, actorId);
             selfDestruct(state, actor, requireContent(action, capability.maxLength()), now);
             return;
         }
@@ -160,13 +161,33 @@ public final class UndercoverRuleSet implements GameRuleSet {
             return;
         }
         if ("SKIP".equals(type)) {
+            clearWordFeedback(state, actorId);
             event(state, "SKIP", actorId, null, actor.getDisplayName() + "选择跳过。", Map.of());
             completeCurrentSpeech(state, now);
             return;
         }
         String content = requireContent(action, capability.maxLength());
-        // Exact and obfuscated answer names are rejected for everyone, including the blank.
-        require(!revealsAnswer(state, content), "描述中不能直接包含本局词语或别名");
+        var forbidden = forbiddenTerms(state, actorId, action);
+        if (!forbidden.isEmpty()) {
+            String opportunity = turn(state, actorId, "SPEAK").key();
+            var previous = wordFeedback(state, actorId);
+            int count = opportunity.equals(previous.get("turnKey")) ? number(previous.get("violationCount"), 0) + 1 : 1;
+            var feedback = new LinkedHashMap<String,Object>();
+            feedback.put("code", count >= 3 ? "FORBIDDEN_WORD_ELIMINATED" : "OWN_WORD_FORBIDDEN");
+            feedback.put("turnKey", opportunity); feedback.put("forbiddenTerms", forbidden);
+            feedback.put("violationCount", count); feedback.put("remainingCorrections", Math.max(0, 3-count));
+            feedback.put("eliminated", count >= 3);
+            var corrections = map(state.getData().get("wordCorrections")); corrections.put(actorId, feedback);
+            state.getData().put("wordCorrections", corrections);
+            event(state, "WORD_CORRECTION", actorId, null, "发言包含本人的禁词，请修改。", feedback, "PRIVATE", List.of(actorId));
+            if (count >= 3) {
+                event(state, "FORBIDDEN_WORD_ELIMINATED", actorId, null, actor.getDisplayName()+"连续三次触发本人禁词，判定出局。", Map.of("reason","FORBIDDEN_WORD_ELIMINATED","violationCount",3));
+                eliminatePlayer(state, actor);
+                if (!finishIfWon(state)) completeCurrentSpeech(state, now);
+            }
+            return;
+        }
+        clearWordFeedback(state, actorId);
         Map<String, Object> data = new LinkedHashMap<>(); data.put("content", content);
         event(state, type, actorId, null, actor.getDisplayName() + "：" + content, data);
         completeCurrentSpeech(state, now);
@@ -303,6 +324,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
         Map<String, Object> data = new LinkedHashMap<>();
         boolean blank = "BLANK".equals(actor.getRole());
         data.put("blank", blank); data.put("word", text(actor.getWord()));
+        var feedback = wordFeedback(state, actorId);
+        if (!feedback.isEmpty()) data.put("wordFeedback", feedback);
         if (!blank) data.put("wordKnowledge", map(map(state.getData().get("wordKnowledgeByPlayer")).get(actorId)));
         if (votes(state).containsKey(actorId)) data.put("myVote", votes(state).get(actorId));
         return data;
@@ -454,9 +477,20 @@ public final class UndercoverRuleSet implements GameRuleSet {
         return true;
     }
 
-    private boolean revealsAnswer(GameState state, String content) {
-        return catalog.containsForbidden(content, text(state.getData().get("civilianWord")))
-                || catalog.containsForbidden(content, text(state.getData().get("undercoverWord")));
+    public List<String> forbiddenTerms(GameState state, String actorId, PlayerAction action) {
+        var actor = player(state, actorId);
+        return action != null && "SPEAK".equalsIgnoreCase(action.getType()) && !"BLANK".equals(actor.getRole())
+                ? catalog.matchedForbiddenTerms(action.getContent(), actor.getWord()) : List.of();
+    }
+
+    public Map<String,Object> wordFeedback(GameState state, String actorId) {
+        var feedback = map(map(state.getData().get("wordCorrections")).get(actorId));
+        return flag(feedback.get("eliminated")) || turn(state, actorId, "SPEAK").key().equals(feedback.get("turnKey")) ? feedback : Map.of();
+    }
+
+    private void clearWordFeedback(GameState state, String actorId) {
+        var corrections = map(state.getData().get("wordCorrections"));
+        corrections.remove(actorId); state.getData().put("wordCorrections", corrections);
     }
 
     private Map<String, Object> votes(GameState state) { return map(state.getData().get("votes")); }

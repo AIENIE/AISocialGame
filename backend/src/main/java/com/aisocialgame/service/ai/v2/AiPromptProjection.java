@@ -87,6 +87,7 @@ public final class AiPromptProjection {
         payload.put("inputFormatVersion", UNDERCOVER_VERSION);
         payload.put("instruction", adapter.instruction(o));
         payload.put("phase", o.phase()); payload.put("round", o.round());
+        if (o.privateFacts().containsKey("wordFeedback")) payload.put("forbiddenFeedback",o.privateFacts().get("wordFeedback"));
         Map<String, Object> self = new LinkedHashMap<>(); self.put("playerId", o.actorId());
         if (flag(o.privateFacts().get("blank")) || "BLANK".equals(o.self().get("role"))) self.put("blank", true);
         else {

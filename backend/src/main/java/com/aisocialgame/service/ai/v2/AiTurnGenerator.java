@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 @Service
 public class AiTurnGenerator {
     public static final String PROMPT_VERSION = "social-v2.10";
-    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.1";
+    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.2";
     public static final long MAX_DECISION_MILLIS = 50_000;
     public static final long UNDERCOVER_DECISION_MILLIS = 89_000;
     private static final int MAX_REQUEST_SECONDS = 45;
@@ -119,6 +119,7 @@ public class AiTurnGenerator {
                         Map<String, Object> previous = new LinkedHashMap<>(lastOutput);
                         if (undercover) previous.keySet().retainAll(Set.of("action", "speech", "presentation", "evidenceEventIds"));
                         payload.put("previousOutput", previous); payload.put("correction", correction(failures, undercover));
+                        if (checkpoint.containsKey("forbiddenFeedback")) payload.put("forbiddenFeedback", checkpoint.get("forbiddenFeedback"));
                     }
                     user = JSON.writeValueAsString(payload);
                 } finally { sample.put("inputPreparationMs", elapsed(preparation)); }
@@ -174,11 +175,12 @@ public class AiTurnGenerator {
                     List<String> checked = new ArrayList<>(grounding);
                     checked.addAll(validate(adapter, observation, decision)); failures = checked.stream().distinct().toList();
                 } finally { sample.put("validationMs", elapsed(validating)); }
-                if (failures.isEmpty()) {
+                if (failures.isEmpty() || undercover && failures.equals(List.of("SECRET_WORD_LEAK"))
+                        && "SPEAK".equals(decision.action().getType())) {
                     if (remainingNanos(started, budgetNanos) == 0) { failures = deadlineFailure(failures); break; }
-                    sample.put("flags", List.of());
+                    sample.put("flags", failures);
                     stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
-                    return diagnostics(decision, started, calls, promptTokens, completionTokens, modelKey, List.of(), lastOutput, attempts, stages);
+                    return diagnostics(decision, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
                 }
             } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException ex) {
                 failures = List.of("PARSE".equals(stage) ? "INVALID_JSON_FIELDS" : "RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
@@ -194,6 +196,7 @@ public class AiTurnGenerator {
                         saved.put("promptTokens",promptTokens); saved.put("completionTokens",completionTokens);
                         saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
                         saved.put("modelSelection", selected.toMap());
+                        if (checkpoint.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",checkpoint.get("forbiddenFeedback"));
                         throw new GenerationDeferred(saved);
                     }
                     for (String key : List.of("budgetId", "settlementState")) if (api.getDetails().containsKey(key)) sample.put(key, api.getDetails().get(key));

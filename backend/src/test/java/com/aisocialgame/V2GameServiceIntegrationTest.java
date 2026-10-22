@@ -44,6 +44,46 @@ class V2GameServiceIntegrationTest {
     @MockitoBean AiGrpcClient client;
     final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
 
+    @Test void forbiddenFeedbackCommitsDespiteBusinessErrorAndDeduplicatesBeforeTakeover() {
+        var room=room(false);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
+        var state=states.findById(room.getId()).orElseThrow();
+        var actor=state.getPlayers().stream().filter(player -> player.getSeatNumber()==state.getCurrentSeat()).findFirst().orElseThrow();
+        var action=RuleSupport.action("SPEAK",actor.getWord(),null);action.setRequestId("forbidden-1");
+        var deadline=state.getPhaseEndsAt();
+        for(int duplicate=0;duplicate<2;duplicate++) {
+            var failure=assertThrows(ApiException.class,()->runtime.action("undercover",room.getId(),user(actor.getPlayerId()),action));
+            assertEquals("OWN_WORD_FORBIDDEN",failure.getCode());assertEquals(1,failure.getDetails().get("violationCount"));
+        }
+        action.setRequestId("forbidden-2");
+        assertEquals(2,assertThrows(ApiException.class,()->runtime.action("undercover",room.getId(),user(actor.getPlayerId()),action)).getDetails().get("violationCount"));
+        var restored=states.findById(room.getId()).orElseThrow(); assertEquals(deadline,restored.getPhaseEndsAt());
+        restored.getPlayers().stream().filter(player -> player.getPlayerId().equals(actor.getPlayerId())).findFirst().orElseThrow().setAi(true);
+        states.saveAndFlush(restored);runtime.tick(room.getId());
+        var job=coordinator.claim(queued(room.getId()).getId());
+        runtime.complete(job.getId(),new AiTurnDecision(action,actor.getWord(),Map.of(),List.of(),Map.of(),false,Map.of()));
+        assertFalse(states.findById(room.getId()).orElseThrow().getPlayers().stream().filter(player -> player.getPlayerId().equals(actor.getPlayerId())).findFirst().orElseThrow().isAlive());
+        assertEquals("FORBIDDEN_WORD_ELIMINATED",jobs.findById(job.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
+    }
+
+    @Test void aiForbiddenCorrectionsPersistAcrossClaimsAndNeverSendAFourthAttempt() {
+        var room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
+        var queued=queued(room.getId());String word=RuleSupport.text(RuleSupport.map(queued.getObservation().get("privateFacts")).get("word"));
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenReturn(new AiChatResult("{\"action\":{\"type\":\"SPEAK\",\"content\":\""+word+"\"}}","fixture",1,1));
+        for(int attempt=0;attempt<3;attempt++) {
+            var running=coordinator.claim(queued.getId());assertNotNull(running);coordinator.run(running);
+            assertEquals(attempt<2?"QUEUED":"FAILED",jobs.findById(queued.getId()).orElseThrow().getStatus());
+        }
+        var state=states.findById(room.getId()).orElseThrow();
+        assertFalse(state.getData().containsKey("labFailureReason"));
+        assertTrue(state.getLogs().stream().noneMatch(log -> word.equals(log.getMessage())));
+        org.mockito.ArgumentCaptor<List<com.aisocialgame.integration.grpc.dto.AiChatMessageDto>> messages=org.mockito.ArgumentCaptor.forClass(List.class);
+        var ids=org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(client,times(3)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),messages.capture(),ids.capture(),anyInt());
+        assertEquals(List.of(queued.getId()+":0",queued.getId()+":1",queued.getId()+":2"),ids.getAllValues());
+        assertTrue(messages.getAllValues().get(1).getLast().content().contains("forbiddenFeedback"));
+    }
+
     @Test void deferredJobPersistsRetryCheckpointWithoutExtendingItsExecutionDeadline() {
         Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
         var job=coordinator.claim(queued(room.getId()).getId());

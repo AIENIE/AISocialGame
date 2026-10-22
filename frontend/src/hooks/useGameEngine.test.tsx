@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gameplayApi } from "@/services/api";
 import type { GameState, PlayerAction } from "@/types";
 import { prepareGameAction, useGameEngine } from "./useGameEngine";
+import { HttpApiError } from "@/services/apiError";
 
 vi.mock("@/services/api", () => ({ gameplayApi: { state: vi.fn(), action: vi.fn(), start: vi.fn() } }));
 
@@ -26,6 +27,16 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); client.clear(); container.remove(); });
 
 describe("game action submission", () => {
+  it("creates a new correction identity after a confirmed forbidden-word rejection",async()=>{
+    vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
+    vi.mocked(gameplayApi.action).mockRejectedValueOnce(new HttpApiError(400,"OWN_WORD_FORBIDDEN","correct"))
+      .mockResolvedValue(snapshot("instance:1"));
+    act(()=>root.render(<QueryClientProvider client={client}><Probe/></QueryClientProvider>));
+    await act(async()=>{await expect(engine.actionMutation.mutateAsync({type:"SPEAK",content:"同样的词"})).rejects.toThrow("correct");});
+    await act(async()=>{await engine.actionMutation.mutateAsync({type:"SPEAK",content:"同样的词"});});
+    const calls=vi.mocked(gameplayApi.action).mock.calls;
+    expect(calls[0][2].requestId).not.toBe(calls[1][2].requestId);
+  });
   it("adds submission identity and the displayed phase without modifying the draft", () => {
     const draft: PlayerAction = { type: "DISCUSS", content: "想法" };
     const first = prepareGameAction(draft, snapshot("instance:1"));

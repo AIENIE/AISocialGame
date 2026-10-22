@@ -167,7 +167,12 @@ class AiTurnGeneratorTest {
 
     @Test void hiddenWordLeakGetsOneCorrectionAndDistinctIdempotentRequestIds() throws Exception {
         reply(payload("SPEAK", "我拿到的是咖 啡。", null), validSpeech());
-        AiTurnDecision result = generator.generate(rules, speechObservation(), "job-2");
+        var rejected = generator.generate(rules, speechObservation(), "job-2");
+        assertEquals(List.of("SECRET_WORD_LEAK"),rejected.diagnostics().get("qualityFlags"));
+        AiTurnDecision result = generator.generate(rules, speechObservation(), "job-2",89_000,()->true,
+                Map.of("nextAttempt",1,"calls",1,"responses",1,"lastOutput",rejected.diagnostics().get("rawOutput"),
+                        "failures",List.of("SECRET_WORD_LEAK"),"attempts",rejected.diagnostics().get("attempts"),
+                        "forbiddenFeedback",Map.of("forbiddenTerms",List.of("咖啡"),"remainingCorrections",2)));
         assertFalse(result.fallback());
         assertFalse(result.speech().contains("咖啡"));
         assertEquals(2, result.diagnostics().get("calls"));
@@ -218,7 +223,7 @@ class AiTurnGeneratorTest {
     }
 
     @Test void correctionSharesTheFiftySecondBudgetIncludingValidationTime() throws Exception {
-        String first = payload("SPEAK", "我拿到的是咖 啡。", null);
+        String first = new ObjectMapper().writeValueAsString(Map.of("action",Map.of("type","SPEAK","content","这是一个常见物品。"),"presentation",Map.of("emotion","invalid")));
         String corrected = validSpeech();
         when(safety.review(anyString(), any(AiSafetyContext.class))).thenAnswer(call -> {
             nanoTime.addAndGet(TimeUnit.SECONDS.toNanos(1));

@@ -152,7 +152,9 @@ class UndercoverSelfDestructTest {
         }
         assertEquals(events, maps(state.getData().get("events")).size()); assertTrue(player(state, "p1").isAlive());
         assertThrows(ApiException.class, () -> rules.apply(state, "p0", action("SELF_DESTRUCT", "平民原词", null), NOW));
-        assertThrows(ApiException.class, () -> rules.apply(state, "p1", action("SPEAK", "平民原词", null), NOW));
+        rules.apply(state, "p1", action("SPEAK", "平民原词", null), NOW);
+        assertEquals(1,rules.wordFeedback(state,"p1").get("violationCount"));
+        assertTrue(player(state,"p1").isAlive());
         assertTrue(rules.legalActions(state, "spectator").isEmpty());
         window(state, "DESCRIPTION", "p5");
         assertTrue(rules.legalActions(state, "p5").stream().noneMatch(a -> "SELF_DESTRUCT".equals(a.type())));

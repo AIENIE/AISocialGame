@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { gameplayApi } from "@/services/api";
+import { getApiErrorCode } from "@/services/apiError";
 import { GameState, PlayerAction } from "@/types";
 
 let requestSequence = 0;
@@ -57,6 +58,12 @@ export function useGameEngine(gameId: string | undefined, roomId: string | undef
     onSuccess: async (state, action) => {
       if (lastUnconfirmedAction.current?.action.requestId === preparedActions.current.get(action)?.requestId) lastUnconfirmedAction.current = undefined;
       await acceptState(state);
+    },
+    onError: (error, action) => {
+      if (!["OWN_WORD_FORBIDDEN", "FORBIDDEN_WORD_ELIMINATED"].includes(getApiErrorCode(error) || "")) return;
+      if (lastUnconfirmedAction.current?.action.requestId === preparedActions.current.get(action)?.requestId) lastUnconfirmedAction.current = undefined;
+      preparedActions.current.delete(action);
+      void queryClient.invalidateQueries({ queryKey });
     },
   });
 

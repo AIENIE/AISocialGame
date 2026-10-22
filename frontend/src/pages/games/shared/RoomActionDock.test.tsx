@@ -25,6 +25,19 @@ const fill = (text: string) => act(() => {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 });
 
+it("keeps a forbidden-word draft and shows private correction feedback until elimination",async()=>{
+  const actions:LegalAction[]=[{type:"SPEAK",label:"描述",targets:[],maxLength:90}];
+  const send=vi.fn().mockRejectedValue(new Error("correct"));
+  const value=state(actions,"one","DESCRIPTION");
+  act(()=>root.render(<Harness value={value} send={send}/>));fill("我的原文");
+  await act(async()=>container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,wordFeedback:{forbiddenTerms:["咖啡"],remainingCorrections:2,eliminated:false}}}} send={send}/>));
+  expect(container.querySelector("textarea")!.value).toBe("我的原文");
+  expect(container.textContent).toContain("咖啡");expect(container.textContent).toContain("还可修正 2 次");
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,legalActions:[],wordFeedback:{forbiddenTerms:["咖啡"],remainingCorrections:0,eliminated:true}}}} send={send}/>));
+  expect(container.textContent).toContain("已判定出局");
+});
+
 it("selects only server-authorized players and confirms a ballot once", async () => {
   let resolve!: () => void;
   const send = vi.fn(() => new Promise<void>(done => { resolve = done; }));
