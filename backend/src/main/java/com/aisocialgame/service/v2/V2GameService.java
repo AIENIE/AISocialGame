@@ -120,6 +120,13 @@ public class V2GameService {
         return !lab.isEmpty() && (state.getData().containsKey("labBudgetClock")
                 || labBudgets!=null && labBudgets.isPaused(RuleSupport.text(lab.get("experimentId"))));
     }
+    public boolean hasRecordedLabBudgetPause(String roomId) {
+        return Boolean.TRUE.equals(transaction.execute(status -> {
+            Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
+            GameState state=states.findByIdForUpdate(roomId).orElse(null);
+            return room.isLab() && state!=null && !"SETTLEMENT".equals(state.getPhase()) && state.getData().containsKey("labBudgetClock");
+        }));
+    }
     public void pauseLabBudget(String roomId) {
         transaction.executeWithoutResult(status -> {
             Room room=rooms.findByIdForUpdate(roomId).orElseThrow();

@@ -41,9 +41,12 @@ public class LabBudgetService {
     public static boolean paused(LabExperiment experiment) { return Boolean.TRUE.equals(experiment.configuration.get("budgetPaused")); }
     public boolean pauseIfReached(LabExperiment experiment) {
         if (!ACTIVE.contains(experiment.status) || spentPoints(experiment.id) < experiment.budgetPoints) return false;
+        markPaused(experiment);
+        return true;
+    }
+    public static void markPaused(LabExperiment experiment) {
         experiment.status = "PAUSED"; experiment.reason = EXHAUSTED;
         experiment.configuration.put("budgetPaused", true);
-        return true;
     }
     private ApiException exhausted(LabExperiment experiment) {
         return new ApiException(HttpStatus.CONFLICT, "已达到实验预算，调整预算后可继续", EXHAUSTED,

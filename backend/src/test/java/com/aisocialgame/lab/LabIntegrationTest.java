@@ -471,6 +471,16 @@ class LabIntegrationTest {
         assertEquals("REVIEWED",matches.findById(match.id).orElseThrow().status);
         verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(original),anyInt());
     }
+    @Test void raisingBudgetBeforeCoordinatorObservesAFrozenRoomStillRequiresExplicitResume() {
+        String id=create(3,1); var match=runningMatch(id);
+        game.pauseLabBudget(match.roomId);
+        assertFalse(LabBudgetService.paused(experiments.findById(id).orElseThrow()));
+        var updated=service.updateBudget(id,2000);
+        assertEquals("PAUSED",updated.get("status")); assertEquals(true,updated.get("budgetPaused"));
+        assertTrue(game.labBudgetPaused(match.roomId));
+        service.control(id,"resume"); assertFalse(game.labBudgetPaused(match.roomId));
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+    }
     @Test void allWorkCompletedAtTheBudgetDoesNotRequireAnotherTopUpToFinish() {
         String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
         stubCoach(); assertTrue(coach.process(id)); spent(id,1000); lab.advance(id);

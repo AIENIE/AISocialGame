@@ -146,8 +146,15 @@ public class LabService {
         long spent=budgets.spentPoints(id);
         if(points<1 || points<spent) throw new ApiException(HttpStatus.BAD_REQUEST,"预算不能低于当前已扣积分", "LAB_BUDGET_BELOW_SPENT",
                 Map.of("spentPoints",spent,"minimumPoints",Math.max(1,spent)));
+        // A room can freeze between settlement and the experiment coordinator's next pulse.
+        // Serialize with that room before raising the limit so an existing pause still requires explicit resume.
+        boolean preservePause=budgets.pauseIfReached(experiment) || LabBudgetService.paused(experiment);
+        if(Set.of("RUNNING","PAUSING","STOPPING","PAUSED").contains(experiment.status))
+            for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("PLAYING")))
+                preservePause=game.hasRecordedLabBudgetPause(match.roomId) || preservePause;
+        if(preservePause) LabBudgetService.markPaused(experiment);
         experiment.budgetPoints=points;
-        if(budgets.pauseIfReached(experiment)) pauseBudgetMatches(experiment.id);
+        if(budgets.pauseIfReached(experiment) || preservePause) pauseBudgetMatches(experiment.id);
         experiments.saveAndFlush(experiment);
         return detail(id,null,true);
     }
