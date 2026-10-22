@@ -27,6 +27,20 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); client.clear(); container.remove(); });
 
 describe("game action submission", () => {
+  it("counts three deliberate corrections with Axios business feedback, including reuse of the same draft object", async () => {
+    vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
+    vi.mocked(gameplayApi.action).mockImplementation(async () => {
+      throw Object.assign(new Error("correct"), { isAxiosError: true, response: { status: 400, data: { code: "OWN_WORD_FORBIDDEN" } } });
+    });
+    act(() => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>));
+    const draft: PlayerAction = { type: "SPEAK", content: "禁词" };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await act(async () => { await expect(engine.actionMutation.mutateAsync(draft)).rejects.toThrow("correct"); });
+    }
+    const identities = vi.mocked(gameplayApi.action).mock.calls.map(call => call[2].requestId);
+    expect(new Set(identities).size).toBe(3);
+    expect(draft.requestId).toBeUndefined();
+  });
   it("uses the private server receipt when a business error body was lost, without replaying the rejected action",async()=>{
     vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
     vi.mocked(gameplayApi.action).mockRejectedValueOnce(new Error("error body lost")).mockResolvedValue(snapshot("instance:1"));
