@@ -135,7 +135,9 @@ public class AiGrpcClient {
             if (isolatedTransportFixture && callBudget != null) callBudget.consume();
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
             var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
-                    : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
+                    : com.aisocialgame.lab.LabCallContext.current()!=null && "REVIEW".equals(com.aisocialgame.lab.LabCallContext.current().purpose())
+                        ? boundedClient.chat(builder.build(),deadlineSeconds,32768,beforeSend)
+                        : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
             if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);
             if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
@@ -149,6 +151,19 @@ public class AiGrpcClient {
         } finally {
             if (registered.get() && !answered) admission.finish(requestId,"NO_RESPONSE",null,null);
         }
+    }
+
+    public java.util.Map<String,Object> preflight(String projectKey,long userId,AiModelSelection selection,int outputLimit) {
+        requireChatReady(); modelConfigs.requireUsable(selection);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("lab-preflight:"+UUID.randomUUID())
+                .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey)).setUserId(userId).setModel(selection.modelKey())
+                .addMessages(ChatMessage.newBuilder().setRole("user").setContent("Validate this model selection and output budget; do not execute inference."));
+        selection.apply(request);
+        try {
+            var quote=boundedClient.preflight(request.build(),outputLimit).getPriceQuote();
+            return java.util.Map.of("modelSelection",selection.toMap(),"maxOutputTokens",outputLimit,"currency",quote.getCurrency(),
+                    "priceVersionId",quote.getPriceVersionId(),"maxCreditPoints",quote.getMaxCreditPoints());
+        } catch(StatusRuntimeException failure) { throw toApiException(failure); }
     }
 
     public AiEmbeddingsResult embeddings(String projectKey,

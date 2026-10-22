@@ -53,6 +53,10 @@ public class LabRuntime {
             }
             if("PLAYING".equals(match.status)) {
                 var state=states.findById(match.roomId).orElse(null);
+                if(state!=null && state.getData().containsKey("labCallPause")) {
+                    match.reason=text(state.getData().get("labCallPause")); matches.save(match);
+                    pause(experiment,match.reason); experiment.configuration.put("callPaused",true);
+                }
                 if(state!=null && "SETTLEMENT".equals(state.getPhase())) {
                     collect(match,state);
                     if("ABORTED".equals(match.status) && !"STOPPING".equals(experiment.status)) pause(experiment,match.reason);

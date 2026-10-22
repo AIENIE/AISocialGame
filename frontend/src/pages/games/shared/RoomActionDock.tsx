@@ -14,6 +14,7 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
   state: GameState; control: Controller; connected: boolean; waitingText: string; onChoosePlayer: () => void; context?: ReactNode;
 }) {
   const copy = useRoomText();
+  if(state.extra?.labCallPaused===true) return <section className="room-action-dock" data-testid="v2-action-panel" role="status"><p>{copy("callPaused")}</p></section>;
   if(state.extra?.labBudgetPaused===true) return <section className="room-action-dock" data-testid="v2-action-panel" role="status"><p>{copy("budgetPaused")}</p></section>;
   const feedback = state.extra?.wordFeedback as {forbiddenTerms:string[];remainingCorrections:number;eliminated:boolean} | undefined;
   const { selected, primary, key, draft, target, prepared, abstain, busy, capabilities, submitted } = control;

@@ -14,6 +14,8 @@ import java.util.Set;
 public class LabBudgetService {
     public static final String EXHAUSTED = "LAB_BUDGET_EXHAUSTED";
     private static final Set<String> ACTIVE = Set.of("RUNNING", "PAUSING", "STOPPING");
+    @org.springframework.beans.factory.annotation.Autowired private LabMatchRepository matches;
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.repository.GameStateRepository states;
     private final LabExperimentRepository experiments;
     private final AiCreditReservationRepository reservations;
     public LabBudgetService(LabExperimentRepository experiments, AiCreditReservationRepository reservations) {
@@ -26,6 +28,9 @@ public class LabBudgetService {
         if (identity == null) return;
         var experiment = experiments.lock(identity.experimentId()).orElseThrow();
         if (paused(experiment)) throw exhausted(experiment);
+        if(matches!=null && states!=null && matches.findById(identity.matchId()).flatMap(match -> states.findById(match.roomId))
+                .map(state -> state.getData().containsKey("labCallPause")).orElse(false))
+            throw new ApiException(HttpStatus.CONFLICT,"实验调用已暂停，当前局面已保存","LAB_EXPERIMENT_PAUSED",Map.of());
         if (!ACTIVE.contains(experiment.status))
             throw new ApiException(HttpStatus.CONFLICT, "实验已暂停", "LAB_EXPERIMENT_PAUSED", Map.of());
         requireRemaining(experiment);

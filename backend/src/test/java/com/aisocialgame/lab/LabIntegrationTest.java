@@ -201,7 +201,7 @@ class LabIntegrationTest {
         String request=text(failed.snapshot.get("reviewRequestId")); var frozen=failed.snapshot.get("reviewRequest");
         stubCoach();
         var recovered=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets);
-        recovered.retry(id); assertTrue(recovered.process(id)); lab.advance(id);
+        readyReview(failed.id); assertTrue(recovered.process(id)); lab.advance(id);
         var completed=matches.findById(failed.id).orElseThrow();
         assertEquals(request,completed.snapshot.get("reviewRequestId")); assertEquals(frozen,completed.snapshot.get("reviewRequest"));
         assertEquals("REVIEWED",completed.status); assertFalse(recovered.process(id));
@@ -214,7 +214,8 @@ class LabIntegrationTest {
         assertEquals(1,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
                 .thenReturn(new AiChatResult("{\"experiences\":[]}","fixture-model",1,1));
-        coach.process(id);
+        coach.process(id); coach.process(id); coach.process(id);
+        assertEquals(3,maps(matches.findById(match.id).orElseThrow().snapshot.get("reviewResponses")).size());
         assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
         assertEquals(0,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
         assertThrows(RuntimeException.class,()->service.control(id,"resume"));
@@ -242,7 +243,7 @@ class LabIntegrationTest {
         var oldAgents=maps(input.get("agents")); oldAgents.forEach(profile -> profile.remove("participantId")); input.put("agents",oldAgents);
         messages.getLast().put("content",json.writeValueAsString(input)); frozen.put("messages",messages); match.snapshot.put("reviewRequest",frozen);
         matches.saveAndFlush(match); String requestId=text(match.snapshot.get("reviewRequestId"));
-        stubCoach(); coach.retry(id); coach.process(id); lab.advance(id);
+        stubCoach(); readyReview(match.id); coach.process(id); lab.advance(id);
         var completed=matches.findById(match.id).orElseThrow();
         assertEquals(frozen,completed.snapshot.get("reviewRequest")); assertEquals(requestId,completed.snapshot.get("reviewRequestId"));
         assertEquals("REVIEWED",completed.status);
@@ -487,6 +488,87 @@ class LabIntegrationTest {
         assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
         assertFalse(LabBudgetService.paused(experiments.findById(id).orElseThrow()));
     }
+    @Test void tenVotesWithTwoThirtySecondQueueTimeoutsAndOneLostResponseRetainEverySuccessAndChargeOnce() throws Exception {
+        var ids=new ArrayList<String>();
+        for(int i=0;i<4;i++) ids.add(service.saveAgent(null,new LabRequests.Agent("base-"+i,personas.findAll().get(i).getId(),selection)).id);
+        var participants=java.util.stream.IntStream.range(0,10).mapToObj(i->new LabRequests.Participant(ids.get(i%4),null,selection)).toList();
+        String id=text(service.create(new LabRequests.Experiment("10 vote recovery",null,10,1,"daily",true,10000,selection,Map.of(),participants),"admin").get("id"));
+        var match=runningMatch(id);
+        for(int i=0;i<10;i++) {
+            var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();
+            game.complete(turns.claim(pending.getId()).getId(),speech());
+        }
+        var votes=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED"));assertEquals(10,votes.size());
+        var claimed=votes.stream().map(job->turns.claim(job.getId())).toList();
+        var unsent=Set.of(claimed.get(2).getId()+":0",claimed.get(3).getId()+":0");
+        String lost=claimed.get(7).getId()+":0";
+        var receipts=new HashMap<String,AiChatResult>();var transports=new ArrayList<String>();
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation->{
+            String request=invocation.getArgument(5);transports.add(request);
+            if(receipts.containsKey(request)) return receipts.get(request);
+            if(unsent.contains(request)) throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "ACQUIRE_TIMEOUT","AI_REQUEST_NOT_SENT",Map.of("remoteState","FAILED_NOT_SENT","settlementState","RELEASED","providerConcurrency",1,"queueTimeoutMs",30000));
+            String jobId=request.substring(0,request.indexOf(':'));
+            var job=jobs.findById(jobId).orElseThrow();var payload=new LinkedHashMap<>(job.getObservation());payload.remove("generationCheckpoint");var observation=json.convertValue(payload,VisibleObservation.class);
+            String target=observation.legalActions().stream().filter(legal->"VOTE".equals(legal.type())).findFirst().orElseThrow().targets().getFirst();
+            var output=Map.of("action",Map.of("type","VOTE","targetPlayerId",target,"content",""),"speech","","presentation",Map.of(),"evidenceEventIds",List.of(),"memoryUpdates",Map.of());
+            var response=new AiChatResult(json.writeValueAsString(output),"fixture-model",10,5);receipts.put(request,response);
+            if(request.equals(lost)) throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"lost response","AI_RESULT_PENDING",Map.of("remoteState","RUNNING"));
+            return response;
+        });
+        for(var job:claimed) turns.run(job);
+        assertEquals(7,jobs.findByRoomIdAndStatusIn(match.roomId,List.of("SUCCEEDED")).stream().filter(job->"VOTE".equals(job.getKind())).count());
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+        for(var queued:jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED"))) {
+            var checkpoint=map(queued.getObservation().get("generationCheckpoint"));checkpoint.put("retryAfterEpochMs",0);
+            queued.getObservation().put("generationCheckpoint",checkpoint);jobs.saveAndFlush(queued);
+            turns.run(turns.claim(queued.getId()));
+        }
+        for(var job:claimed) assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals(10,receipts.size(),"Exactly ten paid results, including the recovered lost response");
+        assertEquals(2,transports.stream().filter(lost::equals).count());
+        assertTrue(unsent.stream().allMatch(request->transports.contains(request+":transport:1")));
+        assertFalse(states.findById(match.roomId).orElseThrow().getData().containsKey("labFailureReason"));
+    }
+    private void readyReview(String matchId) {
+        var match=matches.findById(matchId).orElseThrow();
+        var recovery=map(match.snapshot.get("reviewRecovery"));recovery.put("retryAfterEpochMs",0);
+        match.snapshot.put("reviewRecovery",recovery);matches.saveAndFlush(match);
+    }
+    @Test void deletingProfilePreservesFrozenRosterAndAllExperienceVersions() {
+        String id=create(1,1); var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
+        String agent=text(roster.getFirst().get("agentId")); service.deleteAgent(agent);
+        assertTrue(service.agents().stream().noneMatch(row -> agent.equals(row.id)));
+        var match=runningMatch(id);finish(match,true);lab.advance(id);stubCoach();coach.process(id);lab.advance(id);
+        assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
+        assertEquals(4,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
+        assertEquals(roster,LabService.roster(experiments.findById(id).orElseThrow().configuration));
+    }
+    @Test void callBlockPreservesSameGameAndQueuedActionAndAllowsAdministratorResume() {
+        String id=create(1,1); var match=runningMatch(id);
+        var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();var job=turns.claim(pending.getId());
+        game.defer(job.getId(),Map.of("nextAttempt",0,"transportAttempt",4),"LAB_CALL_RETRIES_EXHAUSTED");
+        try(var scope=LabCallContext.open(Map.of("experimentId",id,"matchId",match.id),"TURN")) {
+            assertEquals("LAB_EXPERIMENT_PAUSED",assertThrows(com.aisocialgame.exception.ApiException.class,budgets::checkCall).getCode());
+        }
+        lab.advance(id);
+        assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+        assertEquals("QUEUED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals(true,game.labSpectatorState(match.roomId).getExtra().get("labCallPaused"));
+        service.control(id,"resume");assertNotNull(turns.claim(job.getId()));
+        game.complete(job.getId(),speech());assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+    }
+    @Test void expiredWallClockDoesNotConsumePureAiLabQueueOrDiscardItsLateResult() {
+        String id=create(1,1);var match=runningMatch(id);
+        var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();var job=turns.claim(pending.getId());
+        var state=states.findById(match.roomId).orElseThrow();String phase=state.getPhase();
+        state.setPhaseEndsAt(java.time.LocalDateTime.now().minusHours(1));states.saveAndFlush(state);
+        assertTrue(game.remainingTurnMillis(job.getId())>0);game.tick(match.roomId);
+        assertEquals(phase,states.findById(match.roomId).orElseThrow().getPhase());
+        game.complete(job.getId(),speech());assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+    }
     private LabMatch runningMatch(String id) {
         service.control(id,"start"); lab.advance(id);
         var match=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING")).getFirst();
@@ -531,9 +613,9 @@ class LabIntegrationTest {
     }
     private void stubCoach() {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation -> {
-            assertNotNull(LabCallContext.current()); assertEquals("REVIEW",LabCallContext.current().purpose());
+            assertNotNull(LabCallContext.current()); assertEquals("REVIEW",LabCallContext.current().purpose());assertEquals(120,(int)invocation.getArgument(6));
             List<AiChatMessageDto> messages=invocation.getArgument(4);
-            var input=map(json.readValue(messages.getLast().content(),Map.class));
+            var input=map(json.readValue(messages.get(1).content(),Map.class));
             String event=text(maps(input.get("events")).getFirst().get("eventId"));
             var entries=maps(input.get("agents")).stream().map(agent -> Map.of("agentId",agent.get("agentId"),"participantId",agent.getOrDefault("participantId",agent.get("agentId")),"summary","先核对多轮描述再判断，避免单凭风格投票。","evidenceEventIds",List.of(event))).toList();
             return new AiChatResult(json.writeValueAsString(Map.of("experiences",entries)),"fixture-model",1,1);

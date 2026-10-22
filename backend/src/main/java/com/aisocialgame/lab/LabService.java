@@ -31,6 +31,8 @@ public class LabService {
     private final ObjectMapper json;
     private final RoomRepository rooms;
     private final V2GameService game;
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.integration.grpc.client.AiGrpcClient client;
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.config.AppProperties properties;
 
     public LabService(LabExperimentRepository experiments, LabAgentRepository agents, LabExperienceRepository experiences,
             LabMatchRepository matches, LabEnrollmentRepository enrollments, LabEvaluationRepository evaluations,
@@ -95,6 +97,10 @@ public class LabService {
                 "experiences",new LinkedHashMap<>(heads)));
         experiments.saveAndFlush(experiment);
         return detail(experiment.id,null,true);
+    }
+    @Transactional
+    public void deleteAgent(String id) {
+        agents.delete(agents.findById(id).orElseThrow(LabService::missing));
     }
     public Map<String,Object> list(int page, int size) {
         var result=experiments.findAllByOrderByCreatedAtDesc(PageRequest.of(Math.max(0,page),Math.clamp(size,1,50)));
@@ -164,6 +170,16 @@ public class LabService {
             else match.snapshot.putIfAbsent("budgetStartsInMs",Math.max(0,match.startsAtEpochMs-System.currentTimeMillis()));
         }
     }
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public List<Map<String,Object>> preflight(String id) {
+        var experiment=experiments.findById(id).orElseThrow(LabService::missing);
+        var checked=new ArrayList<Map<String,Object>>();
+        var selections=new LinkedHashSet<AiModelSelection>();
+        for(var player:roster(experiment.configuration)) selections.add(AiModelSelection.fromMap(map(player.get("modelSelection"))));
+        for(var selection:selections) checked.add(client.preflight(properties.getProjectKey(),properties.getAi().getSystemUserId(),selection,8192));
+        checked.add(client.preflight(properties.getProjectKey(),properties.getAi().getSystemUserId(),AiModelSelection.fromMap(map(experiment.configuration.get("coach"))),32768));
+        return checked;
+    }
     @Transactional
     public Map<String,Object> control(String id, String action) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
@@ -175,9 +191,9 @@ public class LabService {
                 for(var profile:maps(experiment.configuration.get("roster"))) models.requireUsable(AiModelSelection.fromMap(map(profile.get("modelSelection"))));
                 models.requireUsable(AiModelSelection.fromMap(map(experiment.configuration.get("coach"))));
                 experiment.status="RUNNING"; experiment.reason=null;
-                experiment.configuration.remove("budgetPaused");
+                experiment.configuration.remove("budgetPaused"); experiment.configuration.remove("callPaused");
                 for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
-                    if("PLAYING".equals(match.status)) game.resumeLabBudget(match.roomId);
+                    if("PLAYING".equals(match.status)) { game.resumeLabBudget(match.roomId); match.reason=null; matches.save(match); }
                     else if(match.snapshot.remove("budgetStartsInMs") instanceof Number remaining)
                         match.startsAtEpochMs=System.currentTimeMillis()+remaining.longValue();
                 }
@@ -185,7 +201,7 @@ public class LabService {
             case "pause" -> { require("RUNNING".equals(experiment.status),"实验尚未运行"); experiment.status="PAUSING"; }
             case "stop" -> {
                 require(!Set.of("COMPLETED","STOPPED").contains(experiment.status),"实验已经结束");
-                if(budgets.isPaused(id)) for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
+                if(budgets.isPaused(id) || Boolean.TRUE.equals(experiment.configuration.get("callPaused"))) for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
                     if("PLAYING".equals(match.status)) match.archiveId=game.stopLabBudget(match.roomId);
                     match.status="ABORTED"; match.reason="LAB_STOPPED_BY_ADMIN"; match.finishedAt=LocalDateTime.now();
                     for(var entry:enrollments.findByMatchIdOrderByJoinedAtAscIdAsc(match.id))

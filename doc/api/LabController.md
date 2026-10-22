@@ -17,6 +17,7 @@
 |---|---|---|
 | GET / POST | /agents | 查询 / 新建独立 AI 档案 |
 | PUT | /agents/{id} | 更新供新实验使用的档案 |
+| DELETE | /agents/{id} | 删除档案，保留历史实验、回放和经验快照 |
 | POST | /experiments | 创建草稿 |
 | PUT | /experiments/{id}/budget | 以 `{budgetPoints}` 修改费用预算，返回更新后的管理员详情；所有状态均可修改 |
 | POST | /experiments/{id}/control/{action} | start、resume、pause、stop |
@@ -42,3 +43,7 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 预算修改须为正整数且不低于保存时的累计已扣；不足返回 400 / LAB_BUDGET_BELOW_SPENT，details 提供 spentPoints、minimumPoints。调低至实扣触发预算暂停，调高不自动恢复。预算修改不重新开启 COMPLETED / STOPPED 实验。摘要提供 budgetPaused，房间状态 extra.labBudgetPaused 为 true 时不提供 legalActions，禁止真人提交动作。
 
 状态：DRAFT → RUNNING → COMPLETED；普通 pause / stop 进入 PAUSING / STOPPING，完成当前局后生效。达到实耗预算进入 PAUSED / LAB_BUDGET_EXHAUSTED，保留当前局面、排队任务及剩余计时；在途有效结果仍可提交。调整预算后显式 resume 继续同局或待完成复盘，预算暂停时 stop 可结束保留的当前局。模型或终止性生成失败仍中断对应局；复盘失败不发布部分经验，需要明确重试。历史 ABORTED 不改写；已冻结或未知的原请求不改内容或身份。
+
+调用恢复暂停时，活动对局仍为 PLAYING；房间 extra 返回 labCallPaused 与 labPauseReason，真人操作入口暂停，管理员恢复继续当前局。预算暂停继续使用 labBudgetPaused。诊断尝试中的 settlementState 为当前原请求结算状态；observedSettlementState（若有）仅表示原样本。业务 attempt 与 transportAttempt 分开记录，只有确认未发送才改变传输请求身份。
+
+start / resume 在事务外先校验实际玩家和教练的思考选择、预算能力及价格；检查不执行模型推理。教练参数固定为 120 秒调用窗口和 32768 总输出上限，自动格式修正最多两次。

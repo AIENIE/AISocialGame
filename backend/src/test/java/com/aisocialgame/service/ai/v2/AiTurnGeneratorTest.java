@@ -484,6 +484,24 @@ class AiTurnGeneratorTest {
         assertEquals("REQUEST_FAILED", failure.getMessage()); assertEquals(4, failure.diagnostics().get("calls"));
     }
 
+    @Test void labTransportRetriesDoNotBecomeCorrectionsAndPendingResponseUsesSameIdentity() throws Exception {
+        var original=speechObservation();
+        var o=new VisibleObservation(original.gameId(),original.instanceId(),original.phase(),original.round(),original.actorId(),original.turnKind(),
+                original.self(),original.players(),original.rules(),original.events(),original.privateFacts(),original.legalActions(),
+                original.persona(),Map.of("lab",Map.of("experimentId","fixture","matchId","fixture")),original.knowledge());
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"queue timeout","AI_REQUEST_NOT_SENT",Map.of("remoteState","FAILED_NOT_SENT")))
+                .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"running","AI_RESULT_PENDING",Map.of("remoteState","RUNNING")))
+                .thenReturn(new AiChatResult(validSpeech(),"mock-only",10,5));
+        var first=assertThrows(AiTurnGenerator.GenerationDeferred.class,()->generator.generate(rules,o,"durable"));
+        var second=assertThrows(AiTurnGenerator.GenerationDeferred.class,()->generator.generate(rules,o,"durable",89_000,()->true,first.checkpoint()));
+        generator.generate(rules,o,"durable",89_000,()->true,second.checkpoint());
+        ArgumentCaptor<String> ids=ArgumentCaptor.forClass(String.class);
+        @SuppressWarnings("unchecked") ArgumentCaptor<List<AiChatMessageDto>> inputs=ArgumentCaptor.forClass(List.class);
+        verify(client,times(3)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),inputs.capture(),ids.capture(),anyInt());
+        assertEquals(List.of("durable:0","durable:0:transport:1","durable:0:transport:1"),ids.getAllValues());
+        assertEquals(inputs.getAllValues().getFirst(),inputs.getAllValues().get(1));assertEquals(inputs.getAllValues().get(1),inputs.getAllValues().getLast());
+    }
     @Test void pendingBillingAndPermanentRejectionsNeverStartAnotherInference() {
         for (String code : List.of("BUDGET_RECONCILIATION_REQUIRED", "BUDGET_UNAVAILABLE", "AI_CREDIT_INSUFFICIENT")) {
             reset(client);

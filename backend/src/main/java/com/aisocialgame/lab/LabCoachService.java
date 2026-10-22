@@ -50,26 +50,47 @@ public class LabCoachService {
             try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
-                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),89);
+                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),120);
+                LabCallRecovery.commit(() -> recordResponse(claim,response));
                 if("length".equalsIgnoreCase(response.finishReason())) throw invalid();
                 String content=response.content()==null?"":response.content().strip();
                 if(content.startsWith("```")) content=content.replaceFirst("^```(?:json)?\\s*","").replaceFirst("\\s*```$","").strip();
                 if(content.length()>32000 || !content.startsWith("{") || !content.endsWith("}")) throw invalid();
-                finish(claim,map(json.readValue(content,Map.class)));
+                Map<String,Object> output;
+                try { output=map(json.readValue(content,Map.class)); }
+                catch(com.fasterxml.jackson.core.JsonProcessingException malformed) { throw invalid(); }
+                LabCallRecovery.commit(() -> finish(claim,output));
             }
         } catch(Exception failure) {
             String reason=failure instanceof ApiException api && api.getCode()!=null ? api.getCode() : "LAB_REVIEW_FAILED";
-            transaction.executeWithoutResult(status -> {
+            LabCallRecovery.commit(() -> transaction.executeWithoutResult(status -> {
                 var experiment=experiments.lock(claim.experimentId()).orElseThrow();
                 var match=matches.lock(claim.matchId()).orElseThrow();
                 if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
                 boolean budgetPause=Set.of(LabBudgetService.EXHAUSTED,"LAB_EXPERIMENT_PAUSED").contains(reason);
-                match.status=budgetPause?"FINISHED":"REVIEW_FAILED"; match.reason=budgetPause?null:reason;
+                String waiting=reason;
+                boolean retry=false;
+                if(failure instanceof ApiException api && LabCallRecovery.recoverable(reason)) {
+                    var recovery=map(match.snapshot.get("reviewRecovery"));
+                    waiting=LabCallRecovery.defer(recovery,api,System.currentTimeMillis());
+                    match.snapshot.put("reviewRecovery",recovery);
+                    retry=!LabCallRecovery.blocked(waiting);
+                } else if("LAB_REVIEW_INVALID".equals(reason) && number(match.snapshot.get("reviewAttempt"),0)<2) {
+                    var response=maps(match.snapshot.get("reviewResponses")).getLast();
+                    var request=new LinkedHashMap<>(map(match.snapshot.get("reviewRequest")));
+                    var messages=new ArrayList<>(maps(request.get("messages")).subList(0,2));
+                    messages.add(Map.of("role","assistant","content",text(response.get("content"))));
+                    messages.add(Map.of("role","user","content","上一次回复格式或证据不合格。请重新输出完整 JSON，必须覆盖 agents 中全部 participantId，每人且仅一条；summary 为 1 至 1200 字，evidenceEventIds 必须非空且来自本局公开 events。不要只返回改动部分。"));
+                    request.put("messages",messages); match.snapshot.put("reviewRequest",request);
+                    match.snapshot.put("reviewAttempt",number(match.snapshot.get("reviewAttempt"),0)+1);
+                    match.snapshot.remove("reviewRecovery"); retry=true;
+                }
+                match.status=budgetPause || retry?"FINISHED":"REVIEW_FAILED"; match.reason=budgetPause?null:waiting;
                 match.reviewLeaseUntil=null; matches.save(match);
                 if(budgetPause) budgets.pauseIfReached(experiment);
-                else LabRuntime.pause(experiment,reason);
+                else if(!retry) LabRuntime.pause(experiment,waiting);
                 experiments.save(experiment);
-            });
+            }));
         }
         return true;
     }
@@ -80,6 +101,8 @@ public class LabCoachService {
             var match=matches.findByExperimentIdAndSequenceNumber(id,experiment.reviewCursor).orElse(null);
             if(match==null || match.evaluationId!=null || !Set.of("FINISHED","REVIEWING").contains(match.status)) return null;
             if("REVIEWING".equals(match.status) && match.reviewLeaseUntil!=null && match.reviewLeaseUntil>System.currentTimeMillis()) return null;
+            var recovery=map(match.snapshot.get("reviewRecovery"));
+            if(!LabCallRecovery.ready(recovery,System.currentTimeMillis())) return null;
             if(!match.snapshot.containsKey("reviewRequest")) {
                 var state=states.findById(match.roomId).orElseThrow();
                 require("SETTLEMENT".equals(state.getPhase()) && match.archiveId.equals(state.getData().get("archiveId")),"对局尚未完成");
@@ -98,10 +121,21 @@ public class LabCoachService {
                             "messages",List.of(Map.of("role","system","content",SYSTEM),Map.of("role","user","content",input))));
                     match.snapshot.put("reviewEventIds",publicEvents.stream().map(event -> text(event.get("eventId"))).toList());
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
-                match.snapshot.put("reviewRequestId","lab-review:"+match.id+":"+number(match.snapshot.get("reviewAttempt"),0));
             }
+            match.snapshot.put("reviewRequestId",LabCallRecovery.requestId("lab-review:"+match.id+":"+number(match.snapshot.get("reviewAttempt"),0),recovery));
             match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+150_000; matches.saveAndFlush(match);
             return new Claim(id,match.id,text(match.snapshot.get("reviewRequestId")),map(match.snapshot.get("reviewRequest")));
+        });
+    }
+    private void recordResponse(Claim claim,com.aisocialgame.integration.grpc.dto.AiChatResult response) {
+        transaction.executeWithoutResult(status -> {
+            var match=matches.lock(claim.matchId()).orElseThrow();
+            var responses=new ArrayList<>(maps(match.snapshot.get("reviewResponses")));
+            if(responses.stream().noneMatch(row -> claim.requestId().equals(row.get("requestId")))) {
+                var row=new LinkedHashMap<String,Object>(); row.put("requestId",claim.requestId());
+                row.put("content",response.content()==null?"":response.content()); row.put("finishReason",text(response.finishReason()));
+                responses.add(row); match.snapshot.put("reviewResponses",responses); matches.saveAndFlush(match);
+            }
         });
     }
     private void finish(Claim claim,Map<String,Object> output) {
@@ -144,10 +178,12 @@ public class LabCoachService {
             var match=matches.findByExperimentIdAndSequenceNumber(id,experiment.reviewCursor).orElseThrow(LabService::missing);
             require("REVIEW_FAILED".equals(match.status),"没有等待处理的复盘");
             budgets.requireRemaining(experiment);
-            if(!Set.of("BUDGET_RECONCILIATION_REQUIRED","AI_BUDGET_BUSY").contains(match.reason)) {
+            if("LAB_REVIEW_INVALID".equals(match.reason)) {
                 match.snapshot.remove("reviewRequest"); match.snapshot.remove("reviewRequestId");
                 match.snapshot.put("reviewAttempt",number(match.snapshot.get("reviewAttempt"),0)+1);
             }
+            var recovery=map(match.snapshot.get("reviewRecovery")); recovery.remove("waitingSinceEpochMs"); recovery.remove("retryAfterEpochMs");
+            match.snapshot.put("reviewRecovery",recovery);
             match.status="FINISHED"; match.reason=null; match.reviewLeaseUntil=null; matches.save(match);
             experiment.status="RUNNING"; experiment.reason=null; experiment.configuration.remove("budgetPaused"); experiments.save(experiment);
         });

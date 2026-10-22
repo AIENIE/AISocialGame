@@ -77,6 +77,7 @@ public class V2GameService {
         GameRuleSet rules = rules(state.getGameId());
         if (!rules.isTurnCurrent(state, new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey()))) return 0;
         if (!"undercover".equals(state.getGameId())) return turnBudgetMillis(state.getPhaseEndsAt(), LocalDateTime.now());
+        if(pureAiLab(state)) return AiTurnGenerator.UNDERCOVER_DECISION_MILLIS;
         long now = System.currentTimeMillis();
         long remaining = state.getPhaseEndsAt() == null ? AiTurnGenerator.UNDERCOVER_DECISION_MILLIS
                 : Math.max(0, Duration.between(LocalDateTime.now(), state.getPhaseEndsAt()).toMillis() - 1_000);
@@ -112,12 +113,16 @@ public class V2GameService {
         return start(gameId, roomId, user, false);
     }
     public void startLab(String roomId) { start("undercover", roomId, null, true); }
+    private boolean pureAiLab(GameState state) {
+        return !RuleSupport.map(state.getData().get("lab")).isEmpty() && !state.getPlayers().isEmpty()
+                && state.getPlayers().stream().allMatch(GamePlayerState::isAi);
+    }
     public boolean labBudgetPaused(String roomId) {
         return states.findById(roomId).map(this::labBudgetPaused).orElse(false);
     }
     private boolean labBudgetPaused(GameState state) {
         var lab=RuleSupport.map(state.getData().get("lab"));
-        return !lab.isEmpty() && (state.getData().containsKey("labBudgetClock")
+        return !lab.isEmpty() && (state.getData().containsKey("labCallPause") || state.getData().containsKey("labBudgetClock")
                 || labBudgets!=null && labBudgets.isPaused(RuleSupport.text(lab.get("experimentId"))));
     }
     public boolean hasRecordedLabBudgetPause(String roomId) {
@@ -140,6 +145,7 @@ public class V2GameService {
             Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
             GameState state=states.findByIdForUpdate(roomId).orElse(null);
             if(state==null || !room.isLab() || !state.getData().containsKey("labBudgetClock")) return;
+            boolean callPause=state.getData().remove("labCallPause")!=null;
             var clock=RuleSupport.map(state.getData().remove("labBudgetClock"));
             if(phaseToken(state).equals(clock.get("phaseToken")) && clock.get("remainingMs") instanceof Number remaining) {
                 if(state.getData().containsKey("safetyClock")) {
@@ -151,7 +157,12 @@ public class V2GameService {
                 if(job.getDiagnostics().remove("labBudgetRemainingMs") instanceof Number remaining) {
                     job.getDiagnostics().put("executionDeadlineEpochMs",System.currentTimeMillis()+remaining.longValue()); jobs.save(job);
                 }
-            RuleSupport.event(state,"LAB_BUDGET_RESUMED",null,null,"实验预算已调整，继续当前对局。",Map.of());
+            for(var job:jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED"))) {
+                var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+                saved.remove("waitingSinceEpochMs"); saved.remove("retryAfterEpochMs");
+                job.getObservation().put("generationCheckpoint",saved); jobs.save(job);
+            }
+            RuleSupport.event(state,callPause?"LAB_CALL_RESUMED":"LAB_BUDGET_RESUMED",null,null,"实验已恢复，继续当前对局。",Map.of());
             persist(room,state,rules(state.getGameId()),true); prepareJob(state,rules(state.getGameId()));
         });
     }
@@ -182,7 +193,12 @@ public class V2GameService {
         }
         state.setPhaseEndsAt(null);
         for(var job:jobs.findByRoomIdAndStatusIn(state.getRoomId(),List.of("QUEUED"))) freezeLabJob(job);
-        if(first) RuleSupport.event(state,"LAB_BUDGET_PAUSED",null,null,"已达到实验预算，等待管理员调整预算后继续。",Map.of());
+        if(first) {
+            boolean callPause=data.containsKey("labCallPause");
+            RuleSupport.event(state,callPause?"LAB_CALL_PAUSED":"LAB_BUDGET_PAUSED",null,null,
+                    callPause?"AI 调用暂停，局面和任务已保存，等待处理后继续。":"已达到实验预算，等待管理员调整预算后继续。",
+                    callPause?Map.of("reason",data.get("labCallPause")):Map.of());
+        }
     }
     private void freezeLabJob(AiTurnJob job) {
         if(job.getDiagnostics().remove("executionDeadlineEpochMs") instanceof Number deadline) {
@@ -303,6 +319,7 @@ public class V2GameService {
             int eventCount = RuleSupport.maps(state.getData().get("events")).size(); String token = phaseToken(state);
             String publicBefore = serializedPublicView(room, state);
             updateConnections(state);
+            if(pureAiLab(state)) state.setPhaseEndsAt(null);
             rules.advance(state, LocalDateTime.now());
             AiCommitments.reconcile(state, rules, "TIMEOUT");
             boolean changed = eventCount != RuleSupport.maps(state.getData().get("events")).size() || !token.equals(phaseToken(state));
@@ -327,6 +344,7 @@ public class V2GameService {
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (!rules.isTurnCurrent(state, turn)) { finishJob(job, "DISCARDED", "TURN_OBSOLETE"); prepareJob(state, rules); return; }
             LocalDateTime now = LocalDateTime.now();
+            if(pureAiLab(state)) state.setPhaseEndsAt(null);
             if (state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
                 rules.advance(state, now); AiCommitments.reconcile(state, rules, "TIMEOUT"); finishJob(job, "DISCARDED", "TURN_EXPIRED");
                 persist(room, state, rules, false); prepareJob(state, rules); return;
@@ -377,6 +395,17 @@ public class V2GameService {
             persist(room, state, rules, false); prepareJob(state, rules);
         });
     }
+    public void checkpoint(String jobId,Map<String,Object> checkpoint) {
+        com.aisocialgame.lab.LabCallRecovery.commit(() -> transaction.executeWithoutResult(status -> {
+            var job=jobs.findByIdForUpdate(jobId).orElseThrow();
+            if(!"RUNNING".equals(job.getStatus())) throw new IllegalStateException("AI job is no longer running");
+            job.getObservation().put("generationCheckpoint",new LinkedHashMap<>(checkpoint)); jobs.saveAndFlush(job);
+        }));
+    }
+    public void recoverLabJob(String jobId) {
+        var job=jobs.findById(jobId).orElse(null);
+        if(job!=null) defer(jobId,RuleSupport.map(job.getObservation().get("generationCheckpoint")),"AI_RESULT_PENDING");
+    }
     public void defer(String jobId, Map<String,Object> checkpoint) {
         defer(jobId,checkpoint,"AI_BUDGET_BUSY");
     }
@@ -394,7 +423,8 @@ public class V2GameService {
             job.getDiagnostics().putIfAbsent("budgetWaitStartedEpochMs", System.currentTimeMillis());
             job.getDiagnostics().put("waitingReason", reason);
             job.setStatus("QUEUED"); jobs.save(job);
-            if(com.aisocialgame.lab.LabBudgetService.EXHAUSTED.equals(reason) || "LAB_EXPERIMENT_PAUSED".equals(reason)) {
+            if(com.aisocialgame.lab.LabCallRecovery.blocked(reason)) state.getData().put("labCallPause",reason);
+            if(com.aisocialgame.lab.LabCallRecovery.blocked(reason) || com.aisocialgame.lab.LabBudgetService.EXHAUSTED.equals(reason) || "LAB_EXPERIMENT_PAUSED".equals(reason)) {
                 freezeLabJob(job); freezeLabBudget(state);
                 Room room=rooms.findById(job.getRoomId()).orElseThrow(); persist(room,state,rules(state.getGameId()),true);
             }
@@ -417,10 +447,9 @@ public class V2GameService {
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (rules.isTurnCurrent(state, turn)) {
                 if (room.isLab()) {
-                    state.getData().put("labFailureReason", RuleSupport.strings(generation.get("qualityFlags")).stream().findFirst().orElse(reason));
-                    state.getData().put("winner", "ABORTED"); state.setPhase("SETTLEMENT"); state.setPhaseEndsAt(null);
-                    RuleSupport.event(state, "LAB_INTERRUPTED", null, null, "实验对局中断，等待管理员处理。", Map.of("reason", reason));
-                    finishJob(job, "FAILED", reason); persist(room, state, rules, true); return;
+                    state.getData().put("labCallPause", RuleSupport.strings(generation.get("qualityFlags")).stream().findFirst().orElse(reason));
+                    job.setStatus("QUEUED"); job.getDiagnostics().put("waitingReason",reason); jobs.save(job);
+                    freezeLabBudget(state); persist(room, state, rules, true); return;
                 }
                 LocalDateTime now = LocalDateTime.now();
                 // A genuinely expired phase must use its clock transition; submitting SKIP
@@ -665,7 +694,11 @@ public class V2GameService {
         com.aisocialgame.service.SettlementView.add(extra, state, viewerId);
         extra.put("hostUserId", RuleSupport.text(room.getHostUserId()));
         boolean budgetPaused=labBudgetPaused(state) && !"SETTLEMENT".equals(state.getPhase());
-        if(room.isLab()) extra.put("labBudgetPaused",budgetPaused);
+        if(room.isLab()) {
+            extra.put("labBudgetPaused",budgetPaused && !state.getData().containsKey("labCallPause"));
+            extra.put("labCallPaused",state.getData().containsKey("labCallPause"));
+            extra.put("labPauseReason",state.getData().getOrDefault("labCallPause",budgetPaused?"LAB_BUDGET_EXHAUSTED":""));
+        }
         extra.put("legalActions", viewer == null || budgetPaused ? List.of() : rules.legalActions(state, viewerId));
         boolean night = Set.of("NIGHT", "DEATH_ACTION").contains(state.getPhase()); Integer seat = night ? null : state.getCurrentSeat();
         String speaker = seat == null ? null : players.stream().filter(p -> p.getSeatNumber() == seat).map(GamePlayerView::getDisplayName).findFirst().orElse(null);

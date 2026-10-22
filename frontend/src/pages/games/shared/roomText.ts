@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 const messages = {
+  callPaused: ["实验调用已暂停，局面已保存，等待管理员处理后继续。", "實驗呼叫已暫停，局面已保存，等待管理員處理後繼續。", "The experiment is paused. The game is preserved until an administrator resolves the call and resumes."],
   budgetPaused: ["实验已达到预算，当前局面和计时已保留，等待管理员调整预算后继续。", "實驗已達到預算，目前局面和計時已保留，等待管理員調整預算後繼續。", "The experiment has reached its budget. The game and timer are preserved until an administrator adjusts the budget and resumes."],
   players: ["玩家", "玩家", "Players"], history: ["对局历史", "對局歷史", "Game history"],
   details: ["我的信息", "我的資訊", "My information"], rules: ["本局规则", "本局規則", "Room rules"],

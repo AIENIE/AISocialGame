@@ -66,6 +66,12 @@ public class AiTurnGenerator {
     }
     public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis,
                                    java.util.function.BooleanSupplier turnCurrent, Map<String,Object> checkpoint) {
+        return generate(adapter,observation,jobId,remainingTurnMillis,turnCurrent,checkpoint,saved -> {});
+    }
+    public AiTurnDecision generate(GameAiAdapter adapter, VisibleObservation observation, String jobId, long remainingTurnMillis,
+                                   java.util.function.BooleanSupplier turnCurrent, Map<String,Object> checkpoint,
+                                   java.util.function.Consumer<Map<String,Object>> saveCheckpoint) {
+        boolean laboratory = !RuleSupport.map(observation.memory().get("lab")).isEmpty();
         boolean undercover = "undercover".equals(observation.gameId());
         long started = nanoTime.getAsLong();
         long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(undercover ? UNDERCOVER_DECISION_MILLIS : MAX_DECISION_MILLIS, remainingTurnMillis)));
@@ -99,7 +105,12 @@ public class AiTurnGenerator {
             if (remaining < TimeUnit.SECONDS.toNanos(attempt == 0 ? 1 : 5)) {
                 failures = deadlineFailure(failures); break;
             }
+            var transport = new LinkedHashMap<String,Object>();
+            if (attempt == resume) for(String key:List.of("transportAttempt","waitingSinceEpochMs","retryAfterEpochMs","lastCallState"))
+                if(checkpoint.containsKey(key)) transport.put(key,checkpoint.get(key));
+            String requestId=com.aisocialgame.lab.LabCallRecovery.requestId(jobId+":"+attempt,transport);
             Map<String, Object> sample = new LinkedHashMap<>(); sample.put("attempt", attempt);
+            sample.put("transportAttempt",RuleSupport.number(transport.get("transportAttempt"),0));
             attempts.add(sample);
             String stage = "INPUT_PREPARATION";
             String budgetDeferred = null;
@@ -131,9 +142,11 @@ public class AiTurnGenerator {
                 sample.put("requestTimeoutMs", requestSeconds * 1000);
                 sample.put("requestRemainingMs", TimeUnit.NANOSECONDS.toMillis(remainingNanos(started, budgetNanos)));
                 if (undercover && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
-                sample.put("requestId", jobId + ":" + attempt);
+                sample.put("requestId", requestId);
                 if (debugRecorder != null) debugRecorder.begin(AiCallScope.context(properties.getAi().getSystemUserId(), selected.modelKey()).getRoomId(),
                         observation, jobId, attempt, messages, selected, requestSeconds * 1000L);
+                if(laboratory) saveCheckpoint.accept(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,
+                        attempts.subList(0,attempts.size()-1),selected,checkpoint,transport));
                 calls++;
                 AiChatResult response;
                 stage = "RPC";
@@ -141,8 +154,8 @@ public class AiTurnGenerator {
                 try {
                     String session = observation.instanceId() + ":" + observation.actorId();
                     response = undercover ? client.undercoverChatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), session, selected,
-                            messages, jobId + ":" + attempt, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), session, selected,
-                            messages, jobId + ":" + attempt, requestSeconds);
+                            messages, requestId, requestSeconds) : client.chatCompletions(properties.getProjectKey(), properties.getAi().getSystemUserId(), session, selected,
+                            messages, requestId, requestSeconds);
                 } finally { sample.put("rpcMs", elapsed(rpc)); }
                 if (response.finishReason() != null) sample.put("finishReason", response.finishReason());
                 if (response.reasoningTokens() != null) sample.put("reasoningTokens", response.reasoningTokens());
@@ -177,7 +190,7 @@ public class AiTurnGenerator {
                 } finally { sample.put("validationMs", elapsed(validating)); }
                 if (failures.isEmpty() || undercover && failures.equals(List.of("SECRET_WORD_LEAK"))
                         && "SPEAK".equals(decision.action().getType())) {
-                    if (remainingNanos(started, budgetNanos) == 0) { failures = deadlineFailure(failures); break; }
+                    if (!laboratory && remainingNanos(started, budgetNanos) == 0) { failures = deadlineFailure(failures); break; }
                     sample.put("flags", failures);
                     stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
                     return diagnostics(decision, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
@@ -188,6 +201,12 @@ public class AiTurnGenerator {
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
                 if (undercover && ex instanceof com.aisocialgame.exception.ApiException api) {
+                    if(laboratory && api.getCode()!=null && com.aisocialgame.lab.LabCallRecovery.recoverable(api.getCode())) {
+                        sample.putAll(api.getDetails()); sample.put("failureStage",stage); sample.put("flags",List.of(api.getCode()));
+                        budgetDeferred=com.aisocialgame.lab.LabCallRecovery.defer(transport,api,System.currentTimeMillis());
+                        var saved=checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,attempts,selected,checkpoint,transport);
+                        throw new GenerationDeferred(saved,budgetDeferred);
+                    }
                     if (api.getCode()!=null && Set.of("AI_BUDGET_BUSY","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(api.getCode())) {
                         budgetDeferred = api.getCode();
                         calls--; attempts.remove(sample);
@@ -195,7 +214,7 @@ public class AiTurnGenerator {
                         saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
                         saved.put("promptTokens",promptTokens); saved.put("completionTokens",completionTokens);
                         saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
-                        saved.put("modelSelection", selected.toMap());
+                        saved.put("modelSelection", selected.toMap()); saved.putAll(transport);
                         if (checkpoint.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",checkpoint.get("forbiddenFeedback"));
                         throw new GenerationDeferred(saved,budgetDeferred);
                     }
@@ -205,7 +224,7 @@ public class AiTurnGenerator {
                 sample.put("failureStage", stage);
                 if (!(undercover && "RPC".equals(stage) && retryable(ex))) break;
             } finally {
-                sample.put("flags", failures);
+                sample.put("flags", budgetDeferred==null?failures:List.of(budgetDeferred));
                 if (debugRecorder != null) {
                     var recorded = new LinkedHashMap<>(sample);
                     if (budgetDeferred!=null) recorded.put("flags", List.of(budgetDeferred));
@@ -240,6 +259,17 @@ public class AiTurnGenerator {
                     modelKey, fallbackErrors, lastOutput, attempts, stages).diagnostics());
         }
         return diagnostics(fallback, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
+    }
+    private static Map<String,Object> checkpoint(int attempt,int calls,int responses,int prompt,int completion,String model,
+            Map<String,Object> output,List<String> failures,List<Map<String,Object>> attempts,AiModelSelection selection,
+            Map<String,Object> previous,Map<String,Object> transport) {
+        var saved=new LinkedHashMap<String,Object>();
+        saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
+        saved.put("promptTokens",prompt); saved.put("completionTokens",completion); saved.put("modelKey",model);
+        saved.put("lastOutput",output); saved.put("failures",failures); saved.put("attempts",new ArrayList<>(attempts));
+        saved.put("modelSelection",selection.toMap()); saved.putAll(transport);
+        if(previous.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",previous.get("forbiddenFeedback"));
+        return saved;
     }
     public static final class GenerationDeferred extends RuntimeException {
         private final Map<String,Object> checkpoint;

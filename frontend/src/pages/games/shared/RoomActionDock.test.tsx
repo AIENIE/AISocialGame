@@ -30,6 +30,9 @@ it("shows a preserved budget pause and offers no action submission",()=>{
   expect(container.textContent).toContain("当前局面和计时已保留");
   expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
   expect(send).not.toHaveBeenCalled();
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,labCallPaused:true}}} send={send}/>));
+  expect(container.textContent).toContain("实验调用已暂停");
+  expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
 });
 
 it("keeps a forbidden-word draft and shows private correction feedback until elimination",async()=>{

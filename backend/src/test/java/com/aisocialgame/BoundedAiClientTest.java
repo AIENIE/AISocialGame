@@ -19,12 +19,13 @@ class BoundedAiClientTest {
     AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
     final AtomicInteger sends=new AtomicInteger(),prepares=new AtomicInteger();
     long generationDelayMs, statusDelayMs;
+    Status executionFailure=Status.DEADLINE_EXCEEDED;
     final java.util.concurrent.atomic.AtomicLong statusWindowMs=new java.util.concurrent.atomic.AtomicLong();
     final java.util.concurrent.atomic.AtomicReference<PrepareCallBudgetRequest> prepared = new java.util.concurrent.atomic.AtomicReference<>();
     PrepareCallBudgetResponse budget=PrepareCallBudgetResponse.newBuilder().setBudgetId("budget").setBudgetCredential("credential")
             .setPriceQuote(BudgetPriceQuote.newBuilder().setCurrency("CNY").setMaxCreditPoints(226)).build();
     final ChatCompletionsResponse response=ChatCompletionsResponse.newBuilder().setContent("committed").setPromptTokens(10).setCompletionTokens(5).build();
-    final GetBudgetCallStatusResponse status=GetBudgetCallStatusResponse.newBuilder().setBudgetId("budget").setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setChat(response).build();
+    GetBudgetCallStatusResponse status=GetBudgetCallStatusResponse.newBuilder().setBudgetId("budget").setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setChat(response).build();
     @BeforeEach void start() throws Exception {
         String name=InProcessServerBuilder.generateName();
         server=InProcessServerBuilder.forName(name).directExecutor().addService(new AiGatewayServiceGrpc.AiGatewayServiceImplBase(){
@@ -32,7 +33,7 @@ class BoundedAiClientTest {
                 prepared.set(request);prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
             }
             @Override public void chatCompletions(ChatCompletionsRequest request,StreamObserver<ChatCompletionsResponse> observer){
-                sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());pause(generationDelayMs);observer.onError(Status.DEADLINE_EXCEEDED.asRuntimeException());
+                sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());pause(generationDelayMs);observer.onError(executionFailure.asRuntimeException());
             }
             @Override public void getBudgetCallStatus(GetBudgetCallStatusRequest request,StreamObserver<GetBudgetCallStatusResponse> observer){
                 statusWindowMs.set(Context.current().getDeadline().timeRemaining(java.util.concurrent.TimeUnit.MILLISECONDS));
@@ -92,7 +93,7 @@ class BoundedAiClientTest {
         when(reservations.findById(row.id)).thenReturn(Optional.of(row));
         // Even an unavailable/invalid status must not release the reservation or infer again.
         doThrow(new IllegalStateException("status unavailable")).when(escrow).reconcile(row.id,status);
-        for(int i=0;i<2;i++) assertEquals("BUDGET_RECONCILIATION_REQUIRED",
+        for(int i=0;i<2;i++) assertEquals("AI_RESULT_UNKNOWN",
                 assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,45)).getCode());
         assertEquals("HELD",row.state); assertEquals(1,sends.get()); verify(count,times(1)).consume();
     }
@@ -154,6 +155,40 @@ class BoundedAiClientTest {
         doAnswer(invocation->{row.state="RELEASED"; return null;}).when(escrow).reconcile(row.id,status);
         assertEquals("AI_REQUEST_NOT_SENT",assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,45)).getCode());
         assertEquals(1,sends.get());
+    }
+
+    @Test void queueTimeoutUsesAuthoritativeReleasedRowEvenWhenRpcIsUnknownAndOldObjectIsHeld() {
+        executionFailure=Status.UNKNOWN.withDescription("ACQUIRE_TIMEOUT after 30 seconds; endpoint concurrency 1");
+        status=GetBudgetCallStatusResponse.newBuilder().setState(BudgetCallState.BUDGET_CALL_STATE_FAILED_NOT_SENT).build();
+        var escrow=mock(AiCreditEscrowService.class); var reservations=mock(AiCreditReservationRepository.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        var held=new AiCreditReservation(); held.id="original";held.budgetId="budget";held.requestId="same-request";held.userId=85;held.projectKey="aisocialgame";held.state="HELD";
+        var released=new AiCreditReservation();released.id="original";released.budgetId="budget";released.state="RELEASED";
+        when(escrow.reserve(request,budget)).thenReturn(new AiCreditEscrowService.Claim(held,true));
+        when(reservations.findById(held.id)).thenReturn(Optional.of(released));
+        var failure=assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,89));
+        assertEquals("AI_REQUEST_NOT_SENT",failure.getCode()); assertEquals("RELEASED",failure.getDetails().get("settlementState"));
+        assertEquals("HELD",held.state);assertEquals(1,sends.get());
+    }
+    @Test void runningRequestWaitsAndLaterReplaysWithoutPreparingOrSendingAgain() {
+        var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        var row=new AiCreditReservation();row.id="running";row.budgetId="budget";row.requestId="same-request";
+        row.userId=85;row.projectKey="aisocialgame";row.state="HELD";row.requestHash=AiCreditEscrowService.hash(request.toByteArray());
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192);
+        status=GetBudgetCallStatusResponse.newBuilder().setState(BudgetCallState.BUDGET_CALL_STATE_RUNNING).build();
+        var waiting=assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,89));
+        assertEquals("AI_RESULT_PENDING",waiting.getCode());assertEquals("RUNNING",waiting.getDetails().get("remoteState"));
+        doAnswer(i->{row.state="SETTLED";row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());return null;}).when(escrow).reconcile(eq(row.id),any());
+        assertEquals(response,client.chat(request,89));assertEquals(0,sends.get());assertEquals(0,prepares.get());
+    }
+    @Test void coachPreflightChecks32768OutputAndPriceWithoutWalletOrInference() {
+        var escrow=mock(AiCreditEscrowService.class);
+        var client=new BoundedAiClient(stub,escrow,mock(AiCreditReservationRepository.class),mock(AiCallBudgetService.class),true,8192);
+        assertTrue(client.preflight(ChatCompletionsRequest.newBuilder().setModel("gpt-6.1-sol").build(),32768).hasPriceQuote());
+        assertEquals(32768,prepared.get().getMaxOutputTokens());assertEquals(0,sends.get());verifyNoInteractions(escrow);
     }
 
     @Test void diagnosticOptInDoesNotChangeAnExistingReservationFingerprintOrResend() {

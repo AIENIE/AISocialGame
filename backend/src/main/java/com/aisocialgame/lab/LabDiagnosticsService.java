@@ -61,15 +61,27 @@ public class LabDiagnosticsService {
             });
         }
         if(!failure.isEmpty()) result.put("failure",failure);
+        var receipts=reservations.findByLabMatchIdOrderByUpdatedAtAsc(matchId);
+        var byRequest=new HashMap<String,com.aisocialgame.model.credit.AiCreditReservation>();
+        receipts.forEach(row -> byRequest.put(row.requestId,row));
         result.put("tasks",turns.stream().map(job -> {
             var row=new LinkedHashMap<String,Object>();row.put("jobId",job.getId());row.put("status",job.getStatus());
-            row.put("reason",text(job.getDiagnostics().get("terminalReason")));row.put("kind",job.getKind());
+            row.put("reason",text(job.getDiagnostics().getOrDefault("waitingReason",job.getDiagnostics().get("terminalReason"))));row.put("kind",job.getKind());
             row.put("modelKey",text(map(job.getDiagnostics().get("modelSelection")).get("modelKey")));
             row.put("actorName",text(map(job.getObservation().get("self")).get("displayName")));
-            row.put("attempts",maps(map(job.getDiagnostics().get("generation")).get("attempts")));
+            var generation=map(job.getObservation().get("generationCheckpoint"));
+            if(Set.of("SUCCEEDED","FAILED","DISCARDED").contains(job.getStatus())) generation=map(job.getDiagnostics().get("generation"));
+            row.put("attempts",maps(generation.get("attempts")).stream().map(sample -> {
+                var attempt=new LinkedHashMap<>(sample); var receipt=byRequest.get(text(sample.get("requestId")));
+                if(receipt!=null) {
+                    if(sample.containsKey("settlementState")) attempt.put("observedSettlementState",sample.get("settlementState"));
+                    attempt.put("settlementState",receipt.state);
+                }
+                return attempt;
+            }).toList());
             return row;
         }).toList());
-        result.put("calls",reservations.findByLabMatchIdOrderByUpdatedAtAsc(matchId).stream().map(call -> {
+        result.put("calls",receipts.stream().map(call -> {
             var row=new LinkedHashMap<String,Object>();row.put("requestId",call.requestId);row.put("state",call.state);
             row.put("billedPoints",call.billedPoints==null?0:call.billedPoints);
             row.put("heldPoints","HELD".equals(call.state)?call.reservedTemp+call.reservedPermanent:0);
