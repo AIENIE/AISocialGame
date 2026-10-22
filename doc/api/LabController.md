@@ -21,13 +21,16 @@
 | POST | /experiments/{id}/control/{action} | start、resume、pause、stop |
 | GET | /experiments/{id}/experiences?page=0 | 经验版本、来源及证据分页 |
 | GET | /experiments/{id}/matches/{matchId}/spectate | 绑定实验的只读公开观战视图，仅管理会话 |
+| GET | /experiments/{id}/matches/{matchId}/diagnostics | 绑定实验的管理员只读诊断，含失败位置、可用的失败动作和原请求账务，不返回提示词或内部推理 |
 | POST | /experiments/{id}/rollback/{experienceId} | 暂停或完成状态下生成回退版本 |
 | POST | /experiments/{id}/retry-review | 管理员重试失败复盘并继续 |
 | POST | /experiments/{id}/evaluations | 发起冻结对手的纯 AI 成对评测 |
 
 AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffort}`。思考能力遵循已有模型目录；未知能力仅允许 DEFAULT。失效选择保留并报错。
 
-实验请求：`name, participants:[{agentId,initialExperienceId?}], playerCount, targetGames, wordPack, hasBlank, budgetPoints, coach`。阵容数量等于 4–10 个席位，允许重复 agentId；服务端为每个副本生成稳定 participantId。目标 1–10000 局，各实验固定逐局执行，内部全局资源上限保持 3 局。兼容旧 `agentIds` 和按档案指定的 `initialExperienceIds`，但不能同时提交两种阵容；旧请求的 concurrency 被忽略，当前配置及响应不再提供该字段。内置词库 daily / idiom / acg / tech。budgetPoints 必须为正整数，100 积分折合人民币 1 元。coach 使用 selection 同形结构。每个副本可显式继承相同来源档案的一个历史经验版本，省略从空经验开始。
+实验请求：`name, participants:[{agentId,initialExperienceId?,selection?}], playerCount, targetGames, wordPack, hasBlank, budgetPoints, coach`。阵容数量等于 4–10 个席位，允许重复 agentId；服务端为每个副本生成稳定 participantId。selection 与教练同形，仅覆盖本次实验副本模型，省略则使用来源档案默认值，不改写档案。目标 1–10000 局，各实验固定逐局执行，内部全局资源上限保持 3 局。兼容旧 `agentIds` 和按档案指定的 `initialExperienceIds`，但不能同时提交两种阵容；旧请求的 concurrency 被忽略，当前配置及响应不再提供该字段。内置词库 daily / idiom / acg / tech。budgetPoints 必须为正整数，100 积分折合人民币 1 元。coach 使用 selection 同形结构。每个副本可显式继承相同来源档案的一个历史经验版本，省略从空经验开始。
+
+管理员详情追加 latestFailureMatchId；摘要追加 completedGames、reviewedGames、abortedGames（只统计训练局）。诊断返回 failure、tasks、calls，历史还原原因标记 inferred；原文缺失不推测。真人行动命中本人禁词返回 400 / OWN_WORD_FORBIDDEN 或 FORBIDDEN_WORD_ELIMINATED，details 提供 forbiddenTerms、violationCount、remainingCorrections、eliminated；业务拒绝前已提交私密计数，原 requestId 重复提交返回相同反馈，不重复扣罚。当前玩家状态 extra.wordFeedback 同步反馈，旁观者不可见。
 
 评测请求：`participantId, pairs, candidateExperienceId`，pairs 为 1–1000。旧 agentId 请求仅在来源档案唯一对应一个副本时兼容。只能在暂停或训练完成、未完成对局和复盘已处理后发起。初始对手、词语、座次与身份分配种子冻结，候选组只改变目标副本的经验。只有两个对照局均正常结束的配对进入胜率统计，评测不发布经验。两组分别返回 attemptedGames、failedGames 和 failureRate（失败局 / 已结束尝试）；有效行动率包含中断局已执行的行动。分身份统计提供 games、wins 和 winRate。
 

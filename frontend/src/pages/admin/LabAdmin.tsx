@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { AdminDataState } from "@/components/admin/AdminDataState";
 import { LabExperimentRows, LabCostPanel, LabProgress, LabLiveMatches, LabMatchHistory, LabEvaluationResults, LabPager } from "@/components/lab/LabPanels";
 import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
+import { LabDiagnostics } from "@/components/lab/LabDiagnostics";
+import { failureText } from "@/components/lab/labFailures";
 import type { CatalogModel } from "@/types/aiModelConfig";
 import type { LabAgent, LabSelection, LabExperience, CreateLabExperiment, LabParticipantInput } from "@/types/lab";
 
@@ -68,6 +70,7 @@ function AdminLabIndex() {
   const [hasBlank,setHasBlank]=useState(false);
   const [budget,setBudget]=useState("10.00");
   const [coach,setCoach]=useState<LabSelection>(emptySelection);
+  const [allModel,setAllModel]=useState("");
   const [sourceId,setSourceId]=useState(from);
   const [inheritId,setInheritId]=useState(from);
   const list=useQuery({queryKey:["admin","lab","list",page],queryFn:()=>adminLabApi.list(page),refetchInterval:5000});
@@ -75,13 +78,13 @@ function AdminLabIndex() {
   const catalog=useQuery({queryKey:["admin","model-config"],queryFn:adminApi.modelConfiguration});
   const source=useQuery({queryKey:["admin","lab","source",inheritId],queryFn:()=>adminLabApi.detail(inheritId),enabled:!!inheritId});
   const playerCount=selectedCount??(from?source.data?.playerCount??6:6);
-  const chosen=selected??(from?source.data?.configuration?.roster.map(agent=>({agentId:agent.agentId,initialExperienceId:source.data?.configuration?.experiences[agent.participantId]?.experienceId}))??[]:[]);
+  const chosen=selected??(from?source.data?.configuration?.roster.map(agent=>({agentId:agent.agentId,selection:agent.modelSelection,initialExperienceId:source.data?.configuration?.experiences[agent.participantId]?.experienceId}))??[]:[]);
   const changeSlot=(index:number,value:LabParticipantInput)=>setSelected(Array.from({length:playerCount},(_,seat)=>seat===index?value:chosen[seat]??{agentId:""}));
   const sync=useMutation({mutationFn:adminApi.syncModelConfiguration,onSuccess:data=>{client.setQueryData(["admin","model-config"],data);toast.success("模型目录已同步");},onError:failure});
   const create=useMutation({
     mutationFn:async()=>{
       const configured=coach.modelKey?coach:{...coach,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??catalog.data?.models[0]?.modelKey??""};
-      const request:CreateLabExperiment={name,participants:chosen.slice(0,playerCount).map(slot=>({...slot,initialExperienceId:slot.initialExperienceId==="initial"?undefined:slot.initialExperienceId})),playerCount,targetGames,wordPack,hasBlank,
+      const request:CreateLabExperiment={name,participants:chosen.slice(0,playerCount).map(slot=>({...slot,selection:slot.selection??agents.data?.find(agent=>agent.id===slot.agentId)?.modelSelection,initialExperienceId:slot.initialExperienceId==="initial"?undefined:slot.initialExperienceId})),playerCount,targetGames,wordPack,hasBlank,
         budgetPoints:Math.round(Number(budget)*100),coach:configured};
       return adminLabApi.create(request);
     },
@@ -102,10 +105,14 @@ function AdminLabIndex() {
         <label className="lab-field">内置词库<select value={wordPack} onChange={event=>setWordPack(event.target.value)}><option value="daily">日常生活</option><option value="idiom">成语俗语</option><option value="acg">二次元</option><option value="tech">硬核科技</option></select></label>
         <label className="lab-field">费用上限（人民币）<input type="number" min="0.01" step="0.01" value={budget} required onChange={event=>setBudget(event.target.value)} /></label>
         <label className="lab-field"><input type="checkbox" checked={hasBlank} onChange={event=>setHasBlank(event.target.checked)} />加入白板玩家</label></div>
-      <div><h3 className="text-sm font-medium">实验阵容 · {playerCount} 个独立副本</h3><p className="lab-small my-3">同一档案可多次选择，各副本独立学习；每局开场随机座次，复盘完成后再开始下一局。</p><div className="lab-form-grid">{Array.from({length:playerCount},(_,index)=>{
+      <div><h3 className="text-sm font-medium">实验阵容 · {playerCount} 个独立副本</h3><p className="lab-small my-3">模型只用于本次实验，不修改来源档案。同角色副本可使用不同模型，各自独立学习。</p>
+        <div className="lab-bulk-model"><label className="lab-field">统一玩家模型<select aria-label="统一玩家模型" value={allModel} onChange={event=>setAllModel(event.target.value)}><option value="">选择统一模型</option>{models.map(model=><option key={model.modelKey} value={model.modelKey}>{model.displayName}</option>)}</select></label>
+          <Button type="button" variant="outline" disabled={!models.some(model=>model.modelKey===allModel)} onClick={()=>{setSelected(Array.from({length:playerCount},(_,index)=>({...chosen[index],agentId:chosen[index]?.agentId??"",selection:{modelKey:allModel,thinkingMode:"DEFAULT",thinkingEffort:null}})));toast.success("全部玩家模型已设置，思考配置重置为服务默认；复盘教练不变");}}>应用到全部 AI 玩家</Button><p className="lab-small">不影响复盘教练；可在下面逐个调整。</p></div>
+        <div className="space-y-3">{Array.from({length:playerCount},(_,index)=>{
         const slot=chosen[index]??{agentId:""};
         const sources=source.data?.configuration?.roster.filter(profile=>profile.agentId===slot.agentId)??[];
-        return <div key={index} className="lab-table space-y-3"><label className="lab-field">副本 {index+1}<select aria-label={`副本 ${index+1} 的 AI 档案`} value={slot.agentId} required onChange={event=>changeSlot(index,{agentId:event.target.value})}><option value="">选择 AI 档案</option>{agents.data?.map(agent=><option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>
+        return <div key={index} className="lab-table space-y-3"><label className="lab-field">副本 {index+1}<select aria-label={`副本 ${index+1} 的 AI 档案`} value={slot.agentId} required onChange={event=>changeSlot(index,{agentId:event.target.value,selection:agents.data?.find(agent=>agent.id===event.target.value)?.modelSelection})}><option value="">选择 AI 档案</option>{agents.data?.map(agent=><option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>
+          <ModelSelectionFields models={models} value={slot.selection??agents.data?.find(agent=>agent.id===slot.agentId)?.modelSelection??emptySelection} change={selection=>changeSlot(index,{...slot,selection})} prefix={`participant-${index+1}`} />
           {!!source.data&&<label className="lab-field">继承经验<select aria-label={`副本 ${index+1} 的继承经验`} value={slot.initialExperienceId??""} onChange={event=>changeSlot(index,{...slot,initialExperienceId:event.target.value||undefined})}><option value="">从空经验开始</option>{sources.map(profile=>{const head=source.data?.configuration?.experiences[profile.participantId];return head&&head.experienceId!=="initial"?<option key={profile.participantId} value={head.experienceId}>{profile.name} · v{head.sequenceNumber}</option>:null;})}</select></label>}
         </div>;
       })}</div>
@@ -140,6 +147,8 @@ function ExperienceComparison({versions,roster,heads,rollback,disabled}:{version
 }
 function AdminLabDetail({id}:{id:string}) {
   const client=useQueryClient();
+  const [section,setSection]=useState("runtime");
+  const [inspectedMatch,setInspectedMatch]=useState("");
   const [page,setPage]=useState(0),[experiencePage,setExperiencePage]=useState(0);
   const [agentId,setAgent]=useState(""),[candidate,setCandidate]=useState(""),[pairs,setPairs]=useState(20);
   const query=useQuery({queryKey:["admin","lab","experiment",id],queryFn:()=>adminLabApi.detail(id),refetchInterval:2000});
@@ -159,7 +168,7 @@ function AdminLabDetail({id}:{id:string}) {
   return <div className="lab-workspace"><Link to="/admin/lab" className="lab-small inline-flex items-center gap-2 mb-5"><ArrowLeft size={14} />返回实验室</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">EXPERIMENT / {id.slice(0,8)}</div><h1>{experiment.name}</h1><p>独立经验迭代 · {experiment.playerCount} 席 · 内置 {experiment.wordPack} 词库</p></div><FlaskConical size={32} className="text-emerald-700/60" /></header>
     <div className="lab-actions mb-5">
-      {["DRAFT","PAUSED"].includes(experiment.status)&&<Button size="sm" disabled={controls.isPending} onClick={()=>controls.mutate(experiment.status==="DRAFT"?"start":"resume")}><Play size={14} className="mr-2" />{experiment.status==="DRAFT"?"启动实验":"恢复实验"}</Button>}
+      {["DRAFT","PAUSED"].includes(experiment.status)&&!experiment.reviewFailed&&<Button size="sm" disabled={controls.isPending} onClick={()=>controls.mutate(experiment.status==="DRAFT"?"start":"resume")}><Play size={14} className="mr-2" />{experiment.status==="DRAFT"?"启动实验":"从下一局继续"}</Button>}
       {experiment.status==="RUNNING"&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("pause")}><Pause size={14} className="mr-2" />本局后暂停</Button>}
       {!["COMPLETED","STOPPED","STOPPING"].includes(experiment.status)&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("stop")}><Square size={13} className="mr-2" />本局后停止</Button>}
       {experiment.status==="PAUSED"&&experiment.reviewFailed&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("retry-review")}>重试复盘并继续</Button>}
@@ -167,14 +176,16 @@ function AdminLabDetail({id}:{id:string}) {
       <Button size="sm" variant="ghost" asChild><a href={"/lab/"+id} target="_blank" rel="noreferrer">玩家入口</a></Button>
     </div>
     <LabProgress experiment={experiment} />
-    {experiment.reason&&<div className="lab-error" role="status">{experiment.reason} · 已保留已完成对局和原请求账务，请处理后恢复。</div>}
-    <div className="lab-columns mt-7"><div><LabLiveMatches matches={experiment.activeMatches??[]} adminExperimentId={id} />
-      <section className="lab-section"><h2>冻结阵容</h2><div className="lab-scroll"><table className="lab-history"><thead><tr><th>AI 副本</th><th>模型</th><th>当前经验</th></tr></thead><tbody>{roster.map(agent=><tr key={agent.participantId}><td>{agent.name}</td><td className="break-all">{agent.modelSelection.modelKey}<div className="lab-small">{agent.modelSelection.thinkingMode} {agent.modelSelection.thinkingEffort}</div></td><td className="lab-number">v{configuration?.experiences[agent.participantId]?.sequenceNumber??0}</td></tr>)}</tbody></table></div></section>
-    </div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} /></div>
-    <section className="lab-section"><h2><GitCompareArrows size={17} />经验版本与比较</h2>
+    {(inspectedMatch||experiment.latestFailureMatchId)?<LabDiagnostics experimentId={id} matchId={inspectedMatch||experiment.latestFailureMatchId!}/>:experiment.reason&&<div className="lab-error" role="status">{failureText(experiment.reason)} · 历史记录未提供具体对局，请查看对局历史。</div>}
+    <div className="lab-columns mt-7"><div className="min-w-0">
+      <div className="lab-tabs" role="tablist" aria-label="实验详情分类">{[["runtime","运行与历史"],["roster","阵容与模型"],["experience","经验"],["evaluation","评测"]].map(([value,label])=><button role="tab" aria-selected={section===value} key={value} onClick={()=>setSection(value)}>{label}</button>)}</div>
+      {section==="runtime"&&<><LabLiveMatches matches={experiment.activeMatches??[]} adminExperimentId={id} />
+        <section className="lab-section"><h2>对局历史</h2>{history.data?<><LabMatchHistory page={history.data} admin onInspect={matchId=>setInspectedMatch(matchId)}/><LabPager page={page} total={history.data.total} size={20} change={setPage} /></>:<AdminDataState loading={history.isPending} error={history.error} retry={()=>void history.refetch()} />}</section></>}
+      {section==="roster"&&<section className="lab-section"><h2>冻结阵容</h2><p className="lab-small mb-3">此配置仅用于本实验；每局随机座次，各副本独立学习。</p><div className="lab-scroll"><table className="lab-history"><thead><tr><th>AI 副本</th><th>模型</th><th>当前经验</th></tr></thead><tbody>{roster.map(agent=><tr key={agent.participantId}><td>{agent.name}</td><td className="break-all">{agent.modelSelection.modelKey}<div className="lab-small">{agent.modelSelection.thinkingMode} {agent.modelSelection.thinkingEffort}</div></td><td className="lab-number">v{configuration?.experiences[agent.participantId]?.sequenceNumber??0}</td></tr>)}</tbody></table></div><p className="lab-small mt-3">复盘教练：{configuration?.coach.modelKey}</p></section>}
+    {section==="experience"&&<section className="lab-section"><h2><GitCompareArrows size={17} />经验版本与比较</h2>
       {versions.data?<><ExperienceComparison versions={versions.data.items} roster={roster} heads={configuration?.experiences??{}} disabled={!idle||rollback.isPending} rollback={version=>rollback.mutate(version)} /><LabPager page={experiencePage} total={versions.data.total} size={30} change={setExperiencePage} /></>:<AdminDataState loading={versions.isPending} error={versions.error} retry={()=>void versions.refetch()} />}
-    </section>
-    <section className="lab-section"><h2>发起对照评测</h2><p className="lab-small mb-4">训练完成或暂停后，选一个 AI 与经验版本。固定初始对手，评测不复盘、不写入经验，费用仍计入本实验。</p>
+    </section>}
+    {section==="evaluation"&&<section className="lab-section"><h2>发起对照评测</h2><p className="lab-small mb-4">训练完成或暂停后，选一个 AI 与经验版本。固定初始对手，评测不复盘、不写入经验，费用仍计入本实验。</p>
       <form className="lab-form-grid" onSubmit={event=>{event.preventDefault();evaluate.mutate();}}>
         <label className="lab-field">评测对象<select value={target} onChange={event=>{setAgent(event.target.value);setCandidate("");}}>{roster.map(agent=><option key={agent.participantId} value={agent.participantId}>{agent.name}</option>)}</select></label>
         <label className="lab-field">训练后经验版本<select value={targetVersion} onChange={event=>setCandidate(event.target.value)}><option value="">选择经验</option>
@@ -183,8 +194,8 @@ function AdminLabDetail({id}:{id:string}) {
         <label className="lab-field">成对样本数<input type="number" min={1} max={1000} value={pairs} onChange={event=>setPairs(Number(event.target.value))} /></label>
         <Button type="submit" className="self-end" disabled={!idle||!targetVersion||targetVersion==="initial"||evaluate.isPending}>启动对照评测</Button>
       </form><LabEvaluationResults evaluations={experiment.evaluations??[]} />
-    </section>
-    <section className="lab-section"><h2>对局历史</h2>{history.data?<><LabMatchHistory page={history.data} admin /><LabPager page={page} total={history.data.total} size={20} change={setPage} /></>:<AdminDataState loading={history.isPending} error={history.error} retry={()=>void history.refetch()} />}</section>
+    </section>}
+    </div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} /></div>
   </div>;
 }
 export default function LabAdmin() { const {id}=useParams(); return id?<AdminLabDetail key={id} id={id}/>:<AdminLabIndex/>; }

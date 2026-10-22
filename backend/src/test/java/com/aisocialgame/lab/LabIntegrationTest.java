@@ -42,6 +42,7 @@ class LabIntegrationTest {
     @Autowired V2GameService game;
     @Autowired AiTurnCoordinator turns;
     @Autowired LabBudgetService budgets;
+    @Autowired LabDiagnosticsService diagnostics;
     @Autowired AiCreditEscrowService escrow;
     @Autowired CreditAccountRepository accounts;
     @Autowired AiCreditReservationRepository reservations;
@@ -59,6 +60,32 @@ class LabIntegrationTest {
         for(var experiment:experiments.findAll()) { experiment.status="STOPPED"; experiments.save(experiment); }
         for(var match:matches.findAll()) { match.status="ABORTED"; matches.save(match); }
     }
+    @Test void perParticipantModelsFreezeWithoutChangingTheProfileAndRuleEliminationDoesNotAbortLearning() {
+        var agent=service.saveAgent(null,new LabRequests.Agent("Same",personas.findAll().getFirst().getId(),selection));
+        var alternate=new LabRequests.Selection("alternate-fixture",AiModelSelection.ThinkingMode.DEFAULT,null);
+        var participants=java.util.stream.IntStream.range(0,4).mapToObj(index -> new LabRequests.Participant(agent.id,null,index==0?alternate:null)).toList();
+        String id=text(service.create(new LabRequests.Experiment("Models",null,4,2,"daily",false,1000,selection,Map.of(),participants),"admin").get("id"));
+        var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
+        assertEquals("alternate-fixture",map(roster.getFirst().get("modelSelection")).get("modelKey"));
+        assertEquals("fixture-model",map(roster.get(1).get("modelSelection")).get("modelKey"));
+        assertEquals("fixture-model",service.agents().stream().filter(profile -> agent.id.equals(profile.id)).findFirst().orElseThrow().modelSelection.get("modelKey"));
+        service.control(id,"start");lab.advance(id);lab.advance(id);
+        var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
+        var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();
+        String word=text(map(pending.getObservation().get("privateFacts")).get("word"));
+        for(int attempt=0;attempt<3;attempt++) {
+            var running=turns.claim(pending.getId());
+            game.complete(running.getId(),new AiTurnDecision(action("SPEAK",word,null),word,Map.of(),List.of(),Map.of(),false,Map.of("qualityFlags",List.of("SECRET_WORD_LEAK"))));
+        }
+        var detail=diagnostics.inspect(id,match.id);assertEquals("FORBIDDEN_WORD_ELIMINATED",map(detail.get("failure")).get("code"));
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->diagnostics.inspect("different",match.id));
+        assertFalse(service.detail(id,null,false).containsKey("latestFailureMatchId"));
+        finish(match);stubCoach();lab.advance(id);coach.process(id);lab.advance(id);
+        assertEquals("REVIEWED",matches.findById(match.id).orElseThrow().status);
+        assertEquals("RUNNING",experiments.findById(id).orElseThrow().status);
+        assertEquals(4,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
+    }
+
     @Test void serialExperimentsFreezeProfilesAndRecoverWithoutDuplicateGamesOrGlobalRewards() {
         String id=create(6,3);
         service.control(id,"start");

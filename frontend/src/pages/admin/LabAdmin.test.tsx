@@ -7,8 +7,8 @@ import LabAdmin from "./LabAdmin";
 import { AdminLabObservation, AdminReplayPage } from "./LabObservation";
 import type { LabExperiment } from "@/types/lab";
 
-const api=vi.hoisted(()=>({list:vi.fn(),agents:vi.fn(),detail:vi.fn(),matches:vi.fn(),experiences:vi.fn(),create:vi.fn(),observe:vi.fn(),replay:vi.fn()}));
-vi.mock("@/services/api",()=>({adminLabApi:api,adminApi:{modelConfiguration:async()=>({models:[{modelKey:"fixture",displayName:"Fixture",thinking:{declared:false,options:[]}}],functions:[]}),replayEvents:(id:string)=>api.replay(id)},personaApi:{list:async()=>[]},getApiErrorMessage:(_error:unknown,fallback:string)=>fallback}));
+const api=vi.hoisted(()=>({list:vi.fn(),agents:vi.fn(),detail:vi.fn(),matches:vi.fn(),experiences:vi.fn(),create:vi.fn(),observe:vi.fn(),replay:vi.fn(),diagnostics:vi.fn()}));
+vi.mock("@/services/api",()=>({adminLabApi:api,adminApi:{modelConfiguration:async()=>({models:[{modelKey:"fixture",displayName:"Fixture",thinking:{declared:false,options:[]}},{modelKey:"alternate",displayName:"Alternate",thinking:{declared:false,options:[]}}],functions:[]}),replayEvents:(id:string)=>api.replay(id)},personaApi:{list:async()=>[]},getApiErrorMessage:(_error:unknown,fallback:string)=>fallback}));
 vi.mock("sonner",()=>({toast:{success:vi.fn(),error:vi.fn()}}));
 let root:Root,container:HTMLDivElement,client:QueryClient;
 const selection={modelKey:"fixture",thinkingMode:"DEFAULT" as const,thinkingEffort:null};
@@ -36,6 +36,31 @@ async function render(path:string) {
   await act(async()=>{await new Promise(resolve=>setTimeout(resolve,20));});
 }
 function button(name:string) { return Array.from(container.querySelectorAll("button")).find(element=>element.textContent===name)!; }
+function choose(selector:string,value:string) { const select=container.querySelector<HTMLSelectElement>(selector)!;select.value=value;select.dispatchEvent(new Event("change",{bubbles:true})); }
+it("applies player models in bulk, permits individual overrides, and leaves the coach unchanged",async()=>{
+  await render("/admin/lab");await act(async()=>button("新建实验").click());
+  await act(async()=>choose('select[aria-label="统一玩家模型"]',"alternate"));
+  await act(async()=>button("应用到全部 AI 玩家").click());
+  expect(container.querySelector<HTMLSelectElement>("#coach-model")!.value).toBe("fixture");
+  await act(async()=>choose("#participant-1-model","fixture"));
+  await act(async()=>container.querySelector("form")!.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true})));
+  const request=api.create.mock.calls[0][0];
+  expect(request.participants.map((slot:{selection:{modelKey:string}})=>slot.selection.modelKey)).toEqual(["fixture","alternate","alternate","alternate","alternate","alternate"]);
+  expect(request.coach.modelKey).toBe("fixture");
+  expect(request.participants.every((slot:{selection:{thinkingMode:string;thinkingEffort:unknown}})=>slot.selection.thinkingMode==="DEFAULT"&&slot.selection.thinkingEffort===null)).toBe(true);
+});
+it("puts the known historical rule error and settled cost before the history, without a player route",async()=>{
+  api.detail.mockResolvedValue({...experiment(),reason:"SUBMISSION_EXCEPTION",latestFailureMatchId:"match",activeMatches:[]});
+  api.diagnostics.mockResolvedValue({matchId:"match",sequenceNumber:1,status:"ABORTED",archiveId:"archive",failure:{code:"LEGACY_WORD_SCOPE_REJECTION",stage:"SUBMISSION",actorName:"Same #1",phase:"DESCRIPTION",round:1,modelKey:"fixture",inferred:true,action:{type:"SPEAK",content:"失败原文"}},tasks:[],calls:[{requestId:"original:0",state:"SETTLED",billedPoints:8,heldPoints:0}]});
+  await render("/admin/lab/source");
+  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,25));});
+  expect(container.textContent).toContain("旧版禁词范围错误");
+  expect(container.textContent).toContain("8 积分");
+  expect(container.textContent).toContain("失败原文");
+  expect(container.textContent).toContain("从下一局继续");
+  expect(container.querySelector('a[href="/admin/replays/archive"]')).not.toBeNull();
+  expect(api.diagnostics).toHaveBeenCalledWith("source","match",expect.any(AbortSignal));
+});
 it("allows every slot to use the same profile and submits no concurrency setting",async()=>{
   await render("/admin/lab");await act(async()=>button("新建实验").click());
   expect(container.querySelectorAll('select[aria-label$="的 AI 档案"]')).toHaveLength(6);
@@ -57,6 +82,7 @@ it("keeps live observation and archive links inside the management entry",async(
   expect(container.querySelector('a[href="/admin/lab/source/matches/match"]')).not.toBeNull();
   expect(container.querySelector('a[href="/admin/replays/archive"]')).not.toBeNull();
   expect(container.querySelector('a[href^="/spectate/"]')).toBeNull();expect(container.querySelector('a[href^="/replay/"]')).toBeNull();
+  await act(async()=>button("评测").click());
   const target=Array.from(container.querySelectorAll("label")).find(label=>label.textContent?.startsWith("评测对象"))!.querySelector("select")!;
   expect(Array.from(target.options).map(option=>option.value)).toEqual(["copy-0","copy-1","copy-2","copy-3"]);
 });

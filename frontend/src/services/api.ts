@@ -1,5 +1,5 @@
 import type { AiDebugInstance, AiDebugSummary, AiDebugTurn, AiDebugDetail } from "@/types/aiDebug";
-import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment, LabObservation } from "@/types/lab";
+import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment, LabObservation, LabDiagnostics } from "@/types/lab";
 import axios from "axios";
 import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
@@ -604,6 +604,7 @@ export const labApi = {
   withdraw: async (id: string): Promise<void> => { await api.delete("/lab/experiments/"+id+"/enrollment"); },
 };
 export const adminLabApi = {
+  diagnostics: async (id:string,matchId:string,signal?:AbortSignal):Promise<LabDiagnostics> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/diagnostics`,{signal})).data,
   observe: async (id: string, matchId: string, signal?: AbortSignal): Promise<LabObservation> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/spectate`,{signal})).data,
   list: async (page = 0): Promise<LabPage<LabExperiment>> => (await adminApiClient.get("/admin/lab/experiments", { params: { page, size: 20 } })).data,
   detail: async (id: string): Promise<LabExperiment> => (await adminApiClient.get("/admin/lab/experiments/"+id)).data,

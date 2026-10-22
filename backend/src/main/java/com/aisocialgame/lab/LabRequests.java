@@ -13,7 +13,9 @@ public final class LabRequests {
                             String thinkingEffort) {
         public AiModelSelection snapshot() { return new AiModelSelection(null, modelKey, thinkingMode, thinkingEffort, 0); }
     }
-    public record Participant(@NotBlank String agentId, String initialExperienceId) {}
+    public record Participant(@NotBlank String agentId, String initialExperienceId, @Valid Selection selection) {
+        public Participant(String agentId,String initialExperienceId) { this(agentId,initialExperienceId,null); }
+    }
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties("concurrency")
     public record Experiment(@NotBlank @Size(max=128) String name,
                              @Size(min=4,max=10) List<@NotBlank String> agentIds,

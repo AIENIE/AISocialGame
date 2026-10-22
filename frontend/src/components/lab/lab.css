@@ -26,7 +26,7 @@
 .lab-small { font-size:12px; color:#6a7c73; line-height:1.65; }
 .lab-number { font-variant-numeric:tabular-nums; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
 .lab-columns { display:grid; grid-template-columns:minmax(0,1fr) 285px; gap:28px; align-items:start; }
-.lab-sidebar { padding:20px; border:1px solid var(--lab-line); border-radius:10px; background:#f8faf6; }
+.lab-sidebar { position:sticky; top:20px; padding:20px; border:1px solid var(--lab-line); border-radius:10px; background:#f8faf6; }
 .lab-sidebar h2 { font-weight:650; font-size:14px; margin-bottom:18px; }
 .lab-ledger { display:flex; justify-content:space-between; font-size:13px; padding:9px 0; gap:12px; }
 .lab-ledger strong { font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums; }
@@ -58,5 +58,15 @@
 .lab-pager { display:flex; justify-content:end; align-items:center; gap:14px; margin-top:16px; font-size:12px; }
 .lab-empty { padding:48px 20px; color:#7b8b7e; text-align:center; font-size:13px; border-bottom:1px solid var(--lab-line); }
 .lab-enroll { padding:18px; border:1px solid #a3d5b2; border-radius:9px; background:#eef8ef; margin:20px 0; }
-@media(max-width:900px) { .lab-columns { grid-template-columns:1fr; } .lab-sidebar { order:-1; } .lab-list-row { grid-template-columns:minmax(140px,2fr) 1fr auto; } .lab-list-row .lab-list-cost { display:none; } }
+.lab-bulk-model { display:flex; align-items:end; flex-wrap:wrap; gap:14px; padding:16px 0; margin-bottom:12px; border-block:1px solid var(--lab-line); }
+.lab-bulk-model label { flex:1; min-width:180px; }
+.lab-diagnostics { margin-top:22px; padding:22px; border:1px solid #e5ba81; border-left:4px solid #b96b18; border-radius:8px; background:#fff9ee; color:#633b16; overflow-wrap:anywhere; }
+.lab-diagnostics h2 { font-size:18px; font-weight:650; }
+.lab-diagnostics p { line-height:1.8; }
+.lab-diagnostic-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:18px; }
+.lab-diagnostic-facts dt { font-size:11px; color:#8f704e; }
+.lab-diagnostic-facts dd { font-size:13px; margin-top:4px; }
+.lab-failed-action { margin-top:16px; padding:14px; background:#fffdf8; border:1px solid #ecdec8; border-radius:6px; font-size:13px; }
+.lab-list-issue { font-size:12px; color:#9b5a15; margin-top:6px; }
+@media(max-width:900px) { .lab-columns { grid-template-columns:1fr; } .lab-sidebar { position:static; order:-1; } .lab-list-row { grid-template-columns:minmax(140px,2fr) 1fr auto; } .lab-list-row .lab-list-cost { display:none; } }
 @media(max-width:540px) { .lab-hero { padding:22px 18px; gap:20px; } .lab-big-number { font-size:2.7rem; } .lab-form-grid,.lab-compare { grid-template-columns:1fr; } .lab-list-row { gap:10px; } .lab-form { padding:16px; } .lab-heading h1 { font-size:2rem; } }

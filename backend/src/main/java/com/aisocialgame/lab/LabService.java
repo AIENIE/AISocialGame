@@ -69,7 +69,8 @@ public class LabService {
         for (var participant:participants) {
             String agentId=participant.agentId();
             var agent=agents.findById(agentId).orElseThrow(LabService::missing);
-            models.requireUsable(AiModelSelection.fromMap(agent.modelSelection));
+            var selected=participant.selection()==null?AiModelSelection.fromMap(agent.modelSelection):participant.selection().snapshot();
+            models.requireUsable(selected);
             var persona=PersonaPresets.complete(personas.findById(agent.personaId));
             Map<String,Object> profile=map(json.convertValue(persona,Map.class));
             var player=new LinkedHashMap<String,Object>();
@@ -77,7 +78,7 @@ public class LabService {
             int copyNumber=copyNumbers.merge(agentId,1,Integer::sum);
             String name=counts.get(agentId)>1?agent.name.substring(0,Math.min(59,agent.name.length()))+" #"+copyNumber:agent.name;
             player.put("agentId",agent.id); player.put("participantId",participantId); player.put("name",name); player.put("personaId",agent.personaId);
-            player.put("persona",profile); player.put("modelSelection",new LinkedHashMap<>(agent.modelSelection));
+            player.put("persona",profile); player.put("modelSelection",new LinkedHashMap<>(selected.toMap()));
             roster.add(player);
             Map<String,Object> initial=new LinkedHashMap<>(Map.of("experienceId","initial","experience","","sequenceNumber",0));
             String inherited=participant.initialExperienceId();
@@ -110,6 +111,7 @@ public class LabService {
             configuration.remove("concurrency"); configuration.put("roster",roster(configuration));
             result.put("configuration",configuration);
             result.put("reviewFailed",!matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("REVIEW_FAILED")).isEmpty());
+            matches.findFirstByExperimentIdAndReasonIsNotNullOrderBySequenceNumberDesc(id).ifPresent(match -> result.put("latestFailureMatchId",match.id));
         }
         return result;
     }
@@ -265,6 +267,9 @@ public class LabService {
         if(experiment.reason!=null) result.put("reason",experiment.reason);
         for(String key:List.of("playerCount","targetGames","wordPack","hasBlank")) result.put(key,experiment.configuration.get(key));
         result.put("cost",budgets.totals(experiment.id));
+        result.put("completedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("FINISHED","REVIEWING","REVIEW_FAILED","REVIEWED")));
+        result.put("reviewedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("REVIEWED")));
+        result.put("abortedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("ABORTED")));
         return result;
     }
     public Map<String,Object> matchView(LabMatch match) {

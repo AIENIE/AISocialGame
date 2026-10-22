@@ -1,4 +1,22 @@
 const labels: Record<string, readonly [string, string]> = {
+  "正常结束":["正常結束","Finished normally"],
+  "复盘成功":["復盤成功","Reviews completed"],
+  "中断":["中斷","Aborted"],
+  "旧版禁词范围错误，动作被拒绝":["舊版禁詞範圍錯誤，動作被拒絕","Action rejected by the former overly broad word rule"],
+  "命中本人禁词，等待修正":["命中本人禁詞，等待修正","Own forbidden word detected; correction required"],
+  "三次禁词违规，角色出局":["三次禁詞違規，角色出局","Eliminated after three forbidden-word violations"],
+  "动作提交失败":["動作提交失敗","Action submission failed"],
+  "动作提交发生异常":["動作提交發生異常","Unexpected action submission failure"],
+  "执行中断，具体原因需查看诊断":["執行中斷，具體原因需查看診斷","Execution aborted; inspect diagnostics for the cause"],
+  "执行发生异常":["執行發生異常","Execution failed"],
+  "实验剩余额度不足以预留调用":["實驗剩餘額度不足以預留呼叫","Insufficient experiment budget to reserve the next call"],
+  "调用结果待对账":["呼叫結果待對帳","Call outcome requires reconciliation"],
+  "系统 AI 账户积分不足":["系統 AI 帳戶積分不足","System AI account has insufficient credits"],
+  "所选模型已不可用":["所選模型已不可用","Selected model is unavailable"],
+  "模型配置需要调整":["模型設定需要調整","Model configuration requires attention"],
+  "模型调用失败":["模型呼叫失敗","Model call failed"],
+  "模型调用超时":["模型呼叫逾時","Model call timed out"],
+  "教练复盘失败":["教練復盤失敗","Coach review failed"],
   "AI 实验室": [
     "AI 實驗室",
     "AI Laboratory"

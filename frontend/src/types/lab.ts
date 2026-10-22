@@ -25,6 +25,7 @@ export interface LabEvaluation {
   baseline: LabEvaluationStats; candidate: LabEvaluationStats; winRateDifference: number;
 }
 export interface LabExperiment {
+  latestFailureMatchId?: string; completedGames?: number; reviewedGames?: number; abortedGames?: number;
   id: string; name: string; status: string; reason?: string; budgetPoints: number; createdAt: string;
   attemptedGames: number; reviewedThrough: number; playerCount: number; targetGames: number;
   wordPack: string; hasBlank: boolean; cost: LabCost; activeMatches?: LabMatch[]; evaluations?: LabEvaluation[];
@@ -36,9 +37,15 @@ export interface LabExperience {
 }
 export interface LabPage<T> { items: T[]; total: number; page: number }
 export interface CreateLabAgent { name: string; personaId: string; selection: LabSelection }
-export interface LabParticipantInput { agentId: string; initialExperienceId?: string }
+export interface LabParticipantInput { agentId: string; initialExperienceId?: string; selection?: LabSelection }
 export interface CreateLabExperiment {
   name: string; participants: LabParticipantInput[]; playerCount: number; targetGames: number; wordPack: string;
   hasBlank: boolean; budgetPoints: number; coach: LabSelection;
 }
 export interface LabObservation { match: LabMatch; room: { id: string; name: string; roomCode: string }; state?: import("./index").GameState }
+export interface LabDiagnostics {
+  matchId: string; sequenceNumber: number; status: string; archiveId?: string;
+  failure?: { code:string; stage:string; actorName?:string; round?:number; phase?:string; modelKey?:string; jobId?:string; inferred?:boolean; action?:{type:string;content:string} };
+  tasks: { jobId:string; status:string; reason:string; actorName:string; modelKey:string; kind:string; attempts:{attempt:number;flags?:string[];failureStage?:string;settlementState?:string;requestId?:string}[] }[];
+  calls: { requestId:string;state:string;billedPoints:number;heldPoints:number;purpose:string }[];
+}

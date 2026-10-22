@@ -211,6 +211,11 @@ public class AiTurnCoordinator {
                 measurements.put("submissionFailedMs", Math.max(0, (System.nanoTime() - submissionStarted) / 1_000_000));
             }
             if (ex instanceof AiTurnGenerator.GenerationFailure failure) measurements = failure.diagnostics();
+            else if (submitting) {
+                measurements = new java.util.LinkedHashMap<>(measurements);
+                measurements.put("failureStage","SUBMISSION");
+                measurements.put("failureCode",ex instanceof com.aisocialgame.exception.ApiException api && api.getCode()!=null ? api.getCode() : "UNEXPECTED_SUBMISSION_FAILURE");
+            }
             String reason = submitting ? "SUBMISSION_EXCEPTION" : ex instanceof AiTurnGenerator.GenerationFailure failure ? failure.getMessage() : "EXECUTION_EXCEPTION";
             try { runtime.fail(job.getId(), reason, measurements); }
             catch (Exception recoveryError) { log.warn("AI recovery deferred jobId={} errorType={}", job.getId(), recoveryError.getClass().getSimpleName()); }

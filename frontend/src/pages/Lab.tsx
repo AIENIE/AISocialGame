@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FlaskConical, ArrowLeft, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { labApi, getApiErrorMessage } from "@/services/api";
+import { failureText } from "@/components/lab/labFailures";
 import { Button } from "@/components/ui/button";
 import { DataState } from "@/components/DataState";
 import { LabExperimentRows, LabCostPanel, LabProgress, LabLiveMatches, LabMatchHistory, LabEvaluationResults, LabPager } from "@/components/lab/LabPanels";
@@ -45,7 +46,7 @@ function LabDetail({id}:{id:string}) {
     <Link to="/lab" className="lab-small mb-5 inline-flex items-center gap-2"><ArrowLeft size={14} />{tr("返回实验室")}</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">NEXUS / RESEARCH</div><h1>{experiment.name}</h1><p>{tr("谁是卧底")} · {tr("AI 实验室")}</p></div></header>
     <LabProgress experiment={experiment} tr={tr} />
-    {experiment.reason && <div className="lab-error" role="status">{tr(experiment.status)} · {experiment.reason}</div>}
+    {experiment.reason && <div className="lab-error" role="status">{tr(experiment.status)} · {tr(failureText(experiment.reason))}</div>}
     <div className="lab-columns mt-7"><div>
       <div className="lab-enroll"><h2 className="flex items-center gap-2 text-sm font-semibold"><UserPlus size={16} />{tr("参战下一局")}</h2>
         <p className="lab-small mt-2 mb-4">{tr("先报名，在下一局开场前确认席位；空位由 AI 自动补齐。")}</p>

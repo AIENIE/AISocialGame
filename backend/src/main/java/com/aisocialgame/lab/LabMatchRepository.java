@@ -13,6 +13,8 @@ public interface LabMatchRepository extends JpaRepository<LabMatch, String> {
     Optional<LabMatch> findByExperimentIdAndSequenceNumber(String experimentId, int sequenceNumber);
     Optional<LabMatch> findByRoomId(String roomId);
     long countByStatusIn(Collection<String> statuses);
+    long countByExperimentIdAndEvaluationIdIsNullAndStatusIn(String experimentId, Collection<String> statuses);
+    Optional<LabMatch> findFirstByExperimentIdAndReasonIsNotNullOrderBySequenceNumberDesc(String experimentId);
     List<LabMatch> findTop3ByStatusInOrderByCreatedAtAsc(Collection<String> statuses);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from LabMatch m where m.id=:id")

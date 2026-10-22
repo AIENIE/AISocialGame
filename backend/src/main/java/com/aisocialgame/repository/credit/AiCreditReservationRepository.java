@@ -19,6 +19,7 @@ public interface AiCreditReservationRepository extends JpaRepository<AiCreditRes
         """)
     LabTotals labTotals(@Param("experimentId") String experimentId);
     Optional<AiCreditReservation> findByIdentityHash(String identityHash);
+    List<AiCreditReservation> findByLabMatchIdOrderByUpdatedAtAsc(String matchId);
     List<AiCreditReservation> findByUserIdAndProjectKeyAndState(long userId, String projectKey, String state);
     boolean existsByUserIdAndProjectKey(long userId, String projectKey);
     @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select r from AiCreditReservation r where r.id=:id")
