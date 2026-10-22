@@ -17,6 +17,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 
 @Service
 public class LabCoachService {
+    private final LabBudgetService budgets;
     private static final String SYSTEM = """
         你是“谁是卧底”实验室的局后复盘教练。对局已经结束。
         为每个 AI 分别整合上一版经验和本局有证据支持的策略，关注描述信息量、投票、白板、自爆时机和判断修正。
@@ -36,9 +37,9 @@ public class LabCoachService {
     private record Claim(String experimentId,String matchId,String requestId,Map<String,Object> request) {}
 
     public LabCoachService(LabExperimentRepository experiments,LabMatchRepository matches,LabExperienceRepository experiences,
-            GameStateRepository states,AiGrpcClient client,AppProperties properties,ObjectMapper json,PlatformTransactionManager manager) {
+            GameStateRepository states,AiGrpcClient client,AppProperties properties,ObjectMapper json,PlatformTransactionManager manager,LabBudgetService budgets) {
         this.experiments=experiments; this.matches=matches; this.experiences=experiences; this.states=states;
-        this.client=client; this.properties=properties; this.json=json; transaction=new TransactionTemplate(manager);
+        this.client=client; this.properties=properties; this.json=json; transaction=new TransactionTemplate(manager); this.budgets=budgets;
     }
     public boolean process(String experimentId) {
         Claim claim=claim(experimentId);
@@ -62,8 +63,12 @@ public class LabCoachService {
                 var experiment=experiments.lock(claim.experimentId()).orElseThrow();
                 var match=matches.lock(claim.matchId()).orElseThrow();
                 if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
-                match.status="REVIEW_FAILED"; match.reason=reason; match.reviewLeaseUntil=null; matches.save(match);
-                LabRuntime.pause(experiment,reason); experiments.save(experiment);
+                boolean budgetPause=Set.of(LabBudgetService.EXHAUSTED,"LAB_EXPERIMENT_PAUSED").contains(reason);
+                match.status=budgetPause?"FINISHED":"REVIEW_FAILED"; match.reason=budgetPause?null:reason;
+                match.reviewLeaseUntil=null; matches.save(match);
+                if(budgetPause) budgets.pauseIfReached(experiment);
+                else LabRuntime.pause(experiment,reason);
+                experiments.save(experiment);
             });
         }
         return true;
@@ -138,12 +143,13 @@ public class LabCoachService {
             require("PAUSED".equals(experiment.status),"请先暂停实验");
             var match=matches.findByExperimentIdAndSequenceNumber(id,experiment.reviewCursor).orElseThrow(LabService::missing);
             require("REVIEW_FAILED".equals(match.status),"没有等待处理的复盘");
+            budgets.requireRemaining(experiment);
             if(!Set.of("BUDGET_RECONCILIATION_REQUIRED","AI_BUDGET_BUSY").contains(match.reason)) {
                 match.snapshot.remove("reviewRequest"); match.snapshot.remove("reviewRequestId");
                 match.snapshot.put("reviewAttempt",number(match.snapshot.get("reviewAttempt"),0)+1);
             }
             match.status="FINISHED"; match.reason=null; match.reviewLeaseUntil=null; matches.save(match);
-            experiment.status="RUNNING"; experiment.reason=null; experiments.save(experiment);
+            experiment.status="RUNNING"; experiment.reason=null; experiment.configuration.remove("budgetPaused"); experiments.save(experiment);
         });
     }
     private static ApiException invalid() { return new ApiException(HttpStatus.BAD_GATEWAY,"教练经验格式或证据无效","LAB_REVIEW_INVALID",Map.of()); }

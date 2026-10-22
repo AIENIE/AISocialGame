@@ -7,7 +7,7 @@ import LabAdmin from "./LabAdmin";
 import { AdminLabObservation, AdminReplayPage } from "./LabObservation";
 import type { LabExperiment } from "@/types/lab";
 
-const api=vi.hoisted(()=>({list:vi.fn(),agents:vi.fn(),detail:vi.fn(),matches:vi.fn(),experiences:vi.fn(),create:vi.fn(),observe:vi.fn(),replay:vi.fn(),diagnostics:vi.fn()}));
+const api=vi.hoisted(()=>({list:vi.fn(),agents:vi.fn(),detail:vi.fn(),matches:vi.fn(),experiences:vi.fn(),create:vi.fn(),observe:vi.fn(),replay:vi.fn(),diagnostics:vi.fn(),updateBudget:vi.fn(),control:vi.fn()}));
 vi.mock("@/services/api",()=>({adminLabApi:api,adminApi:{modelConfiguration:async()=>({models:[{modelKey:"fixture",displayName:"Fixture",thinking:{declared:false,options:[]}},{modelKey:"alternate",displayName:"Alternate",thinking:{declared:false,options:[]}}],functions:[]}),replayEvents:(id:string)=>api.replay(id)},personaApi:{list:async()=>[]},getApiErrorMessage:(_error:unknown,fallback:string)=>fallback}));
 vi.mock("sonner",()=>({toast:{success:vi.fn(),error:vi.fn()}}));
 let root:Root,container:HTMLDivElement,client:QueryClient;
@@ -37,6 +37,41 @@ async function render(path:string) {
 }
 function button(name:string) { return Array.from(container.querySelectorAll("button")).find(element=>element.textContent===name)!; }
 function choose(selector:string,value:string) { const select=container.querySelector<HTMLSelectElement>(selector)!;select.value=value;select.dispatchEvent(new Event("change",{bubbles:true})); }
+function editBudget(value:string) {
+  const input=container.querySelector<HTMLInputElement>('[aria-label="修改费用预算"]')!;
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")!.set!.call(input,value);
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+}
+async function waitForUi(predicate:()=>boolean) {
+  for(let tick=0;tick<100&&!predicate();tick++) await act(async()=>{await new Promise(resolve=>setTimeout(resolve,5));});
+  expect(predicate()).toBe(true);
+}
+it("edits a running budget in cents, retains a failed draft and never starts the experiment implicitly",async()=>{
+  let current={...experiment(),status:"RUNNING",cost:{...experiment().cost,spentPoints:12,heldPoints:868,pendingPoints:868}};
+  api.detail.mockImplementation(async()=>current);
+  api.updateBudget.mockRejectedValueOnce(new Error("save failed")).mockImplementationOnce(async(_id:string,points:number)=>{current={...current,budgetPoints:points};return current;});
+  await render("/admin/lab/source");
+  expect(container.querySelector("aside")!.textContent).toContain("¥9.88");
+  await act(async()=>button("修改预算").click());
+  await act(async()=>editBudget("0.11"));
+  await act(async()=>container.querySelector('section[aria-label="预算调整"] form')!.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true})));
+  expect(api.updateBudget).not.toHaveBeenCalled();
+  await act(async()=>editBudget("20.55"));
+  await act(async()=>container.querySelector('section[aria-label="预算调整"] form')!.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true})));
+  await waitForUi(()=>container.textContent?.includes("预算保存失败")===true);
+  expect(container.querySelector<HTMLInputElement>('[aria-label="修改费用预算"]')!.value).toBe("20.55");
+  expect(container.textContent).toContain("预算保存失败");
+  await act(async()=>container.querySelector('section[aria-label="预算调整"] form')!.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true})));
+  await waitForUi(()=>container.querySelector('[aria-label="修改费用预算"]')===null);
+  expect(api.updateBudget).toHaveBeenLastCalledWith("source",2055);expect(api.control).not.toHaveBeenCalled();
+  expect(container.querySelector('[aria-label="修改费用预算"]')).toBeNull();
+});
+it("offers continuing the preserved game and ending it while budget paused",async()=>{
+  api.detail.mockResolvedValue({...experiment(),budgetPaused:true,reason:"LAB_BUDGET_EXHAUSTED"});
+  await render("/admin/lab/source");
+  expect(button("继续当前局")).toBeDefined();expect(button("结束实验")).toBeDefined();
+  expect(button("从下一局继续")).toBeUndefined();
+});
 it("applies player models in bulk, permits individual overrides, and leaves the coach unchanged",async()=>{
   await render("/admin/lab");await act(async()=>button("新建实验").click());
   await act(async()=>choose('select[aria-label="统一玩家模型"]',"alternate"));

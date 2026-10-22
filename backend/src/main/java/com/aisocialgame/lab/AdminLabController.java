@@ -18,6 +18,7 @@ public class AdminLabController {
     @GetMapping("/experiments") public Map<String,Object> list(@CurrentAdmin String operator,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return service.list(page,size); }
     @PostMapping("/experiments") public Map<String,Object> create(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Experiment request) { return service.create(request,operator); }
     @GetMapping("/experiments/{id}") public Map<String,Object> detail(@CurrentAdmin String operator,@PathVariable String id) { return service.detail(id,null,true); }
+    @PutMapping("/experiments/{id}/budget") public Map<String,Object> budget(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Budget request) { return service.updateBudget(id,request.budgetPoints()); }
     @GetMapping("/experiments/{id}/matches") public Map<String,Object> matches(@CurrentAdmin String operator,@PathVariable String id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return service.matchPage(id,page,size,true); }
     @GetMapping("/experiments/{id}/matches/{matchId}/spectate") public Map<String,Object> observe(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId) { return service.observe(id,matchId); }
     @GetMapping("/experiments/{id}/matches/{matchId}/diagnostics") public Map<String,Object> diagnostics(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId) { return diagnostics.inspect(id,matchId); }

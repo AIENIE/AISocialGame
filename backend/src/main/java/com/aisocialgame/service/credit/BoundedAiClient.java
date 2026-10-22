@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class BoundedAiClient {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.aisocialgame.lab.LabBudgetService labBudgets;
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BoundedAiClient.class);
     private final AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
@@ -67,6 +68,7 @@ public class BoundedAiClient {
             if ("RELEASED".equals(previous.state)) throw notSent();
             throw pending(previous);
         }
+        if (labBudgets != null) labBudgets.checkCall();
         long remainingSeconds=Math.min(89,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;

@@ -25,6 +25,7 @@ export interface LabEvaluation {
   baseline: LabEvaluationStats; candidate: LabEvaluationStats; winRateDifference: number;
 }
 export interface LabExperiment {
+  budgetPaused?: boolean;
   latestFailureMatchId?: string; completedGames?: number; reviewedGames?: number; abortedGames?: number;
   id: string; name: string; status: string; reason?: string; budgetPoints: number; createdAt: string;
   attemptedGames: number; reviewedThrough: number; playerCount: number; targetGames: number;

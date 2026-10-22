@@ -47,6 +47,20 @@ class BoundedAiClientTest {
     private static void pause(long millis) {
         try { Thread.sleep(millis); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
     }
+    @Test void labBudgetRejectsBeforePrepareButDoesNotBlockAnOriginalCommittedReceipt() {
+        var escrow=mock(AiCreditEscrowService.class); var reservations=mock(AiCreditReservationRepository.class);
+        var lab=mock(com.aisocialgame.lab.LabBudgetService.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,100);
+        org.springframework.test.util.ReflectionTestUtils.setField(client,"labBudgets",lab);
+        doThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.CONFLICT,"budget","LAB_BUDGET_EXHAUSTED",Map.of())).when(lab).checkCall();
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame").build();
+        assertEquals("LAB_BUDGET_EXHAUSTED",assertThrows(com.aisocialgame.exception.ApiException.class,()->client.chat(request,45)).getCode());
+        assertEquals(0,prepares.get()); assertEquals(0,sends.get()); verify(escrow,never()).reserve(any(),any());
+        var row=new AiCreditReservation(); row.state="SETTLED"; row.requestHash=AiCreditEscrowService.hash(request.toByteArray());
+        row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));
+        assertEquals(response,client.chat(request,45)); verify(lab,times(1)).checkCall(); assertEquals(0,prepares.get());
+    }
     @Test void lostResponseUsesCommittedStatusWithoutRepeatingInference() {
         var escrow=mock(AiCreditEscrowService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
         var client=new BoundedAiClient(stub,escrow,reservations,count,true,8192);

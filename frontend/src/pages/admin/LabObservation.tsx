@@ -13,6 +13,7 @@ export function AdminLabObservation() {
     <Link className="lab-small underline" to={`/admin/lab/${id}`}>返回实验详情</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">LAB / LIVE OBSERVATION</div><h1>实验只读观战</h1><p>保持管理身份，仅显示公开观战视图，不占用玩家席位。</p></div></header>
     {!data?<AdminDataState loading={query.isPending} error={query.error} retry={()=>void query.refetch()}/>:<>
+      {data.state?.extra?.labBudgetPaused===true&&<p className="lab-note" role="status">已达到实验预算，局面和计时已保留。调整预算后可继续当前局。</p>}
       <div className="lab-actions"><strong>{data.room.name}</strong><LabState state={data.match.status}/><span className="lab-small">{data.state?.phase??"已归档"} · 第 {data.state?.round??0} 轮</span>{data.match.archiveId&&<Link className="text-emerald-700 underline" to={`/admin/replays/${data.match.archiveId}`}>管理端完整回放</Link>}</div>
       <div className="lab-form-grid">{data.state?.players.map(player=><article className="lab-table" key={player.playerId}><div className="lab-eyebrow">SEAT {player.seatNumber+1}</div><h2 className="mt-2 font-semibold">{player.displayName}</h2><p className="lab-small">{player.alive?"在场":"已出局"}{player.role?` · ${player.role}`:""}</p></article>)}</div>
       <section className="lab-section"><h2>公开对局记录</h2><ol className="space-y-3">{data.state?.logs.map((entry,index)=><li key={`${entry.time}:${index}`} className="lab-table break-words"><span className="lab-small mr-3">{entry.phase??entry.type}</span>{entry.message}</li>)}</ol></section>

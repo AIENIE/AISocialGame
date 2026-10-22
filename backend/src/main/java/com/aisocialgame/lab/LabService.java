@@ -141,18 +141,52 @@ public class LabService {
         return Map.of("items",result.getContent(),"total",result.getTotalElements(),"page",result.getNumber());
     }
     @Transactional
+    public Map<String,Object> updateBudget(String id, long points) {
+        var experiment=experiments.lock(id).orElseThrow(LabService::missing);
+        long spent=budgets.spentPoints(id);
+        if(points<1 || points<spent) throw new ApiException(HttpStatus.BAD_REQUEST,"预算不能低于当前已扣积分", "LAB_BUDGET_BELOW_SPENT",
+                Map.of("spentPoints",spent,"minimumPoints",Math.max(1,spent)));
+        experiment.budgetPoints=points;
+        if(budgets.pauseIfReached(experiment)) pauseBudgetMatches(experiment.id);
+        experiments.saveAndFlush(experiment);
+        return detail(id,null,true);
+    }
+    private void pauseBudgetMatches(String id) {
+        for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
+            if("PLAYING".equals(match.status)) game.pauseLabBudget(match.roomId);
+            else match.snapshot.putIfAbsent("budgetStartsInMs",Math.max(0,match.startsAtEpochMs-System.currentTimeMillis()));
+        }
+    }
+    @Transactional
     public Map<String,Object> control(String id, String action) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
         switch(action) {
             case "start", "resume" -> {
                 require(Set.of("DRAFT","PAUSED").contains(experiment.status), "实验当前不能启动");
                 require(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("REVIEW_FAILED")).isEmpty(),"请先重试失败的复盘");
+                budgets.requireRemaining(experiment);
                 for(var profile:maps(experiment.configuration.get("roster"))) models.requireUsable(AiModelSelection.fromMap(map(profile.get("modelSelection"))));
                 models.requireUsable(AiModelSelection.fromMap(map(experiment.configuration.get("coach"))));
                 experiment.status="RUNNING"; experiment.reason=null;
+                experiment.configuration.remove("budgetPaused");
+                for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
+                    if("PLAYING".equals(match.status)) game.resumeLabBudget(match.roomId);
+                    else if(match.snapshot.remove("budgetStartsInMs") instanceof Number remaining)
+                        match.startsAtEpochMs=System.currentTimeMillis()+remaining.longValue();
+                }
             }
             case "pause" -> { require("RUNNING".equals(experiment.status),"实验尚未运行"); experiment.status="PAUSING"; }
-            case "stop" -> { require(!Set.of("COMPLETED","STOPPED").contains(experiment.status),"实验已经结束"); experiment.status="STOPPING"; }
+            case "stop" -> {
+                require(!Set.of("COMPLETED","STOPPED").contains(experiment.status),"实验已经结束");
+                if(budgets.isPaused(id)) for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING"))) {
+                    if("PLAYING".equals(match.status)) match.archiveId=game.stopLabBudget(match.roomId);
+                    match.status="ABORTED"; match.reason="LAB_STOPPED_BY_ADMIN"; match.finishedAt=LocalDateTime.now();
+                    for(var entry:enrollments.findByMatchIdOrderByJoinedAtAscIdAsc(match.id))
+                        if(Set.of("PLAYING","OFFERED","CONFIRMED").contains(entry.status)) { entry.status="CANCELLED"; enrollments.save(entry); }
+                    matches.save(match);
+                }
+                experiment.configuration.remove("budgetPaused"); experiment.status="STOPPING";
+            }
             default -> throw new ApiException(HttpStatus.BAD_REQUEST,"未知实验操作");
         }
         experiments.saveAndFlush(experiment); return detail(id,null,true);
@@ -203,6 +237,7 @@ public class LabService {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
         require(Set.of("PAUSED","COMPLETED").contains(experiment.status),"请先完成或暂停训练");
         require(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING","PLAYING","FINISHED","REVIEWING","REVIEW_FAILED")).isEmpty(),"请先处理未完成对局或复盘");
+        budgets.requireRemaining(experiment);
         require(evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().noneMatch(existing -> "RUNNING".equals(existing.status)),"已有评测正在运行");
         var candidate=experiences.findById(request.candidateExperienceId()).orElseThrow(LabService::missing);
         String target=request.participantId();
@@ -219,7 +254,8 @@ public class LabService {
         evaluation.configuration.putAll(Map.of("roster",maps(experiment.configuration.get("roster")),
                 "initialExperiences",map(experiment.configuration.get("initialExperiences")),
                 "candidate",experienceHead(candidate),"returnStatus",experiment.status));
-        evaluations.saveAndFlush(evaluation); experiment.status="RUNNING"; experiment.reason=null; experiments.save(experiment);
+        evaluations.saveAndFlush(evaluation); experiment.status="RUNNING"; experiment.reason=null;
+        experiment.configuration.remove("budgetPaused"); experiments.save(experiment);
         return evaluationView(evaluation);
     }
     public Map<String,Object> evaluationView(LabEvaluation evaluation) {
@@ -267,6 +303,7 @@ public class LabService {
         if(experiment.reason!=null) result.put("reason",experiment.reason);
         for(String key:List.of("playerCount","targetGames","wordPack","hasBlank")) result.put(key,experiment.configuration.get(key));
         result.put("cost",budgets.totals(experiment.id));
+        result.put("budgetPaused",LabBudgetService.paused(experiment));
         result.put("completedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("FINISHED","REVIEWING","REVIEW_FAILED","REVIEWED")));
         result.put("reviewedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("REVIEWED")));
         result.put("abortedGames",matches.countByExperimentIdAndEvaluationIdIsNullAndStatusIn(experiment.id,List.of("ABORTED")));

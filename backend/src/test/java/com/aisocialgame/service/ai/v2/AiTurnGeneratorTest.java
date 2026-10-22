@@ -67,13 +67,16 @@ class AiTurnGeneratorTest {
         assertEquals("budget-x",attempt.get("budgetId")); assertEquals(8192L,attempt.get("reasoningTokens"));
         verify(client,times(1)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
     }
-    @Test void budgetWaitingResumesSameAttemptWithoutResettingRetries() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"AI_BUDGET_BUSY","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED"})
+    void budgetWaitingResumesSameAttemptWithoutResettingRetries(String reason) throws Exception {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
             .thenReturn(new AiChatResult("invalid", "mock-only", 10, 5))
-            .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST,"waiting","AI_BUDGET_BUSY",Map.of()))
+            .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST,"waiting",reason,Map.of()))
             .thenReturn(new AiChatResult(validSpeech(),"mock-only",20,8));
         var deferred = assertThrows(AiTurnGenerator.GenerationDeferred.class, () -> generator.generate(rules,speechObservation(),"queued"));
         assertEquals(1,deferred.checkpoint().get("calls"));
+        assertEquals(reason,deferred.getMessage());
         var result = generator.generate(rules,speechObservation(),"queued",30_000,()->true,deferred.checkpoint());
         assertEquals(2,result.diagnostics().get("calls"));
         assertEquals(30,result.diagnostics().get("promptTokens"));

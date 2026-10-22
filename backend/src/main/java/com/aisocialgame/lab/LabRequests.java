@@ -26,4 +26,5 @@ public final class LabRequests {
                              @Size(min=4,max=10) List<@NotNull @Valid Participant> participants) {}
     public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
                              @NotBlank String candidateExperienceId) {}
+    public record Budget(@Min(1) long budgetPoints) {}
 }

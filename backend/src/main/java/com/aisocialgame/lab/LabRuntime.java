@@ -14,6 +14,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 
 @Service
 public class LabRuntime {
+    private final LabBudgetService budgets;
     public static final List<String> ACTIVE = List.of("WAITING","PLAYING");
     private final LabExperimentRepository experiments;
     private final LabMatchRepository matches;
@@ -28,15 +29,22 @@ public class LabRuntime {
 
     public LabRuntime(LabExperimentRepository experiments,LabMatchRepository matches,LabEnrollmentRepository enrollments,
             LabEvaluationRepository evaluations,RoomRepository rooms,GameStateRepository states,AiTurnJobRepository jobs,
-            RoomCodeGenerator codes,V2GameService game,AiModelConfigService models) {
+            RoomCodeGenerator codes,V2GameService game,AiModelConfigService models,LabBudgetService budgets) {
         this.experiments=experiments; this.matches=matches; this.enrollments=enrollments; this.evaluations=evaluations;
-        this.rooms=rooms; this.states=states; this.jobs=jobs; this.codes=codes; this.game=game; this.models=models;
+        this.rooms=rooms; this.states=states; this.jobs=jobs; this.codes=codes; this.game=game; this.models=models; this.budgets=budgets;
     }
     @Transactional
     public void advance(String id) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
-        for(var match:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE)) {
+        var current=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
+        if(!"STOPPING".equals(experiment.status) || !current.isEmpty()) budgets.pauseIfReached(experiment);
+        if(LabBudgetService.paused(experiment)) for(var match:current) {
+            if("PLAYING".equals(match.status)) game.pauseLabBudget(match.roomId);
+            else match.snapshot.putIfAbsent("budgetStartsInMs",Math.max(0,match.startsAtEpochMs-System.currentTimeMillis()));
+        }
+        for(var match:current) {
             if("WAITING".equals(match.status)) {
+                if(LabBudgetService.paused(experiment)) continue;
                 if(!"RUNNING".equals(experiment.status)) { abortWaiting(match,"LAB_PAUSED_BEFORE_START"); continue; }
                 if(match.startsAtEpochMs<=System.currentTimeMillis()) {
                     try { start(match); }
@@ -47,13 +55,22 @@ public class LabRuntime {
                 var state=states.findById(match.roomId).orElse(null);
                 if(state!=null && "SETTLEMENT".equals(state.getPhase())) {
                     collect(match,state);
-                    if("ABORTED".equals(match.status)) pause(experiment,match.reason);
+                    if("ABORTED".equals(match.status) && !"STOPPING".equals(experiment.status)) pause(experiment,match.reason);
                 }
             }
         }
         advanceReviewCursor(experiment);
         var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
         boolean reviewPending=experiment.reviewCursor<experiment.nextSequence;
+        if(LabBudgetService.paused(experiment) && active.isEmpty() && !reviewPending) {
+            var evaluation=evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().filter(row -> "RUNNING".equals(row.status)).findFirst().orElse(null);
+            if(evaluation!=null && evaluation.nextGame>=evaluation.pairs*2) {
+                evaluation.status="COMPLETED"; evaluations.save(evaluation);
+                experiment.status=text(evaluation.configuration.get("returnStatus")); experiment.reason=null; experiment.configuration.remove("budgetPaused");
+            } else if(evaluation==null && number(experiment.configuration.get("trainingCreated"),0)>=number(experiment.configuration.get("targetGames"),100)) {
+                experiment.status="COMPLETED"; experiment.reason=null; experiment.configuration.remove("budgetPaused");
+            }
+        }
         if("STOPPING".equals(experiment.status)) {
             for(var pending:matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("FINISHED","REVIEW_FAILED","REVIEWING"))) {
                 if("REVIEWING".equals(pending.status) && pending.reviewLeaseUntil!=null && pending.reviewLeaseUntil>System.currentTimeMillis()) continue;

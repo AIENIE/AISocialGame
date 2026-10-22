@@ -24,6 +24,7 @@ import java.util.*;
 
 @Service
 public class V2GameService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.aisocialgame.lab.LabBudgetService labBudgets;
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(V2GameService.class);
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
@@ -111,6 +112,76 @@ public class V2GameService {
         return start(gameId, roomId, user, false);
     }
     public void startLab(String roomId) { start("undercover", roomId, null, true); }
+    public boolean labBudgetPaused(String roomId) {
+        return states.findById(roomId).map(this::labBudgetPaused).orElse(false);
+    }
+    private boolean labBudgetPaused(GameState state) {
+        var lab=RuleSupport.map(state.getData().get("lab"));
+        return !lab.isEmpty() && (state.getData().containsKey("labBudgetClock")
+                || labBudgets!=null && labBudgets.isPaused(RuleSupport.text(lab.get("experimentId"))));
+    }
+    public void pauseLabBudget(String roomId) {
+        transaction.executeWithoutResult(status -> {
+            Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
+            GameState state=states.findByIdForUpdate(roomId).orElse(null);
+            if(state==null || !room.isLab() || "SETTLEMENT".equals(state.getPhase())) return;
+            freezeLabBudget(state); persist(room,state,rules(state.getGameId()),true);
+        });
+    }
+    public void resumeLabBudget(String roomId) {
+        transaction.executeWithoutResult(status -> {
+            Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
+            GameState state=states.findByIdForUpdate(roomId).orElse(null);
+            if(state==null || !room.isLab() || !state.getData().containsKey("labBudgetClock")) return;
+            var clock=RuleSupport.map(state.getData().remove("labBudgetClock"));
+            if(phaseToken(state).equals(clock.get("phaseToken")) && clock.get("remainingMs") instanceof Number remaining) {
+                if(state.getData().containsKey("safetyClock")) {
+                    var safetyClock=RuleSupport.map(state.getData().get("safetyClock"));
+                    safetyClock.putIfAbsent("remainingMs",remaining.longValue()); state.getData().put("safetyClock",safetyClock);
+                } else state.setPhaseEndsAt(LocalDateTime.now().plusNanos(remaining.longValue()*1_000_000));
+            }
+            for(var job:jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED")))
+                if(job.getDiagnostics().remove("labBudgetRemainingMs") instanceof Number remaining) {
+                    job.getDiagnostics().put("executionDeadlineEpochMs",System.currentTimeMillis()+remaining.longValue()); jobs.save(job);
+                }
+            RuleSupport.event(state,"LAB_BUDGET_RESUMED",null,null,"实验预算已调整，继续当前对局。",Map.of());
+            persist(room,state,rules(state.getGameId()),true); prepareJob(state,rules(state.getGameId()));
+        });
+    }
+    public String stopLabBudget(String roomId) {
+        return transaction.execute(status -> {
+            Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
+            GameState state=states.findByIdForUpdate(roomId).orElseThrow();
+            RuleSupport.require(room.isLab(),"不是实验室对局");
+            state.getData().remove("labBudgetClock"); state.getData().put("labFailureReason","LAB_STOPPED_BY_ADMIN");
+            state.getData().put("winner","ABORTED"); state.setPhase("SETTLEMENT"); state.setPhaseEndsAt(null);
+            for(var job:jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED","RUNNING"))) finishJob(job,"DISCARDED","LAB_STOPPED_BY_ADMIN");
+            RuleSupport.event(state,"LAB_INTERRUPTED",null,null,"管理员已结束预算暂停的实验对局。",Map.of("reason","LAB_STOPPED_BY_ADMIN"));
+            persist(room,state,rules(state.getGameId()),true);
+            return RuleSupport.text(state.getData().get("archiveId"));
+        });
+    }
+    private boolean syncLabBudgetClock(GameState state) {
+        if("SETTLEMENT".equals(state.getPhase()) || !labBudgetPaused(state)) return false;
+        freezeLabBudget(state); return true;
+    }
+    private void freezeLabBudget(GameState state) {
+        var data=state.getData(); var clock=RuleSupport.map(data.get("labBudgetClock"));
+        boolean first=!data.containsKey("labBudgetClock");
+        if(first || !phaseToken(state).equals(clock.get("phaseToken"))) {
+            clock=new LinkedHashMap<>(); clock.put("phaseToken",phaseToken(state));
+            if(state.getPhaseEndsAt()!=null) clock.put("remainingMs",Math.max(0,Duration.between(LocalDateTime.now(),state.getPhaseEndsAt()).toMillis()));
+            data.put("labBudgetClock",clock);
+        }
+        state.setPhaseEndsAt(null);
+        for(var job:jobs.findByRoomIdAndStatusIn(state.getRoomId(),List.of("QUEUED"))) freezeLabJob(job);
+        if(first) RuleSupport.event(state,"LAB_BUDGET_PAUSED",null,null,"已达到实验预算，等待管理员调整预算后继续。",Map.of());
+    }
+    private void freezeLabJob(AiTurnJob job) {
+        if(job.getDiagnostics().remove("executionDeadlineEpochMs") instanceof Number deadline) {
+            job.getDiagnostics().put("labBudgetRemainingMs",Math.max(0,deadline.longValue()-System.currentTimeMillis())); jobs.save(job);
+        }
+    }
     private GameStateResponse start(String gameId, String roomId, User user, boolean laboratory) {
         return lifecycle.withActiveRoom(roomId, gameId, room -> {
             if (laboratory) RuleSupport.require(room.isLab(), "仅实验室调度器可以启动实验房间");
@@ -142,6 +213,7 @@ public class V2GameService {
         Map<String,Object> rejection = new LinkedHashMap<>();
         var result = lifecycle.withActiveRoom(roomId, gameId, room -> {
             GameState state = states.findByIdForUpdate(roomId).orElseThrow(() -> RuleSupport.bad("游戏尚未开始"));
+            if(labBudgetPaused(state)) throw new ApiException(HttpStatus.CONFLICT,"实验已达到预算，等待管理员调整后继续", "LAB_BUDGET_EXHAUSTED",Map.of());
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
             RuleSupport.require(RuleSupport.number(state.getData().get("ruleVersion"), 1) == 2, "对局版本不匹配");
@@ -202,6 +274,7 @@ public class V2GameService {
         if (!("EMOJI".equals(type) && EMOJIS.contains(content)) && !("QUICK_PHRASE".equals(type) && QUICK_PHRASES.contains(content))) return false;
         return Boolean.TRUE.equals(transaction.execute(status -> {
             Room room = rooms.findByIdForUpdate(roomId).orElseThrow(); GameState state = states.findByIdForUpdate(roomId).orElseThrow();
+            if(labBudgetPaused(state)) return false;
             GamePlayerState player = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId) && p.isAlive()).findFirst().orElse(null);
             if (player == null || Set.of("NIGHT", "DEATH_ACTION", "SETTLEMENT").contains(state.getPhase())) return false;
             safety.requireAllowedInput(content, AiSafetyContext.source(AiSafetyService.SOURCE_GAME_SPEECH).room(roomId, state.getGameId()).user(actorId, actorId));
@@ -216,6 +289,7 @@ public class V2GameService {
             if (state == null || RuleSupport.number(state.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(state.getPhase())) return;
             int beforeSafety=RuleSupport.maps(state.getData().get("events")).size();
             boolean frozen=syncSafetyClock(state);
+            frozen=syncLabBudgetClock(state) || frozen;
             if (beforeSafety!=RuleSupport.maps(state.getData().get("events")).size()) persist(room,state,rules(state.getGameId()),true);
             if (frozen) { states.save(state); return; }
             GameRuleSet rules = rules(state.getGameId());
@@ -240,6 +314,7 @@ public class V2GameService {
             job.getDiagnostics().put("generation", AiJobDiagnostics.generation(decision.diagnostics()));
             job.getDiagnostics().put("fallback", decision.fallback());
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
+            syncLabBudgetClock(state);
             if (automationBlocked(state,job.getActorId(),jobModel(job,state.getGameId()))) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
@@ -296,6 +371,9 @@ public class V2GameService {
         });
     }
     public void defer(String jobId, Map<String,Object> checkpoint) {
+        defer(jobId,checkpoint,"AI_BUDGET_BUSY");
+    }
+    public void defer(String jobId, Map<String,Object> checkpoint, String reason) {
         AiTurnJob lookup = jobs.findById(jobId).orElse(null); if (lookup == null) return;
         transaction.executeWithoutResult(status -> {
             rooms.findByIdForUpdate(lookup.getRoomId());
@@ -307,8 +385,12 @@ public class V2GameService {
             }
             job.getObservation().put("generationCheckpoint", checkpoint);
             job.getDiagnostics().putIfAbsent("budgetWaitStartedEpochMs", System.currentTimeMillis());
-            job.getDiagnostics().put("waitingReason", "AI_BUDGET_BUSY");
+            job.getDiagnostics().put("waitingReason", reason);
             job.setStatus("QUEUED"); jobs.save(job);
+            if(com.aisocialgame.lab.LabBudgetService.EXHAUSTED.equals(reason) || "LAB_EXPERIMENT_PAUSED".equals(reason)) {
+                freezeLabJob(job); freezeLabBudget(state);
+                Room room=rooms.findById(job.getRoomId()).orElseThrow(); persist(room,state,rules(state.getGameId()),true);
+            }
         });
     }
     public void fail(String jobId) { fail(jobId, "EXECUTION_EXCEPTION", Map.of()); }
@@ -361,6 +443,7 @@ public class V2GameService {
             if (!rules.isTurnCurrent(state, new TurnRequest(old.getActorId(), old.getKind(), old.getTurnKey()))) finishJob(old, "DISCARDED", Objects.equals(old.getInstanceId(),state.getData().get("archiveId")) ? "TURN_OBSOLETE" : "INSTANCE_UNAVAILABLE");
         }
         if ("SETTLEMENT".equals(state.getPhase()) || (!undercover && jobs.existsByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING")))) return;
+        if(syncLabBudgetClock(state)) { states.save(state); return; }
         for (TurnRequest turn : rules.pendingTurns(state)) {
             if (automationBlocked(state,turn.actorId())) continue;
             String id = hash(turn.key());
@@ -386,6 +469,7 @@ public class V2GameService {
         }
     }
     private void persist(Room room, GameState state, GameRuleSet rules, boolean forcePush) {
+        syncLabBudgetClock(state);
         AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
         AiRoundReflection.closeRounds(state);
         List<Map<String, Object>> events = RuleSupport.maps(state.getData().get("events"));
@@ -573,7 +657,9 @@ public class V2GameService {
         extra.put("viewVersion", viewVersion(state, viewerId));
         com.aisocialgame.service.SettlementView.add(extra, state, viewerId);
         extra.put("hostUserId", RuleSupport.text(room.getHostUserId()));
-        extra.put("legalActions", viewer == null ? List.of() : rules.legalActions(state, viewerId));
+        boolean budgetPaused=labBudgetPaused(state) && !"SETTLEMENT".equals(state.getPhase());
+        if(room.isLab()) extra.put("labBudgetPaused",budgetPaused);
+        extra.put("legalActions", viewer == null || budgetPaused ? List.of() : rules.legalActions(state, viewerId));
         boolean night = Set.of("NIGHT", "DEATH_ACTION").contains(state.getPhase()); Integer seat = night ? null : state.getCurrentSeat();
         String speaker = seat == null ? null : players.stream().filter(p -> p.getSeatNumber() == seat).map(GamePlayerView::getDisplayName).findFirst().orElse(null);
         Map<String, String> votes = new LinkedHashMap<>(); RuleSupport.map(extra.get("votes")).forEach((k, v) -> votes.put(k, RuleSupport.text(v)));

@@ -18,6 +18,7 @@
 | GET / POST | /agents | 查询 / 新建独立 AI 档案 |
 | PUT | /agents/{id} | 更新供新实验使用的档案 |
 | POST | /experiments | 创建草稿 |
+| PUT | /experiments/{id}/budget | 以 `{budgetPoints}` 修改费用预算，返回更新后的管理员详情；所有状态均可修改 |
 | POST | /experiments/{id}/control/{action} | start、resume、pause、stop |
 | GET | /experiments/{id}/experiences?page=0 | 经验版本、来源及证据分页 |
 | GET | /experiments/{id}/matches/{matchId}/spectate | 绑定实验的只读公开观战视图，仅管理会话 |
@@ -36,6 +37,8 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 
 管理观战返回 `match, room, state?`，state 复用原公开观战投影，不占座、不更新玩家在线状态。已过期且存在归档的对局只返回房间摘要与回放标识；完整回放沿用 `GET /api/admin/replays/{archiveId}/events`。公开玩家接口不接收管理员身份代替玩家登录。
 
-费用摘要分别返回 spentPoints、heldPoints、pendingPoints、pendingCalls、totalCalls、actualCost。pendingPoints 是尚未结算调用的预留上界，已包含在 heldPoints 内，不重复计入预算。积分取整和供应商实际金额保持不同口径。所有实验调用在原钱包预留事务内核对总上限，结果未知只对账，不重新发送。
+费用摘要分别返回 spentPoints、heldPoints、pendingPoints、pendingCalls、totalCalls、actualCost。实验只在新调用准备前以累计 spentPoints 检查预算；heldPoints / pendingPoints 不扣减实验剩余预算，钱包预留仍独立结算。达到预算后不准入新调用，已准入的在途调用继续结算，最终实扣可能超过预算。积分取整和供应商实际金额保持不同口径，结果未知只对账，不重新发送。
 
-状态：DRAFT → RUNNING → COMPLETED；pause / stop 进入 PAUSING / STOPPING，完成当前局后生效。预算、模型或终止性生成失败中断对应局并暂停；该局不学习、不计有效评测。复盘失败不发布部分经验，需要明确重试。已冻结或未知的原请求不改内容或身份。
+预算修改须为正整数且不低于保存时的累计已扣；不足返回 400 / LAB_BUDGET_BELOW_SPENT，details 提供 spentPoints、minimumPoints。调低至实扣触发预算暂停，调高不自动恢复。预算修改不重新开启 COMPLETED / STOPPED 实验。摘要提供 budgetPaused，房间状态 extra.labBudgetPaused 为 true 时不提供 legalActions，禁止真人提交动作。
+
+状态：DRAFT → RUNNING → COMPLETED；普通 pause / stop 进入 PAUSING / STOPPING，完成当前局后生效。达到实耗预算进入 PAUSED / LAB_BUDGET_EXHAUSTED，保留当前局面、排队任务及剩余计时；在途有效结果仍可提交。调整预算后显式 resume 继续同局或待完成复盘，预算暂停时 stop 可结束保留的当前局。模型或终止性生成失败仍中断对应局；复盘失败不发布部分经验，需要明确重试。历史 ABORTED 不改写；已冻结或未知的原请求不改内容或身份。

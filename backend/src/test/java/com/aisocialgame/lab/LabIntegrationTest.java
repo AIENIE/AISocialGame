@@ -159,8 +159,8 @@ class LabIntegrationTest {
     }
     @Test void oneThousandPersistedGamesPublishOnceSeriallyAcrossRecreatedSchedulers() {
         String id=create(1000,3); service.control(id,"start"); stubCoach();
-        var recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models);
-        var recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager);
+        var recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models,budgets);
+        var recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets);
         var transaction=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
         int reviewed=0,largestBatch=0; var seatOrders=new HashSet<List<String>>();
         for(int cycle=0;cycle<2000 && !"COMPLETED".equals(experiments.findById(id).orElseThrow().status);cycle++) {
@@ -177,8 +177,8 @@ class LabIntegrationTest {
                 transaction.executeWithoutResult(status -> scheduler.advance(id));
             }
             if(cycle%50==0) {
-                recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models);
-                recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager);
+                recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models,budgets);
+                recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets);
             }
         }
         assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
@@ -199,7 +199,7 @@ class LabIntegrationTest {
         var failed=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();
         String request=text(failed.snapshot.get("reviewRequestId")); var frozen=failed.snapshot.get("reviewRequest");
         stubCoach();
-        var recovered=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager);
+        var recovered=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets);
         recovered.retry(id); assertTrue(recovered.process(id)); lab.advance(id);
         var completed=matches.findById(failed.id).orElseThrow();
         assertEquals(request,completed.snapshot.get("reviewRequestId")); assertEquals(frozen,completed.snapshot.get("reviewRequest"));
@@ -348,40 +348,132 @@ class LabIntegrationTest {
         match.snapshot.put("results",List.of(Map.of("agentId",evaluation.agentId,"role","CIVILIAN","won",won,"successfulActions",succeeded,"failedActions",failed)));
         matches.saveAndFlush(match);
     }
-    @Test void concurrentBudgetReservationsIncludeUnknownHoldsAndSettlementReleasesOnlyTheDifference() throws Exception {
+    @Test void eightConcurrentQuotesDoNotConsumeTheExperimentBudgetAndSettleOnce() throws Exception {
         String id=create(1,1);
-        var experiment=experiments.findById(id).orElseThrow(); experiment.budgetPoints=150; experiment.status="RUNNING"; experiments.saveAndFlush(experiment);
+        var experiment=experiments.findById(id).orElseThrow(); experiment.status="RUNNING"; experiments.saveAndFlush(experiment);
+        spent(id,8);
         long userId=Math.abs(UUID.randomUUID().getMostSignificantBits()%100_000_000)+2000;
         var account=new CreditAccount(); account.setUserId(userId); account.setProjectKey("aisocialgame"); account.setPermanentBalance(10000); accounts.saveAndFlush(account);
         var quote=BudgetPriceQuote.newBuilder().setCurrency("CNY").setPriceVersionId(1).setPriceSha256("a".repeat(64))
-                .setPointsPerCurrency(100).setMaxCost("1.000000").setMaxCreditPoints(100).build();
+                .setPointsPerCurrency(100).setMaxCost("2.170000").setMaxCreditPoints(217).build();
         var requests=new ArrayList<ChatCompletionsRequest>();
-        for(int index=0;index<2;index++) requests.add(ChatCompletionsRequest.newBuilder().setProjectKey("aisocialgame").setUserId(userId)
+        for(int index=0;index<8;index++) requests.add(ChatCompletionsRequest.newBuilder().setProjectKey("aisocialgame").setUserId(userId)
                 .setRequestId(UUID.randomUUID().toString()).setModel("fixture-model").build());
-        try(var workers=Executors.newFixedThreadPool(2)) {
+        try(var workers=Executors.newFixedThreadPool(8)) {
             var attempts=requests.stream().map(request -> workers.submit(() -> {
                 try(var context=LabCallContext.open(Map.of("experimentId",id,"matchId","fixture"),"TURN")) {
-                    try { escrow.reserve(request,budget(request,quote)); return true; }
-                    catch(com.aisocialgame.exception.ApiException denied) { assertEquals("LAB_BUDGET_EXHAUSTED",denied.getCode()); return false; }
+                    budgets.checkCall(); escrow.reserve(request,budget(request,quote)); return true;
                 }
             })).toList();
             int acquired=0; for(var attempt:attempts) if(attempt.get(15,TimeUnit.SECONDS)) acquired++;
-            assertEquals(1,acquired);
+            assertEquals(8,acquired);
         }
-        assertEquals(100L,budgets.totals(id).get("heldPoints"));
-        assertEquals(100L,budgets.totals(id).get("pendingPoints"));
-        var row=reservations.findByUserIdAndProjectKeyAndState(userId,"aisocialgame","HELD").getFirst();
-        var charge=BudgetCharge.newBuilder().setCurrency("CNY").setPriceVersionId(1).setPriceSha256("a".repeat(64)).setTotalCost("0.100000").setCreditPoints(10).build();
-        escrow.reconcile(row.id,GetBudgetCallStatusResponse.newBuilder().setBudgetId(row.budgetId).setRequestSha256(row.requestHash)
+        assertEquals(1736L,budgets.totals(id).get("heldPoints"));
+        assertEquals(8L,budgets.totals(id).get("spentPoints"));
+        assertEquals("RUNNING",service.updateBudget(id,12).get("status"));
+        var charge=BudgetCharge.newBuilder().setCurrency("CNY").setPriceVersionId(1).setPriceSha256("a".repeat(64)).setTotalCost("0.010000").setCreditPoints(1).build();
+        for(var row:reservations.findByUserIdAndProjectKeyAndState(userId,"aisocialgame","HELD")) {
+            var receipt=GetBudgetCallStatusResponse.newBuilder().setBudgetId(row.budgetId).setRequestSha256(row.requestHash)
                 .setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setUsageAuthoritative(true).setPromptTokens(10).setCompletionTokens(5).setTotalTokens(15)
-                .setPriceQuote(quote).setCharge(charge).setChat(ChatCompletionsResponse.newBuilder().setModelKey("fixture-model").setContent("ok").setPromptTokens(10).setCompletionTokens(5).setBudgetCharge(charge)).build());
-        assertEquals(10L,budgets.totals(id).get("spentPoints")); assertEquals(0L,budgets.totals(id).get("heldPoints"));
+                .setPriceQuote(quote).setCharge(charge).setChat(ChatCompletionsResponse.newBuilder().setModelKey("fixture-model").setContent("ok").setPromptTokens(10).setCompletionTokens(5).setBudgetCharge(charge)).build();
+            escrow.reconcile(row.id,receipt); escrow.reconcile(row.id,receipt);
+        }
+        assertEquals(16L,budgets.totals(id).get("spentPoints")); assertEquals(0L,budgets.totals(id).get("heldPoints"));
+        assertEquals(9992,accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow().getPermanentBalance());
+        try(var context=LabCallContext.open(Map.of("experimentId",id,"matchId","fixture"),"TURN")) {
+            assertEquals(LabBudgetService.EXHAUSTED,assertThrows(com.aisocialgame.exception.ApiException.class,budgets::checkCall).getCode());
+        }
         assertNull(LabCallContext.current());
     }
     private PrepareCallBudgetResponse budget(ChatCompletionsRequest request,BudgetPriceQuote quote) {
         return PrepareCallBudgetResponse.newBuilder().setBudgetId(UUID.randomUUID().toString()).setBudgetCredential("fixture")
                 .setRequestSha256(AiCreditEscrowService.hash(request.toByteArray())).setMaxPromptTokens(10).setMaxCompletionTokens(10).setMaxTotalTokens(20)
                 .setMaxProviderAttempts(1).setExpiresAtEpochMs(System.currentTimeMillis()+60000).setPriceQuote(quote).build();
+    }
+    @Test void budgetPauseSurvivesReloadAndResumesTheSameTurnWithoutExpiringItsClock() {
+        String id=create(3,1); var match=runningMatch(id);
+        var state=states.findById(match.roomId).orElseThrow(); state.setPhaseEndsAt(java.time.LocalDateTime.now().plusSeconds(30)); states.saveAndFlush(state);
+        String archive=text(state.getData().get("archiveId"));
+        var job=turns.claim(jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst().getId());
+        spent(id,1000); game.defer(job.getId(),Map.of("nextAttempt",0),LabBudgetService.EXHAUSTED); lab.advance(id);
+        assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+        assertNull(states.findById(match.roomId).orElseThrow().getPhaseEndsAt()); assertNull(turns.claim(job.getId()));
+        var persisted=jobs.findById(job.getId()).orElseThrow();
+        assertFalse(persisted.getDiagnostics().containsKey("executionDeadlineEpochMs"));
+        assertTrue(((Number)persisted.getDiagnostics().get("labBudgetRemainingMs")).longValue()>0);
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models,budgets).advance(id));
+        game.tick(match.roomId);
+        assertEquals(true,game.labSpectatorState(match.roomId).getExtra().get("labBudgetPaused"));
+        assertEquals("PAUSED",service.updateBudget(id,2000).get("status")); assertNull(turns.claim(job.getId()));
+        service.control(id,"resume");
+        state=states.findById(match.roomId).orElseThrow();
+        assertFalse(state.getData().containsKey("labBudgetClock")); assertTrue(state.getPhaseEndsAt().isAfter(java.time.LocalDateTime.now()));
+        assertNotNull(turns.claim(job.getId()));
+        game.complete(job.getId(),speech());
+        assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals(archive,text(states.findById(match.roomId).orElseThrow().getData().get("archiveId")));
+    }
+    @Test void runningResultIsAppliedWhilePausedAndAdminCanEndThePreservedGame() {
+        String id=create(3,1); var match=runningMatch(id);
+        var job=turns.claim(jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst().getId());
+        spent(id,1001); lab.advance(id); game.complete(job.getId(),speech());
+        assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
+        assertNull(states.findById(match.roomId).orElseThrow().getPhaseEndsAt());
+        assertTrue(jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).isEmpty());
+        service.control(id,"stop"); lab.advance(id);
+        assertEquals("STOPPED",experiments.findById(id).orElseThrow().status);
+        var stopped=matches.findById(match.id).orElseThrow();
+        assertEquals("ABORTED",stopped.status); assertEquals("LAB_STOPPED_BY_ADMIN",stopped.reason);
+        assertTrue(archives.existsById(stopped.archiveId));
+    }
+    @Test void editingUsesActualDebitAsMinimumAndDoesNotAutomaticallyRestartAnyState() {
+        String id=create(3,1); spent(id,12);
+        for(String status:List.of("DRAFT","RUNNING","PAUSING","STOPPING","PAUSED","COMPLETED","STOPPED")) {
+            var experiment=experiments.findById(id).orElseThrow(); experiment.status=status; experiment.configuration.remove("budgetPaused"); experiments.saveAndFlush(experiment);
+            assertEquals(status,service.updateBudget(id,20).get("status"));
+        }
+        assertEquals("LAB_BUDGET_BELOW_SPENT",assertThrows(com.aisocialgame.exception.ApiException.class,()->service.updateBudget(id,11)).getCode());
+        var experiment=experiments.findById(id).orElseThrow(); experiment.status="RUNNING"; experiments.saveAndFlush(experiment);
+        assertEquals("PAUSED",service.updateBudget(id,12).get("status"));
+        assertEquals("PAUSED",service.updateBudget(id,30).get("status"));
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->service.updateBudget(id,0));
+    }
+    @Test void budgetPausedCoachKeepsTheOriginalRequestForResume() {
+        String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
+        when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation->{
+            spent(id,1000); throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.CONFLICT,"budget",LabBudgetService.EXHAUSTED,Map.of());
+        });
+        assertTrue(coach.process(id)); var pending=matches.findById(match.id).orElseThrow();
+        assertEquals("FINISHED",pending.status); assertNull(pending.reason);
+        String original=text(pending.snapshot.get("reviewRequestId"));
+        service.updateBudget(id,2000); service.control(id,"resume"); stubCoach();
+        assertTrue(new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets).process(id));
+        assertEquals("REVIEWED",matches.findById(match.id).orElseThrow().status);
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(original),anyInt());
+    }
+    @Test void allWorkCompletedAtTheBudgetDoesNotRequireAnotherTopUpToFinish() {
+        String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
+        stubCoach(); assertTrue(coach.process(id)); spent(id,1000); lab.advance(id);
+        assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
+        assertFalse(LabBudgetService.paused(experiments.findById(id).orElseThrow()));
+    }
+    private LabMatch runningMatch(String id) {
+        service.control(id,"start"); lab.advance(id);
+        var match=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,List.of("WAITING")).getFirst();
+        match.startsAtEpochMs=0; matches.saveAndFlush(match); lab.advance(id);
+        return matches.findById(match.id).orElseThrow();
+    }
+    private AiTurnDecision speech() { return new AiTurnDecision(action("SPEAK","它有一种常见的用途。",null),"它有一种常见的用途。",Map.of(),List.of(),Map.of(),false,Map.of()); }
+    private void spent(String id,long points) {
+        var row=new com.aisocialgame.model.credit.AiCreditReservation(); row.id=UUID.randomUUID().toString();
+        row.requestId="fixture-"+row.id; row.identityHash=AiCreditEscrowService.hash(row.requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        row.requestHash=row.identityHash; row.projectKey="aisocialgame"; row.userId=85; row.budgetId=UUID.randomUUID().toString();
+        row.state="SETTLED"; row.reservedPermanent=points; row.tempPortionsJson="[]"; row.updatedAt=System.currentTimeMillis();
+        row.labExperimentId=id; row.labPurpose="TURN"; row.billedPoints=points; row.billedCost=java.math.BigDecimal.valueOf(points,2);
+        reservations.saveAndFlush(row);
     }
     private String create(int games,int concurrency) {
         var ids=new ArrayList<String>();

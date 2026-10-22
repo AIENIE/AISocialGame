@@ -156,6 +156,7 @@ public class AiTurnCoordinator {
         return transaction.execute(status -> {
             AiTurnJob job = jobs.findByIdForUpdate(id).orElse(null);
             if (job == null || !"QUEUED".equals(job.getStatus())) return null;
+            if(runtime.labBudgetPaused(job.getRoomId())) return null;
             if (modelConfigs != null && !job.getDiagnostics().containsKey("modelSelection")) {
                 var prior = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")).get("modelSelection"));
                 var frozen = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("memory")).get("lab")).get("modelSelection"));
@@ -203,7 +204,7 @@ public class AiTurnCoordinator {
             measurements = decision.diagnostics(); submitting = true; submissionStarted = System.nanoTime();
             runtime.complete(job.getId(), decision);
         } catch (AiTurnGenerator.GenerationDeferred deferred) {
-            runtime.defer(job.getId(), deferred.checkpoint());
+            runtime.defer(job.getId(), deferred.checkpoint(), deferred.getMessage());
         } catch (Exception ex) {
             log.warn("AI turn failed jobId={} roomId={} errorType={}", job.getId(), job.getRoomId(), ex.getClass().getSimpleName());
             if (submitting) {

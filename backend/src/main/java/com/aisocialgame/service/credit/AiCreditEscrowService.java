@@ -52,7 +52,6 @@ public class AiCreditEscrowService {
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
             long required=budget.hasPriceQuote() ? validatedPoints(budget.getPriceQuote()) : budget.getMaxTotalTokens();
-            if (labBudgets != null) labBudgets.checkReservation(required);
             long temp=temporary.balance(account,now);
             long available = Math.addExact(temp,account.getPermanentBalance());
             if(available < required) {

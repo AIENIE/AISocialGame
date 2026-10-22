@@ -1,4 +1,10 @@
 const labels: Record<string, readonly [string, string]> = {
+  "费用预算":["費用預算","Spending budget"],
+  "账户未结预留":["帳戶未結預留","Unsettled account holds"],
+  "剩余预算":["剩餘預算","Remaining budget"],
+  "实验因预算限制暂停":["實驗因預算限制暫停","Experiment paused by a budget limit"],
+  "管理员已结束实验":["管理員已結束實驗","Experiment ended by administrator"],
+  "对局、修正、复盘与评测按累计实扣共用预算。达到预算后暂停新调用；在途费用可能使最终实扣超过预算。账户预留不扣减剩余预算，未知费用继续对账。":["對局、修正、復盤與評測按累計實扣共用預算。達到預算後暫停新呼叫；在途費用可能使最終實扣超過預算。帳戶預留不扣減剩餘預算，未知費用繼續對帳。","Games, corrections, reviews and evaluations share the budget by actual debit. New calls pause at the budget; in-flight charges may exceed it. Account holds do not reduce the remaining budget, and unknown charges remain under reconciliation."],
   "正常结束":["正常結束","Finished normally"],
   "复盘成功":["復盤成功","Reviews completed"],
   "中断":["中斷","Aborted"],
@@ -9,7 +15,6 @@ const labels: Record<string, readonly [string, string]> = {
   "动作提交发生异常":["動作提交發生異常","Unexpected action submission failure"],
   "执行中断，具体原因需查看诊断":["執行中斷，具體原因需查看診斷","Execution aborted; inspect diagnostics for the cause"],
   "执行发生异常":["執行發生異常","Execution failed"],
-  "实验剩余额度不足以预留调用":["實驗剩餘額度不足以預留呼叫","Insufficient experiment budget to reserve the next call"],
   "调用结果待对账":["呼叫結果待對帳","Call outcome requires reconciliation"],
   "系统 AI 账户积分不足":["系統 AI 帳戶積分不足","System AI account has insufficient credits"],
   "所选模型已不可用":["所選模型已不可用","Selected model is unavailable"],
@@ -37,10 +42,6 @@ const labels: Record<string, readonly [string, string]> = {
     "實驗費用",
     "Experiment budget"
   ],
-  "费用上限": [
-    "費用上限",
-    "Spending limit"
-  ],
   "已扣积分折合": [
     "已扣積分折合",
     "Wallet charges"
@@ -48,14 +49,6 @@ const labels: Record<string, readonly [string, string]> = {
   "未结预留": [
     "未結預留",
     "Outstanding holds"
-  ],
-  "待对账金额（已含于预留）": [
-    "待對帳金額（已含於預留）",
-    "Awaiting settlement (included in holds)"
-  ],
-  "剩余可预留": [
-    "剩餘可預留",
-    "Available for reservation"
   ],
   "供应商费用": [
     "供應商費用",
@@ -68,10 +61,6 @@ const labels: Record<string, readonly [string, string]> = {
   "笔待对账": [
     "筆待對帳",
     "awaiting reconciliation"
-  ],
-  "对局、修正、复盘与评测共用此额度。未知费用保留预留，等待对账。": [
-    "對局、修正、復盤與評測共用此額度。未知費用保留預留，等待對帳。",
-    "Games, corrections, reviews and evaluations share this limit. Uncertain costs remain reserved."
   ],
   "对局尝试": [
     "對局嘗試",

@@ -24,6 +24,13 @@ const fill = (text: string) => act(() => {
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 });
+it("shows a preserved budget pause and offers no action submission",()=>{
+  const send=vi.fn();const value=state([{type:"SPEAK",label:"描述",targets:[],maxLength:90}],"one","DESCRIPTION");
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,labBudgetPaused:true}}} send={send}/>));
+  expect(container.textContent).toContain("当前局面和计时已保留");
+  expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
+  expect(send).not.toHaveBeenCalled();
+});
 
 it("keeps a forbidden-word draft and shows private correction feedback until elimination",async()=>{
   const actions:LegalAction[]=[{type:"SPEAK",label:"描述",targets:[],maxLength:90}];

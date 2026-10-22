@@ -608,6 +608,7 @@ export const adminLabApi = {
   observe: async (id: string, matchId: string, signal?: AbortSignal): Promise<LabObservation> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/spectate`,{signal})).data,
   list: async (page = 0): Promise<LabPage<LabExperiment>> => (await adminApiClient.get("/admin/lab/experiments", { params: { page, size: 20 } })).data,
   detail: async (id: string): Promise<LabExperiment> => (await adminApiClient.get("/admin/lab/experiments/"+id)).data,
+  updateBudget: async (id: string, budgetPoints: number): Promise<LabExperiment> => (await adminApiClient.put(`/admin/lab/experiments/${encodeURIComponent(id)}/budget`,{budgetPoints})).data,
   matches: async (id: string, page = 0): Promise<LabPage<LabMatch>> => (await adminApiClient.get("/admin/lab/experiments/"+id+"/matches", { params: { page, size: 20 } })).data,
   experiences: async (id: string, page = 0): Promise<LabPage<LabExperience>> => (await adminApiClient.get("/admin/lab/experiments/"+id+"/experiences", { params: { page } })).data,
   agents: async (): Promise<LabAgent[]> => (await adminApiClient.get("/admin/lab/agents")).data,

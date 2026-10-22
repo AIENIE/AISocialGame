@@ -71,7 +71,7 @@ it("separates actual provider cost from wallet charges and outstanding holds in 
   expect(container.textContent).toContain("¥0.00");
   expect(container.textContent).toContain("0.000001");
   expect(container.textContent).toContain("awaiting reconciliation");
-  expect(container.textContent).toContain("included in holds");
+  expect(container.textContent).toContain("Account holds do not reduce the remaining budget");
   expect(labText("zh-TW","AI 实验室")).toBe("AI 實驗室");
   expect(labText("zh-CN","PAUSING")).toBe("本局后暂停");
 });

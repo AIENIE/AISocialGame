@@ -11,7 +11,7 @@ import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
 import { LabDiagnostics } from "@/components/lab/LabDiagnostics";
 import { failureText } from "@/components/lab/labFailures";
 import type { CatalogModel } from "@/types/aiModelConfig";
-import type { LabAgent, LabSelection, LabExperience, CreateLabExperiment, LabParticipantInput } from "@/types/lab";
+import type { LabAgent, LabSelection, LabExperience, LabExperiment, CreateLabExperiment, LabParticipantInput } from "@/types/lab";
 
 const emptySelection:LabSelection={modelKey:"",thinkingMode:"DEFAULT",thinkingEffort:null};
 function failure(error:unknown) { toast.error(getApiErrorMessage(error,"实验室操作失败，编辑内容已保留")); }
@@ -103,7 +103,7 @@ function AdminLabIndex() {
         <label className="lab-field">席位数<select value={playerCount} onChange={event=>{const count=Number(event.target.value);setSelected(Array.from({length:count},(_,index)=>chosen[index]??{agentId:agents.data?.[0]?.id??""}));setPlayerCount(count);}}>{[4,5,6,7,8,9,10].map(count=><option key={count}>{count}</option>)}</select></label>
         <label className="lab-field">目标对局数<input type="number" min={1} max={10000} value={targetGames} onChange={event=>setTargetGames(Number(event.target.value))} required /></label>
         <label className="lab-field">内置词库<select value={wordPack} onChange={event=>setWordPack(event.target.value)}><option value="daily">日常生活</option><option value="idiom">成语俗语</option><option value="acg">二次元</option><option value="tech">硬核科技</option></select></label>
-        <label className="lab-field">费用上限（人民币）<input type="number" min="0.01" step="0.01" value={budget} required onChange={event=>setBudget(event.target.value)} /></label>
+        <label className="lab-field">费用预算（人民币）<input type="number" min="0.01" step="0.01" value={budget} required onChange={event=>setBudget(event.target.value)} /></label>
         <label className="lab-field"><input type="checkbox" checked={hasBlank} onChange={event=>setHasBlank(event.target.checked)} />加入白板玩家</label></div>
       <div><h3 className="text-sm font-medium">实验阵容 · {playerCount} 个独立副本</h3><p className="lab-small my-3">模型只用于本次实验，不修改来源档案。同角色副本可使用不同模型，各自独立学习。</p>
         <div className="lab-bulk-model"><label className="lab-field">统一玩家模型<select aria-label="统一玩家模型" value={allModel} onChange={event=>setAllModel(event.target.value)}><option value="">选择统一模型</option>{models.map(model=><option key={model.modelKey} value={model.modelKey}>{model.displayName}</option>)}</select></label>
@@ -121,7 +121,7 @@ function AdminLabIndex() {
       <div className="lab-form-grid"><label className="lab-field">继承经验来源实验 ID（可选）<input value={sourceId} onChange={event=>setSourceId(event.target.value)} placeholder="空白表示从初始经验开始" /></label><Button variant="outline" className="self-end" type="button" onClick={()=>setInheritId(sourceId.trim())}>读取来源经验</Button></div>
       {source.data&&<p className="lab-small">来源：“{source.data.name}”。逐副本选择继承经验；复制实验保留来源模型，可逐席调整，人格从当前档案复制。</p>}
       {source.error&&<p className="lab-error" role="alert">{getApiErrorMessage(source.error,"来源实验读取失败")}</p>}
-      <p className="lab-note">创建后为草稿，需要手动启动。对局、修正、复盘与评测共享费用上限；实验对局不计普通排名、成就和奖励。</p>
+      <p className="lab-note">创建后为草稿，需要手动启动。对局、修正、复盘与评测共享实耗预算，在途结算可能超过预算；实验对局不计普通排名、成就和奖励。</p>
       {create.error&&<p className="lab-error" role="alert">{getApiErrorMessage(create.error,"创建失败")}</p>}
       <div className="lab-actions"><Button type="submit" disabled={create.isPending||chosen.length<playerCount||chosen.slice(0,playerCount).some(slot=>!slot.agentId)||!models.length}>创建实验草稿</Button><Button type="button" variant="ghost" onClick={()=>setCreating(false)}>取消</Button></div>
     </form>}
@@ -144,6 +144,28 @@ function ExperienceComparison({versions,roster,heads,rollback,disabled}:{version
       {column.value&&<div className="lab-actions mt-3">{column.value.evidence.archiveId&&<Button asChild size="sm" variant="outline"><Link to={"/admin/replays/"+column.value.evidence.archiveId}>来源回放</Link></Button>}<Button size="sm" variant="outline" disabled={disabled} onClick={()=>rollback(column.value!.id)}>回退到此经验</Button></div>}</section>)}</div>
     {later&&<p className="lab-small">证据事件：{later.evidence.eventIds?.join(" · ")||"管理员回退"}{earlier?.summary===later.summary?" · 两版内容相同":""}</p>}
   </div>;
+}
+function ExperimentBudget({experiment,saved}:{experiment:LabExperiment;saved:(value:LabExperiment)=>void}) {
+  const [editing,setEditing]=useState(false),[amount,setAmount]=useState("");
+  const update=useMutation({mutationFn:(points:number)=>adminLabApi.updateBudget(experiment.id,points),onSuccess:value=>{
+    saved(value);setEditing(false);toast.success("预算已保存；已暂停的实验需手动继续");
+  }});
+  const [validation,setValidation]=useState("");
+  const submit=(event:FormEvent)=>{
+    event.preventDefault();
+    const parts=/^(\d+)(?:\.(\d{1,2}))?$/.exec(amount.trim());
+    const points=parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;
+    if(!Number.isSafeInteger(points)||points<Math.max(1,experiment.cost.spentPoints)) {setValidation("预算须为正数，且不能低于当前已扣积分");return;}
+    setValidation("");update.mutate(points);
+  };
+  return <section className="lab-section" aria-label="预算调整"><h2>实验预算</h2>
+    <p className="lab-small mb-3">当前 ¥{(experiment.budgetPoints/100).toFixed(2)} · 已扣 {experiment.cost.spentPoints} 积分。运行中也可修改，保存后影响后续调用。</p>
+    {editing?<form className="lab-form-grid" onSubmit={submit}>
+      <label className="lab-field">费用预算（人民币）<input aria-label="修改费用预算" type="number" step="0.01" min={(Math.max(1,experiment.cost.spentPoints)/100).toFixed(2)} required value={amount} onChange={event=>setAmount(event.target.value)}/></label>
+      <div className="lab-actions self-end"><Button type="submit" disabled={update.isPending}>保存预算</Button><Button type="button" variant="ghost" disabled={update.isPending} onClick={()=>setEditing(false)}>取消</Button></div>
+      {(validation||update.error)&&<p className="lab-error" role="alert">{validation||getApiErrorMessage(update.error,"预算保存失败，编辑内容已保留")}</p>}
+    </form>:<Button size="sm" variant="outline" onClick={()=>{setAmount((experiment.budgetPoints/100).toFixed(2));setValidation("");update.reset();setEditing(true);}}>修改预算</Button>}
+  </section>;
 }
 function AdminLabDetail({id}:{id:string}) {
   const client=useQueryClient();
@@ -168,9 +190,9 @@ function AdminLabDetail({id}:{id:string}) {
   return <div className="lab-workspace"><Link to="/admin/lab" className="lab-small inline-flex items-center gap-2 mb-5"><ArrowLeft size={14} />返回实验室</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">EXPERIMENT / {id.slice(0,8)}</div><h1>{experiment.name}</h1><p>独立经验迭代 · {experiment.playerCount} 席 · 内置 {experiment.wordPack} 词库</p></div><FlaskConical size={32} className="text-emerald-700/60" /></header>
     <div className="lab-actions mb-5">
-      {["DRAFT","PAUSED"].includes(experiment.status)&&!experiment.reviewFailed&&<Button size="sm" disabled={controls.isPending} onClick={()=>controls.mutate(experiment.status==="DRAFT"?"start":"resume")}><Play size={14} className="mr-2" />{experiment.status==="DRAFT"?"启动实验":"从下一局继续"}</Button>}
+      {["DRAFT","PAUSED"].includes(experiment.status)&&!experiment.reviewFailed&&<Button size="sm" disabled={controls.isPending} onClick={()=>controls.mutate(experiment.status==="DRAFT"?"start":"resume")}><Play size={14} className="mr-2" />{experiment.status==="DRAFT"?"启动实验":experiment.budgetPaused?experiment.activeMatches?.some(match=>match.status==="PLAYING")?"继续当前局":"继续实验":"从下一局继续"}</Button>}
       {experiment.status==="RUNNING"&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("pause")}><Pause size={14} className="mr-2" />本局后暂停</Button>}
-      {!["COMPLETED","STOPPED","STOPPING"].includes(experiment.status)&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("stop")}><Square size={13} className="mr-2" />本局后停止</Button>}
+      {!["COMPLETED","STOPPED","STOPPING"].includes(experiment.status)&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("stop")}><Square size={13} className="mr-2" />{experiment.budgetPaused?"结束实验":"本局后停止"}</Button>}
       {experiment.status==="PAUSED"&&experiment.reviewFailed&&<Button size="sm" variant="outline" disabled={controls.isPending} onClick={()=>controls.mutate("retry-review")}>重试复盘并继续</Button>}
       <Button size="sm" variant="ghost" asChild><Link to={"/admin/lab?from="+id}>复制并继承经验</Link></Button>
       <Button size="sm" variant="ghost" asChild><a href={"/lab/"+id} target="_blank" rel="noreferrer">玩家入口</a></Button>
@@ -195,7 +217,7 @@ function AdminLabDetail({id}:{id:string}) {
         <Button type="submit" className="self-end" disabled={!idle||!targetVersion||targetVersion==="initial"||evaluate.isPending}>启动对照评测</Button>
       </form><LabEvaluationResults evaluations={experiment.evaluations??[]} />
     </section>}
-    </div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} /></div>
+    </div><div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} /><ExperimentBudget experiment={experiment} saved={value=>{client.setQueryData(["admin","lab","experiment",id],value);refresh();}} /></div></div>
   </div>;
 }
 export default function LabAdmin() { const {id}=useParams(); return id?<AdminLabDetail key={id} id={id}/>:<AdminLabIndex/>; }

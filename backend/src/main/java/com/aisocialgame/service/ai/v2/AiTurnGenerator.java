@@ -102,7 +102,7 @@ public class AiTurnGenerator {
             Map<String, Object> sample = new LinkedHashMap<>(); sample.put("attempt", attempt);
             attempts.add(sample);
             String stage = "INPUT_PREPARATION";
-            boolean budgetDeferred = false;
+            String budgetDeferred = null;
             try {
                 long preparation = nanoTime.getAsLong();
                 Map<String, Object> payload;
@@ -188,8 +188,8 @@ public class AiTurnGenerator {
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
                 if (undercover && ex instanceof com.aisocialgame.exception.ApiException api) {
-                    if ("AI_BUDGET_BUSY".equals(api.getCode())) {
-                        budgetDeferred = true;
+                    if (api.getCode()!=null && Set.of("AI_BUDGET_BUSY","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(api.getCode())) {
+                        budgetDeferred = api.getCode();
                         calls--; attempts.remove(sample);
                         Map<String,Object> saved = new LinkedHashMap<>();
                         saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
@@ -197,7 +197,7 @@ public class AiTurnGenerator {
                         saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
                         saved.put("modelSelection", selected.toMap());
                         if (checkpoint.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",checkpoint.get("forbiddenFeedback"));
-                        throw new GenerationDeferred(saved);
+                        throw new GenerationDeferred(saved,budgetDeferred);
                     }
                     for (String key : List.of("budgetId", "settlementState")) if (api.getDetails().containsKey(key)) sample.put(key, api.getDetails().get(key));
                 }
@@ -208,7 +208,7 @@ public class AiTurnGenerator {
                 sample.put("flags", failures);
                 if (debugRecorder != null) {
                     var recorded = new LinkedHashMap<>(sample);
-                    if (budgetDeferred) recorded.put("flags", List.of("AI_BUDGET_BUSY"));
+                    if (budgetDeferred!=null) recorded.put("flags", List.of(budgetDeferred));
                     debugRecorder.evaluated(jobId, attempt, recorded, stage);
                 }
             }
@@ -243,7 +243,8 @@ public class AiTurnGenerator {
     }
     public static final class GenerationDeferred extends RuntimeException {
         private final Map<String,Object> checkpoint;
-        public GenerationDeferred(Map<String,Object> checkpoint) { super("AI_BUDGET_BUSY"); this.checkpoint = checkpoint; }
+        public GenerationDeferred(Map<String,Object> checkpoint) { this(checkpoint,"AI_BUDGET_BUSY"); }
+        public GenerationDeferred(Map<String,Object> checkpoint,String reason) { super(reason); this.checkpoint = checkpoint; }
         public Map<String,Object> checkpoint() { return checkpoint; }
     }
     /** Carries measurements across rollback/recovery, without exposing output in exception messages. */
