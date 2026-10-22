@@ -27,6 +27,16 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); client.clear(); container.remove(); });
 
 describe("game action submission", () => {
+  it("uses the private server receipt when a business error body was lost, without replaying the rejected action",async()=>{
+    vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
+    vi.mocked(gameplayApi.action).mockRejectedValueOnce(new Error("error body lost")).mockResolvedValue(snapshot("instance:1"));
+    act(()=>root.render(<QueryClientProvider client={client}><Probe/></QueryClientProvider>));
+    await act(async()=>{await expect(engine.actionMutation.mutateAsync({type:"SPEAK",content:"禁词"})).rejects.toThrow("error body lost");});
+    const prior=vi.mocked(gameplayApi.action).mock.calls[0][2].requestId;
+    act(()=>client.setQueryData(["game-state","room"],{...snapshot("instance:1"),extra:{phaseToken:"instance:1",wordFeedback:{actionRequestId:prior}}}));
+    await act(async()=>{await engine.actionMutation.mutateAsync({type:"SPEAK",content:"禁词"});});
+    expect(vi.mocked(gameplayApi.action).mock.calls[1][2].requestId).not.toBe(prior);
+  });
   it("creates a new correction identity after a confirmed forbidden-word rejection",async()=>{
     vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
     vi.mocked(gameplayApi.action).mockRejectedValueOnce(new HttpApiError(400,"OWN_WORD_FORBIDDEN","correct"))

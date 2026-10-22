@@ -53,6 +53,7 @@ class V2GameServiceIntegrationTest {
         for(int duplicate=0;duplicate<2;duplicate++) {
             var failure=assertThrows(ApiException.class,()->runtime.action("undercover",room.getId(),user(actor.getPlayerId()),action));
             assertEquals("OWN_WORD_FORBIDDEN",failure.getCode());assertEquals(1,failure.getDetails().get("violationCount"));
+            assertEquals("forbidden-1",failure.getDetails().get("actionRequestId"));
         }
         action.setRequestId("forbidden-2");
         assertEquals(2,assertThrows(ApiException.class,()->runtime.action("undercover",room.getId(),user(actor.getPlayerId()),action)).getDetails().get("violationCount"));

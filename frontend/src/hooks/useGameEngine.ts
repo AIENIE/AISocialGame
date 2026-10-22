@@ -44,8 +44,14 @@ export function useGameEngine(gameId: string | undefined, roomId: string | undef
   const actionMutation = useMutation({
     mutationFn: (action: PlayerAction) => {
       let prepared = preparedActions.current.get(action);
+      const current = queryClient.getQueryData<GameState>(queryKey);
+      const feedback = current?.extra?.wordFeedback as {actionRequestId?:string}|undefined;
+      if (feedback?.actionRequestId && feedback.actionRequestId === lastUnconfirmedAction.current?.action.requestId) {
+        lastUnconfirmedAction.current = undefined;
+        preparedActions.current.delete(action);
+        prepared = undefined;
+      }
       if (!prepared) {
-        const current = queryClient.getQueryData<GameState>(queryKey);
         const fingerprint = JSON.stringify([gameId, roomId, action.type, action.content || "", action.targetPlayerId || "",
           Boolean(action.abstain), action.nightAction || "", Boolean(action.useHeal), action.extra || {}, action.expectedPhaseToken || current?.extra?.phaseToken]);
         prepared = !action.requestId && lastUnconfirmedAction.current?.fingerprint === fingerprint

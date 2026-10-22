@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import type { GameState, PlayerAction } from "@/types";
 import { actionKey, buildPlayerAction, needsText } from "./v2Actions";
 import { roomActions } from "./roomActions";
+import { getApiErrorMessage } from "@/services/apiError";
+import { useRoomText } from "./roomText";
 
 export function useRoomActionController(state: GameState, onAction: (action: PlayerAction) => Promise<unknown>) {
+  const copy = useRoomText();
   const capabilities = roomActions(state);
   const primary = capabilities.filter(a => needsText(a) || a.targets.length > 0 || a.type === "NIGHT_ACTION");
   const [chosen, setChosen] = useState("");
   const [targets, setTargets] = useState<Record<string, string>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [changed, setChanged] = useState(false);
   const [confirmation, setConfirmation] = useState<PlayerAction | null>(null);
@@ -19,7 +23,7 @@ export function useRoomActionController(state: GameState, onAction: (action: Pla
   useEffect(() => {
     if (latestToken.current !== token) setChanged(true);
     latestToken.current = token;
-    setChosen(""); setTargets({}); setDrafts({}); setSubmitted(false); setConfirmation(null);
+    setChosen(""); setTargets({}); setDrafts({}); setSubmitted(false); setConfirmation(null); setSubmissionError("");
     const timer = window.setTimeout(() => setChanged(false), 2500);
     return () => window.clearTimeout(timer);
   }, [token]);
@@ -36,12 +40,13 @@ export function useRoomActionController(state: GameState, onAction: (action: Pla
     const original = token;
     try {
       await onAction(action);
+      setSubmissionError("");
       if (latestToken.current === original) { setDrafts({}); setTargets({}); setSubmitted(true); }
       setConfirmation(null);
-    } catch { /* The runtime reports the error. Keep the draft and target for retry. */ }
+    } catch (error) { setSubmissionError(getApiErrorMessage(error,copy("submissionFailed"))); }
     finally { submitting.current = false; setBusy(false); }
   };
-  return { capabilities, primary, selected, key, draft, target, prepared, abstain, busy, submitted, changed, confirmation,
+  return { capabilities, primary, selected, key, draft, target, prepared, abstain, busy, submitted, changed, confirmation, submissionError,
     setConfirmation, submit, choose: (value: string) => { setChosen(value); setSubmitted(false); },
     selectTarget: (id: string) => setTargets(previous => ({ ...previous, [key]: id })),
     setDraft: (text: string) => { setDrafts(previous => ({ ...previous, [key]: text })); setSubmitted(false); } };

@@ -175,6 +175,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
             var feedback = new LinkedHashMap<String,Object>();
             feedback.put("code", count >= 3 ? "FORBIDDEN_WORD_ELIMINATED" : "OWN_WORD_FORBIDDEN");
             feedback.put("turnKey", opportunity); feedback.put("forbiddenTerms", forbidden);
+            if (action.getRequestId()!=null) feedback.put("actionRequestId",action.getRequestId());
             feedback.put("violationCount", count); feedback.put("remainingCorrections", Math.max(0, 3-count));
             feedback.put("eliminated", count >= 3);
             var corrections = map(state.getData().get("wordCorrections")); corrections.put(actorId, feedback);

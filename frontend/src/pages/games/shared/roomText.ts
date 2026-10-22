@@ -39,6 +39,7 @@ const messages = {
   forbiddenWords: ["命中本人禁词：{words}", "命中本人禁詞：{words}", "Your forbidden word was detected: {words}"],
   forbiddenCorrections: ["还可修正 {n} 次，原倒计时继续。第三次违规将出局。", "還可修正 {n} 次，原倒數計時繼續。第三次違規將出局。", "{n} corrections left. The original timer continues. A third violation eliminates you."],
   forbiddenEliminated: ["累计三次禁词违规，已判定出局。", "累計三次禁詞違規，已判定出局。", "You are eliminated after three forbidden-word violations."],
+  submissionFailed: ["提交未成功，请检查当前提示后再操作。", "提交未成功，請檢查目前提示後再操作。", "Submission failed. Check the current feedback before trying again."],
   roomChat: ["房间聊天", "房間聊天", "Room chat"], readOnly: ["局中仅供查看", "局中僅供查看", "Read-only during the game"],
   unread: ["{n} 条新消息", "{n} 則新訊息", "{n} new messages"], newEvents: ["有新发言 · 回到最新", "有新發言 · 回到最新", "New messages · Jump to latest"],
   older: ["查看更早记录", "查看更早紀錄", "Load earlier events"], retry: ["重试", "重試", "Retry"],

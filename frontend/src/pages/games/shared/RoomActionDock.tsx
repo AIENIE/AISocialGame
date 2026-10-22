@@ -31,6 +31,7 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
     {control.changed && <p className="room-turn-notice" role="status">{copy("phaseChanged")}</p>}
     {!connected && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{copy("reconnect")}</p>}
     {submitted && <p className="flex items-center gap-1 text-sm text-emerald-700 dark:text-emerald-300" role="status"><Check className="h-4 w-4" />{copy("submitted")}</p>}
+    {control.submissionError && <p className="text-sm text-amber-800 dark:text-amber-200" role="alert">{control.submissionError}</p>}
     {feedback && <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950" role="alert">
       <p>{copy("forbiddenWords", { words: feedback.forbiddenTerms.join("、") })}</p>
       <p>{copy(feedback.eliminated ? "forbiddenEliminated" : "forbiddenCorrections", { n: feedback.remainingCorrections })}</p>

@@ -119,7 +119,7 @@ function AdminLabIndex() {
         {!agents.data?.length&&<p className="lab-small mt-2">先到“独立 AI 档案”创建阵容。</p>}</div>
       <div><h3 className="text-sm font-medium mb-3">统一复盘教练</h3><ModelSelectionFields models={models} value={coach.modelKey?coach:{...coach,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??models[0]?.modelKey??""}} change={setCoach} prefix="coach" /></div>
       <div className="lab-form-grid"><label className="lab-field">继承经验来源实验 ID（可选）<input value={sourceId} onChange={event=>setSourceId(event.target.value)} placeholder="空白表示从初始经验开始" /></label><Button variant="outline" className="self-end" type="button" onClick={()=>setInheritId(sourceId.trim())}>读取来源经验</Button></div>
-      {source.data&&<p className="lab-small">来源：“{source.data.name}”。逐副本选择继承经验；模型和人格从当前档案复制。</p>}
+      {source.data&&<p className="lab-small">来源：“{source.data.name}”。逐副本选择继承经验；复制实验保留来源模型，可逐席调整，人格从当前档案复制。</p>}
       {source.error&&<p className="lab-error" role="alert">{getApiErrorMessage(source.error,"来源实验读取失败")}</p>}
       <p className="lab-note">创建后为草稿，需要手动启动。对局、修正、复盘与评测共享费用上限；实验对局不计普通排名、成就和奖励。</p>
       {create.error&&<p className="lab-error" role="alert">{getApiErrorMessage(create.error,"创建失败")}</p>}
