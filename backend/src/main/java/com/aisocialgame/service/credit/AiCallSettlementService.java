@@ -14,7 +14,7 @@ import java.time.Instant;
 import java.util.*;
 
 @Service
-public class AiCreditEscrowService {
+public class AiCallSettlementService {
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.lab.LabBudgetService labBudgets;
     public record Claim(AiCreditReservation reservation, boolean acquired) {}
@@ -25,15 +25,16 @@ public class AiCreditEscrowService {
     private final ObjectMapper json;
     private final TransactionTemplate tx;
 
-    public AiCreditEscrowService(AiCreditReservationRepository reservations,CreditAccountRepository accounts,
+    public AiCallSettlementService(AiCreditReservationRepository reservations,CreditAccountRepository accounts,
             TemporaryCreditService temporary,CreditLedgerService ledger,ObjectMapper json,PlatformTransactionManager manager) {
         this.reservations=reservations; this.accounts=accounts; this.temporary=temporary; this.ledger=ledger; this.json=json;
         tx=new TransactionTemplate(manager); tx.setPropagationBehavior(3);
     }
-    private final java.util.Set<String> executing = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    public void beginRequest(String id) { executing.add(id); }
-    public void endRequest(String id) { executing.remove(id); }
-    public Claim reserve(ChatCompletionsRequest request,PrepareCallBudgetResponse budget) {
+    public static boolean pending(String state) {
+        return Set.of("PENDING", "USAGE_UNKNOWN", "HELD").contains(state);
+    }
+    /** Registers a durable call identity without transferring any credits. */
+    public Claim register(ChatCompletionsRequest request,PrepareCallBudgetResponse budget) {
         String digest=hash(request.toByteArray());
         if(!digest.equals(budget.getRequestSha256()) || budget.getBudgetId().isBlank()
                 || budget.getBudgetCredential().isBlank() || budget.getMaxProviderAttempts()!=1
@@ -51,88 +52,92 @@ public class AiCreditEscrowService {
             }
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
-            long required=budget.hasPriceQuote() ? validatedPoints(budget.getPriceQuote()) : budget.getMaxTotalTokens();
-            long temp=temporary.balance(account,now);
-            long available = Math.addExact(temp,account.getPermanentBalance());
-            if(available < required) {
-                var held = reservations.findByUserIdAndProjectKeyAndState(request.getUserId(), request.getProjectKey(), "HELD");
-                long active = held.stream().filter(r -> executing.contains(r.requestId))
-                        .mapToLong(r -> Math.addExact(r.reservedTemp,r.reservedPermanent)).sum();
-                String code = available + active >= required ? "AI_BUDGET_BUSY" : "AI_CREDIT_INSUFFICIENT";
-                throw new ApiException(HttpStatus.BAD_REQUEST,"专属积分不足以预留本次 AI 调用的最高用量",code,
-                    Map.of("requiredPoints",required,"availablePoints",available, "budgetId", budget.getBudgetId()));
-            }
-            long reserveTemp=Math.min(temp,required);
-            var portions=temporary.take(account,reserveTemp,now);
-            long reservePermanent=required-reserveTemp;
-            account.setPermanentBalance(account.getPermanentBalance()-reservePermanent);
-            accounts.saveAndFlush(account);
+            if (budget.hasPriceQuote()) validatedPoints(budget.getPriceQuote());
+            long available = Math.addExact(temporary.balance(account,now),account.getPermanentBalance());
+            if (available <= 0) throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "专属积分余额不足，请先充值或兑换", "AI_CREDIT_INSUFFICIENT", Map.of("availablePoints",available));
             AiCreditReservation row=new AiCreditReservation(); row.id=UUID.randomUUID().toString();
             row.identityHash=identity; row.requestHash=digest; row.requestId=request.getRequestId();
             row.projectKey=request.getProjectKey(); row.userId=request.getUserId(); row.budgetId=budget.getBudgetId();
-            row.state="HELD"; row.reservedTemp=reserveTemp; row.reservedPermanent=reservePermanent;
+            row.state="PENDING"; row.reservedTemp=0; row.reservedPermanent=0;
             if (labBudgets != null) labBudgets.bind(row);
-            row.tempPortionsJson=encode(portions); row.updatedAt=System.currentTimeMillis();
+            row.tempPortionsJson="[]"; row.updatedAt=System.currentTimeMillis();
             if (budget.hasPriceQuote()) row.billingQuoteBase64=Base64.getEncoder().encodeToString(budget.getPriceQuote().toByteArray());
             reservations.saveAndFlush(row);
-            ledger.insertLedgerEntry("ai-hold:"+row.id,row.userId,"AI_RESERVE",-reserveTemp,-reservePermanent,0,0,
-                "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
             return new Claim(row,true);
         });
     }
+    /** Release legacy monetary holds once, retaining the original identity and pricing basis. */
+    public void releaseLegacyHold(String id) {
+        tx.executeWithoutResult(transaction -> {
+            var row=reservations.lock(id).orElseThrow();
+            if (!"HELD".equals(row.state)) return;
+            var account=accounts.findForUpdate(row.userId,row.projectKey).orElseThrow();
+            Instant now=Instant.now();
+            long expired=0, allocation=0;
+            for (var portion:decode(row.tempPortionsJson)) {
+                if (portion.amount()<0) throw unavailable();
+                allocation=Math.addExact(allocation,portion.amount());
+                if (portion.expiresAt()!=null && !portion.expiresAt().isAfter(now)) expired=Math.addExact(expired,portion.amount());
+                else temporary.refund(account,portion.amount(),portion.expiresAt(),now);
+            }
+            if (allocation!=row.reservedTemp || row.reservedPermanent<0) throw unavailable();
+            account.setPermanentBalance(Math.addExact(account.getPermanentBalance(),row.reservedPermanent));
+            accounts.saveAndFlush(account);
+            ledger.insertLedgerEntry("ai-release:"+row.id,row.userId,"AI_RELEASE",row.reservedTemp,row.reservedPermanent,0,0,
+                    "AI_BUDGET",Map.of("budgetId",row.budgetId,"reason","POSTPAID_MIGRATION"),null,account,
+                    new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,
+                            Math.addExact(temporary.balance(account,now),expired),account.getPermanentBalance(),null));
+            if (expired>0) ledger.insertLedgerEntry("ai-expire:"+row.id,row.userId,"EXPIRE",-expired,0,0,0,
+                    "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
+            row.reservedTemp=0; row.reservedPermanent=0; row.state="USAGE_UNKNOWN";
+            row.updatedAt=System.currentTimeMillis(); reservations.saveAndFlush(row);
+        });
+    }
     public void reconcile(String id,GetBudgetCallStatusResponse status) {
+        // Migration commits separately: unavailable usage must never keep money frozen.
+        releaseLegacyHold(id);
         tx.executeWithoutResult(transaction->{
             var row=reservations.lock(id).orElseThrow();
-            if(!"HELD".equals(row.state)) return;
+            if(!pending(row.state)) return;
             if(!row.budgetId.equals(status.getBudgetId()) || !row.requestHash.equals(status.getRequestSha256())) throw unavailable();
             boolean success=status.getState()==BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED;
             boolean notSent=status.getState()==BudgetCallState.BUDGET_CALL_STATE_FAILED_NOT_SENT;
-            if(!success && !notSent) { row.updatedAt=System.currentTimeMillis(); reservations.save(row); return; }
+            if(!success && !notSent) {
+                row.state=status.getState()==BudgetCallState.BUDGET_CALL_STATE_RUNNING
+                        || status.getState()==BudgetCallState.BUDGET_CALL_STATE_PREPARED ? "PENDING" : "USAGE_UNKNOWN";
+                row.updatedAt=System.currentTimeMillis(); reservations.save(row); return;
+            }
             long usage=success ? status.getTotalTokens() : 0;
             long billed=success ? billedPoints(row,status) : 0;
             if(success && (!status.getUsageAuthoritative() || !status.hasChat()
-                || status.getPromptTokens()<0 || status.getCompletionTokens()<0
+                || status.getPromptTokens()<0 || status.getCompletionTokens()<0 || billed<0
                 || usage!=Math.addExact(status.getPromptTokens(),status.getCompletionTokens())
                 || status.getChat().getPromptTokens()!=status.getPromptTokens()
-                || status.getChat().getCompletionTokens()!=status.getCompletionTokens()
-                || billed>Math.addExact(row.reservedTemp,row.reservedPermanent))) throw unavailable();
-            var account=accounts.findForUpdate(row.userId,row.projectKey).orElseThrow();
-            Instant now=Instant.now();
-            long tempBefore=temporary.balance(account,now), permanentBefore=account.getPermanentBalance();
-            long debitTemp=Math.min(billed,row.reservedTemp), debitPermanent=billed-debitTemp, remainingDebit=debitTemp;
-            long refundedTemp=0,expiredTemp=0;
-            for(var portion:decode(row.tempPortionsJson)) {
-                long consumed=Math.min(remainingDebit,portion.amount()); remainingDebit-=consumed;
-                long refund=portion.amount()-consumed;
-                if(portion.expiresAt()!=null && !portion.expiresAt().isAfter(now)) expiredTemp+=refund;
-                else { temporary.refund(account,refund,portion.expiresAt(),now); refundedTemp+=refund; }
+                || status.getChat().getCompletionTokens()!=status.getCompletionTokens())) throw unavailable();
+            if(success) {
+                var account=accounts.findForUpdate(row.userId,row.projectKey).orElseThrow();
+                Instant now=Instant.now();
+                long debitTemp=Math.min(billed,temporary.balance(account,now));
+                temporary.take(account,debitTemp,now);
+                long debitPermanent=billed-debitTemp;
+                account.setPermanentBalance(Math.subtractExact(account.getPermanentBalance(),debitPermanent));
+                accounts.saveAndFlush(account);
+                ledger.insertLedgerEntry("ai-consume:"+row.id,row.userId,"CONSUME",-debitTemp,-debitPermanent,0,0,"AI_CALL",
+                        settlementMetadata(row,status,billed),null,account);
+                row.resultBase64=Base64.getEncoder().encodeToString(status.getChat().toByteArray());
             }
-            long refundPermanent=row.reservedPermanent-debitPermanent;
-            account.setPermanentBalance(Math.addExact(account.getPermanentBalance(),refundPermanent)); accounts.save(account);
-            // Undo the transfer in the audit ledger, then account for actual consumption/expiry.
-            ledger.insertLedgerEntry("ai-release:"+row.id,row.userId,"AI_RELEASE",row.reservedTemp,row.reservedPermanent,0,0,
-                "AI_BUDGET",Map.of("budgetId",row.budgetId,"refundedTemp",String.valueOf(refundedTemp)),null,account,
-                new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,Math.addExact(tempBefore,row.reservedTemp),
-                    Math.addExact(permanentBefore,row.reservedPermanent),null));
-            if(success) ledger.insertLedgerEntry("ai-consume:"+row.id,row.userId,"CONSUME",-debitTemp,-debitPermanent,0,0,"AI_BUDGET",
-                settlementMetadata(row,status,billed),null,account,
-                new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,Math.addExact(tempBefore,row.reservedTemp)-debitTemp,
-                    Math.addExact(permanentBefore,row.reservedPermanent)-debitPermanent,null));
-            if(expiredTemp>0) ledger.insertLedgerEntry("ai-expire:"+row.id,row.userId,"EXPIRE",-expiredTemp,0,0,0,
-                "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
-            row.state=success ? "SETTLED" : "RELEASED";
-            if (row.labExperimentId != null) {
-                row.billedPoints = billed;
-                row.billedCost = success && status.hasCharge() ? new java.math.BigDecimal(status.getCharge().getTotalCost()) : java.math.BigDecimal.ZERO;
-            }
-            if(success) row.resultBase64=Base64.getEncoder().encodeToString(status.getChat().toByteArray());
+            row.state=success ? "SETTLED" : "NOT_SENT";
+            row.billedPoints=billed;
+            row.billedCost=success && status.hasCharge() ? new java.math.BigDecimal(status.getCharge().getTotalCost())
+                    : notSent ? java.math.BigDecimal.ZERO : null;
             row.updatedAt=System.currentTimeMillis(); reservations.saveAndFlush(row);
         });
     }
     public void markChecked(String id) {
         tx.executeWithoutResult(transaction -> {
             var row = reservations.lock(id).orElseThrow();
-            if ("HELD".equals(row.state)) { row.updatedAt = System.currentTimeMillis(); reservations.save(row); }
+            if (pending(row.state)) { row.updatedAt = System.currentTimeMillis(); reservations.save(row); }
         });
     }
     private static long validatedPoints(BudgetPriceQuote quote) {
@@ -159,7 +164,7 @@ public class AiCreditEscrowService {
             long points=cost.multiply(java.math.BigDecimal.valueOf(100)).setScale(0,java.math.RoundingMode.CEILING).longValueExact();
             if (!charge.getCurrency().equals(quote.getCurrency()) || charge.getPriceVersionId()!=quote.getPriceVersionId()
                     || !charge.getPriceSha256().equals(quote.getPriceSha256()) || cost.signum()<0
-                    || cost.compareTo(new java.math.BigDecimal(quote.getMaxCost()))>0 || points!=charge.getCreditPoints()) throw unavailable();
+                    || points!=charge.getCreditPoints()) throw unavailable();
             return points;
         } catch (IllegalArgumentException | ArithmeticException invalid) { throw unavailable(); }
     }
@@ -171,9 +176,6 @@ public class AiCreditEscrowService {
             metadata.put("totalCost",status.getCharge().getTotalCost()); metadata.put("priceVersionId",String.valueOf(status.getCharge().getPriceVersionId())); }
         return metadata;
     }
-    private String encode(List<TemporaryCreditService.Portion> portions) {
-        try { return json.writeValueAsString(portions); } catch(Exception ex) { throw new IllegalStateException(ex); }
-    }
     private List<TemporaryCreditService.Portion> decode(String value) {
         try { return json.readValue(value,new TypeReference<List<TemporaryCreditService.Portion>>(){}); }
         catch(Exception ex) { throw new IllegalStateException(ex); }
@@ -182,5 +184,5 @@ public class AiCreditEscrowService {
         try {return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));}
         catch(Exception ex){throw new IllegalStateException(ex);}
     }
-    private static ApiException unavailable() {return new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 预算状态需要核对","BUDGET_RECONCILIATION_REQUIRED",Map.of());}
+    private static ApiException unavailable() {return new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 费用凭据暂无法确认","AI_USAGE_UNKNOWN",Map.of());}
 }

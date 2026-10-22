@@ -19,12 +19,12 @@ public class BoundedAiClient {
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BoundedAiClient.class);
     private final AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub;
-    private final AiCreditEscrowService escrow;
+    private final AiCallSettlementService escrow;
     private final AiCreditReservationRepository reservations;
     private final AiCallBudgetService callBudget;
     private final boolean enabled;
     private final int maxOutput;
-    public BoundedAiClient(AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub,AiCreditEscrowService escrow,
+    public BoundedAiClient(AiGatewayServiceGrpc.AiGatewayServiceBlockingStub stub,AiCallSettlementService escrow,
             AiCreditReservationRepository reservations,AiCallBudgetService callBudget,
             @Value("${app.ai.budget-enabled:false}") boolean enabled,
             @Value("${app.ai.budget-max-output-tokens:8192}") int maxOutput) {
@@ -43,17 +43,15 @@ public class BoundedAiClient {
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds,int outputLimit,Runnable beforeSend) {
         requireReady();
         request = originalDebugFlag(request);
-        escrow.beginRequest(request.getRequestId());
-        try { return execute(request, deadlineSeconds, outputLimit, beforeSend); }
-        finally { escrow.endRequest(request.getRequestId()); }
+        return execute(request, deadlineSeconds, outputLimit, beforeSend);
     }
     // Old reservations are bound to the exact request bytes, including absence of diagnostic flags.
     private ChatCompletionsRequest originalDebugFlag(ChatCompletionsRequest request) {
         if (!request.hasIncludeDebug()) return request;
         var original = reservations.findByIdentityHash(identity(request)).orElse(null);
-        if (original == null || original.requestHash.equals(AiCreditEscrowService.hash(request.toByteArray()))) return request;
+        if (original == null || original.requestHash.equals(AiCallSettlementService.hash(request.toByteArray()))) return request;
         var legacy = request.toBuilder().clearIncludeDebug().build();
-        return original.requestHash.equals(AiCreditEscrowService.hash(legacy.toByteArray())) ? legacy : request;
+        return original.requestHash.equals(AiCallSettlementService.hash(legacy.toByteArray())) ? legacy : request;
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
         return reservations.findByIdentityHash(identity(request)).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
@@ -69,7 +67,7 @@ public class BoundedAiClient {
     private ChatCompletionsResponse execute(ChatCompletionsRequest request, int deadlineSeconds, int outputLimit, Runnable beforeSend) {
         var previous=reservations.findByIdentityHash(identity(request)).orElse(null);
         if (previous!=null) {
-            if (!previous.requestHash.equals(AiCreditEscrowService.hash(request.toByteArray())))
+            if (!previous.requestHash.equals(AiCallSettlementService.hash(request.toByteArray())))
                 throw new ApiException(HttpStatus.CONFLICT,"AI 请求标识与原内容不一致","BUDGET_REQUEST_CONFLICT",Map.of());
             return recover(previous);
         }
@@ -86,7 +84,7 @@ public class BoundedAiClient {
             throw failure;
         }
         if (!budget.hasPriceQuote()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"AI 服务尚未提供金额预算","BUDGET_PRICING_UNAVAILABLE",Map.of());
-        var claim=escrow.reserve(request,budget);
+        var claim=escrow.register(request,budget);
         if(claim.acquired()) {
             boolean executionStarted=false;
             try {
@@ -103,7 +101,7 @@ public class BoundedAiClient {
                     .chatCompletions(request.toBuilder().setBudgetCredential(budget.getBudgetCredential()).build());
             } catch(RuntimeException failure) {
                 // Local admission/deadline failures have not attempted the execution RPC.
-                // Keep the hold until the prepared server budget expires, but preserve the actual cause.
+                // Preserve the local cause; the prepared request expires without a send.
                 if (!executionStarted) throw failure;
                 // Querying is safe; neither this path nor the worker retries inference.
                 return recover(claim.reservation());
@@ -113,14 +111,14 @@ public class BoundedAiClient {
     }
     private ChatCompletionsResponse recover(AiCreditReservation row) {
         BudgetCallState remote=null;
-        if ("HELD".equals(row.state)) {
+        if (AiCallSettlementService.pending(row.state)) {
             try { remote=reconcile(row).getState(); }
             catch (RuntimeException unavailable) { log.info("AI result query deferred requestId={} errorType={}",row.requestId,unavailable.getClass().getSimpleName()); }
             row=reservations.findById(row.id).orElseThrow();
         }
         if ("SETTLED".equals(row.state)) return result(row);
-        if ("RELEASED".equals(row.state)) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                "AI 服务已确认原请求未发送，冻结积分已释放", "AI_REQUEST_NOT_SENT",
+        if ("NOT_SENT".equals(row.state) || "RELEASED".equals(row.state)) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                "AI 服务已确认原请求未发送，未扣费", "AI_REQUEST_NOT_SENT",
                 Map.of("budgetId",row.budgetId,"settlementState",row.state,"remoteState","FAILED_NOT_SENT"));
         boolean running=remote==BudgetCallState.BUDGET_CALL_STATE_PREPARED || remote==BudgetCallState.BUDGET_CALL_STATE_RUNNING;
         throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, running?"正在等待原 AI 请求的结果":"原 AI 请求状态暂未确认，保留现场等待查询",
@@ -128,7 +126,7 @@ public class BoundedAiClient {
                 Map.of("budgetId",row.budgetId,"settlementState",row.state,"remoteState",remote==null?"UNKNOWN":remote.name().replace("BUDGET_CALL_STATE_","")));
     }
     private static String identity(ChatCompletionsRequest request) {
-        return AiCreditEscrowService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return AiCallSettlementService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
     private static boolean transientFailure(RuntimeException failure) {
         return java.util.Set.of(io.grpc.Status.Code.UNAVAILABLE, io.grpc.Status.Code.DEADLINE_EXCEEDED,
@@ -148,10 +146,11 @@ public class BoundedAiClient {
     }
     @Scheduled(fixedDelayString="${app.ai.budget-reconcile-delay-ms:30000}")
     public void reconcilePending() {
-        // Continue settling old holds even while new inference is disabled.
-        for(var row:reservations.findByStateOrderByUpdatedAtAsc("HELD",PageRequest.of(0,5))) {
+        // Release historical holds independently of remote availability.
+        for (var row:reservations.findByStateOrderByUpdatedAtAsc("HELD",PageRequest.of(0,100))) escrow.releaseLegacyHold(row.id);
+        for(var row:reservations.findByStateInOrderByUpdatedAtAsc(java.util.List.of("PENDING","USAGE_UNKNOWN"),PageRequest.of(0,20))) {
             try { reconcile(row); } catch(RuntimeException failure) {
-                log.warn("AI budget reconciliation pending reservationId={} rpcCode={}",row.id,io.grpc.Status.fromThrowable(failure).getCode());
+                log.warn("AI usage query deferred callId={} rpcCode={}",row.id,io.grpc.Status.fromThrowable(failure).getCode());
                 escrow.markChecked(row.id);
             }
         }

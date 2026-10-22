@@ -1,10 +1,9 @@
 const labels: Record<string, readonly [string, string]> = {
   "费用预算":["費用預算","Spending budget"],
-  "账户未结预留":["帳戶未結預留","Unsettled account holds"],
   "剩余预算":["剩餘預算","Remaining budget"],
   "实验因预算限制暂停":["實驗因預算限制暫停","Experiment paused by a budget limit"],
   "管理员已结束实验":["管理員已結束實驗","Experiment ended by administrator"],
-  "对局、修正、复盘与评测按累计实扣共用预算。达到预算后暂停新调用；在途费用可能使最终实扣超过预算。账户预留不扣减剩余预算，未知费用继续对账。":["對局、修正、復盤與評測按累計實扣共用預算。達到預算後暫停新呼叫；在途費用可能使最終實扣超過預算。帳戶預留不扣減剩餘預算，未知費用繼續對帳。","Games, corrections, reviews and evaluations share the budget by actual debit. New calls pause at the budget; in-flight charges may exceed it. Account holds do not reduce the remaining budget, and unknown charges remain under reconciliation."],
+  "对局、修正、复盘与评测按累计实扣共用预算。达到预算后暂停新调用；在途费用可能使最终实扣超过预算。按实际用量扣款，未知费用显示为待确认。":["對局、修正、復盤與評測按累計實扣共用預算。達到預算後暫停新呼叫；在途費用可能使最終實扣超過預算。按實際用量扣款，未知費用顯示為待確認。","Games, corrections, reviews and evaluations share the budget by actual debit. New calls pause at the budget; in-flight charges may exceed it. Charges use actual usage; unknown charges await confirmation."],
   "正常结束":["正常結束","Finished normally"],
   "复盘成功":["復盤成功","Reviews completed"],
   "中断":["中斷","Aborted"],
@@ -58,9 +57,9 @@ const labels: Record<string, readonly [string, string]> = {
     "筆呼叫",
     "calls"
   ],
-  "笔待对账": [
-    "筆待對帳",
-    "awaiting reconciliation"
+  "笔待确认": [
+    "筆待確認",
+    "awaiting confirmation"
   ],
   "对局尝试": [
     "對局嘗試",

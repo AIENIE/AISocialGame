@@ -19,7 +19,7 @@ let container:HTMLDivElement,root:Root,client:QueryClient;
 const experiment=():LabExperiment=>({
   id:"experiment",name:"Test laboratory",status:"RUNNING",budgetPoints:1000,createdAt:"2026-10-21T12:00:00",
   attemptedGames:1,reviewedThrough:0,playerCount:6,targetGames:100,wordPack:"daily",hasBlank:false,
-  cost:{spentPoints:12,heldPoints:88,pendingPoints:88,pendingCalls:1,totalCalls:2,actualCost:"0.000001"},
+  cost:{spentPoints:12,pendingCalls:1,totalCalls:2,actualCost:"0.000001"},
   enrollment:{status:"OFFERED",matchId:"match",confirmUntil:Date.now()+30_000},evaluations:[],
   activeMatches:[{id:"match",sequenceNumber:1,roomId:"room",status:"WAITING",startsAtEpochMs:Date.now()+30000,createdAt:"2026-10-21T12:00:00"}],
 });
@@ -63,15 +63,15 @@ it("does not offer thinking switches or effort values when provider capabilities
   expect(container.querySelector("#fixture-effort")).toBeNull();
   expect(container.textContent).toContain("思考能力未知");
 });
-it("separates actual provider cost from wallet charges and outstanding holds in all supported languages",()=>{
+it("shows actual charges and pending usage without monetary holds in all supported languages",()=>{
   const value=experiment();
   act(()=>root.render(<LabCostPanel cost={value.cost} limit={100} tr={text=>labText("en",text)}/>));
   expect(container.textContent).toContain("¥0.12");
   expect(container.textContent).toContain("¥0.88");
   expect(container.textContent).toContain("¥0.00");
   expect(container.textContent).toContain("0.000001");
-  expect(container.textContent).toContain("awaiting reconciliation");
-  expect(container.textContent).toContain("Account holds do not reduce the remaining budget");
+  expect(container.textContent).toContain("awaiting confirmation");
+  expect(container.textContent).toContain("Charges use actual usage");
   expect(labText("zh-TW","AI 实验室")).toBe("AI 實驗室");
   expect(labText("zh-CN","PAUSING")).toBe("本局后暂停");
 });

@@ -9,7 +9,7 @@ import com.aisocialgame.repository.*;
 import com.aisocialgame.repository.credit.*;
 import com.aisocialgame.service.ai.config.*;
 import com.aisocialgame.service.ai.v2.*;
-import com.aisocialgame.service.credit.AiCreditEscrowService;
+import com.aisocialgame.service.credit.AiCallSettlementService;
 import com.aisocialgame.service.v2.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fireflychat.ai.v1.*;
@@ -43,7 +43,7 @@ class LabIntegrationTest {
     @Autowired AiTurnCoordinator turns;
     @Autowired LabBudgetService budgets;
     @Autowired LabDiagnosticsService diagnostics;
-    @Autowired AiCreditEscrowService escrow;
+    @Autowired AiCallSettlementService escrow;
     @Autowired CreditAccountRepository accounts;
     @Autowired AiCreditReservationRepository reservations;
     @Autowired ObjectMapper json;
@@ -364,23 +364,25 @@ class LabIntegrationTest {
         try(var workers=Executors.newFixedThreadPool(8)) {
             var attempts=requests.stream().map(request -> workers.submit(() -> {
                 try(var context=LabCallContext.open(Map.of("experimentId",id,"matchId","fixture"),"TURN")) {
-                    budgets.checkCall(); escrow.reserve(request,budget(request,quote)); return true;
+                    budgets.checkCall(); escrow.register(request,budget(request,quote)); return true;
                 }
             })).toList();
             int acquired=0; for(var attempt:attempts) if(attempt.get(15,TimeUnit.SECONDS)) acquired++;
             assertEquals(8,acquired);
         }
-        assertEquals(1736L,budgets.totals(id).get("heldPoints"));
+        assertFalse(budgets.totals(id).containsKey("heldPoints"));
+        assertEquals(8L,budgets.totals(id).get("pendingCalls"));
+        assertEquals(10000,accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow().getPermanentBalance());
         assertEquals(8L,budgets.totals(id).get("spentPoints"));
         assertEquals("RUNNING",service.updateBudget(id,12).get("status"));
         var charge=BudgetCharge.newBuilder().setCurrency("CNY").setPriceVersionId(1).setPriceSha256("a".repeat(64)).setTotalCost("0.010000").setCreditPoints(1).build();
-        for(var row:reservations.findByUserIdAndProjectKeyAndState(userId,"aisocialgame","HELD")) {
+        for(var row:reservations.findByUserIdAndProjectKeyAndState(userId,"aisocialgame","PENDING")) {
             var receipt=GetBudgetCallStatusResponse.newBuilder().setBudgetId(row.budgetId).setRequestSha256(row.requestHash)
                 .setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setUsageAuthoritative(true).setPromptTokens(10).setCompletionTokens(5).setTotalTokens(15)
                 .setPriceQuote(quote).setCharge(charge).setChat(ChatCompletionsResponse.newBuilder().setModelKey("fixture-model").setContent("ok").setPromptTokens(10).setCompletionTokens(5).setBudgetCharge(charge)).build();
             escrow.reconcile(row.id,receipt); escrow.reconcile(row.id,receipt);
         }
-        assertEquals(16L,budgets.totals(id).get("spentPoints")); assertEquals(0L,budgets.totals(id).get("heldPoints"));
+        assertEquals(16L,budgets.totals(id).get("spentPoints")); assertEquals(0L,budgets.totals(id).get("pendingCalls"));
         assertEquals(9992,accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow().getPermanentBalance());
         try(var context=LabCallContext.open(Map.of("experimentId",id,"matchId","fixture"),"TURN")) {
             assertEquals(LabBudgetService.EXHAUSTED,assertThrows(com.aisocialgame.exception.ApiException.class,budgets::checkCall).getCode());
@@ -389,7 +391,7 @@ class LabIntegrationTest {
     }
     private PrepareCallBudgetResponse budget(ChatCompletionsRequest request,BudgetPriceQuote quote) {
         return PrepareCallBudgetResponse.newBuilder().setBudgetId(UUID.randomUUID().toString()).setBudgetCredential("fixture")
-                .setRequestSha256(AiCreditEscrowService.hash(request.toByteArray())).setMaxPromptTokens(10).setMaxCompletionTokens(10).setMaxTotalTokens(20)
+                .setRequestSha256(AiCallSettlementService.hash(request.toByteArray())).setMaxPromptTokens(10).setMaxCompletionTokens(10).setMaxTotalTokens(20)
                 .setMaxProviderAttempts(1).setExpiresAtEpochMs(System.currentTimeMillis()+60000).setPriceQuote(quote).build();
     }
     @Test void budgetPauseSurvivesReloadAndResumesTheSameTurnWithoutExpiringItsClock() {
@@ -578,7 +580,7 @@ class LabIntegrationTest {
     private AiTurnDecision speech() { return new AiTurnDecision(action("SPEAK","它有一种常见的用途。",null),"它有一种常见的用途。",Map.of(),List.of(),Map.of(),false,Map.of()); }
     private void spent(String id,long points) {
         var row=new com.aisocialgame.model.credit.AiCreditReservation(); row.id=UUID.randomUUID().toString();
-        row.requestId="fixture-"+row.id; row.identityHash=AiCreditEscrowService.hash(row.requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        row.requestId="fixture-"+row.id; row.identityHash=AiCallSettlementService.hash(row.requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         row.requestHash=row.identityHash; row.projectKey="aisocialgame"; row.userId=85; row.budgetId=UUID.randomUUID().toString();
         row.state="SETTLED"; row.reservedPermanent=points; row.tempPortionsJson="[]"; row.updatedAt=System.currentTimeMillis();
         row.labExperimentId=id; row.labPurpose="TURN"; row.billedPoints=points; row.billedCost=java.math.BigDecimal.valueOf(points,2);

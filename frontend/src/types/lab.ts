@@ -2,7 +2,7 @@ import type { ThinkingMode, ThinkingEffort } from "./aiModelConfig";
 
 export interface LabSelection { modelKey: string; thinkingMode: ThinkingMode; thinkingEffort: ThinkingEffort | null }
 export interface LabAgent { id: string; name: string; personaId: string; modelSelection: LabSelection; version: number }
-export interface LabCost { spentPoints: number; heldPoints: number; pendingPoints: number; pendingCalls: number; totalCalls: number; actualCost: number | string }
+export interface LabCost { spentPoints: number; pendingCalls: number; totalCalls: number; actualCost: number | string }
 export interface LabExperienceHead { experienceId: string; experience: string; sequenceNumber: number }
 export interface LabFrozenAgent { agentId: string; participantId: string; name: string; personaId: string; persona: Record<string, unknown>; modelSelection: LabSelection }
 export interface LabConfiguration {
@@ -48,5 +48,5 @@ export interface LabDiagnostics {
   matchId: string; sequenceNumber: number; status: string; archiveId?: string;
   failure?: { code:string; stage:string; actorName?:string; round?:number; phase?:string; modelKey?:string; jobId?:string; inferred?:boolean; action?:{type:string;content:string} };
   tasks: { jobId:string; status:string; reason:string; actorName:string; modelKey:string; kind:string; attempts:{attempt:number;flags?:string[];failureStage?:string;settlementState?:string;requestId?:string}[] }[];
-  calls: { requestId:string;state:string;billedPoints:number;heldPoints:number;purpose:string }[];
+  calls: { requestId:string;state:string;billedPoints:number|null;purpose:string }[];
 }

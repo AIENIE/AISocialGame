@@ -16,7 +16,7 @@ function experiment():LabExperiment {
   const roster=Array.from({length:4},(_,index)=>({agentId:"same",participantId:`copy-${index}`,name:`Same #${index+1}`,personaId:"persona",persona:{},modelSelection:selection}));
   const heads=Object.fromEntries(roster.map(profile=>[profile.participantId,{experienceId:`experience-${profile.participantId}`,experience:"strategy",sequenceNumber:1}]));
   return {id:"source",name:"Source",status:"PAUSED",budgetPoints:1000,createdAt:"2026-10-21",attemptedGames:1,reviewedThrough:1,playerCount:4,targetGames:2,wordPack:"daily",hasBlank:false,
-    cost:{spentPoints:0,heldPoints:0,pendingPoints:0,pendingCalls:0,totalCalls:0,actualCost:0},configuration:{playerCount:4,targetGames:2,wordPack:"daily",hasBlank:false,roster,coach:selection,experiences:heads,initialExperiences:heads},
+    cost:{spentPoints:0,pendingCalls:0,totalCalls:0,actualCost:0},configuration:{playerCount:4,targetGames:2,wordPack:"daily",hasBlank:false,roster,coach:selection,experiences:heads,initialExperiences:heads},
     activeMatches:[{id:"match",roomId:"room",sequenceNumber:1,status:"PLAYING",startsAtEpochMs:0,createdAt:"2026-10-21"}]};
 }
 beforeEach(()=>{
@@ -47,7 +47,7 @@ async function waitForUi(predicate:()=>boolean) {
   expect(predicate()).toBe(true);
 }
 it("edits a running budget in cents, retains a failed draft and never starts the experiment implicitly",async()=>{
-  let current={...experiment(),status:"RUNNING",cost:{...experiment().cost,spentPoints:12,heldPoints:868,pendingPoints:868}};
+  let current={...experiment(),status:"RUNNING",cost:{...experiment().cost,spentPoints:12,}};
   api.detail.mockImplementation(async()=>current);
   api.updateBudget.mockRejectedValueOnce(new Error("save failed")).mockImplementationOnce(async(_id:string,points:number)=>{current={...current,budgetPoints:points};return current;});
   await render("/admin/lab/source");
@@ -86,7 +86,7 @@ it("applies player models in bulk, permits individual overrides, and leaves the 
 });
 it("puts the known historical rule error and settled cost before the history, without a player route",async()=>{
   api.detail.mockResolvedValue({...experiment(),reason:"SUBMISSION_EXCEPTION",latestFailureMatchId:"match",activeMatches:[]});
-  api.diagnostics.mockResolvedValue({matchId:"match",sequenceNumber:1,status:"ABORTED",archiveId:"archive",failure:{code:"LEGACY_WORD_SCOPE_REJECTION",stage:"SUBMISSION",actorName:"Same #1",phase:"DESCRIPTION",round:1,modelKey:"fixture",inferred:true,action:{type:"SPEAK",content:"失败原文"}},tasks:[],calls:[{requestId:"original:0",state:"SETTLED",billedPoints:8,heldPoints:0}]});
+  api.diagnostics.mockResolvedValue({matchId:"match",sequenceNumber:1,status:"ABORTED",archiveId:"archive",failure:{code:"LEGACY_WORD_SCOPE_REJECTION",stage:"SUBMISSION",actorName:"Same #1",phase:"DESCRIPTION",round:1,modelKey:"fixture",inferred:true,action:{type:"SPEAK",content:"失败原文"}},tasks:[],calls:[{requestId:"original:0",state:"SETTLED",billedPoints:8,}]});
   await render("/admin/lab/source");
   await act(async()=>{await new Promise(resolve=>setTimeout(resolve,25));});
   expect(container.textContent).toContain("旧版禁词范围错误");

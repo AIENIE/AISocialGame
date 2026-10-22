@@ -17,10 +17,9 @@ export function LabCostPanel({ cost, limit, tr = plain }: { cost: LabCost; limit
   return <aside className="lab-sidebar"><h2 className="flex items-center gap-2"><Coins size={16} />{tr("实验费用")}</h2>
     <div className="lab-ledger"><span>{tr("费用预算")}</span><strong>¥{money(limit)}</strong></div>
     <div className="lab-ledger"><span>{tr("已扣积分折合")}</span><strong>¥{money(cost.spentPoints)}</strong></div>
-    <div className="lab-ledger"><span>{tr("账户未结预留")}</span><strong>¥{money(cost.heldPoints)}</strong></div>
-    <div className="lab-ledger border-t"><span>{tr("剩余预算")}</span><strong>¥{money(Math.max(0, limit-cost.spentPoints))}</strong></div>
-    <div className="lab-small mt-5">{tr("供应商费用")} ¥{Number(cost.actualCost).toFixed(6)}<br />{cost.totalCalls} {tr("笔调用")} · {cost.pendingCalls} {tr("笔待对账")}</div>
-    <p className="lab-small mt-4">{tr("对局、修正、复盘与评测按累计实扣共用预算。达到预算后暂停新调用；在途费用可能使最终实扣超过预算。账户预留不扣减剩余预算，未知费用继续对账。")}</p></aside>;
+    <div className="lab-ledger border-t"><span>{tr("剩余预算")}</span><strong>¥{money(limit-cost.spentPoints)}</strong></div>
+    <div className="lab-small mt-5">{tr("供应商费用")} ¥{Number(cost.actualCost).toFixed(6)}<br />{cost.totalCalls} {tr("笔调用")} · {cost.pendingCalls} {tr("笔待确认")}</div>
+    <p className="lab-small mt-4">{tr("对局、修正、复盘与评测按累计实扣共用预算。达到预算后暂停新调用；在途费用可能使最终实扣超过预算。按实际用量扣款，未知费用显示为待确认。")}</p></aside>;
 }
 export function LabProgress({ experiment, tr = plain }: { experiment: LabExperiment; tr?: LabTranslate }) {
   const trained = Math.min(experiment.configuration?.trainingCreated ?? experiment.attemptedGames, experiment.targetGames);

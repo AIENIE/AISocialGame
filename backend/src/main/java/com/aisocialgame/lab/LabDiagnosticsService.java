@@ -83,8 +83,7 @@ public class LabDiagnosticsService {
         }).toList());
         result.put("calls",receipts.stream().map(call -> {
             var row=new LinkedHashMap<String,Object>();row.put("requestId",call.requestId);row.put("state",call.state);
-            row.put("billedPoints",call.billedPoints==null?0:call.billedPoints);
-            row.put("heldPoints","HELD".equals(call.state)?call.reservedTemp+call.reservedPermanent:0);
+            row.put("billedPoints",call.billedPoints);
             row.put("purpose",text(call.labPurpose));return row;
         }).toList());
         return result;

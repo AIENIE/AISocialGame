@@ -38,7 +38,7 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 
 管理观战返回 `match, room, state?`，state 复用原公开观战投影，不占座、不更新玩家在线状态。已过期且存在归档的对局只返回房间摘要与回放标识；完整回放沿用 `GET /api/admin/replays/{archiveId}/events`。公开玩家接口不接收管理员身份代替玩家登录。
 
-费用摘要分别返回 spentPoints、heldPoints、pendingPoints、pendingCalls、totalCalls、actualCost。实验只在新调用准备前以累计 spentPoints 检查预算；heldPoints / pendingPoints 不扣减实验剩余预算，钱包预留仍独立结算。达到预算后不准入新调用，已准入的在途调用继续结算，最终实扣可能超过预算。积分取整和供应商实际金额保持不同口径，结果未知只对账，不重新发送。
+费用摘要返回 spentPoints、pendingCalls、totalCalls、actualCost。实验只在新调用准备前以累计 spentPoints 检查预算；钱包不再冻结积分，收到权威用量后按实扣款，允许负余额。未知调用的 billedPoints 为 null。达到预算后不准入新调用，已准入的在途调用继续结算，最终实扣可能超过预算。积分取整和供应商实际金额保持不同口径，结果未知只对账，不重新发送。
 
 预算修改须为正整数且不低于保存时的累计已扣；不足返回 400 / LAB_BUDGET_BELOW_SPENT，details 提供 spentPoints、minimumPoints。调低至实扣触发预算暂停，调高不自动恢复。预算修改不重新开启 COMPLETED / STOPPED 实验。摘要提供 budgetPaused，房间状态 extra.labBudgetPaused 为 true 时不提供 legalActions，禁止真人提交动作。
 
