@@ -5,6 +5,7 @@ import { FlaskConical, Plus, ArrowLeft, Play, Pause, Square, RefreshCcw, GitComp
 import { toast } from "sonner";
 import { adminApi, adminLabApi, personaApi, getApiErrorMessage } from "@/services/api";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { AdminDataState } from "@/components/admin/AdminDataState";
 import { LabExperimentRows, LabCostPanel, LabProgress, LabLiveMatches, LabMatchHistory, LabEvaluationResults, LabPager } from "@/components/lab/LabPanels";
 import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
@@ -93,7 +94,7 @@ function AdminLabIndex() {
   const models=catalog.data?.models??[];
   const newExperiment=()=>{setCreating(true);setPlayerCount(6);setInheritId("");setSourceId("");setSelected(Array.from({length:6},(_,index)=>({agentId:agents.data?.[index%(agents.data?.length||1)]?.id??""})));setCoach({...emptySelection,modelKey:catalog.data?.functions.find(config=>config.functionCode==="UNDERCOVER")?.modelKey??models[0]?.modelKey??""});};
   return <div className="lab-workspace">
-    <header className="lab-heading"><div><div className="lab-eyebrow">NEXUS / RESEARCH CONTROL</div><h1>AI 实验室</h1><p>以完整对局积累经验，用固定对手检验变化。</p></div>
+    <header className="lab-heading"><div><div className="lab-eyebrow"><BrandLogo compact /> / RESEARCH CONTROL</div><h1>AI 实验室</h1><p>以完整对局积累经验，用固定对手检验变化。</p></div>
       <div className="lab-actions"><Button variant="outline" size="sm" onClick={()=>sync.mutate()} disabled={sync.isPending}><RefreshCcw size={14} className="mr-2" />同步模型</Button><Button size="sm" onClick={newExperiment}><Plus size={14} className="mr-2" />新建实验</Button></div></header>
     <div className="lab-tabs" role="tablist"><button role="tab" aria-selected={tab==="experiments"} onClick={()=>setTab("experiments")}>实验任务</button><button role="tab" aria-selected={tab==="agents"} onClick={()=>setTab("agents")}>独立 AI 档案 · {agents.data?.length??0}</button></div>
     {catalog.error&&<div className="lab-error" role="alert">{getApiErrorMessage(catalog.error,"模型目录读取失败")}</div>}

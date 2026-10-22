@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Coins, Gamepad2, Home, PlayCircle, Shield, Trophy, User, Zap } from "lucide-react";
+import { BookOpen, Coins, Home, PlayCircle, Shield, Trophy, User, Zap } from "lucide-react";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,7 +24,7 @@ const MainLayout = () => {
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 md:h-16 items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg"><Gamepad2 className="h-5 w-5 text-primary" /><span>Nexus<span className="text-primary">Play</span></span></Link>
+          <Link to="/" className="inline-flex shrink-0 items-center"><BrandLogo /></Link>
           <nav className="hidden md:flex items-center gap-5 text-sm font-medium">{nav.map(item => <Link key={item.path} to={item.path} className={active(item.path)}>{t(item.label)}</Link>)}</nav>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
