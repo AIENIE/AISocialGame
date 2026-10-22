@@ -28,11 +28,11 @@ public final class LabRequests {
                              @NotBlank String candidateExperienceId) {}
     public record Budget(@Min(1) long budgetPoints) {
         @com.fasterxml.jackson.annotation.JsonCreator(mode=com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING)
-        public static Budget from(com.fasterxml.jackson.databind.JsonNode body) {
+        public static Budget from(Map<String,Object> body) {
             var points=body==null?null:body.get("budgetPoints");
-            if(points==null || !points.isIntegralNumber() || !points.canConvertToLong())
-                throw new IllegalArgumentException("budgetPoints 必须为正整数");
-            return new Budget(points.longValue());
+            if(points instanceof java.math.BigInteger value) return new Budget(value.longValueExact());
+            if(points instanceof Integer || points instanceof Long) return new Budget(((Number)points).longValue());
+            throw new IllegalArgumentException("budgetPoints 必须为正整数");
         }
     }
 }

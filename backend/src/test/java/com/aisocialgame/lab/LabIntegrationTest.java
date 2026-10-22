@@ -47,6 +47,7 @@ class LabIntegrationTest {
     @Autowired CreditAccountRepository accounts;
     @Autowired AiCreditReservationRepository reservations;
     @Autowired ObjectMapper json;
+    @Autowired org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter httpAdapter;
     @Autowired com.aisocialgame.config.AppProperties properties;
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean com.aisocialgame.service.RoomCodeGenerator codes;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -443,8 +444,19 @@ class LabIntegrationTest {
     }
     @Test void budgetRequestRejectsFractionalStringAndOverflowValuesInsteadOfCoercingThem() throws Exception {
         assertEquals(1523,json.readValue("{\"budgetPoints\":1523}",LabRequests.Budget.class).budgetPoints());
-        for(String value:List.of("12.5","\"12\"","9223372036854775808","null"))
+        assertEquals(1523,readHttpBudget("{\"budgetPoints\":1523}").budgetPoints());
+        for(String value:List.of("12.5","\"12\"","9223372036854775808","null")) {
             assertThrows(com.fasterxml.jackson.core.JsonProcessingException.class,()->json.readValue("{\"budgetPoints\":"+value+"}",LabRequests.Budget.class));
+            assertThrows(org.springframework.http.converter.HttpMessageNotReadableException.class,()->readHttpBudget("{\"budgetPoints\":"+value+"}"));
+        }
+    }
+    @SuppressWarnings("unchecked")
+    private LabRequests.Budget readHttpBudget(String body) throws java.io.IOException {
+        var converter=(org.springframework.http.converter.HttpMessageConverter<LabRequests.Budget>)httpAdapter.getMessageConverters().stream()
+                .filter(value -> value.canRead(LabRequests.Budget.class,org.springframework.http.MediaType.APPLICATION_JSON)).findFirst().orElseThrow();
+        var input=new org.springframework.mock.http.MockHttpInputMessage(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        input.getHeaders().setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return converter.read(LabRequests.Budget.class,input);
     }
     @Test void budgetPausedCoachKeepsTheOriginalRequestForResume() {
         String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
