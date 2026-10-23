@@ -21,6 +21,7 @@ class BoundedAiClientTest {
     long generationDelayMs, statusDelayMs;
     Status executionFailure=Status.DEADLINE_EXCEEDED;
     final java.util.concurrent.atomic.AtomicLong statusWindowMs=new java.util.concurrent.atomic.AtomicLong();
+    final java.util.concurrent.atomic.AtomicLong generationWindowMs=new java.util.concurrent.atomic.AtomicLong();
     final java.util.concurrent.atomic.AtomicReference<PrepareCallBudgetRequest> prepared = new java.util.concurrent.atomic.AtomicReference<>();
     PrepareCallBudgetResponse budget=PrepareCallBudgetResponse.newBuilder().setBudgetId("budget").setBudgetCredential("credential")
             .setPriceQuote(BudgetPriceQuote.newBuilder().setCurrency("CNY").setMaxCreditPoints(226)).build();
@@ -33,6 +34,7 @@ class BoundedAiClientTest {
                 prepared.set(request);prepares.incrementAndGet();observer.onNext(budget);observer.onCompleted();
             }
             @Override public void chatCompletionsStream(ChatCompletionsRequest request,StreamObserver<ChatCompletionsStreamEvent> observer){
+                generationWindowMs.set(Context.current().getDeadline().timeRemaining(java.util.concurrent.TimeUnit.MILLISECONDS));
                 sends.incrementAndGet();assertEquals("credential",request.getBudgetCredential());pause(generationDelayMs);observer.onError(executionFailure.asRuntimeException());
             }
             @Override public void getBudgetCallStatus(GetBudgetCallStatusRequest request,StreamObserver<GetBudgetCallStatusResponse> observer){
@@ -74,6 +76,23 @@ class BoundedAiClientTest {
         assertEquals(8192,prepared.get().getMaxOutputTokens());
         assertEquals("CNY",prepared.get().getBillingCurrency());
         assertEquals(1,sends.get());verify(count,times(1)).consume();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void explicitCoachDeadlineReachesTransportWithoutExtendingOrdinaryCalls(boolean coach) {
+        var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192);
+        var builder=ChatCompletionsRequest.newBuilder().setRequestId("same-request").setUserId(85).setProjectKey("aisocialgame");
+        if(coach) builder.setStreamTimeouts(ChatStreamTimeouts.newBuilder().setFirstTextMs(600000).setIdleMs(120000).setTotalMs(1200000));
+        var request=builder.build();var row=new AiCreditReservation();row.id="deadline";row.budgetId="budget";row.requestId="same-request";row.userId=85;row.projectKey="aisocialgame";row.state="PENDING";
+        when(escrow.register(request,budget)).thenReturn(new AiCallSettlementService.Claim(row,true));
+        when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        doAnswer(ignored->{row.state="SETTLED";row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());return null;}).when(escrow).reconcile(row.id,status);
+        assertEquals(response,client.chat(request,1200));
+        assertTrue(generationWindowMs.get()>(coach?1_190_000:590_000));
+        assertTrue(generationWindowMs.get()<(coach?1_200_000:600_000));
+        assertEquals(1,sends.get());
     }
     @Test void disabledAndInsufficientCreditNeverReachInference() {
         var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);

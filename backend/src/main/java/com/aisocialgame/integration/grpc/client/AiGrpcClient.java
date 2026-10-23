@@ -136,11 +136,13 @@ public class AiGrpcClient {
             boolean coach=com.aisocialgame.lab.LabCallContext.current()!=null
                     && java.util.Set.of("REVIEW","MANUAL_REVIEW").contains(com.aisocialgame.lab.LabCallContext.current().purpose());
             if (coach) builder.setStreamTimeouts(fireflychat.ai.v1.ChatStreamTimeouts.newBuilder()
-                    .setFirstTextMs(300000).setIdleMs(120000).setTotalMs(600000));
+                    .setFirstTextMs(com.aisocialgame.lab.LabCoachLimits.FIRST_TEXT_MS)
+                    .setIdleMs(com.aisocialgame.lab.LabCoachLimits.IDLE_MS)
+                    .setTotalMs(com.aisocialgame.lab.LabCoachLimits.TOTAL_SECONDS * 1000));
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
             var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
                     : coach
-                        ? boundedClient.chat(builder.build(),deadlineSeconds,32768,beforeSend)
+                        ? boundedClient.chat(builder.build(),deadlineSeconds,com.aisocialgame.lab.LabCoachLimits.MAX_OUTPUT_TOKENS,beforeSend)
                         : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
             if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);
             if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());

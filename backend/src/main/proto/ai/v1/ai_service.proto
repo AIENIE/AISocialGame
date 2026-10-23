@@ -164,7 +164,7 @@ message ChatCompletionsResponse {
   optional ChatStreamTiming stream_timing = 13;
 }
 
-// Positive milliseconds; first_text <= 300000, idle <= 120000, total <= 600000.
+// Positive milliseconds; first_text <= 600000, idle <= 120000, total <= 1200000.
 message ChatStreamTimeouts {
   int64 first_text_ms = 1;
   int64 idle_ms = 2;

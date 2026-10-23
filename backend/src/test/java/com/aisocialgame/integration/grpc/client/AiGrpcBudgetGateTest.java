@@ -15,6 +15,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AiGrpcBudgetGateTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"REVIEW","MANUAL_REVIEW"})
+    void bothCoachPathsCarryTheCompleteExpandedStreamWindow(String purpose) {
+        var bounded=mock(com.aisocialgame.service.credit.BoundedAiClient.class);
+        var client=new AiGrpcClient();ReflectionTestUtils.setField(client,"boundedClient",bounded);
+        ReflectionTestUtils.setField(client,"aiStub",AiGatewayServiceGrpc.newBlockingStub(mock(Channel.class)));
+        when(bounded.chat(any(),eq(1200),eq(32768),any(Runnable.class))).thenReturn(fireflychat.ai.v1.ChatCompletionsResponse.newBuilder().setContent("ok").build());
+        try(var context=com.aisocialgame.lab.LabCallContext.open(java.util.Map.of("experimentId","experiment","matchId","match"),purpose)) {
+            client.undercoverChatCompletions("aisocialgame",85,"session","gpt-6.1-sol",List.of(),"coach",1200);
+        }
+        var captured=org.mockito.ArgumentCaptor.forClass(fireflychat.ai.v1.ChatCompletionsRequest.class);
+        verify(bounded).chat(captured.capture(),eq(1200),eq(32768),any(Runnable.class));
+        assertEquals(600000,captured.getValue().getStreamTimeouts().getFirstTextMs());
+        assertEquals(120000,captured.getValue().getStreamTimeouts().getIdleMs());
+        assertEquals(1200000,captured.getValue().getStreamTimeouts().getTotalMs());
+    }
     @Test
     void allUnbudgetedInferenceIsRejectedBeforeGrpcDispatch() {
         Channel channel = mock(Channel.class);

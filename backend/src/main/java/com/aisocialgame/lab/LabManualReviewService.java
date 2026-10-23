@@ -40,7 +40,7 @@ public class LabManualReviewService {
         var original=match(experimentId,matchId);
         var existing=runs(original).get(request.operationId());
         if (existing!=null) { sameParameters(map(existing),selection);return inspect(experimentId,matchId,request.operationId()); }
-        client.preflight(properties.getProjectKey(),properties.getAi().getSystemUserId(),selection,32768);
+        client.preflight(properties.getProjectKey(),properties.getAi().getSystemUserId(),selection,LabCoachLimits.MAX_OUTPUT_TOKENS);
         tx.executeWithoutResult(status->{
             var experiment=experiments.lock(experimentId).orElseThrow(LabService::missing);
             var match=matches.lock(matchId).orElseThrow(LabService::missing);
@@ -87,7 +87,7 @@ public class LabManualReviewService {
             try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
-                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),600);
+                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),LabCoachLimits.TOTAL_SECONDS);
                 LabCallRecovery.commit(()->saveResponse(claim,response));
                 var output=LabCoachService.parse(response,json);
                 LabCallRecovery.commit(()->publish(claim,output));
@@ -108,7 +108,7 @@ public class LabManualReviewService {
             if (run.get("leaseUntilEpochMs") instanceof Number lease && lease.longValue()>now) return null;
             var recovery=map(run.get("recovery"));if (!LabCallRecovery.ready(recovery,now)) return null;
             String requestId=LabCallRecovery.requestId(text(run.get("baseRequestId")),recovery);
-            run.put("status","RUNNING");run.put("requestId",requestId);run.put("leaseUntilEpochMs",now+630000);
+            run.put("status","RUNNING");run.put("requestId",requestId);run.put("leaseUntilEpochMs",now+LabCoachLimits.LEASE_MS);
             var ids=new ArrayList<>(strings(run.get("requestIds")));if (!ids.contains(requestId)) ids.add(requestId);run.put("requestIds",ids);
             saveRun(match,operationId,run);
             return new Claim(id,match.id,operationId,requestId,map(run.get("request")));

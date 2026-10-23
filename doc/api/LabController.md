@@ -34,7 +34,7 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 
 单次复盘复用历史复盘的原始 system/user 输入，任务写入对局 JSON，独立于自动开局游标。operationId 为 UUID；返回 taskId、requestId、status，状态为 QUEUED / RUNNING / WAITING / SUCCEEDED / FAILED / BLOCKED。仅确认未发送才按 2、5、10 秒创建下一传输身份；已发送请求只恢复原结果，格式失败不追加付费修正。完整结果通过全部参与者与证据校验后，在同一事务发布新版并关联各自上一版；失败保留原文和现有经验。任务结束后实验保持暂停，不启动下一局。`scripts/windows/Invoke-LabReview.ps1` 在 POST 前保存 operationId，重试相同请求可找回原任务，并导出本次单局验收结果。
 
-教练使用真正的上游流式：首个非空正文最多 300 秒、首事件后连续无数据最多 120 秒、整次最多 600 秒、输出上限 32768。TTFT 从实际发送上游到首正文计算，首事件另记；心跳、响应头和 STARTED 不计入 TTFT。部分文本仅用于诊断，不能发布经验或成为游戏行动。
+教练使用真正的上游流式：首个非空正文最多 600 秒、首事件后连续无数据最多 120 秒、整次最多 1200 秒、输出上限 32768。TTFT 从实际发送上游到首正文计算，首事件另记；心跳、响应头和 STARTED 不计入 TTFT。部分文本仅用于诊断，不能发布经验或成为游戏行动。
 
 实验请求：`name, participants:[{agentId,initialExperienceId?,selection?}], playerCount, targetGames, wordPack, hasBlank, budgetPoints, coach`。阵容数量等于 4–10 个席位，允许重复 agentId；服务端为每个副本生成稳定 participantId。selection 与教练同形，仅覆盖本次实验副本模型，省略则使用来源档案默认值，不改写档案。目标 1–10000 局，各实验固定逐局执行，内部全局资源上限保持 3 局。兼容旧 `agentIds` 和按档案指定的 `initialExperienceIds`，但不能同时提交两种阵容；旧请求的 concurrency 被忽略，当前配置及响应不再提供该字段。内置词库 daily / idiom / acg / tech。budgetPoints 必须为正整数，100 积分折合人民币 1 元。coach 使用 selection 同形结构。每个副本可显式继承相同来源档案的一个历史经验版本，省略从空经验开始。
 
@@ -52,4 +52,4 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 
 调用恢复暂停时，活动对局仍为 PLAYING；房间 extra 返回 labCallPaused 与 labPauseReason，真人操作入口暂停，管理员恢复继续当前局。预算暂停继续使用 labBudgetPaused。诊断尝试中的 settlementState 为当前原请求结算状态；observedSettlementState（若有）仅表示原样本。业务 attempt 与 transportAttempt 分开记录，只有确认未发送才改变传输请求身份。
 
-start / resume 在事务外先校验实际玩家和教练的思考选择、预算能力及价格；检查不执行模型推理。教练参数固定为 120 秒调用窗口和 32768 总输出上限，自动格式修正最多两次。
+start / resume 在事务外先校验实际玩家和教练的思考选择、预算能力及价格；检查不执行模型推理。教练首正文窗口为 600 秒、总窗口 1200 秒、任务租约 1230 秒和 32768 总输出上限，自动格式修正最多两次。

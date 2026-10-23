@@ -73,7 +73,7 @@ public class BoundedAiClient {
             return recover(previous);
         }
         if (labBudgets != null) labBudgets.checkCall();
-        long remainingSeconds=Math.min(600,Math.max(1,deadlineSeconds));
+        long remainingSeconds=Math.min(request.hasStreamTimeouts() ? 1200 : 600,Math.max(1,deadlineSeconds));
         long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(remainingSeconds);
         PrepareCallBudgetResponse budget;
         try {

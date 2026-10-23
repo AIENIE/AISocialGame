@@ -50,7 +50,7 @@ public class LabCoachService {
             try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
-                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),600);
+                        "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),LabCoachLimits.TOTAL_SECONDS);
                 LabCallRecovery.commit(() -> recordResponse(claim,response));
                 Map<String,Object> output=parse(response,json);
                 LabCallRecovery.commit(() -> finish(claim,output));
@@ -117,7 +117,7 @@ public class LabCoachService {
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
             }
             match.snapshot.put("reviewRequestId",LabCallRecovery.requestId("lab-review:"+match.id+":"+number(match.snapshot.get("reviewAttempt"),0),recovery));
-            match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+630_000; matches.saveAndFlush(match);
+            match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+LabCoachLimits.LEASE_MS; matches.saveAndFlush(match);
             return new Claim(id,match.id,text(match.snapshot.get("reviewRequestId")),map(match.snapshot.get("reviewRequest")));
         });
     }

@@ -85,7 +85,7 @@ class LabIntegrationTest {
             assertEquals(2,version.sequenceNumber);assertEquals(map(previousHeads.get(entry.getKey())).get("experienceId"),version.previousId);
         }
         assertEquals(1,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
-        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),eq(600));
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),eq(1200));
     }
 
     @Test void invalidManualReviewKeepsAllHighHeadsAndDoesNotPayForCorrection() {
@@ -115,7 +115,7 @@ class LabIntegrationTest {
         assertEquals(task.get("requestId"),manualReviews.inspect(id,match.id,request.operationId()).get("requestId"));
         readyManual(match.id,request.operationId());stubCoach();manualReviews.process(id);
         assertEquals("SUCCEEDED",manualReviews.inspect(id,match.id,request.operationId()).get("status"));
-        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(text(task.get("requestId"))),eq(600));
+        verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(text(task.get("requestId"))),eq(1200));
     }
     private void readyManual(String matchId,String operationId) {
         var match=matches.findById(matchId).orElseThrow();var runs=map(match.snapshot.get("manualReviews"));var run=map(runs.get(operationId));
@@ -684,7 +684,7 @@ class LabIntegrationTest {
     }
     private void stubCoach() {
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation -> {
-            assertNotNull(LabCallContext.current()); assertTrue(Set.of("REVIEW","MANUAL_REVIEW").contains(LabCallContext.current().purpose()));assertEquals(600,(int)invocation.getArgument(6));
+            assertNotNull(LabCallContext.current()); assertTrue(Set.of("REVIEW","MANUAL_REVIEW").contains(LabCallContext.current().purpose()));assertEquals(1200,(int)invocation.getArgument(6));
             List<AiChatMessageDto> messages=invocation.getArgument(4);
             var input=map(json.readValue(messages.get(1).content(),Map.class));
             String event=text(maps(input.get("events")).getFirst().get("eventId"));
