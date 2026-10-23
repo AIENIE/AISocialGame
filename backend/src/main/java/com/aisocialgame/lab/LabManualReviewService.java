@@ -149,7 +149,7 @@ public class LabManualReviewService {
             String reason=failure instanceof ApiException api && api.getCode()!=null?api.getCode():"LAB_REVIEW_FAILED";
             boolean retry=false;
             if (failure instanceof ApiException api && LabCallRecovery.recoverable(reason)) {
-                var recovery=map(run.get("recovery"));reason=LabCallRecovery.defer(recovery,api,System.currentTimeMillis());
+                var recovery=map(run.get("recovery"));reason=LabCallRecovery.defer(recovery,api,System.currentTimeMillis(),LabCoachLimits.LEASE_MS);
                 run.put("recovery",recovery);retry=!LabCallRecovery.blocked(reason);
             }
             run.put("status",retry?"WAITING":LabCallRecovery.blocked(reason)?"BLOCKED":"FAILED");

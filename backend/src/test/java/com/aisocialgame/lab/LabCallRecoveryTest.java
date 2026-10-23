@@ -7,6 +7,15 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LabCallRecoveryTest {
+    @Test void coachRecoveryWaitsThroughItsExpandedLeaseWithoutChangingTheOriginalRequest() {
+        var saved=new LinkedHashMap<String,Object>();
+        var running=failure("AI_RESULT_PENDING",Map.of("remoteState","RUNNING"));
+        assertEquals("AI_RESULT_PENDING",LabCallRecovery.defer(saved,running,0,LabCoachLimits.LEASE_MS));
+        assertEquals("AI_RESULT_PENDING",LabCallRecovery.defer(saved,running,700_000,LabCoachLimits.LEASE_MS));
+        assertEquals("coach:0",LabCallRecovery.requestId("coach:0",saved));
+        assertEquals("LAB_CALL_NO_PROGRESS",LabCallRecovery.defer(saved,running,1_230_000,LabCoachLimits.LEASE_MS));
+        assertEquals("coach:0",LabCallRecovery.requestId("coach:0",saved));
+    }
     private ApiException failure(String code,Map<String,Object> details) { return new ApiException(HttpStatus.SERVICE_UNAVAILABLE,code,code,details); }
     @Test void onlyConfirmedUnsentChangesTransportIdentityWithTwoFiveTenSecondBackoff() {
         var saved=new LinkedHashMap<String,Object>();long now=1_000;

@@ -18,6 +18,9 @@ public final class LabCallRecovery {
     }
     /** Returns a waiting reason; terminal reasons pause the experiment with this same checkpoint. */
     public static String defer(Map<String,Object> checkpoint,ApiException failure,long now) {
+        return defer(checkpoint,failure,now,MAX_WAIT_MS);
+    }
+    public static String defer(Map<String,Object> checkpoint,ApiException failure,long now,long maxWaitMs) {
         checkpoint.putIfAbsent("waitingSinceEpochMs",now);
         checkpoint.put("lastCallState",new LinkedHashMap<>(failure.getDetails()));
         String code=failure.getCode();
@@ -30,7 +33,7 @@ public final class LabCallRecovery {
         }
         checkpoint.put("retryAfterEpochMs",now+wait);
         if("RECONCILIATION_REQUIRED".equals(failure.getDetails().get("remoteState"))) return "LAB_CALL_UNCERTAIN";
-        if(now-((Number)checkpoint.get("waitingSinceEpochMs")).longValue()>=MAX_WAIT_MS) return "LAB_CALL_NO_PROGRESS";
+        if(now-((Number)checkpoint.get("waitingSinceEpochMs")).longValue()>=maxWaitMs) return "LAB_CALL_NO_PROGRESS";
         return code;
     }
     public static boolean blocked(String reason) {

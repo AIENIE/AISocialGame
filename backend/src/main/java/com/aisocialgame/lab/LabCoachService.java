@@ -66,7 +66,7 @@ public class LabCoachService {
                 boolean retry=false;
                 if(failure instanceof ApiException api && LabCallRecovery.recoverable(reason)) {
                     var recovery=map(match.snapshot.get("reviewRecovery"));
-                    waiting=LabCallRecovery.defer(recovery,api,System.currentTimeMillis());
+                    waiting=LabCallRecovery.defer(recovery,api,System.currentTimeMillis(),LabCoachLimits.LEASE_MS);
                     match.snapshot.put("reviewRecovery",recovery);
                     retry=!LabCallRecovery.blocked(waiting);
                 } else if("LAB_REVIEW_INVALID".equals(reason) && number(match.snapshot.get("reviewAttempt"),0)<2) {
