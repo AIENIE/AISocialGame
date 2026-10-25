@@ -514,6 +514,11 @@ class WerewolfRuleSetTest {
         assertEquals("DAY_VOTE", state.getPhase());
         assertEquals(answerAtNineteenSeconds ? 1 : 0, events(state).stream().filter(e -> "ANSWER_PLAYER".equals(e.get("type"))).count());
         assertEquals(answerAtNineteenSeconds ? 0 : 1, events(state).stream().filter(e -> "ANSWER_SKIPPED".equals(e.get("type"))).count());
+        if (!answerAtNineteenSeconds) {
+            Map<String, Object> skipped = events(state).stream().filter(e -> "ANSWER_SKIPPED".equals(e.get("type"))).findFirst().orElseThrow();
+            assertEquals("系统已按规则跳过" + human.getDisplayName() + "的本轮回答。", skipped.get("message"));
+            assertFalse(rules.isPlayerClaim(skipped));
+        }
         assertEquals(1, events(state).stream().filter(e -> "ASK_PLAYER".equals(e.get("type"))).count());
     }
 

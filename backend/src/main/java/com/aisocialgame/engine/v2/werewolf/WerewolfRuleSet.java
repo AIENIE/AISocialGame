@@ -668,7 +668,7 @@ public class WerewolfRuleSet implements GameRuleSet {
             if (!SKIP.equals(action.getType())) {
                 event(state, "ANSWER_PLAYER", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "：" + requireContent(action, 120),
                         Map.of("questionEventId", text(data.get("questionEventId")), "statement", "PLAYER_CLAIM", "content", requireContent(action, 120)));
-            } else event(state, "ANSWER_SKIPPED", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "暂时没有补充。", Map.of());
+            } else event(state, "ANSWER_SKIPPED", actor.getPlayerId(), text(data.get("questionActor")), "系统已按规则跳过" + actor.getDisplayName() + "的本轮回答。", Map.of());
             List<String> answered = new ArrayList<>(strings(data.get("answeredPlayers")));
             answered.add(actor.getPlayerId());
             data.put("answeredPlayers", answered);
