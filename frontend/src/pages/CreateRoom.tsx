@@ -329,7 +329,7 @@ const CreateRoom = () => {
       </div>
 
       {/* Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 md:static md:bg-transparent md:border-0 md:shadow-none md:p-0 md:mt-8">
+      <div className="fixed bottom-[calc(4rem+1px+env(safe-area-inset-bottom))] left-0 right-0 bg-white border-t p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 md:static md:bg-transparent md:border-0 md:shadow-none md:p-0 md:mt-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="hidden md:block">
             <div className="text-sm text-slate-500">{t("create.currentConfig")}</div>

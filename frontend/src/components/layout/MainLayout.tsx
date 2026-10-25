@@ -20,7 +20,7 @@ const MainLayout = () => {
   const nav = [{ path: "/", label: "nav.home" }, ...(user ? privateNav : []), { path: "/guide", label: "nav.guide" }];
   const active = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)) ? "text-primary" : "text-muted-foreground";
   if (user && /^\/room\/(undercover|werewolf|turtle_soup)\//.test(location.pathname)) return <main className="room-route"><Outlet /></main>;
-  return <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+  return <div className="min-h-screen bg-background flex flex-col pb-[calc(4rem+1px+env(safe-area-inset-bottom))] md:pb-0">
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 md:h-16 items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-8">
@@ -47,7 +47,7 @@ const MainLayout = () => {
       </div>
     </header>
     <main className="page-enter flex-1 container py-4 md:py-6 px-4"><Outlet /></main>
-    <nav className="md:hidden fixed bottom-0 inset-x-0 border-t bg-background z-50 pb-safe">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 border-t bg-background z-50 pb-[env(safe-area-inset-bottom)]">
       <div className={`grid ${user ? "grid-cols-5" : "grid-cols-2"} h-16`}>
         <Link to="/" className={`flex flex-col items-center justify-center gap-1 ${active("/")}`}><Home className="h-5 w-5" /><span className="text-xs">{t("mobile.home")}</span></Link>
         {user && <><Link to="/rankings" className={`flex flex-col items-center justify-center gap-1 ${active("/rankings")}`}><Trophy className="h-5 w-5" /><span className="text-xs">{t("mobile.rankings")}</span></Link>
