@@ -12,4 +12,6 @@ public interface AiCallUsageRepository extends JpaRepository<AiCallUsage, String
     Optional<AiCallUsage> lock(@Param("id") String id);
     List<AiCallUsage> findByCompletedEpochMsGreaterThanEqualAndAdmittedTrue(long since);
     List<AiCallUsage> findByStartedEpochMsGreaterThanEqualAndAdmittedTrue(long since);
+    @Query("select distinct u.id from AiCallUsage u where u.admitted=true and u.roomId in :roomIds")
+    List<String> findAdmittedRequestIds(@Param("roomIds") Collection<String> roomIds);
 }

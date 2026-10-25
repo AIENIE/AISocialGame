@@ -2,6 +2,7 @@ package com.aisocialgame.service.ai.v2;
 
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.Room;
+import com.aisocialgame.repository.AiCallUsageRepository;
 import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.credit.AiCreditReservationRepository;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,13 +30,15 @@ public class AiValidationBudgetService {
                             long pendingCallCount, boolean exhausted) { }
 
     private final RoomRepository rooms;
+    private final AiCallUsageRepository usages;
     private final AiCreditReservationRepository reservations;
     private final TransactionTemplate read;
     private final TransactionTemplate write;
 
-    public AiValidationBudgetService(RoomRepository rooms, AiCreditReservationRepository reservations,
+    public AiValidationBudgetService(RoomRepository rooms, AiCallUsageRepository usages, AiCreditReservationRepository reservations,
                                      PlatformTransactionManager manager) {
         this.rooms = rooms;
+        this.usages = usages;
         this.reservations = reservations;
         read = new TransactionTemplate(manager);
         read.setReadOnly(true);
@@ -60,8 +64,8 @@ public class AiValidationBudgetService {
                 if (!current.isBlank() && !current.equals(runId))
                     throw new ApiException(HttpStatus.CONFLICT, "房间已属于其他验收，不能重新归属", "AI_VALIDATION_RUN_CONFLICT", Map.of());
             }
-            var totals = reservations.validationTotals(ids);
-            if (budgetPoints < totals.getSpentPoints()) throw invalid("验收预算不能低于当前累计实扣");
+            var totals = totals(ids);
+            if (budgetPoints < totals.spentPoints()) throw invalid("验收预算不能低于当前累计实扣");
             for (Room room : members) {
                 if (runId.equals(runId(room)) && budgetPoints == budget(room)) continue;
                 var configuration = new LinkedHashMap<>(room.getPrivateConfig());
@@ -111,11 +115,27 @@ public class AiValidationBudgetService {
         if (limit <= 0 || members.stream().anyMatch(room -> budget(room) != limit))
             throw new ApiException(HttpStatus.CONFLICT, "验收预算配置不一致，请调整后继续", "AI_VALIDATION_BUDGET_INVALID", Map.of());
         List<String> ids = members.stream().map(Room::getId).toList();
-        return result(id, limit, ids, reservations.validationTotals(ids));
+        return result(id, limit, ids, totals(ids));
     }
 
-    private RunStatus result(String id, long limit, List<String> ids, AiCreditReservationRepository.ValidationTotals totals) {
-        return new RunStatus(id, limit, List.copyOf(ids), totals.getSpentPoints(), totals.getPendingCallCount(), totals.getSpentPoints() >= limit);
+    private record Totals(long spentPoints, long pendingCallCount) { }
+
+    private Totals totals(List<String> roomIds) {
+        // Older local tables use different collations. Compare IDs to bound parameters, never across the two tables.
+        var unique = new LinkedHashSet<>(usages.findAdmittedRequestIds(roomIds));
+        unique.removeIf(id -> id == null || id.isBlank());
+        var requestIds = new ArrayList<>(unique);
+        long spent = 0, pending = 0;
+        for (int from = 0; from < requestIds.size(); from += 500) {
+            var batch = reservations.validationTotalsByRequestIds(requestIds.subList(from, Math.min(from + 500, requestIds.size())));
+            spent += batch.getSpentPoints();
+            pending += batch.getPendingCallCount();
+        }
+        return new Totals(spent, pending);
+    }
+
+    private RunStatus result(String id, long limit, List<String> ids, Totals totals) {
+        return new RunStatus(id, limit, List.copyOf(ids), totals.spentPoints(), totals.pendingCallCount(), totals.spentPoints() >= limit);
     }
 
     private String runId(Room room) {

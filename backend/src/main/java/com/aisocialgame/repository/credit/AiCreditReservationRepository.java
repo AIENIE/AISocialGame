@@ -13,10 +13,10 @@ public interface AiCreditReservationRepository extends JpaRepository<AiCreditRes
     @Query("""
         select coalesce(sum(case when r.state='SETTLED' then r.billedPoints else 0 end),0) as spentPoints,
           coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN','HELD') then 1 else 0 end),0) as pendingCallCount
-        from AiCreditReservation r join AiCallUsage u on u.id=r.requestId
-        where r.projectKey='aisocialgame' and u.admitted=true and u.roomId in :roomIds
+        from AiCreditReservation r
+        where r.projectKey='aisocialgame' and r.requestId in :requestIds
         """)
-    ValidationTotals validationTotals(@Param("roomIds") Collection<String> roomIds);
+    ValidationTotals validationTotalsByRequestIds(@Param("requestIds") Collection<String> requestIds);
 
     interface LabTotals {
         long getSpentPoints(); long getPendingCalls(); long getTotalCalls();

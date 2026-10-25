@@ -58,14 +58,18 @@ class AiValidationBudgetIntegrationTest {
         call(second, "SETTLED", 320L, true);
         call(first, "PENDING", null, true);
         call(second, "USAGE_UNKNOWN", null, true);
+        call(first, "HELD", null, true);
         call(first, "NOT_SENT", 999L, true);
         call(first, "SETTLED", 999L, false);
         call(unrelated, "SETTLED", 9999L, true);
+        var foreignProject = call(first, "SETTLED", 9999L, true);
+        foreignProject.projectKey = "other-project";
+        reservations.saveAndFlush(foreignProject);
 
-        var restored = new AiValidationBudgetService(rooms, reservations, manager);
+        var restored = new AiValidationBudgetService(rooms, usages, reservations, manager);
         var status = restored.status(run);
         assertEquals(730, status.spentPoints());
-        assertEquals(2, status.pendingCallCount());
+        assertEquals(3, status.pendingCallCount());
         assertEquals(2, status.roomIds().size());
         assertFalse(status.exhausted());
         assertDoesNotThrow(() -> restored.requireCallAllowed(first.getId()));
