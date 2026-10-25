@@ -60,8 +60,32 @@ it("resets a draft when a new archive starts", () => {
 it.each(["WAITING", "SETTLEMENT"])("keeps laboratory scheduling and roster controls outside the ordinary room setup: %s", phase => {
   render(gameState("undercover", phase), { source: "LAB", labExperimentId: "experiment" });
   expect(container.querySelector('[data-testid="game-start-btn"]')).toBeNull();
-  expect(container.textContent).not.toContain("下一局设置");
+  expect(container.textContent).not.toContain("下一局准备");
   expect(container.textContent).not.toContain("邀请与补位");
   expect(container.querySelector('a[href="/lab/experiment"]')).not.toBeNull();
   expect(container.textContent).toContain("lab.managedGame");
+});
+
+it("keeps room rules accessible during a Werewolf game", async () => {
+  render(gameState("werewolf", "DAY_DISCUSS"));
+  const menu = container.querySelector<HTMLButtonElement>('button[aria-label="房间菜单"]')!;
+  await act(async () => menu.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  const rules = document.querySelector<HTMLElement>('[data-testid="room-rules-menu"]');
+  expect(rules).not.toBeNull();
+  await act(async () => rules!.click());
+  expect(document.querySelector('[role="dialog"] [data-testid="werewolf-rules-help"]')?.textContent).toContain("屠边");
+});
+
+it.each([
+  ["DEATH_ACTION", "HUNTER_SHOOT", "HUNTER"],
+  ["LAST_WORDS", "SPEAK", "VILLAGER"],
+])("keeps an eliminated player's authorized %s action available", (phase, type, role) => {
+  const value = gameState("werewolf", phase);
+  render({ ...value, myRole: role, players: value.players.map(p => p.playerId === "p0" ? { ...p, alive: false } : p), extra: {
+    ...value.extra, actionEndsAt: new Date(Date.now() + 60000).toISOString(),
+    legalActions: [{ type, label: "行动", targets: type === "HUNTER_SHOOT" ? ["p1"] : [], maxLength: 120 }, { type: "SKIP", label: "跳过", targets: [], maxLength: 0 }],
+  } });
+  expect(container.querySelector('[data-testid="v2-action-submit"]')).not.toBeNull();
+  expect(container.querySelector('.room-task')?.textContent).toBe("轮到你了");
+  expect(container.textContent).toMatch(/\d+s/);
 });

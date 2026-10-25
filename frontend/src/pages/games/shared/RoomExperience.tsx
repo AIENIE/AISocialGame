@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { RoomNumber } from "@/components/rooms/RoomEntry";
@@ -43,6 +43,8 @@ export function RoomExperience({ gameId }: { gameId: string }) {
 
 export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Room; state: GameState }) {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const quickStartNotice = typeof location.state?.quickStartNotice === "string" ? location.state.quickStartNotice : "";
   const copy = useRoomText();
   const stage = state.phase === "SETTLEMENT" ? "settlement" : state.phase === "WAITING" ? "waiting" : "playing";
   const [drawer, setDrawer] = useState<"history" | "private" | "rules" | "setup" | "chat" | "players" | null>(null);
@@ -68,7 +70,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   const me = players.find(player => player.playerId === state.myPlayerId);
   const voted = state.extra?.myVote || (Array.isArray(state.extra?.votedPlayers) && state.extra.votedPlayers.includes(state.myPlayerId));
   const waiting = !me?.alive && me ? copy("deadWait") : voted ? copy("submitted") : runtime.currentSpeaker ? copy("listening", { name: runtime.currentSpeaker.displayName }) : copy("waiting");
-  const task = stage === "waiting" ? copy(runtime.isHost ? "prepare" : "hostStarts") : playing ? control.capabilities.length ? copy("yourTurn") : waiting : "";
+  const task = state.extra?.validationBudgetPaused === true ? copy("paused") : stage === "waiting" ? copy(runtime.isHost ? "prepare" : "hostStarts") : playing ? control.capabilities.length ? copy("yourTurn") : waiting : "";
   const label = privateLabel(state, room, i18n.language);
   const ballot = revealedBallot(state, timeline.logs);
   const roster = (expanded = false) => <RoomPlayers players={players} myPlayerId={state.myPlayerId}
@@ -102,15 +104,16 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   const canReact = playing && me?.alive && !["NIGHT", "DEATH_ACTION"].includes(state.phase);
   return <>
     <GameRoomFrame gameId={state.gameId} title={room.name} stage={stage} phaseText={roomPhase(state.phase, i18n.language)} task={task} round={state.round}
-      phaseEndsAt={state.phaseEndsAt || state.extra?.actionEndsAt} connected={runtime.socket.connected} showReconnectAction={runtime.socket.showReconnectAction} onReconnect={runtime.socket.reconnect}
+      phaseEndsAt={state.extra?.actionEndsAt || state.phaseEndsAt} connected={runtime.socket.connected} showReconnectAction={runtime.socket.showReconnectAction} onReconnect={runtime.socket.reconnect}
       players={roster()} headerExtra={playing && label ? <Button variant="secondary" size="sm" className="room-private-chip" onClick={() => setDrawer("private")} aria-label={`${copy("details")} · ${label}`}><LockKeyhole className="mr-1 h-3 w-3 shrink-0" /><span className="truncate" data-testid="undercover-private-word">{label}</span></Button> : undefined}
       menu={<>{room.labExperimentId && <Button variant="ghost" size="sm" asChild><Link to={`/lab/${room.labExperimentId}`}>{t("nav.lab")}</Link></Button>}{room.aiDebugAvailable && <AiDebugButton gameId={state.gameId} roomId={room.id} roomName={room.name} userKey={runtime.userKey} instanceId={state.extra?.archiveId} />}<Button size="icon" variant="ghost" aria-label={copy("history")} onClick={() => setDrawer("history")}><History className="h-4 w-4" /></Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={copy("more")}><MoreHorizontal className="h-5 w-5" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><RoomNumber code={room.roomCode} /><DropdownMenuItem onClick={() => setDrawer("players")}>{copy("players")}</DropdownMenuItem>
-            {playing ? <DropdownMenuItem onClick={() => setDrawer("private")}>{copy(state.gameId === "turtle_soup" ? "clues" : "details")}</DropdownMenuItem> : <>{!laboratory && <DropdownMenuItem onClick={() => setDrawer("setup")}>{copy(stage === "settlement" ? "nextSetup" : "addSeat")}</DropdownMenuItem>}<DropdownMenuItem onClick={() => setDrawer("rules")}>{copy("rules")}</DropdownMenuItem></>}
+            {playing ? <DropdownMenuItem onClick={() => setDrawer("private")}>{copy(state.gameId === "turtle_soup" ? "clues" : "details")}</DropdownMenuItem> : !laboratory && <DropdownMenuItem onClick={() => setDrawer("setup")}>{copy(stage === "settlement" ? "nextSetup" : "addSeat")}</DropdownMenuItem>}
+            <DropdownMenuItem data-testid="room-rules-menu" onClick={() => setDrawer("rules")}>{copy("rules")}</DropdownMenuItem>
             <DropdownMenuSeparator /><LanguageMenuItems /></DropdownMenuContent>
         </DropdownMenu></>}
-      context={playing ? <GameContext state={state} /> : stage === "waiting" ? <div className="room-prepare-context"><div><h2 className="font-semibold">{laboratory ? t("lab.managedGame") : copy("prepare")}</h2><RoomNumber code={room.roomCode} /><p className="text-xs text-muted-foreground">{t("rooms.waitRule")}</p><p className="mt-1 text-sm text-muted-foreground">{room.seats.length} / {room.maxPlayers}</p></div>{!laboratory && <Button variant="outline" size="sm" onClick={() => setDrawer("setup")}><Share2 className="mr-1 h-4 w-4" />{copy("addSeat")}</Button>}<details><summary>{copy("rules")}</summary><RoomRules state={state} room={room} /></details></div> : undefined}
+       context={playing ? <GameContext state={state} /> : stage === "waiting" ? <div className="room-prepare-context"><div><h2 className="font-semibold">{laboratory ? t("lab.managedGame") : copy("prepare")}</h2><RoomNumber code={room.roomCode} />{quickStartNotice && <p className="text-sm text-amber-800 dark:text-amber-200" role="alert">{quickStartNotice}</p>}<p className="text-xs text-muted-foreground">{t("rooms.waitRule")}</p><p className="mt-1 text-sm text-muted-foreground">{room.seats.length} / {room.maxPlayers}</p></div>{!laboratory && <Button variant="outline" size="sm" onClick={() => setDrawer("setup")}><Share2 className="mr-1 h-4 w-4" />{copy("addSeat")}</Button>}<details><summary>{copy("rules")}</summary><RoomRules state={state} room={room} /></details></div> : undefined}
       actions={playing ? <>
         {canReact && <div className="room-reactions" aria-label={copy("reaction")}>{["👍", "🤔", "😂", "😱"].map(emoji => <button type="button" key={emoji} aria-label={`${copy("reaction")} ${emoji}`} disabled={!runtime.socket.connected} onClick={() => sendChat("EMOJI", emoji)}>{emoji}</button>)}</div>}
         <RoomActionDock state={state} control={control} connected={runtime.socket.connected} waitingText={waiting} onChoosePlayer={() => setDrawer("players")}
@@ -129,7 +132,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
       <SheetContent side="right" className={`room-drawer ${drawer === "history" ? "room-history-drawer" : ""}`}>
         <SheetHeader><SheetTitle>{copy(drawer === "private" ? state.gameId === "turtle_soup" ? "clues" : "details" : drawer === "setup" ? stage === "settlement" ? "nextSetup" : "addSeat" : drawer === "chat" ? "roomChat" : drawer || "details")}</SheetTitle><SheetDescription>{drawer === "chat" ? copy("readOnly") : drawer === "private" && state.gameId !== "turtle_soup" ? copy("private") : room.name}</SheetDescription></SheetHeader>
         <div className={`room-drawer-content ${drawer === "history" || drawer === "chat" ? "room-drawer-flex" : ""}`}>
-          {drawer === "history" && timelineView(true)}{drawer === "private" && <PrivateDetails state={state} />}{drawer === "rules" && !playing && <RoomRules state={state} room={room} />}
+          {drawer === "history" && timelineView(true)}{drawer === "private" && <PrivateDetails state={state} />}{drawer === "rules" && <RoomRules state={state} room={room} />}
           {drawer === "setup" && !playing && setup}{drawer === "chat" && chat(true)}{drawer === "players" && <>{roster(true)}{control.selected && <p className="mt-4 text-sm text-muted-foreground">{copy("choose")} → {copy("confirm")}</p>}</>}
         </div>
       </SheetContent>

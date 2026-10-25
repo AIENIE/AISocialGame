@@ -6,13 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { gameApi } from "@/services/api";
-import { localizeErrorMessage } from "@/i18n/errors";
-import { getApiErrorMessage } from "@/services/apiError";
 import { gameDescription, gameName, gameTags } from "@/i18n/gameTexts";
 import { Game } from "@/types";
-import { quickMatchApi } from "@/services/v2Social";
+import { useQuickMatch } from "@/hooks/useQuickMatch";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 import { DataState } from "@/components/DataState";
 import { gameRoomComponents } from "./games/registry";
 
@@ -27,6 +24,7 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { displayName, user, loading } = useAuth();
+  const quickMatch = useQuickMatch();
   const { data: catalog = [], isLoading, error, refetch } = useQuery<Game[]>({
     queryKey: ["games"],
     queryFn: gameApi.list,
@@ -38,13 +36,7 @@ const Index = () => {
       navigate(`/game/${gameId}`);
       return;
     }
-    try {
-      const result = await quickMatchApi.start(gameId, displayName);
-      navigate(`/room/${gameId}/${result.roomId}`);
-    } catch (error: any) {
-      const raw = getApiErrorMessage(error, t("index.quickMatchFailed"));
-      toast.error(localizeErrorMessage(raw, "index.quickMatchFailed"));
-    }
+    await quickMatch.start(gameId, displayName);
   };
 
   return (
@@ -59,8 +51,8 @@ const Index = () => {
             {t("index.heroSubtitle")}
           </p>
           <div className="pt-4 flex justify-center">
-            {games.length > 0 && <Button size="lg" disabled={loading} className="bg-blue-600 hover:bg-blue-700 shadow-sm px-8" onClick={() => quickStart(games[0].id)}>
-              {t("common.quickStart")}
+            {games.length > 0 && <Button size="lg" disabled={loading || quickMatch.matching} className="bg-blue-600 hover:bg-blue-700 shadow-sm px-8" onClick={() => quickStart(games[0].id)}>
+              {t(quickMatch.matching ? "quickMatch.matching" : "common.quickStart")}
             </Button>}
           </div>
         </div>
@@ -111,8 +103,8 @@ const Index = () => {
                   <CardFooter className="p-6 pt-0">
                     {isActive ? (
                       <div className="flex w-full gap-2">
-                        <Button className="flex-1" onClick={() => quickStart(game.id)}>
-                          {t("index.oneClickStart")}
+                        <Button className="flex-1" disabled={quickMatch.matching} onClick={() => quickStart(game.id)}>
+                          {t(quickMatch.matching ? "quickMatch.matching" : "index.oneClickStart")}
                         </Button>
                         <Button
                           className="flex-1 gap-2 bg-slate-50 text-slate-700 border border-slate-200 hover:bg-white hover:text-blue-600 hover:border-blue-200 hover:shadow-md transition-all"

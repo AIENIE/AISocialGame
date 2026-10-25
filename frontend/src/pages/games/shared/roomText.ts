@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 
 const messages = {
+  paused: ["已暂停", "已暫停", "Paused"],
+  validationPaused: ["已达到本次运行的积分停止线，当前局面已保存，等待管理员处理。", "已達到本次執行的積分停止線，目前局面已保存，等待管理員處理。", "This run has reached its credit limit. The game is saved and waiting for an administrator."],
   callPaused: ["实验调用已暂停，局面已保存，等待管理员处理后继续。", "實驗呼叫已暫停，局面已保存，等待管理員處理後繼續。", "The experiment is paused. The game is preserved until an administrator resolves the call and resumes."],
   budgetPaused: ["实验已达到预算，当前局面和计时已保留，等待管理员调整预算后继续。", "實驗已達到預算，目前局面和計時已保留，等待管理員調整預算後繼續。", "The experiment has reached its budget. The game and timer are preserved until an administrator adjusts the budget and resumes."],
   players: ["玩家", "玩家", "Players"], history: ["对局历史", "對局歷史", "Game history"],
@@ -60,7 +62,7 @@ const messages = {
   prepare: ["等大家入座，就可以开始了", "等大家入座，就可以開始了", "Take your seats and get ready"],
   needPlayers: ["还差 {n} 名玩家", "還差 {n} 名玩家", "Waiting for {n} more players"],
   hostStarts: ["等待房主开始", "等待房主開始", "Waiting for the host to start"],
-  restart: ["再来一局", "再來一局", "Play again"], nextSetup: ["下一局设置", "下一局設定", "Next game setup"],
+  restart: ["再来一局", "再來一局", "Play again"], nextSetup: ["下一局准备", "下一局準備", "Prepare next game"],
   replay: ["查看复盘", "查看復盤", "View replay"],
   voted: ["已投票", "已投票", "Voted"], votes: ["{n} 票", "{n} 票", "{n} votes"], voteTo: ["投给 {name}", "投給 {name}", "Voted for {name}"],
   lastBallot: ["上次揭票", "上次揭票", "Last revealed ballot"],
@@ -84,6 +86,24 @@ const messages = {
   authorRules: ["出题者只主持、不参赛；自定义词库对局不计入排行榜。", "出題者只主持、不參賽；自訂詞庫對局不計入排行榜。", "The author hosts without playing. Custom word games do not count toward rankings."],
   blankRules: ["白板没有词语，存活到最后两人时独自获胜。", "白板沒有詞語，存活到最後兩人時獨自獲勝。", "The blank player has no word and wins alone by surviving to the last two."],
   soupRules: ["共同讨论、向主持提问，还原故事。提问和试答按有效答复计次，最后一次解答需由真人提交。", "共同討論、向主持提問，還原故事。提問和試答按有效答覆計次，最後一次解答需由真人提交。", "Discuss together and question the host to reconstruct the story. Confirmed questions and attempts use turns. A human submits the final answer."],
+  werewolfFlow: ["坐满所选人数后由房主开局，身份每局重新随机分配。夜晚行动后公布死亡；有离场技能或遗言时先完成，再按座位发言、定向问答、投票放逐，然后进入下一夜，直到分出胜负。", "坐滿所選人數後由房主開局，身分每局重新隨機分配。夜晚行動後公布死亡；有離場技能或遺言時先完成，再按座位發言、定向問答、投票放逐，然後進入下一夜，直到分出勝負。", "The host starts when all selected seats are filled. Roles are randomized each game. Night actions and deaths are followed by final role actions or last words, speaking turns, questions and exile voting, then another night until a team wins."],
+  werewolfWinSide: ["屠边：所有狼人出局，好人获胜；狼人消灭全部村民或全部神职即获胜，只计算本局初始存在的角色类别。", "屠邊：所有狼人出局，好人獲勝；狼人消滅全部村民或全部神職即獲勝，只計算本局初始存在的角色類別。", "Side victory: the good team wins by eliminating all wolves. Wolves win by eliminating every villager or every special role; only categories present at the start count."],
+  werewolfWinCity: ["屠城：所有狼人出局，好人获胜；狼人必须消灭全部好人才能获胜。", "屠城：所有狼人出局，好人獲勝；狼人必須消滅全部好人才能獲勝。", "City victory: the good team wins by eliminating all wolves. Wolves must eliminate every good player to win."],
+  werewolfWitchNever: ["女巫自救：整局不可使用解药救自己。", "女巫自救：整局不可使用解藥救自己。", "Witch self-healing: the antidote cannot save the witch."],
+  werewolfWitchFirst: ["女巫自救：只有第一夜可以使用解药救自己。", "女巫自救：只有第一夜可以使用解藥救自己。", "Witch self-healing: the witch may use the antidote on herself only on the first night."],
+  werewolfWitchAlways: ["女巫自救：只要解药仍在，任何一夜都可以救自己。", "女巫自救：只要解藥仍在，任何一夜都可以救自己。", "Witch self-healing: allowed on any night while the antidote remains."],
+  werewolfWordsNever: ["遗言：本局不安排遗言。", "遺言：本局不安排遺言。", "Last words: disabled for this game."],
+  werewolfWordsFirst: ["遗言：仅第一夜死亡的玩家有遗言，白天被放逐及之后的夜晚死亡没有遗言。", "遺言：僅第一夜死亡的玩家有遺言，白天被放逐及之後的夜晚死亡沒有遺言。", "Last words: only for deaths on the first night, not daytime exiles or deaths on later nights."],
+  werewolfWordsAlways: ["遗言：出局玩家均可留下遗言，也可以跳过。", "遺言：出局玩家均可留下遺言，也可以跳過。", "Last words: eliminated players may give a final statement or skip."],
+  werewolfVoteRules: ["白天每人依次发言一次，之后最多两组定向问答。投票可弃票；平票或全部弃票时无人被放逐，进入下一夜。身份声明只是玩家说法；未公开的真实身份在结算时揭晓。", "白天每人依次發言一次，之後最多兩組定向問答。投票可棄票；平票或全部棄票時無人被放逐，進入下一夜。身分聲明只是玩家說法；未公開的真實身分在結算時揭曉。", "Each survivor speaks once, followed by up to two question-and-answer pairs. You may abstain. A tied or entirely abstained vote exiles nobody and starts the next night. Role claims are player claims; hidden roles are revealed at settlement."],
+  werewolfTimeouts: ["轮到你时按当前倒计时操作；超时会跳过技能、发言或问答，投票超时按弃票处理。出局后通常只能观战，但猎人开枪和遗言仍按提示完成。结算后房主可在原房间再来一局。", "輪到你時按目前倒數計時操作；逾時會跳過技能、發言或問答，投票逾時按棄票處理。出局後通常只能觀戰，但獵人開槍和遺言仍按提示完成。結算後房主可在原房間再來一局。", "Follow your action timer. An expired turn skips a skill, speech or answer; an expired ballot abstains. Eliminated players normally watch, but may still shoot as the hunter or give last words when prompted. The host can start another game in the same room after settlement."],
+  werewolfNightWait: ["夜晚按顺序行动；轮到你才会出现技能和倒计时，没有夜间技能时等待天亮。", "夜晚按順序行動；輪到你才會出現技能和倒數計時，沒有夜間技能時等待天亮。", "Night actions happen in order. Your skill and timer appear on your turn. If you have no night skill, wait for morning."],
+  werewolfDiscussion: ["按座位依次发言。轮到你时，提交发言会结束本次发言，也可以跳过。可随时打开“我的信息”查看角色说明。", "按座位依次發言。輪到你時，提交發言會結束本次發言，也可以跳過。可隨時開啟「我的資訊」查看角色說明。", "Speak in seat order. Submitting ends your speaking turn; you may also skip. Open My information for your role instructions."],
+  werewolfQuestions: ["本轮最多两组定向问答。先选玩家再提问，被问到的人回应；也可以跳过自己的机会。", "本輪最多兩組定向問答。先選玩家再提問，被問到的人回應；也可以跳過自己的機會。", "Up to two question-and-answer pairs this round. Select a player and ask; the addressed player replies. You may skip your opportunity."],
+  werewolfVoting: ["选择一名可投票的玩家，再确认提交；也可以弃票。提交后等待大家完成，系统统一揭票。", "選擇一名可投票的玩家，再確認提交；也可以棄票。提交後等待大家完成，系統統一揭票。", "Select an eligible player and confirm, or abstain. After submitting, wait for everyone to finish before ballots are revealed."],
+  werewolfAiVotes: ["还有 {n} 名 AI 正在完成投票，请稍候。", "還有 {n} 名 AI 正在完成投票，請稍候。", "Waiting for {n} AI players to finish their ballots."],
+  werewolfDeathAction: ["等待离场技能处理。轮到猎人时可以选择目标开枪或放弃；即使显示已出局，仍可完成这次行动。", "等待離場技能處理。輪到獵人時可以選擇目標開槍或放棄；即使顯示已出局，仍可完成這次行動。", "Waiting for a final role action. The hunter may select a target and shoot or decline, even though marked eliminated."],
+  werewolfLastWords: ["等待离场玩家留下遗言。轮到你时可以提交最后的判断，也可以结束遗言。", "等待離場玩家留下遺言。輪到你時可以提交最後的判斷，也可以結束遺言。", "Waiting for an eliminated player's last words. On your turn, submit your final judgment or skip."],
   reaction: ["表情互动", "表情互動", "Reactions"], close: ["关闭", "關閉", "Close"],
 } satisfies Record<string, [string, string, string]>;
 

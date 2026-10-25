@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles } from "lucide-react";
 import { gameName } from "@/i18n/gameTexts";
+import { WerewolfRulesHelp } from "./games/shared/WerewolfHelp";
+import { WEREWOLF_ROLE_LABELS } from "./games/shared/werewolfSetup";
 
 const Guide = () => {
   const { t } = useTranslation();
@@ -21,8 +23,7 @@ const Guide = () => {
   ];
 
   const roleGuide = [
-    { game: gameName("werewolf"), role: t("guide.role.seer"), desc: t("guide.role.seer.desc") },
-    { game: gameName("werewolf"), role: t("guide.role.witch"), desc: t("guide.role.witch.desc") },
+    ...Object.keys(WEREWOLF_ROLE_LABELS).map(role => ({ game: gameName("werewolf"), role: t(`game.werewolf.role.${role}`), desc: t(`game.werewolf.roleHelp.${role}`) })),
     { game: gameName("undercover"), role: t("guide.role.civilian"), desc: t("guide.role.civilian.desc") },
     { game: gameName("undercover"), role: t("guide.role.undercover"), desc: t("guide.role.undercover.desc") },
   ];
@@ -66,6 +67,8 @@ const Guide = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              <h3 className="font-semibold">{gameName("werewolf")}</h3>
+              <WerewolfRulesHelp />
               {roleGuide.map((item) => (
                 <div key={`${item.game}-${item.role}`} className="rounded-md border px-3 py-2">
                   <div className="mb-1 flex items-center gap-2">
