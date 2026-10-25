@@ -452,17 +452,69 @@ class WerewolfRuleSetTest {
         assertTrue(rules.pendingTurns(state).isEmpty());
         assertTrue(rules.legalActions(state, p.get(0).getPlayerId()).stream().anyMatch(a -> "ASK_PLAYER".equals(a.type())));
         act(state, p.get(0), action("ASK_PLAYER", "你刚才判断的依据是哪句话？", p.get(1).getPlayerId()));
+        assertEquals(now.plusSeconds(20), state.getPhaseEndsAt());
         assertEquals(1, rules.pendingTurns(state).size());
         assertEquals(p.get(1).getPlayerId(), rules.pendingTurns(state).get(0).actorId());
         assertTrue(rules.legalActions(state, p.get(2).getPlayerId()).isEmpty());
         act(state, p.get(1), action("ANSWER_PLAYER", "主要是前后解释的变化，我也还没有确定。", p.get(0).getPlayerId()));
+        assertEquals("DAY_INTERACTION", state.getPhase());
+        assertEquals(1, data(state).get("interactionPairs"));
         assertTrue(rules.legalActions(state, p.get(0).getPlayerId()).isEmpty());
         assertFalse(rules.legalActions(state, p.get(2).getPlayerId()).get(0).targets().contains(p.get(1).getPlayerId()));
         act(state, p.get(2), action("ASK_PLAYER", "你愿意解释刚才为什么转向吗？", p.get(3).getPlayerId()));
+        assertEquals(now.plusSeconds(20), state.getPhaseEndsAt());
         act(state, p.get(3), action("ANSWER_PLAYER", "刚才的新信息让我觉得需要重新判断。", p.get(2).getPlayerId()));
         assertEquals("DAY_VOTE", state.getPhase());
         assertThrows(ApiException.class, () -> act(state, p.get(4), action("ASK_PLAYER", "不能有第三组。", p.get(5).getPlayerId())));
         assertEquals(2, events(state).stream().filter(e -> "ASK_PLAYER".equals(e.get("type"))).count());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void lateAiQuestionKeepsFullHumanAnswerWindowAfterInteractionDeadline(boolean answerAtNineteenSeconds) {
+        GameState state = game("standard", 6);
+        state.getPlayers().forEach(p -> p.setAi(true));
+        GamePlayerState human = state.getPlayers().get(0);
+        human.setAi(false);
+        skipNight(state);
+        reachInteraction(state);
+        LocalDateTime interactionEnd = LocalDateTime.parse(text(data(state).get("interactionEndsAt")));
+        timeout(state);
+        assertTrue(WerewolfAiClock.synchronize(state, rules, now));
+        TurnRequest aiQuestion = rules.pendingTurns(state).getFirst();
+        assertEquals("ASK_PLAYER", aiQuestion.kind());
+        now = interactionEnd.minusSeconds(10);
+        assertEquals(now.plusSeconds(50), WerewolfAiClock.begin(state, aiQuestion, now));
+
+        now = interactionEnd.plusSeconds(5);
+        rules.advance(state, now);
+        assertTrue(rules.isTurnCurrent(state, aiQuestion));
+        act(state, player(state, aiQuestion.actorId()), action("ASK_PLAYER", "你想补充哪条依据？", human.getPlayerId()));
+        LocalDateTime answerDeadline = now.plusSeconds(20);
+        assertEquals(answerDeadline, state.getPhaseEndsAt());
+        assertEquals(interactionEnd.toString(), data(state).get("interactionEndsAt"));
+        assertTrue(WerewolfAiClock.synchronize(state, rules, now));
+        assertNull(WerewolfAiClock.turn(state));
+
+        now = now.plusSeconds(19);
+        rules.advance(state, now);
+        assertEquals("DAY_INTERACTION", state.getPhase());
+        assertEquals(0, data(state).get("interactionPairs"));
+        assertTrue(rules.legalActions(state, human.getPlayerId()).stream().anyMatch(a -> "ANSWER_PLAYER".equals(a.type())));
+        assertEquals(0, events(state).stream().filter(e -> "ANSWER_SKIPPED".equals(e.get("type"))).count());
+        if (answerAtNineteenSeconds) {
+            act(state, human, action("ANSWER_PLAYER", "我还需要结合前面的公开发言判断。", aiQuestion.actorId()));
+        } else {
+            now = answerDeadline;
+            rules.advance(state, now);
+        }
+        assertEquals("DAY_VOTE", state.getPhase());
+        assertEquals(1, data(state).get("interactionPairs"));
+        rules.advance(state, now.plusSeconds(1));
+        assertEquals("DAY_VOTE", state.getPhase());
+        assertEquals(answerAtNineteenSeconds ? 1 : 0, events(state).stream().filter(e -> "ANSWER_PLAYER".equals(e.get("type"))).count());
+        assertEquals(answerAtNineteenSeconds ? 0 : 1, events(state).stream().filter(e -> "ANSWER_SKIPPED".equals(e.get("type"))).count());
+        assertEquals(1, events(state).stream().filter(e -> "ASK_PLAYER".equals(e.get("type"))).count());
     }
 
     @Test

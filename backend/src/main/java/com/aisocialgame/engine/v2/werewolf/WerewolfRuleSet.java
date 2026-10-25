@@ -708,7 +708,7 @@ public class WerewolfRuleSet implements GameRuleSet {
         data.put("questionEventId", lastEventId(state));
         data.put("humanPriorityElapsed", true);
         save(state, data);
-        phase(state, "DAY_INTERACTION", player(state, target).getSeatNumber(), Math.min(ANSWER_SECONDS, remainingSeconds(now, interactionEnd(data))), now);
+        phase(state, "DAY_INTERACTION", player(state, target).getSeatNumber(), ANSWER_SECONDS, now);
     }
 
     private void advanceInteraction(GameState state, LocalDateTime now) {
