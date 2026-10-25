@@ -9,14 +9,21 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 public final class AiPromptProjection {
     public static final int VERSION = 3;
     public static final int UNDERCOVER_VERSION = 5;
+    public static final int WEREWOLF_VERSION = 4;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private AiPromptProjection() {}
 
-    public static int version(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_VERSION : VERSION; }
+    public static int version(String gameId) {
+        return "undercover".equals(gameId) ? UNDERCOVER_VERSION : "werewolf".equals(gameId) ? WEREWOLF_VERSION : VERSION;
+    }
 
     public static Map<String, Object> project(GameAiAdapter adapter, VisibleObservation o) {
         if ("undercover".equals(o.gameId())) return undercover(adapter, o);
         Map<String, Object> observation = JSON.convertValue(o, Map.class);
+        if ("werewolf".equals(o.gameId())) {
+            observation.put("self", displayedSeat(map(observation.get("self"))));
+            observation.put("players", maps(observation.get("players")).stream().map(AiPromptProjection::displayedSeat).toList());
+        }
         List<Map<String, Object>> sources = new ArrayList<>();
         List<Map<String, Object>> events = maps(observation.get("events"));
         Map<String, Object> classified = AiInformationSources.project(adapter, o);
@@ -54,7 +61,9 @@ public final class AiPromptProjection {
         if (!RuleSupport.HOST.equals(o.actorId())) memory.putIfAbsent("hypotheses", List.of());
         observation.put("memory", memory);
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("inputFormatVersion", VERSION);
+        payload.put("inputFormatVersion", version(o.gameId()));
+        if ("werewolf".equals(o.gameId())) payload.put("seatNumbering",
+                "self 和 players 的 seatNumber 是页面显示的座位号，从1开始；发言中的‘几号’均用此编号。playerId 是不透明身份标识，不能从其数字推断座位；所有目标仍提交合法列表中的 targetPlayerId。历史发言原文不改写，应根据当前座位表核对指代。");
         payload.put("referenceFormat", "$ref is a JSON pointer within this payload; follow references to the original data. References do not change source or visibility.");
         payload.put("instruction", adapter.instruction(o)); payload.put("observation", observation);
         payload.put("informationSources", Map.of("events", sources, "privateKnowledge", privateInfo, "hypotheses", hypotheses, "note", classified.get("note")));
@@ -80,6 +89,13 @@ public final class AiPromptProjection {
             }).toList());
         }
         return payload;
+    }
+
+    private static Map<String, Object> displayedSeat(Map<String, Object> player) {
+        var visible = new LinkedHashMap<>(player);
+        if (player.get("seatNumber") instanceof Number n && n.intValue() >= 0)
+            visible.put("seatNumber", n.intValue() + 1);
+        return visible;
     }
 
     private static Map<String, Object> undercover(GameAiAdapter adapter, VisibleObservation o) {

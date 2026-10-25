@@ -111,7 +111,7 @@ final class AiRealismScenarioFixtures {
         for (int seat = 1; seat <= playerCount; seat++) {
             String playerId = "p" + seat;
             Map<String, Object> player = new LinkedHashMap<>();
-            player.put("playerId", playerId); player.put("displayName", display(playerId)); player.put("seatNumber", seat);
+            player.put("playerId", playerId); player.put("displayName", display(playerId)); player.put("seatNumber", seat - 1);
             player.put("ai", actorId.equals(playerId)); player.put("alive", true);
             if (actorId.equals(playerId)) {
                 if (actor.containsKey("role")) player.put("role", actor.get("role"));
@@ -202,7 +202,7 @@ final class AiRealismScenarioFixtures {
         List<GamePlayerState> players = new ArrayList<>();
         for (Map<String, Object> visible : observation.players()) {
             String id = text(visible.get("playerId"));
-            GamePlayerState player = new GamePlayerState(id, text(visible.get("displayName")), number(visible.get("seatNumber"), 1),
+            GamePlayerState player = new GamePlayerState(id, text(visible.get("displayName")), number(visible.get("seatNumber"), 0),
                     id.equals(observation.actorId()), id.equals(observation.actorId()) ? scenario.id() : null, "");
             player.setRole(visible.containsKey("role") ? text(visible.get("role")) : null);
             player.setWord(visible.containsKey("word") ? text(visible.get("word")) : null);
@@ -247,7 +247,7 @@ final class AiRealismScenarioFixtures {
         return new VisibleObservation("turtle_soup", "semantic-fixture:" + soup.id(), "QUESTIONING", 1, HOST,
                 "ASK_QUESTION".equals(type) ? "HOST_ANSWER" : "HOST_SOLUTION",
                 Map.of("playerId", HOST, "displayName", "主持人", "role", "HOST"),
-                List.of(Map.of("playerId", "p1", "displayName", "一号", "seatNumber", 1, "alive", true)),
+                List.of(Map.of("playerId", "p1", "displayName", "一号", "seatNumber", 0, "alive", true)),
                 Map.of("ruleVersion", 2), List.of(Map.of("eventId", "surface", "type", "CASE_START", "message", soup.surface())),
                 Map.of("truth", soup.hostTruth(), "pendingHost", pending, "previousPropositions", List.of()),
                 List.of(LegalAction.simple("HOST_VERDICT", "裁决当前请求")), Map.of("name", "主持人"), Map.of(), List.of());

@@ -227,6 +227,46 @@ class AiTurnGeneratorTest {
         assertFalse(repaired.path("previousOutput").has("observationCopy"));
     }
 
+    @Test void nestedVoteEvidenceReceivesAnExplicitTopLevelCorrectionAndTheSecondAttemptSucceeds() throws Exception {
+        var adapter = new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();
+        var observation = new VisibleObservation("werewolf", "vote-evidence-match", "DAY_VOTE", 1, "p0", "VOTE",
+                Map.of("playerId", "p0", "role", "VILLAGER", "seatNumber", 0),
+                List.of(Map.of("playerId", "p0", "alive", true, "seatNumber", 0), Map.of("playerId", "p1", "alive", true, "seatNumber", 1)),
+                Map.of(), List.of(Map.of("eventId", "e1", "actorId", "p1", "type", "SPEAK", "visibility", "PUBLIC", "message", "我先核对公开发言。")),
+                Map.of(), List.of(LegalAction.target("VOTE", "投票", List.of("p1"), 0)), Map.of(), Map.of(), List.of());
+        var malformed = Map.<String, Object>of("action", Map.of("type", "VOTE", "targetPlayerId", "p1", "evidenceEventIds", List.of("e1")));
+        assertThrows(IllegalArgumentException.class, () -> generator.parse(malformed), "nested evidence remains invalid");
+        var corrected = Map.of("action", Map.of("type", "VOTE", "targetPlayerId", "p1"), "evidenceEventIds", List.of("e1"),
+                "presentation", Map.of("emotion", "neutral", "gesture", "none", "intensity", 0), "memoryUpdates", Map.of());
+        when(client.chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
+                .thenReturn(new AiChatResult(json.writeValueAsString(malformed), "mock-only", 10, 5))
+                .thenReturn(new AiChatResult(json.writeValueAsString(corrected), "mock-only", 12, 7));
+
+        var result = generator.generate(adapter, observation, "vote-evidence-repair");
+        assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals("VOTE", result.action().getType()); assertEquals("p1", result.action().getTargetPlayerId());
+        assertFalse(result.action().isAbstain()); assertEquals(List.of("e1"), result.evidenceEventIds());
+        assertEquals("neutral", result.presentation().get("emotion")); assertTrue(result.memoryUpdates().isEmpty());
+        var attempts = maps(result.diagnostics().get("attempts"));
+        assertEquals(List.of("INVALID_JSON_FIELDS"), strings(attempts.getFirst().get("flags")));
+        assertEquals("PARSE", attempts.getFirst().get("failureStage"));
+        assertTrue(strings(attempts.getLast().get("flags")).isEmpty());
+
+        var messages = messageCaptor();
+        var requestIds = ArgumentCaptor.forClass(String.class);
+        verify(client, times(2)).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), requestIds.capture(), anyInt());
+        assertEquals(List.of("vote-evidence-repair:0", "vote-evidence-repair:1"), requestIds.getAllValues());
+        String system = messages.getAllValues().getFirst().getFirst().content();
+        assertTrue(system.contains("evidenceEventIds、presentation、memoryUpdates都是与action同级的顶层字段"));
+        var repairPayload = json.readTree(messages.getAllValues().getLast().getLast().content());
+        String correction = repairPayload.path("correction").asText();
+        assertTrue(correction.contains("INVALID_JSON_FIELDS"));
+        assertTrue(correction.contains("type、content、targetPlayerId、abstain、nightAction、useHeal、extra"));
+        assertTrue(correction.contains("evidenceEventIds、presentation、memoryUpdates必须是与action同级的顶层字段，不能放进action"));
+        assertEquals("e1", repairPayload.at("/previousOutput/action/evidenceEventIds/0").asText());
+        assertEquals(json.valueToTree(observation.legalActions()), repairPayload.at("/observation/legalActions"));
+    }
+
     @Test void correctionSharesTheFiftySecondBudgetIncludingValidationTime() throws Exception {
         String first = new ObjectMapper().writeValueAsString(Map.of("action",Map.of("type","SPEAK","content","这是一个常见物品。"),"presentation",Map.of("emotion","invalid")));
         String corrected = validSpeech();
