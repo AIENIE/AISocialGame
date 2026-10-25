@@ -1,24 +1,43 @@
 package com.aisocialgame;
 
 import com.aisocialgame.model.Room;
+import com.aisocialgame.model.RoomSeat;
 import com.aisocialgame.model.User;
+import com.aisocialgame.dto.ws.SeatEvent;
+import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.UserRepository;
 import com.aisocialgame.service.RoomService;
+import com.aisocialgame.websocket.GamePushService;
 import com.aisocialgame.exception.ApiException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = AiSocialGameApplication.class)
 @ActiveProfiles("test")
 class RoomServiceTest {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.aisocialgame.service.AiNameService aiNameService;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private GamePushService push;
 
     @org.junit.jupiter.api.BeforeEach void mockNames() {
         org.mockito.Mockito.when(aiNameService.localName(org.mockito.ArgumentMatchers.any())).thenReturn("离线昵称");
@@ -30,6 +49,86 @@ class RoomServiceTest {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired private RoomRepository rooms;
+    @Autowired private PlatformTransactionManager transactionManager;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"JOIN", "AI_ADDED"})
+    void seatNotificationsArePublishedOnlyAfterTheSeatIsCommitted(String eventType) {
+        User host = createLocalUser(UUID.randomUUID() + "@example.com", "通知房主");
+        Room room = roomService.createRoom("werewolf", "座位提交后通知", false, null, "text", Map.of("playerCount", 6), host);
+        var events = new ArrayList<SeatEvent>();
+        var beforeCommitReached = new AtomicBoolean();
+        doAnswer(invocation -> {
+            SeatEvent event = invocation.getArgument(1);
+            Room committed = readCommittedRoom(room.getId());
+            Assertions.assertTrue(beforeCommitReached.get());
+            Assertions.assertEquals(2, committed.getSeats().size(), "A notification-triggered read must see the committed roster");
+            Assertions.assertEquals(event.seat().getPlayerId(), committed.getSeats().get(1).getPlayerId());
+            events.add(event);
+            return null;
+        }).when(push).pushSeatChange(eq(room.getId()), any(SeatEvent.class));
+
+        RoomSeat added = mutateSeatWithCommitObserver(eventType, room, host, () -> {
+            verifyNoInteractions(push);
+            beforeCommitReached.set(true);
+        });
+
+        Assertions.assertTrue(beforeCommitReached.get());
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(eventType, events.getFirst().type());
+        Assertions.assertEquals(added.getPlayerId(), events.getFirst().seat().getPlayerId());
+        Assertions.assertEquals(added.getDisplayName(), events.getFirst().seat().getDisplayName());
+        Assertions.assertEquals(1, events.getFirst().seat().getSeatNumber());
+        Assertions.assertEquals("AI_ADDED".equals(eventType), events.getFirst().seat().isAi());
+        verify(push).pushSeatChange(eq(room.getId()), any(SeatEvent.class));
+        verifyNoMoreInteractions(push);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"JOIN", "AI_ADDED"})
+    void rolledBackSeatsNeverPublishJoinOrAiAdded(String eventType) {
+        User host = createLocalUser(UUID.randomUUID() + "@example.com", "回滚房主");
+        Room room = roomService.createRoom("werewolf", "座位回滚不通知", false, null, "text", Map.of("playerCount", 6), host);
+        var beforeCommitReached = new AtomicBoolean();
+
+        IllegalStateException failure = Assertions.assertThrows(IllegalStateException.class,
+                () -> mutateSeatWithCommitObserver(eventType, room, host, () -> {
+                    beforeCommitReached.set(true);
+                    verifyNoInteractions(push);
+                    throw new IllegalStateException("commit rejected by test");
+                }));
+
+        Assertions.assertEquals("commit rejected by test", failure.getMessage());
+        Assertions.assertTrue(beforeCommitReached.get());
+        Assertions.assertEquals(1, readCommittedRoom(room.getId()).getSeats().size());
+        verifyNoInteractions(push);
+    }
+
+    private RoomSeat mutateSeatWithCommitObserver(String eventType, Room room, User host, Runnable beforeCommit) {
+        // Install the observer from a normal collaborator used inside the real
+        // lifecycle transaction, including joinRoom's NOT_SUPPORTED boundary.
+        Runnable observe = () -> {
+            Assertions.assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void beforeCommit(boolean readOnly) { beforeCommit.run(); }
+            });
+        };
+        if ("JOIN".equals(eventType)) {
+            User guest = spy(createLocalUser(UUID.randomUUID() + "@example.com", "通知访客"));
+            doAnswer(invocation -> { observe.run(); return "guest-avatar"; }).when(guest).getAvatar();
+            return roomService.joinRoom(room.getId(), guest.getNickname(), guest, null).getSeat();
+        }
+        doAnswer(invocation -> { observe.run(); return "离线昵称"; }).when(aiNameService).localName(any());
+        return roomService.addAi(room.getId(), "ai1", host).getSeats().getLast();
+    }
+
+    private Room readCommittedRoom(String roomId) {
+        TransactionTemplate independentRead = new TransactionTemplate(transactionManager);
+        independentRead.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        independentRead.setReadOnly(true);
+        return independentRead.execute(tx -> rooms.findById(roomId).orElseThrow());
+    }
 
     @Test
     void createRoomAndJoin() {

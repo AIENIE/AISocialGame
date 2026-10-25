@@ -66,13 +66,19 @@ class PersonaPresetTest {
                 var repository = mock(RoomRepository.class);
                 when(repository.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
                 var names = mock(AiNameService.class); when(names.localName(preset)).thenReturn("生成昵称");
-                var service = new RoomService(repository, mock(GameService.class), personas, names, mock(GamePushService.class), mock(com.aisocialgame.service.WriteRateLimiter.class), mock(org.springframework.transaction.PlatformTransactionManager.class));
+                var push = mock(GamePushService.class);
+                var service = new RoomService(repository, mock(GameService.class), personas, names, push, mock(com.aisocialgame.service.WriteRateLimiter.class), mock(org.springframework.transaction.PlatformTransactionManager.class));
                 org.springframework.test.util.ReflectionTestUtils.setField(service, "lifecycle", new com.aisocialgame.service.RoomLifecycle(repository, mock(GamePushService.class), mock(org.springframework.transaction.PlatformTransactionManager.class)));
                 User host = new User(); host.setId("host");
+                assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive());
                 service.addAi(room.getId(), preset.getId(), host);
                 var seat = room.getSeats().getLast();
                 assertEquals("生成昵称", seat.getDisplayName()); assertEquals(preset.getId(), seat.getPersonaId());
                 verify(names).localName(preset);
+                var order = inOrder(repository, push);
+                order.verify(repository).save(room);
+                order.verify(push).pushSeatChange(room.getId(), new com.aisocialgame.dto.ws.SeatEvent("AI_ADDED", seat));
+                verifyNoMoreInteractions(push);
                 for (int i = 2; i < 6; i++) room.getSeats().add(new RoomSeat(i, "p" + i, "人" + i, false, null, "", true, false));
                 var catalog = new TurtleSoupCaseCatalog(json);
                 GameRuleSet rules = switch (game) {
