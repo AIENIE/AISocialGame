@@ -6,6 +6,18 @@ import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 import java.util.*;
 public interface AiCreditReservationRepository extends JpaRepository<AiCreditReservation,String> {
+    interface ValidationTotals {
+        long getSpentPoints();
+        long getPendingCallCount();
+    }
+    @Query("""
+        select coalesce(sum(case when r.state='SETTLED' then r.billedPoints else 0 end),0) as spentPoints,
+          coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN','HELD') then 1 else 0 end),0) as pendingCallCount
+        from AiCreditReservation r join AiCallUsage u on u.id=r.requestId
+        where r.projectKey='aisocialgame' and u.admitted=true and u.roomId in :roomIds
+        """)
+    ValidationTotals validationTotals(@Param("roomIds") Collection<String> roomIds);
+
     interface LabTotals {
         long getSpentPoints(); long getPendingCalls(); long getTotalCalls();
         java.math.BigDecimal getActualCost();

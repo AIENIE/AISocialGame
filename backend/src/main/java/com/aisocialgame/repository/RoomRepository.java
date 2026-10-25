@@ -25,6 +25,9 @@ public interface RoomRepository extends JpaRepository<Room, String> {
     Optional<Room> findByRoomCode(String roomCode);
     boolean existsByRoomCode(String roomCode);
 
+    @Query(value = "SELECT * FROM rooms WHERE source='NORMAL' AND private_config LIKE '%\"validationRunId\"%' ORDER BY id", nativeQuery = true)
+    List<Room> findValidationRooms();
+
     @Query("select r from Room r where r.gameId=:gameId and r.source='NORMAL' and r.isPrivate=false and r.status<>com.aisocialgame.model.RoomStatus.EXPIRED "
             + "and (:status is null or r.status=:status) and (r.status<>com.aisocialgame.model.RoomStatus.WAITING or r.waitingSince>:cutoff) order by r.createdAt desc")
     Page<Room> findDiscoverable(@Param("gameId") String gameId, @Param("status") RoomStatus status,

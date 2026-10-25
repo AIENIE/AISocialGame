@@ -50,6 +50,8 @@ public class AiGrpcClient {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.aisocialgame.service.ai.v2.AiCallBudgetService callBudget;
+    @Autowired(required = false)
+    private com.aisocialgame.service.ai.v2.AiValidationBudgetService validationBudgets;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.service.safety.AiCallAdmission admission;
 
@@ -106,6 +108,8 @@ public class AiGrpcClient {
         var registered = new java.util.concurrent.atomic.AtomicBoolean();
         Runnable beforeSend = () -> {
             if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
+            if (validationBudgets != null)
+                validationBudgets.requireCallAllowed(com.aisocialgame.service.safety.AiCallScope.context(userId, model).getRoomId());
             if (admission != null) { admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model)); registered.set(true); }
         };
         if (isolatedTransportFixture) beforeSend.run();
