@@ -13,6 +13,8 @@ const messages = {
   waiting: ["等待其他玩家行动", "等待其他玩家行動", "Waiting for the other players"],
   listening: ["正在听 {name} 发言", "正在聽 {name} 發言", "Listening to {name}"],
   yourTurn: ["轮到你了", "輪到你了", "Your turn"], submitted: ["已提交，等待下一步", "已提交，等待下一步", "Submitted · waiting for the next move"],
+  actionExpired: ["本次行动时间已到，等待局面更新", "本次行動時間已到，等待局面更新", "Your action time has ended. Waiting for the game to update."],
+  timeExpired: ["时间已到", "時間已到", "Time is up"],
   choose: ["选择玩家", "選擇玩家", "Choose a player"], target: ["已选 {name}", "已選 {name}", "Selected: {name}"],
   confirmTarget: ["{action} · {name}", "{action} · {name}", "{action} · {name}"],
   confirm: ["确认提交", "確認提交", "Confirm"], cancel: ["取消", "取消", "Cancel"],

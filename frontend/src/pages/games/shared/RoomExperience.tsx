@@ -70,12 +70,12 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   const me = players.find(player => player.playerId === state.myPlayerId);
   const voted = state.extra?.myVote || (Array.isArray(state.extra?.votedPlayers) && state.extra.votedPlayers.includes(state.myPlayerId));
   const waiting = !me?.alive && me ? copy("deadWait") : voted ? copy("submitted") : runtime.currentSpeaker ? copy("listening", { name: runtime.currentSpeaker.displayName }) : copy("waiting");
-  const task = state.extra?.validationBudgetPaused === true ? copy("paused") : stage === "waiting" ? copy(runtime.isHost ? "prepare" : "hostStarts") : playing ? control.capabilities.length ? copy("yourTurn") : waiting : "";
+  const task = state.extra?.validationBudgetPaused === true ? copy("paused") : stage === "waiting" ? copy(runtime.isHost ? "prepare" : "hostStarts") : playing ? control.actionExpired ? copy("actionExpired") : control.capabilities.length ? copy("yourTurn") : waiting : "";
   const label = privateLabel(state, room, i18n.language);
   const ballot = revealedBallot(state, timeline.logs);
   const roster = (expanded = false) => <RoomPlayers players={players} myPlayerId={state.myPlayerId}
     currentSeat={playing ? state.currentSeat : undefined} selected={control.target} targets={control.selected?.targets}
-    onSelect={id => { control.selectTarget(id); if (expanded) setDrawer(null); }} pending={control.busy || !runtime.socket.connected}
+    onSelect={id => { control.selectTarget(id); if (expanded) setDrawer(null); }} pending={control.busy || !runtime.socket.connected || control.actionExpired}
     votedPlayers={Array.isArray(state.extra?.votedPlayers) ? state.extra.votedPlayers : []} ballot={stage === "waiting" ? undefined : ballot}
     seatCount={room.maxPlayers} onAddSeat={stage === "waiting" && !laboratory ? () => setDrawer("setup") : undefined} expanded={expanded} />;
   const sendChat = (type: "TEXT" | "EMOJI" | "QUICK_PHRASE", content: string) => {
@@ -105,6 +105,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   return <>
     <GameRoomFrame gameId={state.gameId} title={room.name} stage={stage} phaseText={roomPhase(state.phase, i18n.language)} task={task} round={state.round}
       phaseEndsAt={state.extra?.actionEndsAt || state.phaseEndsAt} connected={runtime.socket.connected} showReconnectAction={runtime.socket.showReconnectAction} onReconnect={runtime.socket.reconnect}
+      expiredTimerLabel={state.gameId === "werewolf" && control.capabilities.length ? copy("timeExpired") : undefined}
       players={roster()} headerExtra={playing && label ? <Button variant="secondary" size="sm" className="room-private-chip" onClick={() => setDrawer("private")} aria-label={`${copy("details")} · ${label}`}><LockKeyhole className="mr-1 h-3 w-3 shrink-0" /><span className="truncate" data-testid="undercover-private-word">{label}</span></Button> : undefined}
       menu={<>{room.labExperimentId && <Button variant="ghost" size="sm" asChild><Link to={`/lab/${room.labExperimentId}`}>{t("nav.lab")}</Link></Button>}{room.aiDebugAvailable && <AiDebugButton gameId={state.gameId} roomId={room.id} roomName={room.name} userKey={runtime.userKey} instanceId={state.extra?.archiveId} />}<Button size="icon" variant="ghost" aria-label={copy("history")} onClick={() => setDrawer("history")}><History className="h-4 w-4" /></Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={copy("more")}><MoreHorizontal className="h-5 w-5" /></Button></DropdownMenuTrigger>

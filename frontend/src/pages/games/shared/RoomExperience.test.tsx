@@ -20,7 +20,7 @@ function render(state: GameState, overrides: Partial<Room> = {}) {
   act(() => root.render(<MemoryRouter><RoomExperience gameId={state.gameId} /></MemoryRouter>));
 }
 beforeEach(() => { (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
-afterEach(() => { act(() => root.unmount()); container.remove(); vi.clearAllMocks(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.clearAllMocks(); });
 
 it.each(["undercover", "werewolf", "turtle_soup"])("uses room seats while waiting and keeps settlement visible after the room resets: %s", game => {
   render(gameState(game, "WAITING"));
@@ -88,4 +88,26 @@ it.each([
   expect(container.querySelector('[data-testid="v2-action-submit"]')).not.toBeNull();
   expect(container.querySelector('.room-task')?.textContent).toBe("轮到你了");
   expect(container.textContent).toMatch(/\d+s/);
+});
+
+it("shows an expired Werewolf action while preserving the submitted-ballot AI wait", () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  const value = gameState("werewolf", "DAY_VOTE");
+  const deadline = new Date(Date.now() + 1500).toISOString();
+  render({ ...value, extra: { ...value.extra, actionEndsAt: deadline,
+    legalActions: [{ type: "VOTE", label: "投票", targets: ["p1", "p2"], maxLength: 120 }], waitingForAi: true, pendingAiCount: 2 } });
+  expect(container.querySelector('.room-task')?.textContent).toBe("轮到你了");
+  act(() => vi.advanceTimersByTime(1499));
+  expect(container.querySelector('.room-status-strip')?.textContent).toContain("1s");
+  expect(container.querySelector<HTMLButtonElement>('[data-testid="room-choose-target"]')!.disabled).toBe(false);
+  act(() => vi.advanceTimersByTime(1));
+  expect(container.querySelector('.room-task')?.textContent).toBe("本次行动时间已到，等待局面更新");
+  expect(container.querySelector('.room-status-strip')?.textContent).toContain("时间已到");
+  expect(container.querySelector<HTMLButtonElement>('[data-testid="room-choose-target"]')!.disabled).toBe(true);
+  expect(container.querySelector('[data-player-id="p1"]')?.getAttribute("aria-disabled")).toBe("true");
+  render({ ...value, extra: { ...value.extra, actionEndsAt: deadline, legalActions: [], myVote: "p1", waitingForAi: true, pendingAiCount: 2 } });
+  expect(container.querySelector('.room-task')?.textContent).toBe("已提交，等待下一步");
+  expect(container.textContent).toContain("还有 2 名 AI 正在完成投票");
+  expect(container.textContent).not.toContain("时间已到");
+  expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
 });

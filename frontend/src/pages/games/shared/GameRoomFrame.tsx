@@ -15,6 +15,7 @@ export interface GameRoomFrameProps {
   task: string;
   round: number;
   phaseEndsAt?: string;
+  expiredTimerLabel?: string;
   connected: boolean;
   showReconnectAction: boolean;
   onReconnect: () => void;
@@ -46,7 +47,7 @@ export function GameRoomFrame(props: GameRoomFrameProps) {
     {!props.connected && <ConnectionStatusBar connected={props.connected} showReconnectAction={props.showReconnectAction} onReconnect={props.onReconnect} />}
     <div className="room-status-strip" role="status">
       <div className="flex min-w-0 items-center gap-2"><span className="room-phase" data-testid="game-phase-text">{props.phaseText}</span>{props.round > 0 && <span className="shrink-0 text-xs text-muted-foreground">{copy("round", { n: props.round })}</span>}<span className="room-task">{props.task}</span></div>
-      <CountdownTimer phaseEndsAt={props.phaseEndsAt} className="shrink-0" />
+      <CountdownTimer phaseEndsAt={props.phaseEndsAt} expiredLabel={props.expiredTimerLabel} className="shrink-0" />
     </div>
     <div className="room-workspace">
       <aside className="room-roster"><div className="room-roster-heading">{copy("players")}</div>{props.players}</aside>

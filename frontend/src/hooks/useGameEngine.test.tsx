@@ -6,8 +6,10 @@ import { gameplayApi } from "@/services/api";
 import type { GameState, PlayerAction } from "@/types";
 import { prepareGameAction, useGameEngine } from "./useGameEngine";
 import { HttpApiError } from "@/services/apiError";
+import { useRoomActionController } from "@/pages/games/shared/useRoomActionController";
 
 vi.mock("@/services/api", () => ({ gameplayApi: { state: vi.fn(), action: vi.fn(), start: vi.fn() } }));
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "zh-CN" } }) }));
 
 const snapshot = (token: string): GameState => ({ roomId: "room", gameId: "turtle_soup", phase: "QUESTIONING", round: 1, players: [], logs: [], extra: { ruleVersion: 2, phaseToken: token } });
 let container: HTMLDivElement;
@@ -27,6 +29,31 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); client.clear(); container.remove(); });
 
 describe("game action submission", () => {
+  it("submits a preserved Werewolf question draft with the latest phase token", async () => {
+    const priority: GameState = { ...snapshot("priority"), gameId: "werewolf", phase: "DAY_INTERACTION", myPlayerId: "human",
+      extra: { ruleVersion: 2, archiveId: "archive-1", phaseToken: "priority", interaction: { humanPriority: true, questionTarget: "", completedPairs: 0 },
+        legalActions: [{ type: "ASK_PLAYER", label: "提问", targets: ["p2", "p3"], maxLength: 60 }] } };
+    const shared: GameState = { ...priority, extra: { ...priority.extra, phaseToken: "shared", interaction: { humanPriority: false, questionTarget: "", completedPairs: 0 } } };
+    client.setQueryData(["game-state", "room"], priority);
+    let control!: ReturnType<typeof useRoomActionController>;
+    function QuestionProbe() {
+      const current = useGameEngine("werewolf", "room");
+      control = useRoomActionController(current.stateQuery.data!, action => current.actionMutation.mutateAsync(action));
+      return null;
+    }
+    vi.mocked(gameplayApi.state).mockResolvedValue(shared);
+    vi.mocked(gameplayApi.action).mockResolvedValue(shared);
+    act(() => root.render(<QueryClientProvider client={client}><QuestionProbe /></QueryClientProvider>));
+    act(() => { control.selectTarget("p2"); control.setDraft("你依据哪条公开发言？"); });
+    await act(async () => { client.setQueryData(["game-state", "room"], shared); await new Promise(resolve => setTimeout(resolve, 0)); });
+    expect(control.draft).toBe("你依据哪条公开发言？");
+    expect(control.target).toBe("p2");
+    await act(async () => { await control.submit(control.prepared); });
+    expect(gameplayApi.action).toHaveBeenCalledExactlyOnceWith("werewolf", "room", expect.objectContaining({
+      type: "ASK_PLAYER", targetPlayerId: "p2", content: "你依据哪条公开发言？", expectedPhaseToken: "shared", requestId: expect.any(String),
+    }));
+  });
+
   it("counts three deliberate corrections with Axios business feedback, including reuse of the same draft object", async () => {
     vi.mocked(gameplayApi.state).mockResolvedValue(snapshot("instance:1"));
     vi.mocked(gameplayApi.action).mockImplementation(async () => {
