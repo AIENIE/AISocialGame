@@ -604,6 +604,12 @@ public class V2GameService {
             if ("PRIVATE".equals(e.get("visibility"))) privateRecipients.addAll(RuleSupport.strings(e.get("visibleTo")));
         }
         state.getData().put("recordedEventCount", events.size());
+        if ("werewolf".equals(state.getGameId()) && "DAY_VOTE".equals(state.getPhase())) {
+            int pending = RuleSupport.number(rules.publicData(state).get("pendingAiCount"), 0);
+            Object previous = state.getData().put("publishedWerewolfVotePendingAiCount", pending);
+            // Only the anonymous public count changes; ballots and their actors remain private until reveal.
+            publicChanged |= !(previous instanceof Number count) || count.intValue() != pending;
+        } else state.getData().remove("publishedWerewolfVotePendingAiCount");
         if (!publicChanged) state.getPlayers().stream()
                 .filter(player -> !player.isAi() && !rules.legalActions(state, player.getPlayerId()).isEmpty())
                 .map(GamePlayerState::getPlayerId).forEach(privateRecipients::add);

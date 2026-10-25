@@ -206,7 +206,7 @@ public class AiTurnCoordinator {
             var rules = runtime.rules(observation.gameId());
             if ("werewolf".equals(observation.gameId()) && !runtime.beginWerewolfTurn(job.getId())) {
                 if (runtime.validationBudgetPaused(job.getRoomId())) runtime.defer(job.getId(), com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")), AiValidationBudgetService.EXHAUSTED);
-                else runtime.fail(job.getId(),"QUEUE_TIMEOUT",java.util.Map.of());
+                else runtime.fail(job.getId(), job.getDiagnostics().containsKey("executionDeadlineEpochMs") ? "TIMEOUT" : "QUEUE_TIMEOUT", java.util.Map.of());
                 return;
             }
             long remainingMillis = runtime.remainingTurnMillis(job.getId());

@@ -69,6 +69,18 @@ class WerewolfFlowIntegrationTest {
         verifyNoInteractions(client);
     }
 
+    @Test void expiredRecoveredExecutionIsReportedAsExecutionTimeoutRatherThanQueueTimeout() {
+        var room=room();runtime.start("werewolf",room.getId(),host(room));var original=claim(room);
+        var state=states.findById(room.getId()).orElseThrow();
+        var clock=map(state.getData().get("werewolfAiClock"));
+        clock.put("executionEndsAt",LocalDateTime.now().minusSeconds(1).toString());
+        state.getData().put("werewolfAiClock",clock);states.saveAndFlush(state);
+        coordinator.run(jobs.findById(original.getId()).orElseThrow());
+        var failed=jobs.findById(original.getId()).orElseThrow();
+        assertEquals("FAILED",failed.getStatus());assertEquals("TIMEOUT",failed.getDiagnostics().get("terminalReason"));
+        verifyNoInteractions(client);
+    }
+
     @Test void budgetPauseRetainsAnInFlightValidResultAndStartsNoNewCall() {
         var room=room();runtime.start("werewolf",room.getId(),host(room));var job=claim(room);
         when(budgets.exhausted(room.getId())).thenReturn(true);runtime.tick(room.getId());

@@ -3,6 +3,7 @@ package com.aisocialgame;
 import com.aisocialgame.dto.GameStateResponse;
 import com.aisocialgame.dto.PlayerAction;
 import com.aisocialgame.dto.ws.PrivateEvent;
+import com.aisocialgame.dto.ws.GameStateEvent;
 import com.aisocialgame.engine.v2.LegalAction;
 import com.aisocialgame.engine.v2.RuleSupport;
 import com.aisocialgame.integration.grpc.client.AiGrpcClient;
@@ -25,6 +26,7 @@ import com.aisocialgame.websocket.PlayerConnectionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -175,6 +177,68 @@ class V2WerewolfPrivacyIntegrationTest {
         verify(push).pushPrivate(eq(timedOutWolf), argThat(event -> refreshFor(event, room.getId())));
         verify(push).pushPrivate(eq(nightActor(advanced)), argThat(event -> refreshFor(event, room.getId())));
         verify(push, never()).pushPrivate(eq(villager), any());
+        verifyNoInteractions(client);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "completed AI ballot publishes anonymous progress; restored without marker={0}")
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void completedAiBallotPublishesOnlyChangedAnonymousProgressToAnAlreadyActedHuman(boolean restoredWithoutMarker) throws Exception {
+        Room room = startHumanRoom();
+        for (int step = 0; step < 40 && !"DAY_VOTE".equals(state(room).getPhase()); step++) {
+            var current = state(room);
+            String actor = current.getPlayers().stream().filter(p -> runtime.rules("werewolf").legalActions(current, p.getPlayerId())
+                    .stream().anyMatch(a -> "SKIP".equals(a.type()))).findFirst().orElseThrow().getPlayerId();
+            submit(room, actor, RuleSupport.action("SKIP", "", null));
+        }
+        assertEquals("DAY_VOTE", state(room).getPhase());
+        var current = state(room);
+        String human = current.getPlayers().get(0).getPlayerId();
+        String otherHuman = current.getPlayers().get(1).getPlayerId();
+        for (int index = 4; index < 6; index++) {
+            current.getPlayers().get(index).setAi(true);
+            current.getPlayers().get(index).setPersonaId("ai1");
+        }
+        states.saveAndFlush(current);
+        submit(room, human, RuleSupport.action("SKIP", "", null));
+        assertTrue(legalActions(view(room, human)).isEmpty());
+        assertEquals(2, RuleSupport.number(view(room, human).getExtra().get("pendingAiCount"), 0));
+        String logsBefore = json.writeValueAsString(view(room, human).getLogs());
+        String versionBefore = RuleSupport.text(view(room, human).getExtra().get("viewVersion"));
+        var queued = jobs.findAll().stream().filter(j -> room.getId().equals(j.getRoomId()) && "QUEUED".equals(j.getStatus()))
+                .findFirst().orElseThrow();
+        var claimed = coordinator.claim(queued.getId());
+        assertNotNull(claimed);
+        if (restoredWithoutMarker) {
+            var restored = state(room);
+            restored.getData().remove("publishedWerewolfVotePendingAiCount");
+            states.saveAndFlush(restored);
+        }
+        clearInvocations(push);
+
+        var ballot = RuleSupport.action("VOTE", "", human);
+        runtime.complete(claimed.getId(), new AiTurnDecision(ballot, "", Map.of(), List.of(), Map.of(), false, Map.of()));
+
+        assertEquals("SUCCEEDED", jobs.findById(claimed.getId()).orElseThrow().getStatus());
+        GameStateResponse after = view(room, human);
+        assertEquals("DAY_VOTE", after.getPhase());
+        assertEquals(1, RuleSupport.number(after.getExtra().get("pendingAiCount"), 0));
+        assertNotEquals(versionBefore, after.getExtra().get("viewVersion"));
+        assertTrue(after.getVotes().isEmpty());
+        assertFalse(after.getExtra().containsKey("votes"));
+        assertFalse(after.getExtra().containsKey("publishedWerewolfVotePendingAiCount"));
+        assertEquals(logsBefore, json.writeValueAsString(after.getLogs()), "private ballot must not append a public log");
+        var events = ArgumentCaptor.forClass(GameStateEvent.class);
+        verify(push).pushStateChange(eq(room.getId()), events.capture());
+        assertEquals("V2_STATE", events.getValue().type());
+        assertEquals(java.util.Set.of("roomId", "viewVersion"), RuleSupport.map(events.getValue().payload()).keySet());
+        assertNull(events.getValue().currentSeat());
+
+        clearInvocations(push);
+        submit(room, otherHuman, RuleSupport.action("SKIP", "", null));
+        runtime.tick(room.getId());
+        assertEquals(1, RuleSupport.number(view(room, human).getExtra().get("pendingAiCount"), 0));
+        assertEquals(after.getExtra().get("viewVersion"), view(room, human).getExtra().get("viewVersion"));
+        verify(push, never()).pushStateChange(anyString(), any());
         verifyNoInteractions(client);
     }
 
