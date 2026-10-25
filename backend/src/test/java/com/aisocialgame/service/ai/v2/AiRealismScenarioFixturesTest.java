@@ -47,19 +47,27 @@ class AiRealismScenarioFixturesTest {
         assertThrows(IllegalArgumentException.class, () -> AiRealismScenarioFixtures.select(all, all.getFirst().id() + "," + all.getFirst().id()));
     }
 
-    @Test void offlineFallbackSamplesRemainLegalAndContainOnlyFixtureEvidence() throws Exception {
+    @Test void offlineScriptedSamplesRemainLegalAndContainOnlyFixtureEvidence() throws Exception {
         var samples = new java.util.ArrayList<java.util.Map<String, Object>>();
         for (var scenario : fixtures.load()) {
             var o = scenario.observation();
             var decision = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(scenario.adapter(), o));
-            assertTrue(o.legalActions().stream().anyMatch(a -> a.type().equals(decision.action().getType())), scenario.id());
+            var capability = o.legalActions().stream().filter(a -> a.type().equals(decision.action().getType())
+                    && java.util.Objects.equals(a.nightAction(), decision.action().getNightAction())).findFirst().orElseThrow();
+            if (!capability.targets().isEmpty()) assertTrue(capability.targets().contains(decision.action().getTargetPlayerId()), scenario.id());
+            if (Set.of("SPEAK", "ANSWER_PLAYER", "ASK_PLAYER").contains(capability.type())) {
+                assertFalse(decision.speech().isBlank(), scenario.id());
+                assertTrue(decision.speech().length() <= capability.maxLength(), scenario.id());
+            }
+            if ("werewolf".equals(o.gameId()) && o.legalActions().stream().anyMatch(a -> "SPEAK".equals(a.type())))
+                assertEquals("SPEAK", decision.action().getType(), scenario.id());
             assertTrue(scenario.adapter().validateDecision(o, decision).isEmpty(), scenario.id());
             samples.add(java.util.Map.of("scenarioId", scenario.id(), "decision", decision, "continuity", AiGrounding.context(o)));
         }
         var target = Path.of("target", "realism-v2-offline-samples.json");
         java.nio.file.Files.createDirectories(target.getParent());
         json.writerWithDefaultPrettyPrinter().writeValue(target.toFile(), java.util.Map.of("source", "authored fixtures; no model calls",
-                "promptVersion", AiTurnGenerator.PROMPT_VERSION, "fallbackRate", 1.0, "samples", samples));
+                "evidenceKind", "SYNTHETIC_TEST", "promptVersion", AiTurnGenerator.PROMPT_VERSION, "fallbackRate", 1.0, "samples", samples));
     }
 
     @Test void blankAndCooperativePlayersReceiveNoHiddenCatalogTruth() throws Exception {

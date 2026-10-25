@@ -54,8 +54,9 @@ class AiModelConfigServiceTest {
         assertEquals("12", environmentSelection.modelKey(), "validation must not rewrite a prepared request");
         assertEquals(4, result.functions().size()); assertEquals(1, result.catalogVersion());
         assertTrue(result.functions().stream().allMatch(f -> f.modelKey().equals("test-model") && f.thinkingMode() == ThinkingMode.DEFAULT && f.thinkingEffort() == null));
-        assertTrue(result.functions().getFirst().inferenceEnabled());
-        assertTrue(result.functions().stream().skip(1).noneMatch(AdminAiModelConfigResponse.FunctionView::inferenceEnabled));
+        assertEquals(Set.of(AiFunctionCode.UNDERCOVER, AiFunctionCode.WEREWOLF),
+                result.functions().stream().filter(AdminAiModelConfigResponse.FunctionView::inferenceEnabled)
+                        .map(AdminAiModelConfigResponse.FunctionView::functionCode).collect(java.util.stream.Collectors.toSet()));
         assertNull(result.models().getFirst().thinking().defaultEnabled()); assertNull(result.models().getFirst().thinking().defaultEffort());
         properties.getAi().setDefaultModel("another-environment-model");
         assertEquals("test-model", service.resolve("undercover", "ai").modelKey());
