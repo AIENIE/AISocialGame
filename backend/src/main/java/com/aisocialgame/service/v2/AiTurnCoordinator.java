@@ -107,7 +107,7 @@ public class AiTurnCoordinator {
         // Recover abandoned calls through rule-specific expiry; never publish unvalidated fallback text.
         for (var abandoned : jobs.findRecoveryCandidates("RUNNING", PageRequest.of(0, clockBatchSize))) {
             try {
-                if(Boolean.TRUE.equals(abandoned.getDiagnostics().get("laboratory"))) {
+                if(Boolean.TRUE.equals(abandoned.getDiagnostics().get("laboratory")) || "werewolf".equals(abandoned.getDiagnostics().get("gameId")) && !AiJobDiagnostics.overdue(abandoned.getDiagnostics(),abandoned.getStartedAt(),java.time.Instant.now(),java.time.ZoneId.systemDefault())) {
                     if(!activeJobs.contains(abandoned.getId())) runtime.recoverLabJob(abandoned.getId());
                     continue;
                 }
@@ -133,7 +133,8 @@ public class AiTurnCoordinator {
             boolean undercover = "undercover".equals(queued.getObservation().get("gameId"));
             Semaphore permits = undercover ? undercoverSlots : slots;
             ExecutorService workers = undercover ? undercoverExecutor : executor;
-            String model=isLab(queued)?labModel(queued):null;
+            String model=isLab(queued)?labModel(queued):"werewolf".equals(queued.getObservation().get("gameId")) ?
+                    (queued.getDiagnostics().containsKey("modelSelection") ? selectedModel(queued) : modelConfigs.resolve("werewolf",queued.getActorId()).modelKey()) : null;
             var saved=com.aisocialgame.engine.v2.RuleSupport.map(queued.getObservation().get("generationCheckpoint"));
             if(!com.aisocialgame.lab.LabCallRecovery.ready(saved,System.currentTimeMillis())) continue;
             if(model!=null && !labModels.add(model)) continue;
@@ -168,6 +169,7 @@ public class AiTurnCoordinator {
             AiTurnJob job = jobs.findByIdForUpdate(id).orElse(null);
             if (job == null || !"QUEUED".equals(job.getStatus())) return null;
             if(runtime.labBudgetPaused(job.getRoomId())) return null;
+            if(runtime.validationBudgetPaused(job.getRoomId())) return null;
             if(!com.aisocialgame.lab.LabCallRecovery.ready(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")),System.currentTimeMillis())) return null;
             if (modelConfigs != null && !job.getDiagnostics().containsKey("modelSelection")) {
                 var prior = com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")).get("modelSelection"));
@@ -202,6 +204,11 @@ public class AiTurnCoordinator {
         try {
             VisibleObservation observation = JSON.convertValue(V2GameService.observationPayload(job), VisibleObservation.class);
             var rules = runtime.rules(observation.gameId());
+            if ("werewolf".equals(observation.gameId()) && !runtime.beginWerewolfTurn(job.getId())) {
+                if (runtime.validationBudgetPaused(job.getRoomId())) runtime.defer(job.getId(), com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")), AiValidationBudgetService.EXHAUSTED);
+                else runtime.fail(job.getId(),"QUEUE_TIMEOUT",java.util.Map.of());
+                return;
+            }
             long remainingMillis = runtime.remainingTurnMillis(job.getId());
             if (remainingMillis <= 0) {
                 runtime.fail(job.getId(), "NO_ACTION_BUDGET", java.util.Map.of()); return;
@@ -212,7 +219,7 @@ public class AiTurnCoordinator {
             try (var labScope = com.aisocialgame.lab.LabCallContext.open(com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(observation.memory()).get("lab")), "TURN");
                  var scope = com.aisocialgame.service.safety.AiCallScope.open(com.aisocialgame.service.safety.AiSafetyContext.source("AI_PLAYER")
                     .room(job.getRoomId(), observation.gameId()).user(job.getActorId(),job.getActorId()).persona(com.aisocialgame.engine.v2.RuleSupport.text(com.aisocialgame.engine.v2.RuleSupport.map(observation.persona()).get("id"))).model(selectedModel(job)))) {
-                decision = isLab(job)
+                decision = isLab(job) || "werewolf".equals(observation.gameId())
                         ? generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, checkpoint,
                             saved -> runtime.checkpoint(job.getId(),saved))
                         : generator.generate(rules, observation, job.getId(), remainingMillis, () -> runtime.remainingTurnMillis(job.getId()) > 0, checkpoint);

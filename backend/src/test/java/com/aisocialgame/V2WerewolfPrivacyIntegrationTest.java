@@ -136,7 +136,7 @@ class V2WerewolfPrivacyIntegrationTest {
         clearInvocations(push);
 
         // Complete a deterministic legal decision without invoking a remote model.
-        runtime.complete(claimed.getId(), AiTurnDecision.fallback(action));
+        runtime.complete(claimed.getId(), new AiTurnDecision(action, suggestion, Map.of(), List.of(), Map.of(), false, Map.of()));
 
         assertEquals("SUCCEEDED", jobs.findById(claimed.getId()).orElseThrow().getStatus());
         verify(push).pushPrivate(eq(humanWolf), argThat(event -> refreshFor(event, room.getId())));

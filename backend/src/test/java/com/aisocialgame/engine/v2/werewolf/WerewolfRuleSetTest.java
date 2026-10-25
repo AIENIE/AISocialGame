@@ -571,30 +571,25 @@ class WerewolfRuleSetTest {
     }
 
     @Test
-    void fallbackWitchCanSaveSelfButNeverBlindlyPoisonsAndSeerPrefersFreshTarget() {
+    void modelFailureNeverFabricatesSkillsSpeechOrVotes() {
         GameState state = game("standard", 6);
         GamePlayerState witch = role(state, "WITCH");
         untilRole(state, "WITCH", p -> "WEREWOLF".equals(p.getRole()) ? night("WOLF_KILL", witch, "") : skip());
-        PlayerAction saveSelf = rules.fallback(observation(state, witch));
-        assertEquals("WITCH_SAVE", saveSelf.getNightAction());
-        assertTrue(saveSelf.isUseHeal());
-        act(state, witch, saveSelf);
+        PlayerAction failedSkill = rules.fallback(observation(state, witch));
+        assertEquals("SKIP", failedSkill.getType());
+        assertFalse(failedSkill.isUseHeal());
+        assertNull(failedSkill.getTargetPlayerId());
+        act(state, witch, failedSkill);
+        while ("NIGHT".equals(state.getPhase())) act(state, current(state), skip());
+        if ("DAY_DISCUSS".equals(state.getPhase())) {
+            PlayerAction failedSpeech = rules.fallback(observation(state, current(state)));
+            assertEquals("SKIP", failedSpeech.getType());
+            assertEquals("", failedSpeech.getContent());
+        }
         reachVoting(state);
-        allAbstain(state);
-        untilRole(state, "WITCH", p -> skip());
-        assertEquals("SKIP", rules.fallback(observation(state, witch)).getType());
-
-        GameState seerState = game("standard", 6);
-        GamePlayerState seer = role(seerState, "SEER");
-        GamePlayerState known = role(seerState, "VILLAGER");
-        playNight(seerState, p -> p == seer ? night("SEER_CHECK", known, "") : skip());
-        reachVoting(seerState);
-        allAbstain(seerState);
-        untilRole(seerState, "SEER", p -> skip());
-        PlayerAction check = rules.fallback(observation(seerState, seer));
-        assertEquals("SEER_CHECK", check.getNightAction());
-        assertNotEquals(known.getPlayerId(), check.getTargetPlayerId());
-        assertTrue(nightTargets(seerState, seer, "SEER_CHECK").contains(check.getTargetPlayerId()));
+        PlayerAction failedVote = rules.fallback(observation(state, state.getPlayers().stream().filter(GamePlayerState::isAlive).findFirst().orElseThrow()));
+        assertEquals("SKIP", failedVote.getType());
+        assertNull(failedVote.getTargetPlayerId());
     }
 
     @Test

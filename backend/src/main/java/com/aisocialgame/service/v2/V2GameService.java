@@ -24,6 +24,7 @@ import java.util.*;
 
 @Service
 public class V2GameService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private AiValidationBudgetService validationBudgets;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private com.aisocialgame.lab.LabBudgetService labBudgets;
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(V2GameService.class);
@@ -76,6 +77,10 @@ public class V2GameService {
         if (state == null || !Objects.equals(job.getInstanceId(), state.getData().get("archiveId"))) return 0;
         GameRuleSet rules = rules(state.getGameId());
         if (!rules.isTurnCurrent(state, new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey()))) return 0;
+        if ("werewolf".equals(state.getGameId())) {
+            Object deadline = job.getDiagnostics().get("executionDeadlineEpochMs");
+            return deadline instanceof Number n ? Math.max(0, Math.min(AiTurnGenerator.MAX_DECISION_MILLIS, n.longValue() - System.currentTimeMillis())) : 0;
+        }
         if (!"undercover".equals(state.getGameId())) return turnBudgetMillis(state.getPhaseEndsAt(), LocalDateTime.now());
         if(pureAiLab(state)) return AiTurnGenerator.UNDERCOVER_DECISION_MILLIS;
         long now = System.currentTimeMillis();
@@ -87,6 +92,57 @@ public class V2GameService {
     static long turnBudgetMillis(LocalDateTime deadline, LocalDateTime now) {
         if (deadline == null) return AiTurnGenerator.MAX_DECISION_MILLIS;
         return Math.min(AiTurnGenerator.MAX_DECISION_MILLIS, Math.max(0, Duration.between(now, deadline).toMillis() - 1_000));
+    }
+
+    public boolean validationBudgetPaused(String roomId) {
+        return validationBudgets != null && validationBudgets.exhausted(roomId);
+    }
+
+    /** Called after a worker and model slot are acquired, outside the remote call. */
+    public boolean beginWerewolfTurn(String jobId) {
+        var lookup = jobs.findById(jobId).orElse(null);
+        if (lookup == null) return false;
+        return Boolean.TRUE.equals(transaction.execute(status -> {
+            rooms.findByIdForUpdate(lookup.getRoomId());
+            var state = states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
+            var job = jobs.findByIdForUpdate(jobId).orElse(null);
+            if (state == null || job == null || !"RUNNING".equals(job.getStatus()) || validationBudgetPaused(job.getRoomId())) return false;
+            var turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
+            if (!Objects.equals(job.getInstanceId(), state.getData().get("archiveId")) || !rules(state.getGameId()).isTurnCurrent(state, turn)) return false;
+            var end = com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.begin(state, turn, LocalDateTime.now());
+            if (end == null) return false;
+            // The persisted action clock also carries any budget-pause shift.
+            job.getDiagnostics().put("executionDeadlineEpochMs", end.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            jobs.save(job); states.save(state); return true;
+        }));
+    }
+
+    private boolean syncValidationBudgetClock(GameState state) {
+        boolean exhausted = validationBudgetPaused(state.getRoomId());
+        var saved = RuleSupport.map(state.getData().get("validationBudgetPause"));
+        if (exhausted && !"SETTLEMENT".equals(state.getPhase())) {
+            if (saved.isEmpty() || !phaseToken(state).equals(saved.get("phaseToken"))) {
+                saved = new LinkedHashMap<>(); saved.put("phaseToken", phaseToken(state));
+                saved.put("pausedAt", LocalDateTime.now().toString());
+                if (state.getPhaseEndsAt()!=null) saved.put("remainingMs", Math.max(0,Duration.between(LocalDateTime.now(),state.getPhaseEndsAt()).toMillis()));
+                if (!state.getData().containsKey("validationBudgetPause")) RuleSupport.event(state,"VALIDATION_BUDGET_PAUSED",null,null,
+                        "本次验收已达到积分实扣停止线，局面已保存。",Map.of());
+                state.getData().put("validationBudgetPause",saved);
+            }
+            state.setPhaseEndsAt(null); return true;
+        }
+        if (!saved.isEmpty()) {
+            state.getData().remove("validationBudgetPause");
+            if (phaseToken(state).equals(saved.get("phaseToken"))) {
+                if (saved.get("remainingMs") instanceof Number n) state.setPhaseEndsAt(LocalDateTime.now().plusNanos(n.longValue()*1_000_000));
+                long duration = Math.max(0,Duration.between(LocalDateTime.parse(RuleSupport.text(saved.get("pausedAt"))),LocalDateTime.now()).toMillis());
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.shift(state,duration);
+                var data=RuleSupport.map(state.getData().get("werewolf"));
+                for (String key:List.of("humanVoteEndsAt","interactionEndsAt")) if(data.containsKey(key)) data.put(key,LocalDateTime.parse(RuleSupport.text(data.get(key))).plusNanos(duration*1_000_000).toString());
+                if(!data.isEmpty()) state.getData().put("werewolf",data);
+            }
+        }
+        return false;
     }
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -207,6 +263,7 @@ public class V2GameService {
     }
     private GameStateResponse start(String gameId, String roomId, User user, boolean laboratory) {
         return lifecycle.withActiveRoom(roomId, gameId, room -> {
+            if (validationBudgetPaused(roomId)) throw new ApiException(HttpStatus.CONFLICT,"本次验收已达到积分实扣停止线","AI_VALIDATION_BUDGET_EXHAUSTED",Map.of());
             if (laboratory) RuleSupport.require(room.isLab(), "仅实验室调度器可以启动实验房间");
             else { RuleSupport.require(!room.isLab(), "实验房间由实验室调度"); requireHost(room, user); }
             GameState previous = states.findByIdForUpdate(roomId).orElse(null);
@@ -237,6 +294,7 @@ public class V2GameService {
         var result = lifecycle.withActiveRoom(roomId, gameId, room -> {
             GameState state = states.findByIdForUpdate(roomId).orElseThrow(() -> RuleSupport.bad("游戏尚未开始"));
             if(labBudgetPaused(state)) throw new ApiException(HttpStatus.CONFLICT,"实验已达到预算，等待管理员调整后继续", "LAB_BUDGET_EXHAUSTED",Map.of());
+            if(validationBudgetPaused(roomId)) throw new ApiException(HttpStatus.CONFLICT,"本次验收已达到积分实扣停止线","AI_VALIDATION_BUDGET_EXHAUSTED",Map.of());
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
             RuleSupport.require(RuleSupport.number(state.getData().get("ruleVersion"), 1) == 2, "对局版本不匹配");
@@ -313,12 +371,15 @@ public class V2GameService {
             int beforeSafety=RuleSupport.maps(state.getData().get("events")).size();
             boolean frozen=syncSafetyClock(state);
             frozen=syncLabBudgetClock(state) || frozen;
+            frozen=syncValidationBudgetClock(state) || frozen;
             if (beforeSafety!=RuleSupport.maps(state.getData().get("events")).size()) persist(room,state,rules(state.getGameId()),true);
             if (frozen) { states.save(state); return; }
             GameRuleSet rules = rules(state.getGameId());
             int eventCount = RuleSupport.maps(state.getData().get("events")).size(); String token = phaseToken(state);
             String publicBefore = serializedPublicView(room, state);
             updateConnections(state);
+            if (rules instanceof com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet wolf)
+                if (com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.synchronize(state,wolf,LocalDateTime.now())) states.save(state);
             if(pureAiLab(state)) state.setPhaseEndsAt(null);
             rules.advance(state, LocalDateTime.now());
             AiCommitments.reconcile(state, rules, "TIMEOUT");
@@ -345,11 +406,16 @@ public class V2GameService {
             if (!rules.isTurnCurrent(state, turn)) { finishJob(job, "DISCARDED", "TURN_OBSOLETE"); prepareJob(state, rules); return; }
             LocalDateTime now = LocalDateTime.now();
             if(pureAiLab(state)) state.setPhaseEndsAt(null);
-            if (state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
+            if (!"werewolf".equals(state.getGameId()) && state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
                 rules.advance(state, now); AiCommitments.reconcile(state, rules, "TIMEOUT"); finishJob(job, "DISCARDED", "TURN_EXPIRED");
                 persist(room, state, rules, false); prepareJob(state, rules); return;
             }
             VisibleObservation observation = JSON.convertValue(observationPayload(job), VisibleObservation.class);
+            if ("werewolf".equals(state.getGameId()) && (decision.fallback() || com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.expired(state,now))) {
+                ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules).onAiFailure(state,turn,now,decision.fallback()?"REQUEST_FAILED":"TIMEOUT");
+                finishJob(job,"FAILED",decision.fallback()?"FALLBACK_REJECTED":"TURN_EXPIRED");
+                persist(room,state,rules,false); prepareJob(state,rules); return;
+            }
             if(!decision.speech().isBlank()) {
                 var review=safety.review(decision.speech(),AiSafetyContext.source("AI_PLAYER").room(state.getRoomId(),state.getGameId())
                         .user(job.getActorId(),job.getActorId()).persona(RuleSupport.text(observation.persona().get("id")))
@@ -423,6 +489,9 @@ public class V2GameService {
             job.getDiagnostics().putIfAbsent("budgetWaitStartedEpochMs", System.currentTimeMillis());
             job.getDiagnostics().put("waitingReason", reason);
             job.setStatus("QUEUED"); jobs.save(job);
+            if(AiValidationBudgetService.EXHAUSTED.equals(reason)) {
+                syncValidationBudgetClock(state); persist(rooms.findById(job.getRoomId()).orElseThrow(),state,rules(state.getGameId()),true); return;
+            }
             if(com.aisocialgame.lab.LabCallRecovery.blocked(reason)) state.getData().put("labCallPause",reason);
             if(com.aisocialgame.lab.LabCallRecovery.blocked(reason) || com.aisocialgame.lab.LabBudgetService.EXHAUSTED.equals(reason) || "LAB_EXPERIMENT_PAUSED".equals(reason)) {
                 freezeLabJob(job); freezeLabBudget(state);
@@ -454,7 +523,9 @@ public class V2GameService {
                 LocalDateTime now = LocalDateTime.now();
                 // A genuinely expired phase must use its clock transition; submitting SKIP
                 // through a rule's normal action path can itself reject an expired action.
-                if (state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
+                if (rules instanceof com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet wolf) {
+                    wolf.onAiFailure(state,turn,now,reason);
+                } else if (state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
                     rules.advance(state, now); AiCommitments.reconcile(state, rules, "TIMEOUT");
                 } else {
                     var receipt = rules.commitmentAction(state, turn.actorId(), RuleSupport.action("SKIP", "", null));
@@ -475,9 +546,12 @@ public class V2GameService {
     }
     private void prepareJob(GameState state, GameRuleSet rules) {
         boolean undercover = "undercover".equals(state.getGameId());
-        if (undercover) for (AiTurnJob old : jobs.findByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING"))) {
-            if (!rules.isTurnCurrent(state, new TurnRequest(old.getActorId(), old.getKind(), old.getTurnKey()))) finishJob(old, "DISCARDED", Objects.equals(old.getInstanceId(),state.getData().get("archiveId")) ? "TURN_OBSOLETE" : "INSTANCE_UNAVAILABLE");
+        if (undercover || "werewolf".equals(state.getGameId())) for (AiTurnJob old : jobs.findByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING"))) {
+            if (!Objects.equals(old.getInstanceId(),state.getData().get("archiveId")) || !rules.isTurnCurrent(state, new TurnRequest(old.getActorId(), old.getKind(), old.getTurnKey()))) finishJob(old, "DISCARDED", Objects.equals(old.getInstanceId(),state.getData().get("archiveId")) ? "TURN_OBSOLETE" : "INSTANCE_UNAVAILABLE");
         }
+        if(syncValidationBudgetClock(state)) { states.save(state); return; }
+        if (rules instanceof com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet wolf)
+            if(com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.synchronize(state,wolf,LocalDateTime.now())) states.save(state);
         if ("SETTLEMENT".equals(state.getPhase()) || (!undercover && jobs.existsByRoomIdAndStatusIn(state.getRoomId(), List.of("QUEUED", "RUNNING")))) return;
         if(syncLabBudgetClock(state)) { states.save(state); return; }
         for (TurnRequest turn : rules.pendingTurns(state)) {
@@ -505,6 +579,7 @@ public class V2GameService {
         }
     }
     private void persist(Room room, GameState state, GameRuleSet rules, boolean forcePush) {
+        syncValidationBudgetClock(state);
         syncLabBudgetClock(state);
         AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
         AiRoundReflection.closeRounds(state);
@@ -689,11 +764,15 @@ public class V2GameService {
         List<GamePlayerView> players = state.getPlayers().stream().map(p -> new GamePlayerView(p.getPlayerId(), p.getDisplayName(), p.getSeatNumber(), p.isAi(), p.getPersonaId(), p.getAvatar(), p.isAlive(), rules.visibleRole(state, p, viewerId), rules.visibleWord(state, p, viewerId), p.getConnectionStatus())).toList();
         Map<String, Object> extra = new LinkedHashMap<>(rules.publicData(state));
         if (viewer != null) extra.putAll(rules.privateData(state, viewerId));
+        if (state.getData().containsKey("validationBudgetPause")) {
+            extra.put("validationBudgetPaused",true); extra.remove("actionEndsAt");
+            extra.put("pauseReason","本次验收已达到积分实扣停止线，局面已保存。");
+        }
         extra.put("ruleVersion", 2); extra.put("archiveId", state.getData().get("archiveId")); extra.put("phaseToken", viewerPhaseToken(state, rules, viewerId));
         extra.put("viewVersion", viewVersion(state, viewerId));
         com.aisocialgame.service.SettlementView.add(extra, state, viewerId);
         extra.put("hostUserId", RuleSupport.text(room.getHostUserId()));
-        boolean budgetPaused=labBudgetPaused(state) && !"SETTLEMENT".equals(state.getPhase());
+        boolean budgetPaused=(labBudgetPaused(state) || state.getData().containsKey("validationBudgetPause")) && !"SETTLEMENT".equals(state.getPhase());
         if(room.isLab()) {
             extra.put("labBudgetPaused",budgetPaused && !state.getData().containsKey("labCallPause"));
             extra.put("labCallPaused",state.getData().containsKey("labCallPause"));
@@ -702,10 +781,16 @@ public class V2GameService {
         extra.put("legalActions", viewer == null || budgetPaused ? List.of() : rules.legalActions(state, viewerId));
         boolean night = Set.of("NIGHT", "DEATH_ACTION").contains(state.getPhase()); Integer seat = night ? null : state.getCurrentSeat();
         String speaker = seat == null ? null : players.stream().filter(p -> p.getSeatNumber() == seat).map(GamePlayerView::getDisplayName).findFirst().orElse(null);
+        LocalDateTime visibleDeadline = state.getPhaseEndsAt();
+        if ("werewolf".equals(state.getGameId())) {
+            if ("DAY_VOTE".equals(state.getPhase())) visibleDeadline = null;
+            else if (com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.turn(state)!=null && (viewer==null || rules.legalActions(state,viewerId).isEmpty()))
+                visibleDeadline = com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.running(state) ? com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.deadline(state) : null;
+        }
         Map<String, String> votes = new LinkedHashMap<>(); RuleSupport.map(extra.get("votes")).forEach((k, v) -> votes.put(k, RuleSupport.text(v)));
         List<GameLogEntry> visibleLogs = state.getLogs();
         visibleLogs = visibleLogs.subList(Math.max(0, visibleLogs.size() - 100), visibleLogs.size());
-        return new GameStateResponse(room.getId(), state.getGameId(), state.getPhase(), state.getRoundNumber(), seat, speaker, (String) state.getData().get("winner"), viewerId, viewer == null ? null : viewer.getSeatNumber(), viewer == null ? null : rules.visibleWord(state, viewer, viewerId), viewer == null ? null : rules.visibleRole(state, viewer, viewerId), night ? null : state.getPhaseEndsAt(), players, visibleLogs, extra, votes, null);
+        return new GameStateResponse(room.getId(), state.getGameId(), state.getPhase(), state.getRoundNumber(), seat, speaker, (String) state.getData().get("winner"), viewerId, viewer == null ? null : viewer.getSeatNumber(), viewer == null ? null : rules.visibleWord(state, viewer, viewerId), viewer == null ? null : rules.visibleRole(state, viewer, viewerId), night || budgetPaused ? null : visibleDeadline, players, visibleLogs, extra, votes, null);
     }
     private Room room(String roomId, String gameId, boolean lock) {
         Room room = lock ? rooms.findByIdForUpdate(roomId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "房间不存在")) : lifecycle.requireActive(roomId);

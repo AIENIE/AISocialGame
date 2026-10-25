@@ -26,6 +26,7 @@ public class AiTurnGenerator {
     public static final long MAX_DECISION_MILLIS = 50_000;
     public static final long UNDERCOVER_DECISION_MILLIS = 89_000;
     private static final int MAX_REQUEST_SECONDS = 45;
+    private static final Set<String> ORIGINAL_RESULT_WAIT = Set.of("AI_RESULT_PENDING", "AI_RESULT_UNKNOWN", "AI_USAGE_UNKNOWN", "BUDGET_RECONCILIATION_REQUIRED");
     public static final Set<String> EMOTIONS = Set.of("neutral", "curious", "tense", "relieved", "uncertain", "amused", "determined", "disappointed");
     public static final Set<String> GESTURES = Set.of("none", "pause", "nod", "shake_head", "frown", "smile", "sigh", "lean_in");
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules()
@@ -73,6 +74,7 @@ public class AiTurnGenerator {
                                    java.util.function.Consumer<Map<String,Object>> saveCheckpoint) {
         boolean laboratory = !RuleSupport.map(observation.memory().get("lab")).isEmpty();
         boolean undercover = "undercover".equals(observation.gameId());
+        boolean werewolf = "werewolf".equals(observation.gameId());
         long started = nanoTime.getAsLong();
         long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(undercover ? UNDERCOVER_DECISION_MILLIS : MAX_DECISION_MILLIS, remainingTurnMillis)));
         List<String> failures = List.of();
@@ -97,12 +99,13 @@ public class AiTurnGenerator {
             failures = RuleSupport.strings(checkpoint.get("failures")); attempts.addAll(RuleSupport.maps(checkpoint.get("attempts")));
         }
         for (int attempt = resume; attempt < (undercover ? 4 : 2); attempt++) {
-            if (undercover && !turnCurrent.getAsBoolean()) {
+            if ((undercover || werewolf) && !turnCurrent.getAsBoolean()) {
                 failures = List.of("TURN_OBSOLETE"); break;
             }
             long remaining = remainingNanos(started, budgetNanos);
             if (attempt > 0) stages.put("repairRemainingMs", TimeUnit.NANOSECONDS.toMillis(remaining));
-            if (remaining < TimeUnit.SECONDS.toNanos(attempt == 0 ? 1 : 5)) {
+            boolean recoveringOriginal = werewolf && attempt == resume && checkpoint.containsKey("lastCallState");
+            if (remaining < TimeUnit.SECONDS.toNanos(attempt == 0 || recoveringOriginal ? 1 : 5)) {
                 failures = deadlineFailure(failures); break;
             }
             var transport = new LinkedHashMap<String,Object>();
@@ -141,13 +144,13 @@ public class AiTurnGenerator {
                 if (requestSeconds <= 0) { failures = deadlineFailure(failures); break; }
                 sample.put("requestTimeoutMs", requestSeconds * 1000);
                 sample.put("requestRemainingMs", TimeUnit.NANOSECONDS.toMillis(remainingNanos(started, budgetNanos)));
-                if (undercover && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
+                if ((undercover || werewolf) && !turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
                 sample.put("requestId", requestId);
                 if (debugRecorder != null) debugRecorder.begin(AiCallScope.context(properties.getAi().getSystemUserId(), selected.modelKey()).getRoomId(),
                         observation, jobId, attempt, messages, selected, requestSeconds * 1000L);
-                if(laboratory) saveCheckpoint.accept(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,
+                if(laboratory || werewolf) saveCheckpoint.accept(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,
                         attempts.subList(0,attempts.size()-1),selected,checkpoint,transport));
-                calls++;
+                if (!recoveringOriginal) calls++;
                 AiChatResult response;
                 stage = "RPC";
                 long rpc = nanoTime.getAsLong();
@@ -200,6 +203,25 @@ public class AiTurnGenerator {
                 sample.put("failureStage", stage);
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
+                if (werewolf && ex instanceof com.aisocialgame.exception.ApiException api && AiValidationBudgetService.EXHAUSTED.equals(api.getCode())) {
+                    budgetDeferred=api.getCode(); if (!recoveringOriginal) calls--; attempts.remove(sample);
+                    throw new GenerationDeferred(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,attempts,selected,checkpoint,transport),budgetDeferred);
+                }
+                if (werewolf && "RPC".equals(stage) && ex instanceof com.aisocialgame.exception.ApiException api
+                        && api.getCode() != null && ORIGINAL_RESULT_WAIT.contains(api.getCode())) {
+                    sample.putAll(api.getDetails()); sample.put("failureStage", stage);
+                    long remainingWindow = remainingNanos(started, budgetNanos);
+                    if (remainingWindow == 0) { failures = deadlineFailure(List.of(api.getCode())); break; }
+                    if (!turnCurrent.getAsBoolean()) { failures = List.of("TURN_OBSOLETE"); break; }
+                    long now = System.currentTimeMillis();
+                    transport.putIfAbsent("waitingSinceEpochMs", now);
+                    transport.put("lastCallState", new LinkedHashMap<>(api.getDetails()));
+                    transport.put("retryAfterEpochMs", now + Math.min(2000, Math.max(1, TimeUnit.NANOSECONDS.toMillis(remainingWindow))));
+                    // Keep both identities and the original correction input: this is a result query, not a new generation.
+                    budgetDeferred = api.getCode();
+                    throw new GenerationDeferred(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,
+                            attempts,selected,checkpoint,transport),budgetDeferred);
+                }
                 if (undercover && ex instanceof com.aisocialgame.exception.ApiException api) {
                     if(laboratory && api.getCode()!=null && com.aisocialgame.lab.LabCallRecovery.recoverable(api.getCode())) {
                         sample.putAll(api.getDetails()); sample.put("failureStage",stage); sample.put("flags",List.of(api.getCode()));
@@ -237,7 +259,7 @@ public class AiTurnGenerator {
         AiTurnDecision fallback;
         List<String> fallbackErrors;
         stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
-        if (undercover) {
+        if (undercover || werewolf) {
             String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT"
                     : failures.contains("OUTPUT_LIMIT_REACHED") ? "OUTPUT_LIMIT_REACHED"
                     : failures.contains("AI_CREDIT_INSUFFICIENT") ? "AI_CREDIT_INSUFFICIENT"

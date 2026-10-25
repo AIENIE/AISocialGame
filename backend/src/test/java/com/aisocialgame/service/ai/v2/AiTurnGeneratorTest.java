@@ -514,6 +514,95 @@ class AiTurnGeneratorTest {
         }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"AI_RESULT_PENDING", "AI_RESULT_UNKNOWN", "AI_USAGE_UNKNOWN", "BUDGET_RECONCILIATION_REQUIRED"})
+    void werewolfWaitsForTheOriginalResultWithoutChangingRequestOrCountingAnotherGeneration(String code) throws Exception {
+        var adapter = new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();
+        var observation = werewolfSpeechObservation();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenThrow(pendingResult(code))
+                .thenReturn(new AiChatResult(payload("SPEAK", "我想先听听大家的判断。", null), "mock-only", 17, 9));
+        long before = System.currentTimeMillis();
+        var waiting = assertThrows(AiTurnGenerator.GenerationDeferred.class,
+                () -> generator.generate(adapter, observation, "wolf-pending"));
+        assertEquals(code, waiting.getMessage());
+        assertEquals(0, waiting.checkpoint().get("nextAttempt"));
+        assertEquals(0, number(waiting.checkpoint().get("transportAttempt"), 0));
+        assertTrue(((Number) waiting.checkpoint().get("retryAfterEpochMs")).longValue() > before);
+        var result = generator.generate(adapter, observation, "wolf-pending", 20_000, () -> true, waiting.checkpoint());
+        assertEquals("SPEAK", result.action().getType());
+        assertEquals(1, result.diagnostics().get("calls"));
+        assertEquals(17, result.diagnostics().get("promptTokens"));
+        assertEquals(true, result.diagnostics().get("usageComplete"));
+        assertEquals(false, result.diagnostics().get("repaired"));
+        var messages = messageCaptor();
+        verify(client, times(2)).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), eq("wolf-pending:0"), anyInt());
+        assertEquals(messages.getAllValues().getFirst(), messages.getAllValues().getLast());
+        verify(client, never()).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt());
+    }
+
+    @Test void werewolfPendingCorrectionKeepsTheOriginalPayloadAndCanRecoverInsideItsLastFiveSeconds() throws Exception {
+        var adapter = new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();
+        var observation = werewolfSpeechObservation();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenReturn(new AiChatResult("invalid", "mock-only", 3, 2))
+                .thenThrow(pendingResult("AI_RESULT_PENDING"))
+                .thenReturn(new AiChatResult(payload("SPEAK", "我想先听听大家的判断。", null), "mock-only", 7, 5));
+        var waiting = assertThrows(AiTurnGenerator.GenerationDeferred.class,
+                () -> generator.generate(adapter, observation, "wolf-correction"));
+        assertEquals(1, waiting.checkpoint().get("nextAttempt"));
+        var result = generator.generate(adapter, observation, "wolf-correction", 4_000, () -> true, waiting.checkpoint());
+        assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals(10, result.diagnostics().get("promptTokens"));
+        var messages = messageCaptor();
+        ArgumentCaptor<String> ids = ArgumentCaptor.forClass(String.class);
+        verify(client, times(3)).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), ids.capture(), anyInt());
+        assertEquals(List.of("wolf-correction:0", "wolf-correction:1", "wolf-correction:1"), ids.getAllValues());
+        assertEquals(messages.getAllValues().get(1), messages.getAllValues().getLast());
+    }
+
+    @Test void werewolfPendingResultAtTheDeadlineFailsExplicitlyInsteadOfExtendingTheWindow() {
+        var adapter = new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenAnswer(call -> {
+                    nanoTime.addAndGet(TimeUnit.SECONDS.toNanos(50));
+                    throw pendingResult("AI_RESULT_PENDING");
+                });
+        var failure = assertThrows(AiTurnGenerator.GenerationFailure.class,
+                () -> generator.generate(adapter, werewolfSpeechObservation(), "wolf-expired"));
+        assertEquals("TIMEOUT", failure.getMessage());
+        assertEquals(false, failure.diagnostics().get("usageComplete"));
+        assertTrue(strings(failure.diagnostics().get("qualityFlags")).contains("DECISION_DEADLINE_EXCEEDED"));
+        verify(client, times(1)).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), eq("wolf-expired:0"), anyInt());
+    }
+
+    @Test void werewolfPendingCheckpointDoesNotQueryAgainAfterItsExecutionWindowHasExpired() {
+        var adapter = new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();
+        var observation = werewolfSpeechObservation();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenThrow(pendingResult("AI_RESULT_UNKNOWN"));
+        var waiting = assertThrows(AiTurnGenerator.GenerationDeferred.class,
+                () -> generator.generate(adapter, observation, "wolf-resume-expired"));
+        var failure = assertThrows(AiTurnGenerator.GenerationFailure.class,
+                () -> generator.generate(adapter, observation, "wolf-resume-expired", 0, () -> true, waiting.checkpoint()));
+        assertEquals("TIMEOUT", failure.getMessage());
+        assertEquals(1, failure.diagnostics().get("calls"));
+        assertEquals(false, failure.diagnostics().get("usageComplete"));
+        verify(client, times(1)).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), eq("wolf-resume-expired:0"), anyInt());
+    }
+
+    private com.aisocialgame.exception.ApiException pendingResult(String code) {
+        return new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                "original request pending", code, Map.of("budgetId", "original-budget", "settlementState", "PENDING",
+                        "remoteState", "AI_RESULT_PENDING".equals(code) ? "RUNNING" : "RECONCILIATION_REQUIRED"));
+    }
+
+    private VisibleObservation werewolfSpeechObservation() {
+        return new VisibleObservation("werewolf", "wolf-match", "DAY_DISCUSS", 1, "p0", "SPEAK",
+                Map.of("playerId", "p0", "role", "VILLAGER"), List.of(Map.of("playerId", "p0", "alive", true)),
+                Map.of(), List.of(), Map.of(), List.of(LegalAction.text("SPEAK", "发言", 300)), Map.of(), Map.of(), List.of());
+    }
+
     @Test void changedTurnDoesNotStartARepairRequest() {
         var current = new java.util.concurrent.atomic.AtomicBoolean(true);
         when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))

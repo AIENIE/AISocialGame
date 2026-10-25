@@ -28,6 +28,7 @@ public final class AiJobDiagnostics {
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("formatVersion", 1); d.put("createdEpochMs", now.toEpochMilli()); d.put("clockSource", "UTC_EPOCH");
         d.put("runtimeZone", zone.getId()); d.put("promptVersion", AiTurnGenerator.promptVersion(gameId));
+        d.put("gameId", gameId);
         d.put("inputFormatVersion", AiPromptProjection.version(gameId));
         d.putAll(AiBuildIdentity.current());
         job.setDiagnostics(d);
