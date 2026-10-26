@@ -113,6 +113,16 @@ it("copies the source slot count and each duplicate's own selected experience",a
   await act(async()=>container.querySelector("form")!.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true})));
   expect(api.create.mock.calls[0][0].participants.map((slot:{initialExperienceId:string})=>slot.initialExperienceId)).toEqual(selectors.map(selector=>selector.value));
 });
+it("shows the frozen coach thinking configuration alongside player settings",async()=>{
+  const value=experiment();value.gameId="werewolf";
+  value.configuration!.coach={modelKey:"gpt-6.1-sol",thinkingMode:"ENABLED",thinkingEffort:"MAX"};
+  value.configuration!.roster=value.configuration!.roster.map(agent=>({...agent,modelSelection:{modelKey:"deepseek-flash",thinkingMode:"ENABLED",thinkingEffort:"LOW"}}));
+  api.detail.mockResolvedValue(value);
+  await render("/admin/lab/source");await act(async()=>button("阵容与模型").click());
+  const coach=Array.from(container.querySelectorAll("p")).find(element=>element.textContent?.startsWith("复盘教练："));
+  expect(coach?.textContent).toBe("复盘教练：gpt-6.1-sol · ENABLED MAX");
+  expect(container.querySelector("tbody")?.textContent).toContain("ENABLED LOW");
+});
 it("keeps live observation and archive links inside the management entry",async()=>{
   await render("/admin/lab/source");
   expect(container.querySelector('a[href="/admin/lab/source/matches/match"]')).not.toBeNull();
