@@ -20,12 +20,16 @@ public final class LabRequests {
     public record Experiment(@NotBlank @Size(max=128) String name,
                              @Size(min=4,max=10) List<@NotBlank String> agentIds,
                              @Min(4) @Max(10) int playerCount, @Min(1) @Max(10000) int targetGames,
-                             String wordPack, boolean hasBlank,
+                             String wordPack, Boolean hasBlank,
                              @Min(1) long budgetPoints, @NotNull @Valid Selection coach,
                              Map<String,String> initialExperienceIds,
                              @Size(min=4,max=10) List<@NotNull @Valid Participant> participants,
                              String gameId, Map<String,Object> rules, String learningMode,
                              String initialStrategyVersionId, Long randomSeed, Long trainingCheckpointPoints) {
+        public Experiment {
+            // Werewolf requests omit this undercover-only option. Keep the default local to this optional field.
+            hasBlank=Boolean.TRUE.equals(hasBlank);
+        }
         public Experiment(String name,List<String> agentIds,int playerCount,int targetGames,String wordPack,
                           boolean hasBlank,long budgetPoints,Selection coach,Map<String,String> initialExperienceIds,
                           List<Participant> participants) {
