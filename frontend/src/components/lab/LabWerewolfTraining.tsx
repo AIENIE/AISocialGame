@@ -11,7 +11,7 @@ import type { CreateLabTrainingRun, LabTrainingControl, LabTrainingRun, LabTrain
 
 const steps=["选课程","局面练习","策略变化","对照评测","角色试用"];
 const stages:Record<string,string>={PRACTICE:"局面练习与教学",MERGE:"合并策略变化",REHEARSAL:"练习回测",HOLDOUT:"独立保留题评测",GAMES:"完整对局对照",REPORT:"汇总评测结果"};
-const statuses:Record<string,string>={DRAFT:"尚未开始",RUNNING:"进行中",PAUSED:"已暂停",COMPLETED:"已完成",STOPPED:"已停止",PENDING:"等待执行",WAITING:"等待原请求",SUCCEEDED:"已完成",FAILED:"失败",BLOCKED:"需要处理",SKIPPED:"已跳过"};
+const statuses:Record<string,string>={DRAFT:"尚未开始",RUNNING:"进行中",PAUSED:"已暂停",COMPLETED:"本轮已收尾",STOPPED:"已停止",PENDING:"等待执行",WAITING:"等待原请求",SUCCEEDED:"已完成",FAILED:"失败",BLOCKED:"需要处理",SKIPPED:"已跳过"};
 const kinds:Record<string,string>={PRACTICE:"玩家练习",TEACH:"教练诊断",REHEARSAL:"练习回测",HOLDOUT:"保留题回答",JUDGE:"盲评裁判"};
 const assessments:Record<string,string>={NOT_RUN:"尚未评测",INCOMPLETE:"评测未完整完成",NO_IMPROVEMENT:"未观察到改善",REGRESSION:"发现退步或新问题",IMPROVED:"在本次样本中观察到改善"};
 const grade=(value:string)=>({PASS:"通过",FAIL:"发现问题",UNSCORED:"未评分"}[value]??value);
@@ -99,6 +99,13 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const refreshStatus=async()=>{const result=await query.refetch();if(result.isSuccess){setControlUnknown(false);setMessage("");reload();}};
   const activeStep=step??(!run||run.status==="DRAFT"?0:run.stage==="PRACTICE"?1:["MERGE","REHEARSAL"].includes(run.stage)?2:3);
   const tasks=run?.tasks??[];
+  const taskCounts=tasks.reduce((counts,task)=>{
+    if(task.status==="SUCCEEDED")counts.succeeded++;
+    else if(task.status==="FAILED")counts.failed++;
+    else if(task.status==="SKIPPED")counts.skipped++;
+    return counts;
+  },{succeeded:0,failed:0,skipped:0});
+  const processedTasks=taskCounts.succeeded+taskCounts.failed+taskCounts.skipped;
   const caseReplacements={...cases.data?.caseReplacements,...run?.configuration.caseReplacements};
   const representativeCaseId=currentCase(cases.data?.items.find(item=>item.purpose==="DEVELOPMENT")?.id??tasks.find(task=>task.kind==="PRACTICE")?.caseId,caseReplacements);
   const activeCases=(cases.data?.items??[]).filter(item=>!caseReplacements[item.id]);
@@ -114,13 +121,16 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const assessment=run?.assessment;
   const assessmentPending=run?.stage==="HOLDOUT"&&run.status==="RUNNING"&&(!assessment?.status||assessment.status==="NOT_RUN");
   const assessmentLabel=assessmentPending?"正在评测，结果尚未汇总":assessments[assessment?.status??"NOT_RUN"]??"尚未评测";
+  const runStatus=run?.status==="COMPLETED"&&assessment?.status==="INCOMPLETE"?"已收尾 · 评测未完成":statuses[run?.status??""];
+  const scoredPairs=!assessmentPending&&typeof assessment?.completedPairs==="number"?assessment.completedPairs:undefined;
+  const plannedPairs=typeof assessment?.plannedPairs==="number"?assessment.plannedPairs:run?.progress.holdoutPairs??32;
   const gameEvaluations=run?.candidateStrategyVersionId?(experiment.evaluations??[]).filter(value=>value.candidateStrategyVersionId===run.candidateStrategyVersionId):[];
   return <div className="lab-workspace lab-training-workspace">
     <Link to="/admin/lab" className="lab-small inline-block mb-5">← 返回实验室</Link>
-    <header className="lab-heading"><div><div className="lab-eyebrow">WEREWOLF / TRAINING</div><h1>{experiment.name}</h1><p>先练习规则与证据，再用独立题目检验策略变化。</p></div>{run&&<span className="lab-state">{statuses[run.status]}</span>}</header>
+    <header className="lab-heading"><div><div className="lab-eyebrow">WEREWOLF / TRAINING</div><h1>{experiment.name}</h1><p>先练习规则与证据，再用独立题目检验策略变化。</p></div>{run&&<span className="lab-state">{runStatus}</span>}</header>
     <nav className="lab-training-steps" aria-label="狼人杀训练步骤">{steps.map((label,index)=><button key={label} aria-current={activeStep===index?"step":undefined} onClick={()=>setStep(index)}><span>{index+1}</span>{label}</button>)}</nav>
     <div className="lab-columns"><main className="min-w-0">
-      {run&&<section className="lab-training-status" aria-label="当前训练状态"><div className="lab-actions justify-between"><h2>{stages[run.stage]??run.stage}</h2><span className="lab-small">任务完成 {run.progress.completedTasks}/{run.progress.totalTasks} · 失败 {run.progress.failedTasks}</span></div>
+      {run&&<section className="lab-training-status" aria-label="当前训练状态"><div className="lab-actions justify-between"><h2>{stages[run.stage]??run.stage}</h2><span className="lab-small">已处理 {processedTasks}/{tasks.length} · 成功 {taskCounts.succeeded} · 失败 {taskCounts.failed} · 跳过 {taskCounts.skipped}</span></div>
         {run.status==="PAUSED"&&<p className="lab-note mt-3" role="status">{pauseMessage(run.reason)}</p>}
         {run.nextStep&&<p className="lab-small mt-3">下一步：{run.nextStep}</p>}
         <div className="lab-actions mt-3">
@@ -154,7 +164,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
       </section>}
       {activeStep===3&&<section className="lab-section"><h2>独立对照评测</h2><dl className="lab-training-metrics"><div><dt>保留题配对完成</dt><dd>{run?.progress.completedHoldoutPairs??0}/{run?.progress.holdoutPairs??32}</dd></div><div><dt>完整对局配对完成</dt><dd>{run?.progress.completedGamePairs??0}/{run?.progress.gamePairs??2}</dd></div></dl>
         <p className="lab-note mt-4">{assessmentLabel}。练习成绩与独立测试分开统计；少量完整对局仅作先导检查，不足以证明胜率提升。</p>
-        {assessment&&<p className="lab-small mt-3">目标错误：基线 {assessment.baselineErrors??"未评分"} → 候选 {assessment.candidateErrors??"未评分"} · 新增规则错误 {assessment.newRuleErrors??"未评分"} · 新增证据越界 {assessment.newEvidenceLeaks??"未评分"}</p>}
+        {assessment&&<p className="lab-small mt-3">{scoredPairs!==undefined&&`仅已评分 ${scoredPairs}/${plannedPairs} 对 · `}目标错误：基线 {assessmentPending?"未评分":assessment.baselineErrors??"未评分"} → 候选 {assessmentPending?"未评分":assessment.candidateErrors??"未评分"} · 新增规则错误 {assessmentPending?"未评分":assessment.newRuleErrors??"未评分"} · 新增证据越界 {assessmentPending?"未评分":assessment.newEvidenceLeaks??"未评分"}</p>}
         <details className="mt-4"><summary>保留题回答与盲评明细 · {tests.length} 项任务</summary><div className="space-y-4 mt-3">{tests.map(task=><TaskDetail key={task.id} task={task}/>)}</div></details>
         <section className="mt-6" aria-label="完整九人对局"><h3 className="font-medium">完整九人对局（达标后执行）</h3>
           <LabLiveMatches gameId="werewolf" matches={experiment.activeMatches??[]} adminExperimentId={experiment.id}/>

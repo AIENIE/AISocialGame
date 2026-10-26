@@ -96,10 +96,23 @@ it("distinguishes ongoing holdout evaluation from conditional full-game evaluati
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",stage:"HOLDOUT",assessment:{},candidateStrategyVersionId:"candidate",progress:{...run().progress,completedHoldoutPairs:4}}));
   await render();expect(container.textContent).toContain("保留题配对完成4/32");
   expect(container.textContent).toContain("正在评测，结果尚未汇总");expect(container.textContent).not.toContain("尚未评测");expect(container.textContent).not.toContain("尚未运行对照评测");
+  expect(container.textContent).toContain("目标错误：基线 未评分 → 候选 未评分");expect(container.textContent).not.toContain("仅已评分");
   const games=container.querySelector('[aria-label="完整九人对局"]')!;
   expect(games.textContent).toContain("完整九人对局（达标后执行）");expect(games.textContent).toContain("独立保留题完整评测并达到改善标准后，自动执行 2 组成对的九人对局");
   await step("角色试用");expect(container.textContent).toContain("本次评测：正在评测，结果尚未汇总。");
   expect(api.controlTrainingRun).not.toHaveBeenCalled();expect(api.publishStrategy).not.toHaveBeenCalled();
+});
+it("closes an incomplete evaluation without implying success or counting skipped tasks as failures",async()=>{
+  const tasks:LabTrainingRun["tasks"]=Array.from({length:122},(_,index)=>({id:`task-${index}`,caseId:`case-${index}`,kind:"PRACTICE",status:index<72?"SUCCEEDED":index<102?"FAILED":"SKIPPED",attempt:0,paidRetries:0}));
+  api.trainingRun.mockResolvedValue(run({status:"COMPLETED",stage:"REPORT",reason:"HOLDOUT_INCOMPLETE",tasks,
+    progress:{...run().progress,totalTasks:122,completedTasks:72,failedTasks:50,completedHoldoutPairs:18},
+    assessment:{status:"INCOMPLETE",completedPairs:18,plannedPairs:32,baselineErrors:6,candidateErrors:3,newRuleErrors:0,newEvidenceLeaks:0}}));
+  await render();
+  expect(container.querySelector("header .lab-state")?.textContent).toBe("已收尾 · 评测未完成");
+  expect(container.querySelector('[aria-label="当前训练状态"]')?.textContent).toContain("已处理 122/122 · 成功 72 · 失败 30 · 跳过 20");
+  expect(container.textContent).toContain("仅已评分 18/32 对 · 目标错误：基线 6 → 候选 3");
+  expect(container.textContent).toContain("评测未完整完成");expect(container.textContent).not.toContain("失败 50");
+  expect(button("继续当前训练")).toBeUndefined();expect(api.controlTrainingRun).not.toHaveBeenCalled();expect(api.publishStrategy).not.toHaveBeenCalled();
 });
 it("shows recorded full-game results without replacing a completed holdout assessment with a running label",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",stage:"GAMES",assessment:{status:"IMPROVED"},candidateStrategyVersionId:"candidate"}));
@@ -114,6 +127,7 @@ it("shows the blocked teaching task before later pending work",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",tasks:[{id:"first",caseId:"first-case",kind:"PRACTICE",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"blocked",caseId:"first-case",kind:"TEACH",status:"BLOCKED",attempt:1,paidRetries:0,reason:"AI_USAGE_UNKNOWN"},{id:"next",caseId:"next-case",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0}]}));
   await render();const status=container.querySelector('[aria-label="当前训练状态"]')!;
   expect(status.textContent).toContain("当前任务 · 教练诊断 · 需要处理");expect(status.textContent).toContain("first-case");expect(status.textContent).not.toContain("next-case");
+  expect(status.textContent).toContain("已处理 1/3 · 成功 1 · 失败 0 · 跳过 0");
 });
 it("keeps the next case out of current work until the representative gate is released",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{representativeOnly:true},tasks:[{id:"first",caseId:"first-case",kind:"PRACTICE",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"teach",caseId:"first-case",kind:"TEACH",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"next",caseId:"next-case",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0}]}));
@@ -137,7 +151,7 @@ it("retains an oversized second development case without counting its replacemen
   expect(container.querySelector('[aria-label="当前训练状态"]')?.textContent).toContain("replacement-case");
   expect(container.textContent).toContain("当前开发练习 8 个案例 · 独立保留题 32 个单元");
   expect(container.textContent).toContain("已替换材料 1 份，不计入开发练习题数");expect(container.textContent).toContain("case-1 · 材料过大，已替换");
-  expect(container.textContent).toContain("原材料与任务记录保留，不计为额外开发题");expect(container.textContent).toContain("任务完成 0/18");
+  expect(container.textContent).toContain("原材料与任务记录保留，不计为额外开发题");expect(container.textContent).toContain("已处理 2/3 · 成功 0 · 失败 0 · 跳过 2");
   expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0);expect(api.controlTrainingRun).not.toHaveBeenCalled();
 });
 it("follows a replacement chain from the first development case when selecting representative work",async()=>{
