@@ -33,6 +33,7 @@ export interface LabEvaluation {
   pairedOutcomes?: { sampleSize: number; candidateOnlyWins: number; baselineOnlyWins: number; sameOutcome: number; difference?: number; interval95?: { lower: number; upper: number; method: "HOEFFDING_PAIRED_CONSERVATIVE" } };
 }
 export interface LabExperiment {
+  trainingRuns?: import("./labTraining").LabTrainingSummary[]; activeTrainingRunId?: string;
   gameId?: LabGameId; learningMode?: "INDIVIDUAL" | "SHARED_STRATEGY"; strategyHeadId?: string;
   budgetPaused?: boolean;
   latestFailureMatchId?: string; completedGames?: number; reviewedGames?: number; abortedGames?: number;
@@ -54,10 +55,13 @@ export interface CreateLabExperiment {
   hasBlank?: boolean; budgetPoints: number; coach: LabSelection;
 }
 export interface LabObservation { gameId?: LabGameId; match: LabMatch; room: { id: string; name: string; roomCode: string; gameId?: LabGameId }; state?: import("./index").GameState }
+export type LabStrategyEvidence =
+  | { jobId: string; actorId: string; eventIds: string[] }
+  | { caseId: string; taskId: string; actorId: string; evidenceIds: string[] };
 export interface LabStrategyCard {
   id: string; role: string; phases: string[]; condition: string; advice: string; exceptions: string;
-  evidence: { jobId: string; actorId: string; eventIds: string[] }[];
-  counterEvidence?: { jobId: string; actorId: string; eventIds: string[] }[];
+  evidence: LabStrategyEvidence[];
+  counterEvidence?: LabStrategyEvidence[];
 }
 export interface LabStrategyVersion {
   id: string; experimentId: string; sequenceNumber: number; previousId?: string; gameId: LabGameId;

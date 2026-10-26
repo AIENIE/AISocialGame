@@ -12,6 +12,7 @@ import { ModelSelectionFields } from "@/components/lab/ModelSelectionFields";
 import { LabScenarioEvaluation } from "@/components/lab/LabScenarioEvaluation";
 import { LabStrategies } from "@/components/lab/LabStrategies";
 import { LabDiagnostics } from "@/components/lab/LabDiagnostics";
+import { LabWerewolfTraining } from "@/components/lab/LabWerewolfTraining";
 import { failureText } from "@/components/lab/labFailures";
 import type { CatalogModel } from "@/types/aiModelConfig";
 import type { LabAgent, LabSelection, LabExperience, LabExperiment, CreateLabExperiment, LabParticipantInput, LabGameId } from "@/types/lab";
@@ -119,11 +120,12 @@ function AdminLabIndex() {
       <label className="lab-field">训练玩法<select aria-label="训练玩法" value={gameId} onChange={event=>changeGame(event.target.value as LabGameId)}><option value="undercover">谁是卧底</option><option value="werewolf">狼人杀</option></select></label>
       <div className="lab-form-grid"><label className="lab-field">实验名称<input value={name} maxLength={100} required onChange={event=>setName(event.target.value)} /></label>
         <label className="lab-field">{werewolf?"训练板子":"席位数"}<select aria-label="训练席位数" value={playerCount} onChange={event=>{const count=Number(event.target.value);setSelected(Array.from({length:count},(_,index)=>chosen[index]??{agentId:agents.data?.[0]?.id??""}));setPlayerCount(count);}}>{(werewolf?[9,6]:[4,5,6,7,8,9,10]).map(count=><option key={count} value={count}>{werewolf?`${count} 人标准 · ${count===9?"主要训练":"快速检查"}`:count}</option>)}</select></label>
-        <label className="lab-field">目标对局数<input type="number" min={1} max={10000} value={targetGames} onChange={event=>setTargetGames(Number(event.target.value))} required /></label>
+        {(!werewolf||playerCount!==9)&&<label className="lab-field">目标对局数<input type="number" min={1} max={10000} value={targetGames} onChange={event=>setTargetGames(Number(event.target.value))} required /></label>}
         {!werewolf&&<label className="lab-field">内置词库<select value={wordPack} onChange={event=>setWordPack(event.target.value)}><option value="daily">日常生活</option><option value="idiom">成语俗语</option><option value="acg">二次元</option><option value="tech">硬核科技</option></select></label>}
         <label className="lab-field">费用预算（人民币）<input type="number" min="0.01" step="0.01" value={budget} required onChange={event=>setBudget(event.target.value)} /></label>
         {!werewolf&&<label className="lab-field"><input type="checkbox" checked={hasBlank} onChange={event=>setHasBlank(event.target.checked)} />加入白板玩家</label>}</div>
       {werewolf&&<p className="lab-note">共享策略：通用、狼人、村民、预言家、女巫、猎人分层积累；人格风格与策略分开。全体席位须使用相同模型与思考档位，人格可以重复。标准板、屠边、首夜可自救、首夜遗言，发言 60 秒。6 人板不含猎人。</p>}
+      {werewolf&&playerCount===9&&<p className="lab-small">创建后进入“规则与证据”训练场：8 个开发案例 → 策略修改与回测 → 32 对独立保留题 → 2 对完整对局。先试跑一个代表案例，再检查并继续；创建本身不会调用模型。</p>}
       <div><h3 className="text-sm font-medium">实验阵容 · {playerCount} 个独立副本</h3><p className="lab-small my-3">{werewolf?"模型只用于本次实验；允许重复人格，所有席位共同积累策略，各自保留当局可见信息。":"模型只用于本次实验，不修改来源档案。同角色副本可使用不同模型，各自独立学习。"}</p>
         <div className="lab-bulk-model"><label className="lab-field">统一玩家模型<select aria-label="统一玩家模型" value={allModel} onChange={event=>setAllModel(event.target.value)}><option value="">选择统一模型</option>{models.map(model=><option key={model.modelKey} value={model.modelKey}>{model.displayName}</option>)}</select></label>
           <Button type="button" variant="outline" disabled={!models.some(model=>model.modelKey===allModel)} onClick={()=>{setSelected(Array.from({length:playerCount},(_,index)=>({...chosen[index],agentId:chosen[index]?.agentId??"",selection:{modelKey:allModel,thinkingMode:"DEFAULT",thinkingEffort:null}})));toast.success("全部玩家模型已设置，思考配置重置为服务默认；复盘教练不变");}}>应用到全部 AI 玩家</Button><p className="lab-small">不影响复盘教练；可在下面逐个调整。</p></div>
@@ -226,6 +228,9 @@ function AdminLabDetail({id}:{id:string}) {
     }
   },[pendingEvaluation,experiment?.evaluations,evaluationKey]);
   if(!experiment) return <AdminDataState loading={query.isPending} error={query.error} retry={()=>void query.refetch()} />;
+  if(werewolf&&experiment.playerCount===9&&experiment.trainingRuns!==undefined) return <LabWerewolfTraining experiment={experiment} strategies={strategies.data} reload={refresh}
+    budgetEditor={<ExperimentBudget experiment={experiment} saved={value=>{client.setQueryData(["admin","lab","experiment",id],value);refresh();}}/>}
+    history={<><LabMatchHistory page={history.data??{items:[],page:0,total:0}} admin onInspect={setInspectedMatch}/><LabPager page={page} total={history.data?.total??0} size={20} change={setPage}/>{(inspectedMatch||experiment.latestFailureMatchId)&&<LabDiagnostics experimentId={id} matchId={inspectedMatch||experiment.latestFailureMatchId!}/>}</>}/>
   const idle=["PAUSED","COMPLETED"].includes(experiment.status);
   return <div className="lab-workspace"><Link to="/admin/lab" className="lab-small inline-flex items-center gap-2 mb-5"><ArrowLeft size={14} />返回实验室</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">EXPERIMENT / {id.slice(0,8)}</div><h1>{experiment.name}</h1><p>{werewolf?"狼人杀 · 共享策略训练":"独立经验迭代"} · {experiment.playerCount} 席{werewolf?" · 标准板 · 效果待验证":` · 内置 ${experiment.wordPack} 词库`}</p></div><FlaskConical size={32} className="text-emerald-700/60" /></header>

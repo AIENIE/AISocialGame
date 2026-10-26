@@ -604,6 +604,10 @@ export const labApi = {
   withdraw: async (id: string): Promise<void> => { await api.delete("/lab/experiments/"+id+"/enrollment"); },
 };
 export const adminLabApi = {
+  createTrainingRun: async (id:string,request:import("@/types/labTraining").CreateLabTrainingRun):Promise<import("@/types/labTraining").LabTrainingRun> => (await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/training-runs`,request)).data,
+  trainingRun: async (id:string,operationId:string,signal?:AbortSignal):Promise<import("@/types/labTraining").LabTrainingRun> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/training-runs/${encodeURIComponent(operationId)}`,{signal})).data,
+  trainingCases: async (id:string,operationId:string,signal?:AbortSignal):Promise<import("@/types/labTraining").LabTrainingCases> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/training-runs/${encodeURIComponent(operationId)}/cases`,{signal})).data,
+  controlTrainingRun: async (id:string,operationId:string,action:import("@/types/labTraining").LabTrainingControl):Promise<import("@/types/labTraining").LabTrainingRun> => (await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/training-runs/${encodeURIComponent(operationId)}/control/${action}`)).data,
   diagnostics: async (id:string,matchId:string,signal?:AbortSignal):Promise<LabDiagnostics> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/diagnostics`,{signal})).data,
   observe: async (id: string, matchId: string, signal?: AbortSignal): Promise<LabObservation> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/matches/${encodeURIComponent(matchId)}/spectate`,{signal})).data,
   list: async (page = 0): Promise<LabPage<LabExperiment>> => (await adminApiClient.get("/admin/lab/experiments", { params: { page, size: 20 } })).data,

@@ -4,11 +4,18 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { adminLabApi, personaApi, getApiErrorMessage } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { labText } from "@/i18n/labTexts";
-import type { LabStrategyList, LabStrategyPublication, LabStrategyPublicationRequest, LabStrategyAssessment, LabStrategyAssessmentInput } from "@/types/lab";
+import type { LabStrategyList, LabStrategyPublication, LabStrategyPublicationRequest, LabStrategyAssessment, LabStrategyAssessmentInput, LabStrategyEvidence } from "@/types/lab";
 
 const roles=["GENERAL","WEREWOLF","VILLAGER","SEER","WITCH","HUNTER"];
 const phases:Record<string,string>={NIGHT:"夜间行动",DAY_DISCUSS:"白天发言",DAY_INTERACTION:"质询",DAY_VOTE:"白天投票",DEATH_ACTION:"死亡技能",LAST_WORDS:"遗言"};
 const roleName=(role:string)=>labText("zh-CN",role);
+function StrategyEvidence({items,previous=false}:{items:LabStrategyEvidence[];previous?:boolean}) {
+  return <>{items.map((evidence,index)=>{
+    const source="caseId" in evidence?`案例 ${evidence.caseId} · 任务 ${evidence.taskId}`:`行动 ${evidence.jobId}`;
+    const eventIds="evidenceIds" in evidence?evidence.evidenceIds:evidence.eventIds;
+    return <p className="break-all mt-2" key={`${source}:${index}`}>{previous&&"前版"}{source} · 玩家 {evidence.actorId}<br/>事件：{eventIds.join(" · ")||"无事件引用"}</p>;
+  })}</>;
+}
 function savedOperation(key:string):LabStrategyPublicationRequest|undefined {
   try {
     const value=JSON.parse(localStorage.getItem(key)??"null");
@@ -36,7 +43,7 @@ function StrategyAssessment({experimentId,versionId,current,saved}:{experimentId
   </form></details>;
 }
 
-export function LabStrategies({experimentId,data,reload}:{experimentId:string;data:LabStrategyList;reload:()=>void}) {
+export function LabStrategies({experimentId,data,reload,view="all",versionId}:{experimentId:string;data:LabStrategyList;reload:()=>void;view?:"all"|"strategy"|"publication";versionId?:string|null}) {
   const storageKey=`lab-strategy-publication:${experimentId}`;
   const [selectedId,setSelectedId]=useState("");
   const [personaIds,setPersonaIds]=useState<string[]>([]);
@@ -46,7 +53,7 @@ export function LabStrategies({experimentId,data,reload}:{experimentId:string;da
   const [notFound,setNotFound]=useState(false);
   const [savedAssessments,setSavedAssessments]=useState<Record<string,LabStrategyAssessment>>({});
   const personas=useQuery({queryKey:["admin","lab","personas"],queryFn:personaApi.list});
-  const selected=data.items.find(version=>version.id===(selectedId||data.strategyHeadId))??data.items[0];
+  const selected=versionId!==undefined?data.items.find(version=>version.id===versionId):data.items.find(version=>version.id===(selectedId||data.strategyHeadId))??data.items[0];
   const previous=data.items.find(version=>version.id===selected?.previousId);
   const assessment=selected?(savedAssessments[selected.id]??data.assessments?.[selected.id]):undefined;
   const blocked=!!assessment&&(assessment.ruleError||assessment.evidenceLeak||assessment.severeContradiction);
@@ -76,8 +83,9 @@ export function LabStrategies({experimentId,data,reload}:{experimentId:string;da
   };
   const busy=publish.isPending||recover.isPending;
   return <section className="lab-section" aria-label="狼人杀共享策略">
-    <h2>共享策略版本</h2><p className="lab-note">效果待验证。训练只改变本实验的共享策略；正式房间需在下方选择人格并试用发布。已有对局保持开局时的策略版本。</p>
-    <label className="lab-field">策略版本<select aria-label="策略版本" value={selected?.id??""} onChange={event=>setSelectedId(event.target.value)}><option value="">尚无策略版本</option>{data.items.map(version=><option key={version.id} value={version.id}>v{version.sequenceNumber}{version.id===data.strategyHeadId?" · 实验当前":""} · {version.createdAt.replace("T"," ").slice(0,16)}</option>)}</select></label>
+    {view!=="publication"&&<>
+    <h2>共享策略版本</h2><p className="lab-note">效果待验证。训练只改变本实验的共享策略；正式房间需在角色试用中选择人格并发布。已有对局保持开局时的策略版本。</p>
+    <label className="lab-field">策略版本<select aria-label="策略版本" disabled={versionId!==undefined} value={selected?.id??""} onChange={event=>setSelectedId(event.target.value)}><option value="">尚无策略版本</option>{data.items.map(version=><option key={version.id} value={version.id}>v{version.sequenceNumber}{version.id===data.strategyHeadId?" · 实验当前":""} · {version.createdAt.replace("T"," ").slice(0,16)}</option>)}</select></label>
     {selected?<>
       <details className="lab-small mt-3"><summary>适用规则与模型快照</summary><pre className="whitespace-pre-wrap break-all mt-2">{JSON.stringify(selected.compatibility,null,2)}</pre></details>
       <p className="lab-small mt-3">当前策略覆盖：{roles.map(role=>`${roleName(role)} ${cards.filter(card=>card.role===role).length}`).join(" · ")}</p>
@@ -87,15 +95,17 @@ export function LabStrategies({experimentId,data,reload}:{experimentId:string;da
         <h3 className="font-medium">{roleName(card.role)} · {card.phases.map(phase=>phases[phase]??phase).join(" / ")}</h3><p className="lab-small mt-2">适用情境：{card.condition}</p>
         <p className="whitespace-pre-wrap break-words text-sm leading-7 mt-2">{card.advice}</p>{!!card.exceptions.length&&<p className="lab-small mt-2">不适用：{card.exceptions}</p>}
         {before.has(card.id)&&before.get(card.id)?.advice!==card.advice&&<details className="lab-small mt-2"><summary>查看前版建议</summary><p className="lab-memory">{before.get(card.id)?.advice}</p></details>}
-        <details className="lab-small mt-2"><summary>来源证据 · {card.evidence.length} 项</summary>{card.evidence.map((evidence,index)=><p className="break-all mt-2" key={`${evidence.jobId}:${index}`}>行动 {evidence.jobId} · 玩家 {evidence.actorId}<br/>事件：{evidence.eventIds.join(" · ")||"无事件引用"}</p>)}</details>
-        {!!card.counterEvidence?.length&&<details className="lab-small mt-2"><summary>反例证据 · {card.counterEvidence.length} 项</summary>{card.counterEvidence.map((evidence,index)=><p className="break-all mt-2" key={`${evidence.jobId}:${index}`}>行动 {evidence.jobId} · 玩家 {evidence.actorId}<br/>事件：{evidence.eventIds.join(" · ")}</p>)}</details>}
-        {before.has(card.id)&&JSON.stringify(before.get(card.id)?.counterEvidence??[])!==JSON.stringify(card.counterEvidence??[])&&<details className="lab-small mt-2"><summary>反例变化 · 前版 {before.get(card.id)?.counterEvidence?.length??0} 项 → 当前 {card.counterEvidence?.length??0} 项</summary>{before.get(card.id)?.counterEvidence?.map((evidence,index)=><p className="break-all mt-2" key={`${evidence.jobId}:${index}`}>前版行动 {evidence.jobId} · 玩家 {evidence.actorId}<br/>事件：{evidence.eventIds.join(" · ")}</p>)}</details>}
+        <details className="lab-small mt-2"><summary>来源证据 · {card.evidence.length} 项</summary><StrategyEvidence items={card.evidence}/></details>
+        {!!card.counterEvidence?.length&&<details className="lab-small mt-2"><summary>反例证据 · {card.counterEvidence.length} 项</summary><StrategyEvidence items={card.counterEvidence}/></details>}
+        {before.has(card.id)&&JSON.stringify(before.get(card.id)?.counterEvidence??[])!==JSON.stringify(card.counterEvidence??[])&&<details className="lab-small mt-2"><summary>反例变化 · 前版 {before.get(card.id)?.counterEvidence?.length??0} 项 → 当前 {card.counterEvidence?.length??0} 项</summary><StrategyEvidence items={before.get(card.id)?.counterEvidence??[]} previous/></details>}
       </article>)}</div>
       {!!removed.length&&<details className="lab-small mt-3"><summary>已移除建议</summary>{removed.map(card=><p key={card.id}>{roleName(card.role)}：{card.advice}</p>)}</details>}
       {selected.evidence.archiveId&&<Button variant="outline" size="sm" className="mt-4" asChild><Link to={`/admin/replays/${selected.evidence.archiveId}`}>来源对局回放</Link></Button>}
       <StrategyAssessment key={selected.id} experimentId={experimentId} versionId={selected.id} current={assessment} saved={value=>{setSavedAssessments(current=>({...current,[value.strategyVersionId]:value}));reload();}}/>
-    </>:<p className="lab-small mt-4">首局复盘成功后生成共享策略，空策略不会发布到正式房间。</p>}
-    <div className="lab-section"><h2>正式角色试用</h2><p className="lab-small mb-3">仅对明确勾选的人格生效；新建普通狼人杀对局使用该策略。撤回后，新局恢复无实验策略。发布并不代表效果已验证。</p>
+    </>:<p className="lab-small mt-4">学习成功并生成候选版本后才能查看共享策略，空策略不会发布到正式房间。</p>}
+    </>}
+    {view!=="strategy"&&<div className="lab-section"><h2>正式角色试用</h2><p className="lab-small mb-3">仅对明确勾选的人格生效；新建普通狼人杀对局使用该策略。撤回后，新局恢复无实验策略。发布并不代表效果已验证。</p>
+      {view==="publication"&&<p className="lab-note">{selected?`本次候选：v${selected.sequenceNumber} · ${selected.id}`:"本次训练尚无候选共享策略可发布"} · 效果待验证</p>}
       {personas.error&&<p className="lab-error" role="alert">人格列表读取失败，请刷新后重试。</p>}
       <div className="space-y-3">{targets.map(persona=>{
         const binding=data.bindings.find(item=>item.personaId===persona.id&&item.gameId==="werewolf");
@@ -107,6 +117,6 @@ export function LabStrategies({experimentId,data,reload}:{experimentId:string;da
       {pending&&<div className="lab-note mt-4" role="status"><p>{busy?"正在提交或查询操作":"操作结果待确认"} · {pending.operationId}</p><div className="lab-actions mt-2"><Button variant="outline" size="sm" disabled={busy} onClick={()=>recover.mutate()}>查询原操作结果</Button>{notFound&&<Button variant="outline" size="sm" disabled={busy} onClick={()=>publish.mutate(pending)}>使用原操作 ID 重试</Button>}</div></div>}
       {message&&<p className="lab-error mt-3" role="alert">{message}</p>}
       {receipt&&<p className="lab-note mt-3" role="status">{receipt.action==="PUBLISH"?"试用发布已保存，效果待验证":"撤回已保存"} · {receipt.personaIds.length} 个人格 · 操作 {receipt.operationId}</p>}
-    </div>
+    </div>}
   </section>;
 }

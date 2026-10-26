@@ -68,6 +68,14 @@ it("edits a running budget in cents, retains a failed draft and never starts the
   expect(api.updateBudget).toHaveBeenLastCalledWith("source",2055);expect(api.control).not.toHaveBeenCalled();
   expect(container.querySelector('[aria-label="修改费用预算"]')).toBeNull();
 });
+it("routes the V2 werewolf experiment to five steps while keeping failed legacy reviews read-only",async()=>{
+  api.detail.mockResolvedValue({...experiment(),gameId:"werewolf",playerCount:9,trainingRuns:[],reviewFailed:true});
+  await render("/admin/lab/source");
+  expect(container.querySelector('[aria-label="狼人杀训练步骤"]')).not.toBeNull();
+  expect(button("创建本次训练")).toBeDefined();expect(button("重试复盘并继续")).toBeUndefined();
+  expect(container.textContent).toContain("历史对局与旧复盘记录（只读）");
+  expect(api.control).not.toHaveBeenCalled();
+});
 it("offers continuing the preserved game and ending it while budget paused",async()=>{
   api.detail.mockResolvedValue({...experiment(),budgetPaused:true,reason:"LAB_BUDGET_EXHAUSTED"});
   await render("/admin/lab/source");
@@ -266,7 +274,7 @@ it("controls the active scenario independently of the paused experiment",async()
   await act(async()=>button("继续情境评测").click());expect(api.control).toHaveBeenCalledWith("source","resume");
 });
 it("explains the training checkpoint without displaying a failure and hides nine-seat scenarios on a quick board",async()=>{
-  api.detail.mockResolvedValue({...experiment(),gameId:"werewolf",playerCount:6,reason:"TRAINING_CHECKPOINT_REACHED"});
+  api.detail.mockResolvedValue({...experiment(),gameId:"werewolf",playerCount:6,trainingRuns:[],reason:"TRAINING_CHECKPOINT_REACHED"});
   await render("/admin/lab/source");
   expect(container.textContent).toContain("已达到训练费用检查线");expect(container.textContent).not.toContain("历史记录未提供具体对局");
   await act(async()=>button("评测").click());
@@ -290,6 +298,19 @@ it("shows counter-evidence and its version change while preserving legacy cards 
   expect(container.textContent).toContain("反例变化 · 前版 0 项 → 当前 1 项");expect(container.textContent).toContain("counter-job");expect(container.textContent).toContain("counter-event");expect(container.textContent).toContain("修改 1");
   await act(async()=>choose('[aria-label="策略版本"]',"strategy-1"));
   expect(container.textContent).not.toContain("反例证据");expect(container.textContent).not.toContain("counter-event");
+});
+it("renders V2 case evidence alongside legacy job evidence and both counter-evidence formats",async()=>{
+  const strategies=strategyList(),card=strategies.items[0].content.cards[0];
+  strategies.items[1].content.cards=[{...card,counterEvidence:[{jobId:"prior-job",actorId:"prior-actor",eventIds:["prior-event"]},{caseId:"prior-case",taskId:"prior-task",actorId:"prior-player",evidenceIds:["prior-case-event"]}]}];
+  strategies.items[0].content.cards=[{...card,evidence:[{caseId:"development-case",taskId:"teach-task",actorId:"learner",evidenceIds:["visible-event"]},{jobId:"legacy-job",actorId:"legacy-actor",eventIds:["legacy-event"]}],counterEvidence:[{caseId:"counter-case",taskId:"counter-task",actorId:"counter-player",evidenceIds:["counter-visible"]},{jobId:"counter-job",actorId:"counter-actor",eventIds:["counter-event"]}]}];
+  api.detail.mockResolvedValue({...experiment(),gameId:"werewolf"});api.strategies.mockResolvedValue(strategies);
+  await render("/admin/lab/source");await act(async()=>button("共享策略").click());
+  await waitForUi(()=>container.textContent?.includes("案例 development-case · 任务 teach-task")===true);
+  expect(container.textContent).toContain("visible-event");expect(container.textContent).toContain("行动 legacy-job");expect(container.textContent).toContain("legacy-event");
+  expect(container.textContent).toContain("案例 counter-case · 任务 counter-task");expect(container.textContent).toContain("counter-visible");expect(container.textContent).toContain("行动 counter-job");
+  expect(container.textContent).toContain("前版行动 prior-job");expect(container.textContent).toContain("prior-event");
+  expect(container.textContent).toContain("前版案例 prior-case · 任务 prior-task");expect(container.textContent).toContain("prior-case-event");
+  expect(container.textContent).not.toContain("undefined");expect(api.publishStrategy).not.toHaveBeenCalled();
 });
 it("distinguishes twenty persona situations from their five construction sources",async()=>{
   const value=experiment();api.detail.mockResolvedValue({...value,gameId:"werewolf",playerCount:9,configuration:{...value.configuration,scenarioManifest:Array.from({length:20},(_,index)=>({caseId:`case-${index}`,sourceGroup:`family-${index%5}`}))}});
