@@ -96,6 +96,11 @@
       "ordinal": 19,
       "kind": "upgrade",
       "file": "20261026_werewolf_lab_strategy.sql"
+    },
+    {
+      "ordinal": 20,
+      "kind": "upgrade",
+      "file": "20261026_werewolf_training_v2.sql"
     }
   ],
   "execution_plans": [
@@ -119,7 +124,8 @@
         16,
         17,
         18,
-        19
+        19,
+        20
       ]
     },
     {
@@ -141,7 +147,8 @@
         16,
         17,
         18,
-        19
+        19,
+        20
       ]
     }
   ],
