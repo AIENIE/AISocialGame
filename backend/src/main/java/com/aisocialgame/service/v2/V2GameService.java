@@ -26,6 +26,7 @@ import java.util.*;
 public class V2GameService {
     @org.springframework.beans.factory.annotation.Autowired(required=false) private AiValidationBudgetService validationBudgets;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private com.aisocialgame.lab.LabBudgetService labBudgets;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.aisocialgame.lab.StrategyPublicationService strategyPublications;
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.service.debug.LocalAiDebugRecorder debugRecorder;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(V2GameService.class);
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
@@ -78,8 +79,10 @@ public class V2GameService {
         GameRuleSet rules = rules(state.getGameId());
         if (!rules.isTurnCurrent(state, new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey()))) return 0;
         if ("werewolf".equals(state.getGameId())) {
+            if (com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.waitingForOriginal(state))
+                return Math.max(1, com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.remainingExecutionMillis(state, LocalDateTime.now()));
             Object deadline = job.getDiagnostics().get("executionDeadlineEpochMs");
-            return deadline instanceof Number n ? Math.max(0, Math.min(AiTurnGenerator.MAX_DECISION_MILLIS, n.longValue() - System.currentTimeMillis())) : 0;
+            return deadline instanceof Number n ? Math.max(0, Math.min(com.aisocialgame.lab.LabRunPolicy.decisionMillis(state), n.longValue() - System.currentTimeMillis())) : 0;
         }
         if (!"undercover".equals(state.getGameId())) return turnBudgetMillis(state.getPhaseEndsAt(), LocalDateTime.now());
         if(pureAiLab(state)) return AiTurnGenerator.UNDERCOVER_DECISION_MILLIS;
@@ -106,7 +109,7 @@ public class V2GameService {
             rooms.findByIdForUpdate(lookup.getRoomId());
             var state = states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
             var job = jobs.findByIdForUpdate(jobId).orElse(null);
-            if (state == null || job == null || !"RUNNING".equals(job.getStatus()) || validationBudgetPaused(job.getRoomId())) return false;
+            if (state == null || job == null || !"RUNNING".equals(job.getStatus()) || validationBudgetPaused(job.getRoomId()) || labBudgetPaused(state)) return false;
             var turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (!Objects.equals(job.getInstanceId(), state.getData().get("archiveId")) || !rules(state.getGameId()).isTurnCurrent(state, turn)) return false;
             var end = com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.begin(state, turn, LocalDateTime.now());
@@ -161,17 +164,20 @@ public class V2GameService {
     }
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public GameStateResponse labSpectatorState(String roomId) {
-        Room room=room(roomId,"undercover",false);
+        Room room=rooms.findById(roomId).orElseThrow(() -> RuleSupport.bad("房间不存在"));
         if(!room.isLab()) throw new ApiException(HttpStatus.BAD_REQUEST,"不是实验室对局");
         return response(room,states.findById(roomId).orElse(null),null);
     }
     public GameStateResponse start(String gameId, String roomId, User user) {
         return start(gameId, roomId, user, false);
     }
-    public void startLab(String roomId) { start("undercover", roomId, null, true); }
+    public void startLab(String roomId) { start(rooms.findById(roomId).orElseThrow(() -> RuleSupport.bad("房间不存在")).getGameId(), roomId, null, true); }
     private boolean pureAiLab(GameState state) {
         return !RuleSupport.map(state.getData().get("lab")).isEmpty() && !state.getPlayers().isEmpty()
                 && state.getPlayers().stream().allMatch(GamePlayerState::isAi);
+    }
+    private boolean unpacedAiLab(GameState state) {
+        return pureAiLab(state) && ("undercover".equals(state.getGameId()) || com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state));
     }
     public boolean labBudgetPaused(String roomId) {
         return states.findById(roomId).map(this::labBudgetPaused).orElse(false);
@@ -203,6 +209,9 @@ public class V2GameService {
             if(state==null || !room.isLab() || !state.getData().containsKey("labBudgetClock")) return;
             boolean callPause=state.getData().remove("labCallPause")!=null;
             var clock=RuleSupport.map(state.getData().remove("labBudgetClock"));
+            if (phaseToken(state).equals(clock.get("phaseToken")) && clock.get("pausedAtEpochMs") instanceof Number paused)
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.shift(state,Math.max(0,System.currentTimeMillis()-paused.longValue()));
+            if (callPause) com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.resumeWaiting(state,LocalDateTime.now());
             if(phaseToken(state).equals(clock.get("phaseToken")) && clock.get("remainingMs") instanceof Number remaining) {
                 if(state.getData().containsKey("safetyClock")) {
                     var safetyClock=RuleSupport.map(state.getData().get("safetyClock"));
@@ -243,7 +252,7 @@ public class V2GameService {
         var data=state.getData(); var clock=RuleSupport.map(data.get("labBudgetClock"));
         boolean first=!data.containsKey("labBudgetClock");
         if(first || !phaseToken(state).equals(clock.get("phaseToken"))) {
-            clock=new LinkedHashMap<>(); clock.put("phaseToken",phaseToken(state));
+            clock=new LinkedHashMap<>(); clock.put("phaseToken",phaseToken(state)); clock.put("pausedAtEpochMs",System.currentTimeMillis());
             if(state.getPhaseEndsAt()!=null) clock.put("remainingMs",Math.max(0,Duration.between(LocalDateTime.now(),state.getPhaseEndsAt()).toMillis()));
             data.put("labBudgetClock",clock);
         }
@@ -275,6 +284,7 @@ public class V2GameService {
             var configuration=GameConfiguration.validate(rules.definition(),room.getConfig()); RuleSupport.require(configuration.valid(),configuration.message());
             var validation = rules.validateStart(room); RuleSupport.require(validation.valid(), validation.message());
             GameState fresh = rules.initialize(room, LocalDateTime.now());
+            if(strategyPublications!=null) strategyPublications.freezeState(fresh);
             RoomAccessPolicy.snapshot(fresh, room);
             GameState state = fresh;
             if (previous != null) {
@@ -380,7 +390,7 @@ public class V2GameService {
             updateConnections(state);
             if (rules instanceof com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet wolf)
                 if (com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.synchronize(state,wolf,LocalDateTime.now())) states.save(state);
-            if(pureAiLab(state)) state.setPhaseEndsAt(null);
+            if(unpacedAiLab(state)) state.setPhaseEndsAt(null);
             rules.advance(state, LocalDateTime.now());
             AiCommitments.reconcile(state, rules, "TIMEOUT");
             boolean changed = eventCount != RuleSupport.maps(state.getData().get("events")).size() || !token.equals(phaseToken(state));
@@ -405,13 +415,22 @@ public class V2GameService {
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (!rules.isTurnCurrent(state, turn)) { finishJob(job, "DISCARDED", "TURN_OBSOLETE"); prepareJob(state, rules); return; }
             LocalDateTime now = LocalDateTime.now();
-            if(pureAiLab(state)) state.setPhaseEndsAt(null);
+            if(unpacedAiLab(state)) state.setPhaseEndsAt(null);
             if (!"werewolf".equals(state.getGameId()) && state.getPhaseEndsAt() != null && !now.isBefore(state.getPhaseEndsAt())) {
                 rules.advance(state, now); AiCommitments.reconcile(state, rules, "TIMEOUT"); finishJob(job, "DISCARDED", "TURN_EXPIRED");
                 persist(room, state, rules, false); prepareJob(state, rules); return;
             }
             VisibleObservation observation = JSON.convertValue(observationPayload(job), VisibleObservation.class);
             if ("werewolf".equals(state.getGameId()) && (decision.fallback() || com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.expired(state,now))) {
+                if (com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state)) {
+                    state.getData().put("labCallPause",decision.fallback()?"REQUEST_FAILED":"TIMEOUT");
+                    job.setStatus("QUEUED"); job.getDiagnostics().put("waitingReason",state.getData().get("labCallPause"));
+                    var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+                    saved.put("lastCallCode","AI_RESULT_PENDING"); saved.put("lastCallState",Map.of("remoteState","RESULT_RECEIVED"));
+                    job.getObservation().put("generationCheckpoint",saved); jobs.save(job);
+                    com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,now,true);
+                    freezeLabBudget(state); persist(room,state,rules,true); return;
+                }
                 ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules).onAiFailure(state,turn,now,decision.fallback()?"REQUEST_FAILED":"TIMEOUT");
                 finishJob(job,"FAILED",decision.fallback()?"FALLBACK_REJECTED":"TURN_EXPIRED");
                 persist(room,state,rules,false); prepareJob(state,rules); return;
@@ -463,14 +482,40 @@ public class V2GameService {
     }
     public void checkpoint(String jobId,Map<String,Object> checkpoint) {
         com.aisocialgame.lab.LabCallRecovery.commit(() -> transaction.executeWithoutResult(status -> {
+            var lookup=jobs.findById(jobId).orElseThrow();
+            rooms.findByIdForUpdate(lookup.getRoomId());
+            var state=states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
             var job=jobs.findByIdForUpdate(jobId).orElseThrow();
             if(!"RUNNING".equals(job.getStatus())) throw new IllegalStateException("AI job is no longer running");
+            if (state==null || !Objects.equals(job.getInstanceId(),state.getData().get("archiveId"))
+                    || !rules(state.getGameId()).isTurnCurrent(state,new TurnRequest(job.getActorId(),job.getKind(),job.getTurnKey())))
+                throw new IllegalStateException("AI opportunity is no longer current");
+            if (com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.waitingForOriginal(state)
+                    && !com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint)
+                    && checkpoint.get("actionExecutionRemainingMs") instanceof Number remaining) {
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.resumeExecution(state,LocalDateTime.now(),remaining.longValue());
+                var deadline=com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.deadline(state);
+                job.getDiagnostics().put("executionDeadlineEpochMs",deadline.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+                states.save(state);
+            }
+            if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state) && checkpoint.containsKey("originalRequestId")) {
+                // Keep the deployment deadline unchanged; only result recovery may outlive it.
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),true);states.save(state);
+            }
             job.getObservation().put("generationCheckpoint",new LinkedHashMap<>(checkpoint)); jobs.saveAndFlush(job);
         }));
     }
     public void recoverLabJob(String jobId) {
         var job=jobs.findById(jobId).orElse(null);
-        if(job!=null) defer(jobId,RuleSupport.map(job.getObservation().get("generationCheckpoint")),"AI_RESULT_PENDING");
+        if(job!=null) {
+            var checkpoint=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+            if ("werewolf".equals(job.getObservation().get("gameId"))) {
+                checkpoint.put("lastCallCode","AI_RESULT_PENDING");
+                checkpoint.put("lastCallState",Map.of("remoteState","UNCONFIRMED_AFTER_RESTART"));
+                checkpoint.putIfAbsent("waitingSinceEpochMs",System.currentTimeMillis());
+            }
+            defer(jobId,checkpoint,"AI_RESULT_PENDING");
+        }
     }
     public void defer(String jobId, Map<String,Object> checkpoint) {
         defer(jobId,checkpoint,"AI_BUDGET_BUSY");
@@ -486,6 +531,22 @@ public class V2GameService {
                 finishJob(job,"DISCARDED","TURN_OBSOLETE"); return;
             }
             job.getObservation().put("generationCheckpoint", checkpoint);
+            if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state)) {
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint));
+                if(com.aisocialgame.lab.LabCallRecovery.blocked(reason) && !com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint)
+                        && evaluationFailureKnown(job,Map.of())) {
+                    ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules(state.getGameId())).onAiFailure(state,
+                            new TurnRequest(job.getActorId(),job.getKind(),job.getTurnKey()),LocalDateTime.now(),reason);
+                    finishJob(job,"FAILED",reason);persist(rooms.findById(job.getRoomId()).orElseThrow(),state,rules(state.getGameId()),false);
+                    prepareJob(state,rules(state.getGameId()));return;
+                }
+                states.save(state);
+            }
+            if (com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state)) {
+                com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint));
+                job.getDiagnostics().remove("executionDeadlineEpochMs");
+                states.save(state);
+            }
             job.getDiagnostics().putIfAbsent("budgetWaitStartedEpochMs", System.currentTimeMillis());
             job.getDiagnostics().put("waitingReason", reason);
             job.setStatus("QUEUED"); jobs.save(job);
@@ -515,9 +576,28 @@ public class V2GameService {
             GameRuleSet rules = rules(state.getGameId());
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (rules.isTurnCurrent(state, turn)) {
-                if (room.isLab()) {
+                boolean evaluation=com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state);
+                boolean requiredPause=Set.of("AI_CREDIT_INSUFFICIENT","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(reason);
+                if(evaluation && !requiredPause && !evaluationFailureKnown(job,generation)) {
+                    var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+                    saved.put("lastCallCode","AI_RESULT_PENDING");saved.put("lastCallState",Map.of("remoteState","UNCONFIRMED_AFTER_FAILURE"));
+                    saved.putIfAbsent("waitingSinceEpochMs",System.currentTimeMillis());
+                    job.getObservation().put("generationCheckpoint",saved);job.setStatus("QUEUED");job.getDiagnostics().put("waitingReason","AI_RESULT_PENDING");jobs.save(job);
+                    com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),true);
+                    persist(room,state,rules,true);return;
+                }
+                if (room.isLab() && (!evaluation || requiredPause)) {
                     state.getData().put("labCallPause", RuleSupport.strings(generation.get("qualityFlags")).stream().findFirst().orElse(reason));
                     job.setStatus("QUEUED"); job.getDiagnostics().put("waitingReason",reason); jobs.save(job);
+                    if (com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state)) {
+                        var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+                        if (!saved.isEmpty()) {
+                            saved.put("lastCallCode","AI_RESULT_PENDING");
+                            saved.put("lastCallState",Map.of("remoteState","UNCONFIRMED_AFTER_FAILURE"));
+                            job.getObservation().put("generationCheckpoint",saved);
+                        }
+                        com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),!saved.isEmpty());
+                    }
                     freezeLabBudget(state); persist(room, state, rules, true); return;
                 }
                 LocalDateTime now = LocalDateTime.now();
@@ -540,6 +620,12 @@ public class V2GameService {
             } else finishJob(job, "DISCARDED", "TURN_OBSOLETE");
             prepareJob(state, rules);
         });
+    }
+    private boolean evaluationFailureKnown(AiTurnJob job,Map<String,Object> generation) {
+        if(Boolean.TRUE.equals(generation.get("usageComplete"))) return true;
+        var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
+        return RuleSupport.number(saved.get("calls"),0)<=RuleSupport.number(saved.get("responses"),0)
+                && RuleSupport.number(generation.get("calls"),0)<=RuleSupport.number(generation.get("responsesObserved"),0);
     }
     static Map<String,Object> observationPayload(AiTurnJob job) {
         Map<String,Object> payload = new LinkedHashMap<>(job.getObservation()); payload.remove("generationCheckpoint"); return payload;
@@ -769,6 +855,8 @@ public class V2GameService {
         GamePlayerState viewer = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(viewerId)).findFirst().orElse(null);
         List<GamePlayerView> players = state.getPlayers().stream().map(p -> new GamePlayerView(p.getPlayerId(), p.getDisplayName(), p.getSeatNumber(), p.isAi(), p.getPersonaId(), p.getAvatar(), p.isAlive(), rules.visibleRole(state, p, viewerId), rules.visibleWord(state, p, viewerId), p.getConnectionStatus())).toList();
         Map<String, Object> extra = new LinkedHashMap<>(rules.publicData(state));
+        var strategyTrials=com.aisocialgame.lab.StrategyPublicationService.publicTrialMetadata(state);
+        if(!strategyTrials.isEmpty()) extra.put("strategyTrials",strategyTrials);
         if (viewer != null) extra.putAll(rules.privateData(state, viewerId));
         if (state.getData().containsKey("validationBudgetPause")) {
             extra.put("validationBudgetPaused",true); extra.remove("actionEndsAt");

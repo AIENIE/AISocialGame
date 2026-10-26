@@ -99,6 +99,18 @@ public class AiGrpcClient {
         return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds);
     }
 
+    /** Result/usage recovery does not run model admission, prepare a request, or invoke inference. */
+    public AiChatResult recoverChatCompletions(String projectKey,long userId,String requestId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
+        if (boundedClient == null) requireBoundedBudget();
+        var response=boundedClient.recoverOriginal(projectKey,userId,requestId);
+        var request=ChatCompletionsRequest.newBuilder().setProjectKey(projectKey).setUserId(userId).setRequestId(requestId).build();
+        var metadata=boundedClient.metadata(request);
+        return new AiChatResult(response.getContent(),response.getModelKey(),response.getPromptTokens(),response.getCompletionTokens(),
+                response.hasFinishReason()?response.getFinishReason():null,response.hasReasoningTokens()?response.getReasoningTokens():null,
+                (String)metadata.get("budgetId"),(String)metadata.get("settlementState"));
+    }
+
     private AiChatResult chat(String projectKey, long userId, String sessionId, AiModelSelection selection,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
         AppProperties.requireCanonicalProjectKey(projectKey);

@@ -29,6 +29,8 @@ public interface AiTurnJobRepository extends JpaRepository<AiTurnJob, String> {
     }
     @Query("select j.id as id, j.startedAt as startedAt, j.diagnostics as diagnostics from AiTurnJob j where j.status = :status order by j.startedAt asc, j.id asc")
     List<RecoveryCandidate> findRecoveryCandidates(@Param("status") String status, org.springframework.data.domain.Pageable page);
+    @Query("select j.id as id, j.startedAt as startedAt, j.diagnostics as diagnostics from AiTurnJob j where j.roomId = :roomId and j.status = 'RUNNING'")
+    List<RecoveryCandidate> findRunningRecoveryCandidatesInRoom(@Param("roomId") String roomId);
     List<AiTurnJob> findByStatusAndStartedAtBefore(String status, LocalDateTime before);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select j from AiTurnJob j where j.id = :id")

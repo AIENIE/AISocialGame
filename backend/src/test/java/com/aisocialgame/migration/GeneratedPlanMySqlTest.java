@@ -37,8 +37,80 @@ class GeneratedPlanMySqlTest {
             assertEquals(ClosureMySqlMigrationTest.rows(db,columns),ClosureMySqlMigrationTest.rows(snapshot,columns));
             assertEquals(ClosureMySqlMigrationTest.rows(db,indexes),ClosureMySqlMigrationTest.rows(snapshot,indexes));
             assertEquals(before,ClosureMySqlMigrationTest.rows(db,"SELECT models_json,version FROM ai_model_catalog"));
-            assertEquals(List.of(List.of("6")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,4)='lab_'"));
+            // Ordinal 17 added six participant-lab tables; later shared-strategy tables do not change that historical fact.
+            assertEquals(List.of(List.of("6")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,4)='lab_' AND table_name NOT IN ('lab_strategy_versions','strategy_publications')"));
             evidence("ai-lab-migration",java.util.Map.of("currentSchemaMatches",true,"existingDataPreserved",true,"repeatRuns",2,"newTables",6));
+        }
+    }
+
+    @Test void sharedStrategyUpgradeFromOrdinal18MatchesCurrentSchemaAndPreservesHistoricalAndPublishedData() throws Exception {
+        verifySharedStrategyUpgrade(false);
+    }
+
+    @Test void sharedStrategyIncrementFromCurrentOrdinal18SnapshotPreservesHistoricalAndPublishedData() throws Exception {
+        verifySharedStrategyUpgrade(true);
+    }
+
+    private void verifySharedStrategyUpgrade(boolean currentSnapshot) throws Exception {
+        var generated=new GeneratedMigrationFixture(temporary);var scripts=generated.freshScripts();
+        var increment=scripts.stream().filter(path->path.getFileName().toString().equals("20261026_werewolf_lab_strategy.sql")).findFirst().orElseThrow();
+        assertEquals(increment,scripts.getLast(),"The strategy migration must follow the existing ordinal-18 schema");
+        assertTrue(generated.ledger.path("entries").findValues("ordinal").stream().anyMatch(value->value.asInt()==19));
+        String upgradedName=currentSnapshot?"strategy19_current":"strategy19",snapshotName=currentSnapshot?"strategy19_current_snap":"strategy19_snapshot";
+        try(var server=connect(null);var statement=server.createStatement()) {
+            for(String suffix:List.of(upgradedName,snapshotName)) statement.execute("CREATE DATABASE `"+database(suffix)+"` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+        try(var db=connect(upgradedName);var snapshot=connect(snapshotName)) {
+            if(currentSnapshot) {
+                // Verify the new increment independently; this does not assert that all frozen historical scripts execute.
+                String current=Files.readString(Path.of("sql/schema.sql")),addition=Files.readString(increment);
+                int start=current.indexOf(addition);assertTrue(start>=0);assertEquals(start,current.lastIndexOf(addition));
+                assertTrue(current.substring(start+addition.length()).isBlank(),"Only the final strategy increment may be removed");
+                Path previous=temporary.resolve("current-before-strategy19.sql");Files.writeString(previous,current.substring(0,start));
+                ClosureMySqlMigrationTest.script(db,previous.toString());
+            } else for(var path:scripts.subList(0,scripts.indexOf(increment))) ClosureMySqlMigrationTest.script(db,path.toString());
+            assertEquals(List.of(List.of("0")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('lab_strategy_versions','strategy_publications')"));
+            assertEquals(List.of(List.of("0")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_persona_memories' AND column_name='strategy_publication_id'"));
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO rooms(id,room_code,game_id,name,status,max_players,seats) VALUES('preserved-room','543219','undercover','旧房间','WAITING',6,'[{\"playerId\":\"owner\",\"host\":true}]')");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO game_archives(id,room_id,game_id,room_name,players_snapshot) VALUES('preserved-archive','preserved-room','undercover','旧回放','[{\"playerId\":\"owner\"}]')");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_experiments(id,name,status,budget_points,next_sequence,review_cursor,configuration,created_by,created_at,version) VALUES('preserved-experiment','旧卧底实验','PAUSED',10000,2,2,'{\"gameId\":\"undercover\",\"experiences\":{\"participant\":{\"experienceId\":\"preserved-experience\"}}}','fixture-admin',NOW(6),3)");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_experiences(id,experiment_id,agent_id,participant_id,sequence_number,summary,evidence,created_at) VALUES('preserved-experience','preserved-experiment','agent','participant',1,'保留原来卧底经验','{\"archiveId\":\"preserved-archive\"}',NOW(6))");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO ai_persona_memories(persona_id,game_id,role_key,memory_summary,approved_summary,review_status,games_played,created_at,updated_at) VALUES('ai1','undercover','GENERAL_V2','旧卧底记忆','已审核卧底经验','APPROVED',17,NOW(),NOW()),('ai1','werewolf','GENERAL_V2','旧狼人杀记忆','已审核狼人杀经验','APPROVED',9,NOW(),NOW())");
+            var historyQueries=List.of("SELECT * FROM rooms ORDER BY id","SELECT * FROM game_archives ORDER BY id","SELECT * FROM lab_experiments ORDER BY id","SELECT * FROM lab_experiences ORDER BY id",
+                    "SELECT id,persona_id,game_id,role_key,memory_summary,strategy_notes,mistake_notes,speech_patterns,games_played,approved_summary,review_status,created_at,updated_at FROM ai_persona_memories ORDER BY id");
+            var history=new LinkedHashMap<String,List<List<String>>>();for(String query:historyQueries) history.put(query,ClosureMySqlMigrationTest.rows(db,query));
+            ClosureMySqlMigrationTest.script(db,increment.toString());ClosureMySqlMigrationTest.script(snapshot,"sql/schema.sql");
+            assertEquals(ClosureMySqlMigrationTest.structure(snapshot),ClosureMySqlMigrationTest.structure(db),"The complete upgraded schema must match current schema.sql");
+            assertEquals(ClosureMySqlMigrationTest.indexes(snapshot),ClosureMySqlMigrationTest.indexes(db));
+            String scope="table_schema=DATABASE() AND table_name IN ('lab_strategy_versions','strategy_publications','ai_persona_memories')";
+            var metadata=List.of(
+                    "SELECT table_name,engine,row_format,table_collation FROM information_schema.tables WHERE "+scope+" ORDER BY table_name",
+                    "SELECT table_name,column_name,column_type,is_nullable,column_default,extra,character_set_name,collation_name,generation_expression FROM information_schema.columns WHERE "+scope+" ORDER BY table_name,column_name",
+                    "SELECT table_name,index_name,non_unique,seq_in_index,column_name,sub_part,index_type,is_visible,expression FROM information_schema.statistics WHERE "+scope+" ORDER BY table_name,index_name,seq_in_index",
+                    "SELECT table_name,constraint_name,constraint_type,enforced FROM information_schema.table_constraints WHERE "+scope+" ORDER BY table_name,constraint_name");
+            for(String query:metadata) assertEquals(ClosureMySqlMigrationTest.rows(snapshot,query),ClosureMySqlMigrationTest.rows(db,query));
+            assertEquals(List.of(java.util.Arrays.asList("varchar(36)","YES",null)),ClosureMySqlMigrationTest.rows(db,"SELECT column_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_persona_memories' AND column_name='strategy_publication_id'"));
+            assertEquals(List.of(List.of("0")),ClosureMySqlMigrationTest.rows(db,"SELECT COUNT(*) FROM ai_persona_memories WHERE strategy_publication_id IS NOT NULL"));
+            for(var entry:history.entrySet()) assertEquals(entry.getValue(),ClosureMySqlMigrationTest.rows(db,entry.getKey()));
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO lab_strategy_versions(id,experiment_id,sequence_number,game_id,request_id,content,compatibility,evidence,content_hash,created_at) VALUES('strategy-version','strategy-experiment',1,'werewolf','request-identity','{\"cards\":[]}','{\"gameId\":\"werewolf\"}','{\"matchId\":\"training-match\"}','"+"a".repeat(64)+"',NOW(6))");
+            ClosureMySqlMigrationTest.sql(db,"INSERT INTO strategy_publications(id,operation_id,request_hash,action,game_id,strategy_version_id,mode,created_by,parameters,previous_bindings,result,created_at) VALUES('publication','operation-identity','"+"b".repeat(64)+"','PUBLISH','werewolf','strategy-version','TRIAL','fixture-admin','{\"personaIds\":[\"ai1\"]}','{}','{\"id\":\"publication\"}',NOW(6))");
+            ClosureMySqlMigrationTest.sql(db,"UPDATE ai_persona_memories SET strategy_publication_id='publication' WHERE persona_id='ai1' AND game_id='werewolf'");
+            var strategyRows=ClosureMySqlMigrationTest.rows(db,"SELECT * FROM lab_strategy_versions ORDER BY id");
+            var publicationRows=ClosureMySqlMigrationTest.rows(db,"SELECT * FROM strategy_publications ORDER BY id");
+            var pointers=ClosureMySqlMigrationTest.rows(db,"SELECT persona_id,game_id,strategy_publication_id FROM ai_persona_memories ORDER BY id");
+            for(int repeat=0;repeat<2;repeat++) {
+                ClosureMySqlMigrationTest.script(db,increment.toString());
+                for(var entry:history.entrySet()) assertEquals(entry.getValue(),ClosureMySqlMigrationTest.rows(db,entry.getKey()));
+                assertEquals(strategyRows,ClosureMySqlMigrationTest.rows(db,"SELECT * FROM lab_strategy_versions ORDER BY id"));
+                assertEquals(publicationRows,ClosureMySqlMigrationTest.rows(db,"SELECT * FROM strategy_publications ORDER BY id"));
+                assertEquals(pointers,ClosureMySqlMigrationTest.rows(db,"SELECT persona_id,game_id,strategy_publication_id FROM ai_persona_memories ORDER BY id"));
+                for(String query:metadata) assertEquals(ClosureMySqlMigrationTest.rows(snapshot,query),ClosureMySqlMigrationTest.rows(db,query));
+            }
+            var report=new LinkedHashMap<String,Object>();report.put("baselineSource",currentSnapshot?"current-schema-before19":"generated-fresh-plan-through18");
+            report.putAll(java.util.Map.of("fromOrdinal",18,"toOrdinal",19,"currentSchemaMatches",true,"fullMetadataMatches",true,
+                    "undercoverAndPersonaDataPreserved",true,"newStrategyAndPublicationDataPreserved",true,"nullablePointerPreserved",true,"repeatRuns",2,
+                    "newTables",List.of("lab_strategy_versions","strategy_publications"),"sqlSha256",java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(increment)))));
+            evidence(currentSnapshot?"werewolf-strategy19-increment":"werewolf-strategy19-migration",report);
         }
     }
 

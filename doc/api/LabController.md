@@ -29,6 +29,12 @@
 | POST | /experiments/{id}/matches/{matchId}/reviews | 暂停实验的单次复盘，`{operationId,coach}`；同一操作及参数返回原任务，参数冲突返回 409 |
 | GET | /experiments/{id}/matches/{matchId}/reviews/{operationId} | 单次复盘状态、原请求、流式进度、首正文 TTFT、权威用量、实际费用及发布版本 |
 | POST | /experiments/{id}/evaluations | 发起冻结对手的纯 AI 成对评测 |
+| GET | /experiments/{id}/strategies | 狼人杀共享版本、内容差异、证据、评测与评审 |
+| POST | /experiments/{id}/strategies/{versionId}/assessment | 记录 ruleError、evidenceLeak、severeContradiction 三个布尔值及 notes；任一缺陷阻止试用发布 |
+| POST | /experiments/{id}/scenario-evaluations | `{operationId,candidateStrategyVersionId}` 创建冻结保留题的初始/候选评测，同操作恢复原结果 |
+| GET | /experiments/{id}/scenario-evaluations/{operationId} | 情境运行状态、进度、逐题结果、原请求检查点和费用 |
+| POST | /strategy-publications | `{operationId,action,strategyVersionId?,personaIds,mode:"TRIAL"}`，action 为 PUBLISH/WITHDRAW |
+| GET | /strategy-publications/{operationId} | 原不可变发布或撤回回执 |
 
 AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffort}`。思考能力遵循已有模型目录；未知能力仅允许 DEFAULT。失效选择保留并报错。
 
@@ -53,3 +59,9 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 调用恢复暂停时，活动对局仍为 PLAYING；房间 extra 返回 labCallPaused 与 labPauseReason，真人操作入口暂停，管理员恢复继续当前局。预算暂停继续使用 labBudgetPaused。诊断尝试中的 settlementState 为当前原请求结算状态；observedSettlementState（若有）仅表示原样本。业务 attempt 与 transportAttempt 分开记录，只有确认未发送才改变传输请求身份。
 
 start / resume 在事务外先校验实际玩家和教练的思考选择、预算能力及价格；检查不执行模型推理。教练首正文窗口为 600 秒、总窗口 1200 秒、任务租约 1230 秒和 32768 总输出上限，自动格式修正最多两次。
+
+狼人杀创建增加 `gameId:"werewolf",rules,learningMode:"SHARED_STRATEGY",initialStrategyVersionId?,randomSeed?,trainingCheckpointPoints?`。rules 为六人/九人 standard，沿用 witchRule、winCondition、hasLastWords、speechTime；首期共享策略要求所有玩家模型/思考配置一致。无 gameId 的旧请求仍创建卧底。狼人杀不能继承逐副本 initialExperienceId，使用确切共享版本并校验规则和模型兼容。观察及对局摘要均返回 gameId。
+
+狼人杀完整对局评测用 `candidateStrategyVersionId` 替代 `candidateExperienceId`，保留 `participantId,pairs`；可附 `operationId,targetRole,randomSeed`。targetRole 是五种身份之一，服务端验证配额，配对保存相同实际身份与座次。只改变目标席经验，评测不复盘、不学习。统计包含 validPairs、全部 attemptedGames、unfinishedGames、failedGames，以及按完整配对计算的 pairedOutcomes 和保守 95% 范围。
+
+情境运行保存在实验 JSON，实验外层保持 PAUSED，run 自身 RUNNING/PAUSED/COMPLETED/STOPPED。有 activeScenario 时 resume 只恢复该任务，不能自动开训练局；预算调高不自动继续。每个结果注明构造来源、角色、人格、初始或候选、动作与诊断；semanticReview=NOT_REVIEWED 不代表策略题正确。发布回执只能表达版本绑定及 TRIAL 状态，不能表达能力已提升。

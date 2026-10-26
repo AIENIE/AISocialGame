@@ -78,6 +78,23 @@ class BoundedAiClientTest {
         assertEquals(1,sends.get());verify(count,times(1)).consume();
     }
 
+    @Test void explicitOriginalRecoveryCannotPrepareOrSendEvenWhenRecordIsAbsentOrBudgetIsPaused() {
+        var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
+        var lab=mock(com.aisocialgame.lab.LabBudgetService.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,count,false,8192);
+        org.springframework.test.util.ReflectionTestUtils.setField(client,"labBudgets",lab);
+        assertEquals("AI_REQUEST_NOT_PREPARED",assertThrows(com.aisocialgame.exception.ApiException.class,
+                ()->client.recoverOriginal("aisocialgame",85,"same-request")).getCode());
+        var row=new AiCreditReservation();row.id="read-only";row.budgetId="budget";row.requestId="same-request";row.userId=85;row.projectKey="aisocialgame";row.state="PENDING";
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        doAnswer(ignored->{row.state="SETTLED";row.resultBase64=Base64.getEncoder().encodeToString(response.toByteArray());return null;}).when(escrow).reconcile(row.id,status);
+        assertEquals(response,client.recoverOriginal("aisocialgame",85,"same-request"));
+        assertEquals(0,sends.get());assertEquals(0,prepares.get());verifyNoInteractions(lab,count);verify(escrow,never()).register(any(),any());
+        row.state="NOT_SENT";
+        assertEquals("AI_REQUEST_NOT_SENT",assertThrows(com.aisocialgame.exception.ApiException.class,
+                ()->client.recoverOriginal("aisocialgame",85,"same-request")).getCode());
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     void explicitCoachDeadlineReachesTransportWithoutExtendingOrdinaryCalls(boolean coach) {

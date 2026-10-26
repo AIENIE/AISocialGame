@@ -91,6 +91,11 @@
       "ordinal": 18,
       "kind": "upgrade",
       "file": "20261021_ai_lab_participants.sql"
+    },
+    {
+      "ordinal": 19,
+      "kind": "upgrade",
+      "file": "20261026_werewolf_lab_strategy.sql"
     }
   ],
   "execution_plans": [
@@ -113,7 +118,8 @@
         15,
         16,
         17,
-        18
+        18,
+        19
       ]
     },
     {
@@ -134,7 +140,8 @@
         15,
         16,
         17,
-        18
+        18,
+        19
       ]
     }
   ],

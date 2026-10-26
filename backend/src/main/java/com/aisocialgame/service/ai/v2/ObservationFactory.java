@@ -25,6 +25,8 @@ public class ObservationFactory {
             memory = new LinkedHashMap<>(memory);
             Map<String,Object> lab = new LinkedHashMap<>(RuleSupport.map(state.getData().get("lab")));
             lab.putAll(RuleSupport.map(RuleSupport.map(state.getData().get("labPlayers")).get(actorId)));
+            // The full cross-role strategy and its evidence belong to the stored match, not this actor's prompt.
+            lab.remove("strategySnapshot");
             memory.put("lab", lab);
         }
         List<Map<String, Object>> visible = visibleEvents(state, actorId);

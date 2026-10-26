@@ -26,6 +26,7 @@ public class LabRuntime {
     private final RoomCodeGenerator codes;
     private final V2GameService game;
     private final AiModelConfigService models;
+    @org.springframework.beans.factory.annotation.Autowired private LabStrategyService strategies;
 
     public LabRuntime(LabExperimentRepository experiments,LabMatchRepository matches,LabEnrollmentRepository enrollments,
             LabEvaluationRepository evaluations,RoomRepository rooms,GameStateRepository states,AiTurnJobRepository jobs,
@@ -36,6 +37,7 @@ public class LabRuntime {
     @Transactional
     public void advance(String id) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
+        if(experiment.configuration.containsKey("activeScenario")) return;
         if("PAUSED".equals(experiment.status) && experiment.configuration.containsKey("manualReview")) return;
         var current=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
         if(!"STOPPING".equals(experiment.status) || !current.isEmpty()) budgets.pauseIfReached(experiment);
@@ -103,6 +105,11 @@ public class LabRuntime {
                 if(experiment.reviewCursor<experiment.nextSequence) { experiments.saveAndFlush(experiment); return; }
                 int target=number(experiment.configuration.get("targetGames"),100);
                 int created=number(experiment.configuration.get("trainingCreated"),0);
+                if(LabGameConfig.werewolf(experiment.configuration) && created>0 && created<target
+                        && budgets.spentPoints(experiment.id)>=((Number)experiment.configuration.getOrDefault("trainingCheckpointPoints",900L)).longValue()) {
+                    pause(experiment,"TRAINING_CHECKPOINT_REACHED");
+                    experiments.saveAndFlush(experiment); return;
+                }
                 while(capacity-->0 && created<target) { createMatch(experiment,null); created++; }
                 experiment.configuration.put("trainingCreated",created);
                 if(created>=target && matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE).isEmpty()
@@ -117,12 +124,14 @@ public class LabRuntime {
         int pair=evaluation==null?0:evaluation.nextGame/2;
         var match=new LabMatch(); match.experimentId=experiment.id; match.sequenceNumber=experiment.nextSequence++;
         match.roomId=UUID.randomUUID().toString();
-        match.randomSeed=evaluation==null?new Random().nextLong():evaluation.randomSeed+pair;
+        match.randomSeed=evaluation==null?LabGameConfig.seed(((Number)experiment.configuration.getOrDefault("randomSeed",new Random().nextLong())).longValue(),"match:"+match.sequenceNumber):evaluation.randomSeed+pair;
         match.startsAtEpochMs=System.currentTimeMillis();
         var heads=map(evaluation==null?experiment.configuration.get("experiences"):evaluation.configuration.get("initialExperiences"));
         if(evaluation!=null) {
-            match.evaluationId=evaluation.id; match.variant=evaluation.nextGame%2==0?"BASELINE":"CANDIDATE";
-            if("CANDIDATE".equals(match.variant)) heads.put(evaluation.participantId,evaluation.configuration.get("candidate"));
+            match.evaluationId=evaluation.id;
+            boolean candidateFirst=flag(evaluation.configuration.get("candidateFirst"));
+            match.variant=(evaluation.nextGame%2==0)==candidateFirst?"CANDIDATE":"BASELINE";
+            if("CANDIDATE".equals(match.variant) && evaluation.configuration.containsKey("candidate")) heads.put(evaluation.participantId,evaluation.configuration.get("candidate"));
             match.snapshot.put("pairIndex",pair); evaluation.nextGame++;
         }
         var players=new LinkedHashMap<String,Object>();
@@ -130,22 +139,41 @@ public class LabRuntime {
         for(var profile:roster) {
             String participantId=LabService.participantId(profile),actorId="lab-"+participantId;
             var snapshot=new LinkedHashMap<>(profile); snapshot.put("participantId",participantId); snapshot.putAll(map(heads.get(participantId)));
+            if(LabGameConfig.werewolf(experiment.configuration)) {
+                var strategy=map(experiment.configuration.get("initialStrategy"));
+                if(evaluation==null && !text(experiment.configuration.get("strategyHeadId")).isBlank())
+                    strategy=strategies.strategySnapshot(text(experiment.configuration.get("strategyHeadId")));
+                else if(evaluation!=null) {
+                    strategy=map(evaluation.configuration.get("initialStrategy"));
+                    if("CANDIDATE".equals(match.variant) && participantId.equals(evaluation.participantId)) strategy=map(evaluation.configuration.get("candidateStrategy"));
+                }
+                snapshot.put("strategySnapshot",strategy);
+            }
             players.put(actorId,snapshot);
             seats.add(new RoomSeat(seats.size(),actorId,text(profile.get("name")),true,text(profile.get("personaId")),
                     text(map(profile.get("persona")).get("avatar")),true,false));
         }
-        Map<String,Object> configuration=new LinkedHashMap<>(Map.of("playerCount",roster.size(),"wordPack",experiment.configuration.get("wordPack"),
+        boolean werewolf=LabGameConfig.werewolf(experiment.configuration);
+        Map<String,Object> configuration=werewolf?new LinkedHashMap<>(map(experiment.configuration.get("rules"))):new LinkedHashMap<>(Map.of("playerCount",roster.size(),"wordPack",experiment.configuration.get("wordPack"),
                 "hasBlank",flag(experiment.configuration.get("hasBlank")),"speakTime",90,"aiDifficulty",2,"spyMode","auto"));
         String roomName="AI 实验 · "+experiment.name+" · "+match.sequenceNumber;
-        var room=new Room(match.roomId,"undercover",roomName.substring(0,Math.min(128,roomName.length())),
+        var room=new Room(match.roomId,LabGameConfig.gameId(experiment.configuration),roomName.substring(0,Math.min(128,roomName.length())),
                 RoomStatus.WAITING,roster.size(),false,null,"text",configuration);
         room.setSource("LAB"); room.setRoomCode(nextRoomCode()); room.setSeats(seats);
         room.getPrivateConfig().put("labSeed",match.randomSeed);
+        if(werewolf) {
+            room.getPrivateConfig().put("labRoleSeed",LabGameConfig.seed(match.randomSeed,"roles"));
+            room.getPrivateConfig().put("labSeatSeed",LabGameConfig.seed(match.randomSeed,"seats"));
+            match.snapshot.put("seeds",Map.of("seatSeed",LabGameConfig.seed(match.randomSeed,"seats"),"roleSeed",LabGameConfig.seed(match.randomSeed,"roles")));
+        }
         room.getPrivateConfig().put("lab",Map.of("experimentId",experiment.id,"matchId",match.id,
-                "modelSelection",map(roster.getFirst().get("modelSelection"))));
+                "labRunMode",evaluation==null?"TRAINING":"EVALUATION","modelSelection",map(roster.getFirst().get("modelSelection"))));
+        if(werewolf && evaluation!=null && !text(evaluation.configuration.get("targetRole")).isBlank())
+            room.getPrivateConfig().put("labRoleAssignments",roleAssignments(players,roster.size(),evaluation.participantId,text(evaluation.configuration.get("targetRole")),match.randomSeed));
         room.getPrivateConfig().put("labPlayers",players);
         match.snapshot.put("players",players); match.snapshot.put("rules",new LinkedHashMap<>(configuration));
         match.snapshot.put("coach",map(experiment.configuration.get("coach")));
+        match.snapshot.put("gameId",room.getGameId());
         rooms.saveAndFlush(room); matches.saveAndFlush(match);
         if(evaluation==null) {
             var waiting=enrollments.findByExperimentIdAndStatusOrderByJoinedAtAsc(experiment.id,"WAITING");
@@ -173,11 +201,13 @@ public class LabRuntime {
         match.snapshot.put("players",snapshots);
         if(!match.snapshot.containsKey("seatOrder")) {
             var shuffled=new ArrayList<>(room.getSeats());
-            Collections.shuffle(shuffled,new Random(match.randomSeed));
+            Collections.shuffle(shuffled,new Random("werewolf".equals(room.getGameId())?LabGameConfig.seed(match.randomSeed,"seats"):match.randomSeed));
             for(int seat=0;seat<shuffled.size();seat++) shuffled.get(seat).setSeatNumber(seat);
             room.setSeats(shuffled); match.snapshot.put("seatOrder",shuffled.stream().map(RoomSeat::getPlayerId).toList());
         }
         rooms.saveAndFlush(room); game.startLab(match.roomId);
+        states.findById(match.roomId).ifPresent(state -> match.snapshot.put("roleAssignments",state.getPlayers().stream()
+                .collect(java.util.stream.Collectors.toMap(GamePlayerState::getPlayerId,GamePlayerState::getRole))));
         match.status="PLAYING"; matches.saveAndFlush(match);
     }
     private String nextRoomCode() {
@@ -221,4 +251,15 @@ public class LabRuntime {
         }
     }
     public static void pause(LabExperiment experiment,String reason) { experiment.status="PAUSED"; experiment.reason=reason; }
+    private static Map<String,String> roleAssignments(Map<String,Object> players,int count,String participantId,String role,long seed) {
+        var roles=new ArrayList<>(count==9?List.of("WEREWOLF","WEREWOLF","WEREWOLF","SEER","WITCH","HUNTER","VILLAGER","VILLAGER","VILLAGER"):
+                List.of("WEREWOLF","WEREWOLF","SEER","WITCH","VILLAGER","VILLAGER"));
+        require(roles.remove(role),"目标身份不属于当前板子");
+        Collections.shuffle(roles,new Random(LabGameConfig.seed(seed,"evaluation-roles")));
+        var assigned=new LinkedHashMap<String,String>();
+        String target="lab-"+participantId; require(players.containsKey(target),"被测席位不存在");
+        assigned.put(target,role);
+        for(String actor:players.keySet()) if(!actor.equals(target)) assigned.put(actor,roles.removeFirst());
+        return assigned;
+    }
 }

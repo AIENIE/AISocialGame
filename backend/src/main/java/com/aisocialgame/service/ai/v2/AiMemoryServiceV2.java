@@ -37,7 +37,16 @@ public class AiMemoryServiceV2 {
             emotion.put("round", state.getRoundNumber());
             memory.put("emotion", emotion);
         }
-        if (actor != null && actor.getPersonaId() != null) {
+        if ("werewolf".equals(state.getGameId())) {
+            memory.remove("approvedExperience");memory.remove("strategy");
+            Map<String,Object> profile=RuleSupport.map(RuleSupport.map(state.getData().get("labPlayers")).get(actorId));
+            boolean laboratory=!RuleSupport.map(state.getData().get("lab")).isEmpty();
+            Map<String,Object> frozen=laboratory?profile:RuleSupport.map(RuleSupport.map(state.getData().get(com.aisocialgame.lab.LabStrategyService.STATE_SNAPSHOTS)).get(actorId));
+            var strategy=com.aisocialgame.lab.LabStrategyService.select(RuleSupport.map(frozen.get("strategySnapshot")),
+                    actor==null?"":actor.getRole(),state.getPhase(),RuleSupport.map(state.getData().get("rules")),RuleSupport.map(frozen.get("modelSelection")));
+            if(!strategy.isEmpty()) memory.put("strategy",strategy);
+            if(!laboratory && "LEGACY".equals(frozen.get("source"))) memory.put("approvedExperience",cut(RuleSupport.text(frozen.get("approvedExperience")),1200));
+        } else if (actor != null && actor.getPersonaId() != null) {
             repository.findByPersonaIdAndGameIdAndRoleKey(actor.getPersonaId(), state.getGameId(), "GENERAL_V2")
                     .filter(m -> "APPROVED".equals(m.getReviewStatus()))
                     .ifPresent(m -> memory.put("approvedExperience", cut(m.getApprovedSummary(), 1200)));
@@ -87,6 +96,7 @@ public class AiMemoryServiceV2 {
         Map<String, Object> all = RuleSupport.map(state.getData().get("aiMemoriesV2"));
         Map<String, Object> memory = snapshot(state, actorId);
         memory.remove("approvedExperience");
+        memory.remove("strategy");
         memory.put("formatVersion", AiMemoryEntries.FORMAT_VERSION);
         Map<String, Object> updates = decision.memoryUpdates();
         Map<String, Object> beliefs = RuleSupport.map(memory.get("beliefs"));
@@ -137,7 +147,7 @@ public class AiMemoryServiceV2 {
     public void normalizeOnAction(GameState state, String actorId) {
         Map<String, Object> all = RuleSupport.map(state.getData().get("aiMemoriesV2"));
         if (!all.containsKey(actorId)) return;
-        Map<String, Object> normalized = snapshot(state, actorId); normalized.remove("approvedExperience");
+        Map<String, Object> normalized = snapshot(state, actorId); normalized.remove("approvedExperience");normalized.remove("strategy");
         all.put(actorId, normalized); state.getData().put("aiMemoriesV2", all);
     }
     public void finishGame(GameState state) {

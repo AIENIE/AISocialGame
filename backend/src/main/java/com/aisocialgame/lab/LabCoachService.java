@@ -34,6 +34,7 @@ public class LabCoachService {
     private final AppProperties properties;
     private final ObjectMapper json;
     private final TransactionTemplate transaction;
+    @org.springframework.beans.factory.annotation.Autowired private WerewolfLabReview werewolfReview;
     private record Claim(String experimentId,String matchId,String requestId,Map<String,Object> request) {}
 
     public LabCoachService(LabExperimentRepository experiments,LabMatchRepository matches,LabExperienceRepository experiences,
@@ -47,7 +48,7 @@ public class LabCoachService {
         try(var lab=LabCallContext.open(Map.of("experimentId",claim.experimentId(),"matchId",claim.matchId()),"REVIEW")) {
             var selection=AiModelSelection.fromMap(map(claim.request().get("selection")));
             var messages=maps(claim.request().get("messages")).stream().map(message -> new AiChatMessageDto(text(message.get("role")),text(message.get("content")))).toList();
-            try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
+            try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),text(claim.request().getOrDefault("gameId","undercover")))
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
                         "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),LabCoachLimits.TOTAL_SECONDS);
@@ -74,7 +75,9 @@ public class LabCoachService {
                     var request=new LinkedHashMap<>(map(match.snapshot.get("reviewRequest")));
                     var messages=new ArrayList<>(maps(request.get("messages")).subList(0,2));
                     messages.add(Map.of("role","assistant","content",text(response.get("content"))));
-                    messages.add(Map.of("role","user","content","上一次回复格式或证据不合格。请重新输出完整 JSON，必须覆盖 agents 中全部 participantId，每人且仅一条；summary 为 1 至 1200 字，evidenceEventIds 必须非空且来自本局公开 events。不要只返回改动部分。"));
+                    messages.add(Map.of("role","user","content",LabGameConfig.werewolf(experiment.configuration)
+                            ? "上次策略格式或证据不合格："+failure.getMessage()+"。请按系统格式输出完整 cards；新增或修改卡只引用 SUCCEEDED 任务的准确 jobId、actorId 和该任务 visibleEventIds。不可引用事后信息或把系统失败当策略。无法证明的新建议删除，旧卡原样保留。"
+                            : "上一次回复格式或证据不合格。请重新输出完整 JSON，必须覆盖 agents 中全部 participantId，每人且仅一条；summary 为 1 至 1200 字，evidenceEventIds 必须非空且来自本局公开 events。不要只返回改动部分。"));
                     request.put("messages",messages); match.snapshot.put("reviewRequest",request);
                     match.snapshot.put("reviewAttempt",number(match.snapshot.get("reviewAttempt"),0)+1);
                     match.snapshot.remove("reviewRecovery"); retry=true;
@@ -100,6 +103,9 @@ public class LabCoachService {
             if(!match.snapshot.containsKey("reviewRequest")) {
                 var state=states.findById(match.roomId).orElseThrow();
                 require("SETTLEMENT".equals(state.getPhase()) && match.archiveId.equals(state.getData().get("archiveId")),"对局尚未完成");
+                if(LabGameConfig.werewolf(experiment.configuration)) {
+                    match.snapshot.put("reviewRequest",werewolfReview.request(experiment,match,state));
+                } else {
                 var publicEvents=maps(state.getData().get("events")).stream().filter(event -> "PUBLIC".equals(event.get("visibility"))).toList();
                 var heads=map(experiment.configuration.get("experiences"));
                 var players=map(match.snapshot.get("players"));
@@ -115,6 +121,7 @@ public class LabCoachService {
                             "messages",List.of(Map.of("role","system","content",SYSTEM),Map.of("role","user","content",input))));
                     match.snapshot.put("reviewEventIds",publicEvents.stream().map(event -> text(event.get("eventId"))).toList());
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
+                }
             }
             match.snapshot.put("reviewRequestId",LabCallRecovery.requestId("lab-review:"+match.id+":"+number(match.snapshot.get("reviewAttempt"),0),recovery));
             match.status="REVIEWING"; match.reviewLeaseUntil=System.currentTimeMillis()+LabCoachLimits.LEASE_MS; matches.saveAndFlush(match);
@@ -137,6 +144,7 @@ public class LabCoachService {
             var experiment=experiments.lock(claim.experimentId()).orElseThrow();
             var match=matches.lock(claim.matchId()).orElseThrow();
             if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
+            match.reason=null;
             publish(experiment,match,claim.requestId(),claim.request(),output);
             match.status="REVIEWED"; match.reason=null; match.reviewLeaseUntil=null;
             matches.save(match); experiments.save(experiment);
@@ -144,6 +152,9 @@ public class LabCoachService {
     }
     /** Caller holds the experiment and match locks; all participants publish in that same transaction. */
     void publish(LabExperiment experiment,LabMatch match,String requestId,Map<String,Object> request,Map<String,Object> output) {
+            if(LabGameConfig.werewolf(experiment.configuration)) {
+                werewolfReview.publish(experiment,match,requestId,output); return;
+            }
             var profiles=new HashMap<String,Map<String,Object>>();
             map(match.snapshot.get("players")).values().forEach(value -> { var profile=map(value); profiles.put(LabService.participantId(profile),profile); });
             var expected=profiles.keySet();

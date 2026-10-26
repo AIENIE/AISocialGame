@@ -27,6 +27,11 @@ public class LabBudgetService {
         var identity = LabCallContext.current();
         if (identity == null) return;
         var experiment = experiments.lock(identity.experimentId()).orElseThrow();
+        if("SCENARIO".equals(identity.purpose()) && "PAUSED".equals(experiment.status)) {
+            var run=com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(experiment.configuration.get("scenarioRuns"))
+                    .get(com.aisocialgame.engine.v2.RuleSupport.text(experiment.configuration.get("activeScenario"))));
+            if(identity.matchId().equals(run.get("id")) && "RUNNING".equals(run.get("status"))) {requireRemaining(experiment);return;}
+        }
         if ("MANUAL_REVIEW".equals(identity.purpose()) && "PAUSED".equals(experiment.status)
                 && identity.matchId().equals(com.aisocialgame.engine.v2.RuleSupport.map(experiment.configuration.get("manualReview")).get("matchId"))) {
             requireRemaining(experiment);return;

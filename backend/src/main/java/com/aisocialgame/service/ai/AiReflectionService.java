@@ -74,6 +74,9 @@ public class AiReflectionService {
     @Transactional
     public void resetMemory(Long id) {
         personaMemoryRepository.findById(id).ifPresent(memory -> {
+            if(memory.getStrategyPublicationId()!=null && strategyPublications!=null
+                    && strategyPublications.findById(memory.getStrategyPublicationId()).map(publication->"PUBLISH".equals(publication.action)).orElse(false))
+                throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.CONFLICT,"此角色使用实验室策略，请先在实验室撤回发布","STRATEGY_PUBLICATION_ACTIVE",java.util.Map.of());
             memory.setMemorySummary("");
             memory.setStrategyNotes("");
             memory.setMistakeNotes("");
@@ -84,6 +87,8 @@ public class AiReflectionService {
             personaMemoryRepository.save(memory);
         });
     }
+
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.lab.StrategyPublicationRepository strategyPublications;
 
     private String shortMemory(GameState state, GamePlayerState actor) {
         Object raw = mapAt(state.getData(), "aiShortMemories").get(actor.getPlayerId());

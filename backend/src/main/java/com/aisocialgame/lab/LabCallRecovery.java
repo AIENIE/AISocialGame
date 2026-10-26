@@ -24,6 +24,7 @@ public final class LabCallRecovery {
         checkpoint.putIfAbsent("waitingSinceEpochMs",now);
         checkpoint.put("lastCallState",new LinkedHashMap<>(failure.getDetails()));
         String code=failure.getCode();
+        checkpoint.put("lastCallCode",code);
         long wait=2_000;
         if("AI_REQUEST_NOT_SENT".equals(code)) {
             int attempt=number(checkpoint.get("transportAttempt"),0);
@@ -41,6 +42,13 @@ public final class LabCallRecovery {
     }
     public static boolean ready(Map<String,Object> checkpoint,long now) {
         return !(checkpoint.get("retryAfterEpochMs") instanceof Number n) || n.longValue()<=now;
+    }
+    public static boolean awaitingOriginal(Map<String,Object> checkpoint) {
+        String code=text(checkpoint.get("lastCallCode"));
+        if(!code.isBlank()) return Set.of("AI_RESULT_PENDING","AI_RESULT_UNKNOWN","AI_USAGE_UNKNOWN","BUDGET_RECONCILIATION_REQUIRED").contains(code);
+        var state=map(checkpoint.get("lastCallState"));
+        return !state.isEmpty() && !Set.of("FAILED_NOT_SENT","NOT_SENT","RELEASED").contains(text(state.get("remoteState")))
+                && !"RELEASED".equals(state.get("settlementState"));
     }
     /** Retry only local transaction work, after its transaction has rolled back. */
     public static void commit(Runnable operation) {

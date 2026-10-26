@@ -119,8 +119,20 @@ public class WerewolfRuleSet implements GameRuleSet {
         List<String> roles = new ArrayList<>();
         roleCounts(text(rules.get("template")), state.getPlayers().size())
                 .forEach((role, count) -> roles.addAll(Collections.nCopies(count, role)));
-        Collections.shuffle(roles, new Random(seed(state)));
-        for (int i = 0; i < roles.size(); i++) state.getPlayers().get(i).setRole(roles.get(i));
+        long roleSeed = room.isLab() ? room.getPrivateConfig().get("labRoleSeed") instanceof Number n ? n.longValue()
+                : seed(state) ^ 0x6a09e667f3bcc909L : seed(state);
+        Collections.shuffle(roles, new Random(roleSeed));
+        var assigned = room.isLab() ? map(room.getPrivateConfig().get("labRoleAssignments")) : Map.<String,Object>of();
+        if (!assigned.isEmpty()) {
+            var expectedPlayers = state.getPlayers().stream().map(GamePlayerState::getPlayerId).collect(Collectors.toSet());
+            var counts = new LinkedHashMap<String,Integer>();
+            assigned.values().forEach(role -> counts.merge(text(role), 1, Integer::sum));
+            require(assigned.keySet().equals(expectedPlayers) && counts.equals(roleCounts(text(rules.get("template")), roles.size())), "实验身份分配与本局板子不一致");
+        }
+        for (int i = 0; i < roles.size(); i++) {
+            var player = state.getPlayers().get(i);
+            player.setRole(assigned.isEmpty() ? roles.get(i) : text(assigned.get(player.getPlayerId())));
+        }
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("antidoteUsed", false);
@@ -199,6 +211,8 @@ public class WerewolfRuleSet implements GameRuleSet {
     @Override
     public void advance(GameState state, LocalDateTime now) {
         if ("SETTLEMENT".equals(state.getPhase())) return;
+        boolean training = com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state);
+        if (training && state.getData().containsKey("labCallPause")) return;
         if ("DAY_VOTE".equals(state.getPhase())) {
             if (!now.isBefore(voteDeadline(state))) {
                 for (var voter : eligibleVoters(state)) {
@@ -212,11 +226,20 @@ public class WerewolfRuleSet implements GameRuleSet {
         var automatedTurn = WerewolfAiClock.turn(state);
         if (automatedTurn != null && isTurnCurrent(state, automatedTurn)) {
             if (WerewolfAiClock.expired(state, now)) {
+                if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state) && WerewolfAiClock.waitingForOriginal(state)) {
+                    if(WerewolfAiClock.recoveryExpired(state,now)) state.getData().put("labCallPause","LAB_CALL_NO_PROGRESS");
+                    return;
+                }
+                if (training) {
+                    state.getData().put("labCallPause", WerewolfAiClock.running(state) ? "TIMEOUT" : "LAB_CALL_NO_PROGRESS");
+                    return;
+                }
                 onAiFailure(state, automatedTurn, now, WerewolfAiClock.running(state) ? "TIMEOUT" : "QUEUE_TIMEOUT");
                 WerewolfAiClock.clear(state);
             }
             return;
         }
+        if (training && !pendingTurns(state).isEmpty()) return;
         // A simultaneous ballot must not consume later AI seats at the human deadline.
         if ("DAY_VOTE".equals(state.getPhase()) && !pendingTurns(state).isEmpty()) return;
         if (!expired(state, now)) return;
@@ -678,7 +701,7 @@ public class WerewolfRuleSet implements GameRuleSet {
             data.put("question", "");
             data.put("questionEventId", "");
             save(state, data);
-            if (number(data.get("interactionPairs"), 0) >= 2 || !now.isBefore(interactionEnd(data))) startVoting(state, now);
+            if (number(data.get("interactionPairs"), 0) >= 2 || !com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state) && !now.isBefore(interactionEnd(data))) startVoting(state, now);
             else {
                 phase(state, "DAY_INTERACTION", null, remainingSeconds(now, interactionEnd(data)), now);
                 if (noRemainingQuestions(state)) startVoting(state, now);

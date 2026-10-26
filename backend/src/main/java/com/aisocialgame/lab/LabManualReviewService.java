@@ -50,11 +50,15 @@ public class LabManualReviewService {
             require("PAUSED".equals(experiment.status),"单次复盘要求实验处于暂停状态");
             require(Set.of("FINISHED","REVIEW_FAILED","REVIEWED").contains(match.status) && match.evaluationId==null && match.archiveId!=null,"仅可重新复盘正常结束并已归档的训练对局");
             require(!experiment.configuration.containsKey("manualReview"),"已有单次复盘正在处理");
+            require(!experiment.configuration.containsKey("activeScenario"),"请先结束情境评测");
             budgets.requireRemaining(experiment);
             var input=new LinkedHashMap<>(map(match.snapshot.get("reviewRequest")));
             var messages=maps(input.get("messages"));
-            require(messages.size()>=2 && !strings(match.snapshot.get("reviewEventIds")).isEmpty(),"原始复盘输入快照不可用");
-            // The original system/user pair includes the historical experience, before HIGH was published.
+            boolean werewolf=LabGameConfig.werewolf(experiment.configuration);
+            require(messages.size()>=2 && (werewolf
+                    ? "werewolf".equals(input.get("gameId")) && "werewolf-review-v1".equals(input.get("inputVersion"))
+                    : !strings(match.snapshot.get("reviewEventIds")).isEmpty()),"原始复盘输入快照不可用");
+            // Preserve the original decision evidence and historical experience; only the coach selection changes.
             input.put("messages",new ArrayList<>(messages.subList(0,2)));input.put("selection",selection.toMap());
             String requestId="lab-rereview:"+matchId+":"+request.operationId();
             var run=new LinkedHashMap<String,Object>();
@@ -62,6 +66,7 @@ public class LabManualReviewService {
             run.put("status","QUEUED");run.put("createdAtEpochMs",System.currentTimeMillis());
             run.put("coach",selection.toMap());run.put("request",input);run.put("baseRequestId",requestId);run.put("requestId",requestId);
             run.put("requestIds",new ArrayList<>(List.of(requestId)));run.put("previousHeads",headIds(experiment));
+            if(werewolf) run.put("previousStrategyVersionId",text(experiment.configuration.get("strategyHeadId")));
             runs.put(request.operationId(),run);match.snapshot.put("manualReviews",runs);
             experiment.configuration.put("manualReview",Map.of("matchId",matchId,"operationId",request.operationId()));
             experiment.configuration.put("coach",selection.toMap());
@@ -84,7 +89,7 @@ public class LabManualReviewService {
         try (var lab=LabCallContext.open(Map.of("experimentId",experimentId,"matchId",claim.matchId()),"MANUAL_REVIEW")) {
             var selection=AiModelSelection.fromMap(map(claim.request().get("selection")));
             var messages=maps(claim.request().get("messages")).stream().map(m->new AiChatMessageDto(text(m.get("role")),text(m.get("content")))).toList();
-            try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),"undercover")
+            try(var scope=AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room(text(claim.request().get("roomId")),text(claim.request().getOrDefault("gameId","undercover")))
                     .user(Long.toString(properties.getAi().getSystemUserId()),Long.toString(properties.getAi().getSystemUserId())).model(selection.modelKey()))) {
                 var response=client.undercoverChatCompletions(properties.getProjectKey(),properties.getAi().getSystemUserId(),
                         "lab-review-"+claim.matchId(),selection,messages,claim.requestId(),LabCoachLimits.TOTAL_SECONDS);
@@ -131,9 +136,11 @@ public class LabManualReviewService {
             require("PAUSED".equals(experiment.status),"实验状态已变化，原回复已保留");
             require(claim.requestId().equals(run.get("requestId")),"复盘请求身份不一致");
             require(headIds(experiment).equals(map(run.get("previousHeads"))),"当前经验已变化，原回复已保留");
+            if(LabGameConfig.werewolf(experiment.configuration)) {match.status="REVIEWING";match.reason=null;}
             coach.publish(experiment,match,claim.requestId(),claim.request(),output);
             match.status="REVIEWED";match.reason=null;match.reviewLeaseUntil=null;
             run.put("publishedHeads",headIds(experiment));run.put("status","SUCCEEDED");run.remove("leaseUntilEpochMs");
+            if(LabGameConfig.werewolf(experiment.configuration)) run.put("publishedStrategyVersionId",text(experiment.configuration.get("strategyHeadId")));
             run.put("completedAtEpochMs",System.currentTimeMillis());run.remove("reason");
             saveRun(match,claim.operationId(),run);
             experiment.configuration.remove("manualReview");
@@ -170,6 +177,7 @@ public class LabManualReviewService {
     }
     private static Map<String,Object> runs(LabMatch match) { return new LinkedHashMap<>(map(match.snapshot.get("manualReviews"))); }
     private static Map<String,Object> headIds(LabExperiment experiment) {
+        if(LabGameConfig.werewolf(experiment.configuration)) return Map.of("strategyHeadId",text(experiment.configuration.get("strategyHeadId")));
         var ids=new LinkedHashMap<String,Object>();map(experiment.configuration.get("experiences")).forEach((id,head)->ids.put(id,text(map(head).get("experienceId"))));return ids;
     }
     private static void sameParameters(Map<String,Object> run,AiModelSelection selection) {

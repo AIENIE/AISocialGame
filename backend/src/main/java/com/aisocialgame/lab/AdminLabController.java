@@ -12,6 +12,7 @@ public class AdminLabController {
     private final LabCoachService coach;
     @org.springframework.beans.factory.annotation.Autowired private LabDiagnosticsService diagnostics;
     @org.springframework.beans.factory.annotation.Autowired private LabManualReviewService reviews;
+    @org.springframework.beans.factory.annotation.Autowired private LabScenarioService scenarios;
     public AdminLabController(LabService service,LabCoachService coach) { this.service=service; this.coach=coach; }
     @GetMapping("/agents") public List<LabAgent> agents(@CurrentAdmin String operator) { return service.agents(); }
     @PostMapping("/agents") public LabAgent createAgent(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Agent request) { return service.saveAgent(null,request); }
@@ -31,4 +32,6 @@ public class AdminLabController {
     @PostMapping("/experiments/{id}/matches/{matchId}/reviews") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@Valid @RequestBody LabRequests.Review request) { return reviews.create(id,matchId,request); }
     @GetMapping("/experiments/{id}/matches/{matchId}/reviews/{operationId}") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@PathVariable String operationId) { return reviews.inspect(id,matchId,operationId); }
     @PostMapping("/experiments/{id}/evaluations") public Map<String,Object> evaluate(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Evaluation request) { return service.evaluate(id,request); }
+    @PostMapping("/experiments/{id}/scenario-evaluations") public Map<String,Object> scenario(@CurrentAdmin String operator,@PathVariable String id,@RequestBody LabScenarioService.Request request) { return scenarios.create(id,request); }
+    @GetMapping("/experiments/{id}/scenario-evaluations/{operationId}") public Map<String,Object> scenario(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String operationId) { return scenarios.inspect(id,operationId); }
 }

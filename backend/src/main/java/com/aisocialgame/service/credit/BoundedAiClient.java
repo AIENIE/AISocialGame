@@ -128,6 +128,13 @@ public class BoundedAiClient {
                 running?"AI_RESULT_PENDING":"AI_RESULT_UNKNOWN",
                 Map.of("budgetId",row.budgetId,"settlementState",row.state,"remoteState",remote==null?"UNKNOWN":remote.name().replace("BUDGET_CALL_STATE_","")));
     }
+    /** Read-only recovery by the original identity. This method can never prepare or send inference. */
+    public ChatCompletionsResponse recoverOriginal(String project,long userId,String requestId) {
+        var request=ChatCompletionsRequest.newBuilder().setProjectKey(project).setUserId(userId).setRequestId(requestId).build();
+        var row=reservations.findByIdentityHash(identity(request)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                "原请求尚未注册，未发送", "AI_REQUEST_NOT_PREPARED", Map.of("requestId",requestId,"remoteState","NOT_PREPARED")));
+        return recover(row);
+    }
     private static String identity(ChatCompletionsRequest request) {
         return AiCallSettlementService.hash((request.getProjectKey()+"\0"+request.getUserId()+"\0"+request.getRequestId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }

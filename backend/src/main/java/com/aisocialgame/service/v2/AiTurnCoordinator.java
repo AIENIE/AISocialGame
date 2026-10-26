@@ -90,7 +90,13 @@ public class AiTurnCoordinator {
             if (!clockPending.add(roomId)) continue;
             try {
                 clockExecutor.execute(() -> {
-                    try { runtime.tick(roomId); }
+                    try {
+                        // Recover before this room's deadline, without letting its database lock block unrelated room clocks.
+                        for (var abandoned : jobs.findRunningRecoveryCandidatesInRoom(roomId))
+                            if (Boolean.TRUE.equals(abandoned.getDiagnostics().get("laboratory")) && !activeJobs.contains(abandoned.getId()))
+                                runtime.recoverLabJob(abandoned.getId());
+                        runtime.tick(roomId);
+                    }
                     catch (Exception ex) { log.warn("Game clock failed roomId={} errorType={}", roomId, ex.getClass().getSimpleName()); }
                     finally { clockPending.remove(roomId); }
                 });
@@ -206,6 +212,7 @@ public class AiTurnCoordinator {
             var rules = runtime.rules(observation.gameId());
             if ("werewolf".equals(observation.gameId()) && !runtime.beginWerewolfTurn(job.getId())) {
                 if (runtime.validationBudgetPaused(job.getRoomId())) runtime.defer(job.getId(), com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")), AiValidationBudgetService.EXHAUSTED);
+                else if (runtime.labBudgetPaused(job.getRoomId())) runtime.defer(job.getId(), com.aisocialgame.engine.v2.RuleSupport.map(job.getObservation().get("generationCheckpoint")), "LAB_EXPERIMENT_PAUSED");
                 else runtime.fail(job.getId(), job.getDiagnostics().containsKey("executionDeadlineEpochMs") ? "TIMEOUT" : "QUEUE_TIMEOUT", java.util.Map.of());
                 return;
             }

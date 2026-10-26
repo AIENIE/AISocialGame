@@ -20,12 +20,26 @@ public final class LabRequests {
     public record Experiment(@NotBlank @Size(max=128) String name,
                              @Size(min=4,max=10) List<@NotBlank String> agentIds,
                              @Min(4) @Max(10) int playerCount, @Min(1) @Max(10000) int targetGames,
-                             @NotBlank String wordPack, boolean hasBlank,
+                             String wordPack, boolean hasBlank,
                              @Min(1) long budgetPoints, @NotNull @Valid Selection coach,
                              Map<String,String> initialExperienceIds,
-                             @Size(min=4,max=10) List<@NotNull @Valid Participant> participants) {}
+                             @Size(min=4,max=10) List<@NotNull @Valid Participant> participants,
+                             String gameId, Map<String,Object> rules, String learningMode,
+                             String initialStrategyVersionId, Long randomSeed, Long trainingCheckpointPoints) {
+        public Experiment(String name,List<String> agentIds,int playerCount,int targetGames,String wordPack,
+                          boolean hasBlank,long budgetPoints,Selection coach,Map<String,String> initialExperienceIds,
+                          List<Participant> participants) {
+            this(name,agentIds,playerCount,targetGames,wordPack,hasBlank,budgetPoints,coach,initialExperienceIds,
+                    participants,null,null,null,null,null,null);
+        }
+    }
     public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
-                             @NotBlank String candidateExperienceId) {}
+                             String candidateExperienceId, String candidateStrategyVersionId,
+                             String operationId, String targetRole, Long randomSeed) {
+        public Evaluation(String participantId,String agentId,int pairs,String candidateExperienceId) {
+            this(participantId,agentId,pairs,candidateExperienceId,null,null,null,null);
+        }
+    }
     public record Review(@NotBlank @Pattern(regexp="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}") String operationId,
                          @NotNull @Valid Selection coach) {}
     public record Budget(@Min(1) long budgetPoints) {

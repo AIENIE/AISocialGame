@@ -87,6 +87,18 @@ class AiTurnCoordinatorTest {
         when(jobs.findRecoveryCandidates(eq("RUNNING"),any())).thenReturn(List.of(abandoned));
         coordinator.recoveryPulse();verify(runtime).recoverLabJob("restart");verify(runtime,never()).fail(anyString(),anyString(),anyMap());
     }
+    @Test void firstClockAfterRestartRecoversOriginalRequestsBeforeReadingExpiredRoomDeadlines() {
+        var abandoned=mock(AiTurnJobRepository.RecoveryCandidate.class);
+        when(abandoned.getId()).thenReturn("old-training");
+        when(abandoned.getDiagnostics()).thenReturn(Map.of("laboratory",true,"executionDeadlineEpochMs",1));
+        when(jobs.findRunningRecoveryCandidatesInRoom("training-room")).thenReturn(List.of(abandoned));
+        when(states.findActiveRoomIdsAfter(anyString(),any(Pageable.class))).thenReturn(List.of("training-room"));
+        coordinator.clockPulse();
+        verify(runtime,timeout(1000)).tick("training-room");
+        var order=inOrder(runtime);
+        order.verify(runtime).recoverLabJob("old-training");order.verify(runtime).tick("training-room");
+        verify(runtime,never()).fail(anyString(),anyString(),anyMap());
+    }
     @Test void claimExceptionReturnsPermitAndTheNextPulseCanDispatchWithoutRestart() {
         AiTurnJob job = job("retry-after-claim-failure");
         when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED")).thenReturn(List.of(job));

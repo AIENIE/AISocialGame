@@ -92,4 +92,62 @@ class WerewolfAiClockTest {
         assertFalse(rules.publicData(state).containsKey("actionEndsAt"));
         assertEquals("SKIP",rules.fallback(null).getType());
     }
+
+    private GameState training() {
+        var state=game(9); state.getPlayers().forEach(p->p.setAi(true));
+        state.getData().put("lab",Map.of("experimentId","test","labRunMode","TRAINING"));
+        return state;
+    }
+
+    @Test void trainingQueueAndOriginalRecoverySurviveReloadWithoutSpendingExecutionTime() throws Exception {
+        var state=training(); WerewolfAiClock.synchronize(state,rules,start);
+        var turn=rules.pendingTurns(state).getFirst();
+        rules.advance(state,start.plusSeconds(100));
+        assertTrue(rules.isTurnCurrent(state,turn));
+        assertEquals(start.plusSeconds(250),WerewolfAiClock.begin(state,turn,start.plusSeconds(100)));
+        WerewolfAiClock.suspend(state,start.plusSeconds(200),true);
+        var mapper=new ObjectMapper().findAndRegisterModules();
+        var restored=mapper.readValue(mapper.writeValueAsString(state),GameState.class);
+        assertEquals(50_000,WerewolfAiClock.remainingExecutionMillis(restored,start.plusSeconds(500)));
+        assertTrue(WerewolfAiClock.waitingForOriginal(restored));
+        assertEquals(start.plusSeconds(650),WerewolfAiClock.begin(restored,turn,start.plusSeconds(500)));
+        rules.advance(restored,start.plusSeconds(500));
+        assertTrue(rules.isTurnCurrent(restored,turn));
+        rules.apply(restored,turn.actorId(),action("SKIP","",null),start.plusSeconds(501));
+        assertFalse(rules.isTurnCurrent(restored,turn));
+        assertTrue(maps(restored.getData().get("events")).stream().noneMatch(e->"AI_ACTION_FAILED".equals(e.get("type"))));
+    }
+
+    @Test void trainingTimeoutPreservesTheOpportunityInsteadOfInventingASkip() {
+        var state=training(); WerewolfAiClock.synchronize(state,rules,start);
+        var turn=rules.pendingTurns(state).getFirst();
+        WerewolfAiClock.begin(state,turn,start);
+        rules.advance(state,start.plusSeconds(150));
+        assertEquals("TIMEOUT",state.getData().get("labCallPause"));
+        assertTrue(rules.isTurnCurrent(state,turn));
+        assertTrue(maps(state.getData().get("events")).stream().noneMatch(e->"AI_ACTION_FAILED".equals(e.get("type"))));
+    }
+
+    @Test void evaluationAndMixedLabsKeepDeploymentWindows() {
+        for(boolean mixed:new boolean[]{false,true}) {
+            var state=training();
+            if(mixed) state.getPlayers().getLast().setAi(false);
+            else state.getData().put("lab",Map.of("experimentId","test","labRunMode","EVALUATION"));
+            WerewolfAiClock.synchronize(state,rules,start);
+            var turn=rules.pendingTurns(state).getFirst();
+            assertEquals(start.plusSeconds(50),WerewolfAiClock.begin(state,turn,start));
+            rules.advance(state,start.plusSeconds(50));
+            assertFalse(rules.isTurnCurrent(state,turn));
+            assertFalse(state.getData().containsKey("labCallPause"));
+        }
+    }
+
+    @Test void trainingNotSentWaitRetainsRemainingTimeAndBudgetPauseCanShiftTheClock() {
+        var state=training(); WerewolfAiClock.synchronize(state,rules,start);
+        var turn=rules.pendingTurns(state).getFirst(); WerewolfAiClock.begin(state,turn,start);
+        WerewolfAiClock.suspend(state,start.plusSeconds(20),false);
+        WerewolfAiClock.shift(state,300_000);
+        assertEquals(start.plusSeconds(450),WerewolfAiClock.begin(state,turn,start.plusSeconds(320)));
+        assertEquals(130_000,WerewolfAiClock.remainingExecutionMillis(state,start.plusSeconds(320)));
+    }
 }
