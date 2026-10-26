@@ -45,7 +45,7 @@ function LabDetail({id}:{id:string}) {
   const canEnroll=["DRAFT","RUNNING","PAUSING","PAUSED"].includes(experiment.status) && !experiment.evaluations?.some(evaluation=>evaluation.status==="RUNNING");
   return <div className="lab-workspace">
     <Link to="/lab" className="lab-small mb-5 inline-flex items-center gap-2"><ArrowLeft size={14} />{tr("返回实验室")}</Link>
-    <header className="lab-heading"><div><div className="lab-eyebrow"><BrandLogo compact /> / RESEARCH</div><h1>{experiment.name}</h1><p>{tr("谁是卧底")} · {tr("AI 实验室")}</p></div></header>
+    <header className="lab-heading"><div><div className="lab-eyebrow"><BrandLogo compact /> / RESEARCH</div><h1>{experiment.name}</h1><p>{tr(experiment.gameId==="werewolf"?"狼人杀":"谁是卧底")} · {tr("AI 实验室")}</p></div></header>
     <LabProgress experiment={experiment} tr={tr} />
     {experiment.reason && <div className="lab-error" role="status">{tr(experiment.status)} · {tr(failureText(experiment.reason))}</div>}
     <div className="lab-columns mt-7"><div>
@@ -58,8 +58,8 @@ function LabDetail({id}:{id:string}) {
         {!participating && <Button disabled={!canEnroll || action.isPending} onClick={()=>action.mutate("enroll")}>{tr("报名下一局")}</Button>}
         {participating && active!=="PLAYING" && <Button variant="outline" disabled={action.isPending} onClick={()=>action.mutate("withdraw")}>{tr("取消报名")}</Button>}
       </div>
-      <LabLiveMatches matches={experiment.activeMatches ?? []} participantMatchId={active==="PLAYING"?enrollment?.matchId:undefined} tr={tr} />
-      <LabEvaluationResults evaluations={experiment.evaluations ?? []} tr={tr} />
+      <LabLiveMatches gameId={experiment.gameId} matches={experiment.activeMatches ?? []} participantMatchId={active==="PLAYING"?enrollment?.matchId:undefined} tr={tr} />
+      <LabEvaluationResults gameId={experiment.gameId} evaluations={experiment.evaluations ?? []} tr={tr} />
     </div><LabCostPanel cost={experiment.cost} limit={experiment.budgetPoints} tr={tr} /></div>
     <section className="lab-section"><h2>{tr("对局历史")}</h2>{history.data ? <><LabMatchHistory page={history.data} tr={tr} /><LabPager page={page} total={history.data.total} size={20} change={setPage} tr={tr} /></> : <DataState loading={history.isPending} error={history.error} onRetry={()=>void history.refetch()} />}</section>
   </div>;

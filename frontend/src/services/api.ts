@@ -1,5 +1,5 @@
 import type { AiDebugInstance, AiDebugSummary, AiDebugTurn, AiDebugDetail } from "@/types/aiDebug";
-import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment, LabObservation, LabDiagnostics } from "@/types/lab";
+import type { LabAgent, LabExperiment, LabMatch, LabExperience, LabPage, CreateLabAgent, CreateLabExperiment, LabObservation, LabDiagnostics, LabStrategyList, LabStrategyPublication, LabStrategyPublicationRequest, LabScenarioRun, LabStrategyAssessment, LabStrategyAssessmentInput } from "@/types/lab";
 import axios from "axios";
 import type { AiFunctionCode, AiModelConfiguration, FunctionModelConfig, SaveFunctionModelConfig } from "@/types/aiModelConfig";
 export { getApiErrorMessage, getApiErrorCode, isRecoverableGameError } from "./apiError";
@@ -618,6 +618,13 @@ export const adminLabApi = {
   retryReview: async (id: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/retry-review"); },
   rollback: async (id: string, version: string): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/rollback/"+version); },
   evaluate: async (id: string, participantId: string, candidateExperienceId: string, pairs: number): Promise<void> => { await adminApiClient.post("/admin/lab/experiments/"+id+"/evaluations",{participantId,candidateExperienceId,pairs}); },
+  evaluateStrategy: async (id: string, participantId: string, candidateStrategyVersionId: string, pairs: number, options: {targetRole?:string;operationId?:string} = {}): Promise<void> => { await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/evaluations`,{participantId,candidateStrategyVersionId,pairs,...options}); },
+  strategies: async (id: string): Promise<LabStrategyList> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/strategies`)).data,
+  assessStrategy: async (id: string, versionId: string, input: LabStrategyAssessmentInput): Promise<LabStrategyAssessment> => (await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/strategies/${encodeURIComponent(versionId)}/assessment`,input)).data,
+  publishStrategy: async (request: LabStrategyPublicationRequest): Promise<LabStrategyPublication> => (await adminApiClient.post("/admin/lab/strategy-publications",request)).data,
+  strategyPublication: async (operationId: string): Promise<LabStrategyPublication> => (await adminApiClient.get(`/admin/lab/strategy-publications/${encodeURIComponent(operationId)}`)).data,
+  startScenarios: async (id: string, request: {operationId:string;candidateStrategyVersionId:string}): Promise<LabScenarioRun> => (await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/scenario-evaluations`,request)).data,
+  scenarioRun: async (id: string, operationId: string): Promise<LabScenarioRun> => (await adminApiClient.get(`/admin/lab/experiments/${encodeURIComponent(id)}/scenario-evaluations/${encodeURIComponent(operationId)}`)).data,
 };
 
 export const localAiDebugApi = {

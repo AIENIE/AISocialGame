@@ -80,9 +80,32 @@ it("shows aborted evaluation attempts and role win rates without implying improv
     roles:{CIVILIAN:{games:1,wins:1,winRate:1}}};
   act(()=>root.render(<LabEvaluationResults evaluations={[{id:"evaluation",agentId:"agent",participantId:"copy",status:"PAUSED",pairs:2,completedGames:3,validPairs:1,
     baseline:stats,candidate:{...stats,wins:0,winRate:0},winRateDifference:-1}]} tr={text=>labText("en",text)}/>));
-  expect(container.textContent).toContain("Finished attempts / failed");
-  expect(container.textContent).toContain("2 / 1");
+  expect(container.textContent).toContain("Games attempted / unfinished / failed");
+  expect(container.textContent).toContain("2 / 0 / 1");
   expect(container.textContent).toContain("50.0%");
   expect(container.textContent).toContain("100.0% · 1 / 1");
   expect(container.textContent).toContain("failure rates include all finished attempts");
+});
+
+it("reports paired outcomes and a conservative interval without turning an unfinished game into a finished failure",()=>{
+  const stats:LabEvaluationStats={games:4,wins:2,winRate:0.5,validActionRate:1,failureRate:0,attemptedGames:5,unfinishedGames:1,failedGames:0,roles:{}};
+  const evaluation={id:"paired",agentId:"agent",participantId:"copy",status:"RUNNING",pairs:5,completedGames:8,validPairs:4,baseline:stats,candidate:stats,winRateDifference:0.25,
+    pairedOutcomes:{sampleSize:4,candidateOnlyWins:2,baselineOnlyWins:1,sameOutcome:1,difference:0.25,interval95:{lower:-1,upper:1,method:"HOEFFDING_PAIRED_CONSERVATIVE" as const}}};
+  act(()=>root.render(<LabEvaluationResults evaluations={[evaluation]}/>));
+  expect(container.textContent).toContain("5 / 1 / 0");
+  const paired=container.querySelector('[aria-label="成对结果"]')!;
+  expect(paired.textContent).toContain("完整配对数 4");expect(paired.textContent).toContain("仅候选获胜 2");expect(paired.textContent).toContain("仅基线获胜 1");expect(paired.textContent).toContain("两侧结果相同 1");
+  expect(paired.textContent).toContain("25.0 个百分点");expect(paired.textContent).toContain("[-100.0, 100.0] 个百分点");
+  expect(paired.textContent).toContain("区间假设各配对相互独立");expect(paired.textContent).toContain("先导样本不足以证明能力提升");
+  act(()=>root.render(<LabEvaluationResults evaluations={[{...evaluation,pairedOutcomes:{sampleSize:0,candidateOnlyWins:0,baselineOnlyWins:0,sameOutcome:0}}]}/>));
+  expect(container.textContent).toContain("暂无完整配对，未计算区间");expect(container.textContent).not.toContain("95% 保守区间");
+});
+
+it("routes werewolf participants and spectators to their actual game while retaining legacy defaults",async()=>{
+  const value=experiment();value.gameId="werewolf";value.enrollment={status:"PLAYING",matchId:"match"};value.activeMatches![0].status="PLAYING";
+  value.activeMatches!.push({...value.activeMatches![0],id:"other",roomId:"other-room"});api.detail.mockResolvedValue(value);
+  await renderDetail();
+  expect(container.querySelector('a[href="/room/werewolf/room"]')).not.toBeNull();
+  expect(container.querySelector('a[href="/spectate/werewolf/other-room"]')).not.toBeNull();
+  expect(container.querySelector('a[href*="/undercover/"]')).toBeNull();expect(container.textContent).toContain("狼人杀");
 });

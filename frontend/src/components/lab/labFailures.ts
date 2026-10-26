@@ -9,6 +9,7 @@ export function failureText(code:string):string {
     EXECUTION_ABORT:"执行中断，具体原因需查看诊断",
     EXECUTION_EXCEPTION:"执行发生异常",
     LAB_BUDGET_EXHAUSTED:"实验因预算限制暂停",
+    TRAINING_CHECKPOINT_REACHED:"已达到训练费用检查线，可检查策略并进入评测",
     LAB_STOPPED_BY_ADMIN:"管理员已结束实验",
     BUDGET_RECONCILIATION_REQUIRED:"调用状态曾未确认，请查看当前结算结果",
     AI_REQUEST_NOT_SENT:"已确认未发送，等待重试",

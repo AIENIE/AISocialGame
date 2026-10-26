@@ -46,6 +46,25 @@ it("shows speech immediately, keeps setup absent, and opens room chat read-only"
   expect(document.querySelector('[role="dialog"] input')).toBeNull();
 });
 
+it("marks only AI using the game's public trial snapshot and clears badges for another game or waiting roster", () => {
+  const value = gameState("werewolf", "DAY_DISCUSS");
+  const strategyTrials = {
+    p0: { mode: "TRIAL", strategyVersionId: "human-must-not-show", sequenceNumber: 2 },
+    p1: { mode: "TRIAL", strategyVersionId: "strategy-2", sequenceNumber: 2 },
+  };
+  render({ ...value, extra: { ...value.extra, strategyTrials } });
+  expect(container.querySelectorAll('[data-testid="strategy-trial-badge"]')).toHaveLength(1);
+  const badge = container.querySelector('[data-player-id="p1"] [data-testid="strategy-trial-badge"]')!;
+  expect(badge.textContent).toBe("试用，效果待验证");expect(badge.getAttribute("title")).toContain("v2");
+  expect(container.textContent).not.toContain("strategy-2");
+  render({ ...gameState("werewolf", "WAITING"), extra: { strategyTrials } });
+  expect(container.querySelector('[data-testid="strategy-trial-badge"]')).toBeNull();
+  render({ ...gameState("undercover", "DESCRIPTION"), extra: { strategyTrials } });
+  expect(container.querySelector('[data-testid="strategy-trial-badge"]')).toBeNull();
+  render({ ...value, extra: { ...value.extra, strategyTrials: {} } });
+  expect(container.querySelector('[data-testid="strategy-trial-badge"]')).toBeNull();
+});
+
 it("resets a draft when a new archive starts", () => {
   render(gameState("undercover", "DESCRIPTION"));
   act(() => {

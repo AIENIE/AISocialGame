@@ -1,4 +1,23 @@
 const labels: Record<string, readonly [string, string]> = {
+  "狼人杀": ["狼人殺", "Werewolf"],
+  "效果待验证": ["效果待驗證", "Effectiveness not yet established"],
+  "对局尝试 / 未结束 / 失败": ["對局嘗試 / 未結束 / 失敗", "Games attempted / unfinished / failed"],
+  "成对结果": ["成對結果", "Paired outcomes"],
+  "完整配对数": ["完整配對數", "Complete pairs"],
+  "仅候选获胜": ["僅候選獲勝", "Candidate-only wins"],
+  "仅基线获胜": ["僅基線獲勝", "Baseline-only wins"],
+  "两侧结果相同": ["兩側結果相同", "Same outcome on both sides"],
+  "成对胜率差异": ["成對勝率差異", "Paired win-rate difference"],
+  "个百分点": ["個百分點", "percentage points"],
+  "95% 保守区间（Hoeffding）": ["95% 保守區間（Hoeffding）", "95% conservative interval (Hoeffding)"],
+  "暂无完整配对，未计算区间。": ["暫無完整配對，未計算區間。", "No complete pairs; interval not calculated."],
+  "区间假设各配对相互独立；同一来源的相关样本不能视为独立。先导样本不足以证明能力提升。": ["區間假設各配對相互獨立；同一來源的相關樣本不能視為獨立。先導樣本不足以證明能力提升。", "The interval assumes independent pairs; related samples from the same source are not independent. Pilot data do not establish improved ability."],
+  "GENERAL": ["通用策略", "General strategy"],
+  "WEREWOLF": ["狼人", "Werewolf"],
+  "VILLAGER": ["村民", "Villager"],
+  "SEER": ["預言家", "Seer"],
+  "WITCH": ["女巫", "Witch"],
+  "HUNTER": ["獵人", "Hunter"],
   "费用预算":["費用預算","Spending budget"],
   "剩余预算":["剩餘預算","Remaining budget"],
   "实验因预算限制暂停":["實驗因預算限制暫停","Experiment paused by a budget limit"],
@@ -327,6 +346,7 @@ const labels: Record<string, readonly [string, string]> = {
   ]
 };
 const chineseStatuses: Record<string, string> = {
+  "GENERAL": "通用策略", "WEREWOLF": "狼人", "VILLAGER": "村民", "SEER": "预言家", "WITCH": "女巫", "HUNTER": "猎人",
   "DRAFT": "草稿",
   "RUNNING": "运行中",
   "PAUSING": "本局后暂停",

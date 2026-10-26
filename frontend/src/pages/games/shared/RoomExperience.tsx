@@ -74,6 +74,7 @@ export function RoomScene({ runtime, room, state }: { runtime: Runtime; room: Ro
   const label = privateLabel(state, room, i18n.language);
   const ballot = revealedBallot(state, timeline.logs);
   const roster = (expanded = false) => <RoomPlayers players={players} myPlayerId={state.myPlayerId}
+    strategyTrials={state.gameId === "werewolf" && stage !== "waiting" && !laboratory ? state.extra?.strategyTrials : undefined}
     currentSeat={playing ? state.currentSeat : undefined} selected={control.target} targets={control.selected?.targets}
     onSelect={id => { control.selectTarget(id); if (expanded) setDrawer(null); }} pending={control.busy || !runtime.socket.connected || control.actionExpired}
     votedPlayers={Array.isArray(state.extra?.votedPlayers) ? state.extra.votedPlayers : []} ballot={stage === "waiting" ? undefined : ballot}
