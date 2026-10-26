@@ -33,7 +33,8 @@ public class LabDiagnosticsService {
         var failures=turns.stream().filter(job -> "FAILED".equals(job.getStatus())).toList();
         var failure=new LinkedHashMap<String,Object>();
         if(match.reason!=null) { failure.put("code",match.reason);failure.put("stage","REVIEW_FAILED".equals(match.status)?"REVIEW":"EXECUTION"); }
-        if(!failures.isEmpty()) {
+        if("REVIEW_FAILED".equals(match.status)) reviewFailure(match,failure);
+        else if(!failures.isEmpty()) {
             var job=failures.getLast();var metrics=map(job.getDiagnostics().get("generation"));
             var flags=strings(metrics.get("qualityFlags"));
             String reason=text(job.getDiagnostics().get("terminalReason"));
@@ -87,5 +88,25 @@ public class LabDiagnosticsService {
             row.put("purpose",text(call.labPurpose));return row;
         }).toList());
         return result;
+    }
+
+    private static void reviewFailure(LabMatch match,Map<String,Object> failure) {
+        // Manual rereviews retain the automatic failure on the match, so inspect the saved run first.
+        var run=map(match.snapshot.get("manualReviews")).values().stream().map(value -> map(value))
+                .filter(value -> Set.of("FAILED","BLOCKED").contains(text(value.get("status"))))
+                .max(Comparator.comparingLong(value -> value.get("createdAtEpochMs") instanceof Number created?created.longValue():0L))
+                .orElse(Map.of());
+        var request=map(run.isEmpty()?match.snapshot.get("reviewRequest"):run.get("request"));
+        var selection=map(request.get("selection"));
+        if(selection.isEmpty()) selection=map(run.isEmpty()?match.snapshot.get("coach"):run.get("coach"));
+        failure.put("stage","REVIEW");failure.put("actorName","教练");
+        if(!text(run.get("reason")).isBlank()) failure.put("code",run.get("reason"));
+        else failure.putIfAbsent("code",text(match.reason));
+        String requestId=text(run.isEmpty()?match.snapshot.get("reviewRequestId"):run.get("requestId"));
+        if(!requestId.isBlank()) failure.put("requestId",requestId);
+        String taskId=text(run.get("taskId"));
+        if(!taskId.isBlank()) { failure.put("jobId",taskId);failure.put("taskId",taskId); }
+        for(String key:List.of("modelKey","thinkingMode","thinkingEffort"))
+            if(!text(selection.get(key)).isBlank()) failure.put(key,selection.get(key));
     }
 }
