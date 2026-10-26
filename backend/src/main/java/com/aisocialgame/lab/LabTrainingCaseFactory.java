@@ -4,7 +4,7 @@ import com.aisocialgame.dto.PlayerAction;
 import com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet;
 import com.aisocialgame.model.*;
 import com.aisocialgame.repository.*;
-import com.aisocialgame.service.ai.v2.ObservationFactory;
+import com.aisocialgame.service.ai.v2.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
@@ -21,18 +21,24 @@ public class LabTrainingCaseFactory {
     private final AiDecisionTraceRepository traces;
     private final LocalAiDebugTurnRepository debug;
     private final GameStateRepository states;
+    private final GameArchiveRepository archives;
     private final ObjectMapper json;
     private final Map<String,Object> curriculum;
+    private final String playerSystem;
     private static final String TARGET="training-target";
     private static final int TARGET_SEAT=4;
 
     public LabTrainingCaseFactory(WerewolfRuleSet rules,ObservationFactory observations,AiTurnJobRepository jobs,
-            AiDecisionTraceRepository traces,LocalAiDebugTurnRepository debug,GameStateRepository states,ObjectMapper json) {
-        this.rules=rules;this.observations=observations;this.jobs=jobs;this.traces=traces;this.debug=debug;this.states=states;this.json=json;
+            AiDecisionTraceRepository traces,LocalAiDebugTurnRepository debug,GameStateRepository states,GameArchiveRepository archives,ObjectMapper json) {
+        this.rules=rules;this.observations=observations;this.jobs=jobs;this.traces=traces;this.debug=debug;this.states=states;this.archives=archives;this.json=json;
         try(var input=LabTrainingCaseFactory.class.getResourceAsStream("/lab/werewolf-training-v2.json")) {
             if(input==null) throw new IllegalStateException("Training curriculum missing");
             curriculum=map(json.readValue(input,Map.class));
         } catch(java.io.IOException failure) {throw new IllegalStateException("Cannot read training curriculum",failure);}
+        try(var input=LabTrainingCaseFactory.class.getResourceAsStream("/game-knowledge/social-player-system.txt")) {
+            if(input==null)throw new IllegalStateException("Player system prompt missing");
+            playerSystem=new String(input.readAllBytes(),StandardCharsets.UTF_8);
+        } catch(java.io.IOException failure){throw new IllegalStateException("Cannot read player system prompt",failure);}
     }
 
     public List<Map<String,Object>> build(LabExperiment experiment,String runId) {
@@ -102,13 +108,87 @@ public class LabTrainingCaseFactory {
         return List.copyOf(result);
     }
 
+    /** Select another complete source decision; never rewrite a case or borrow a held-out source. */
+    public Optional<Map<String,Object>> replacement(LabExperiment experiment,LabTrainingRun run,LabTrainingCase original,List<LabTrainingCase> allCases) {
+        require(experiment.id.equals(run.experimentId) && run.id.equals(original.runId) && "DEVELOPMENT".equals(original.purpose),"只能替换本课程的开发案例");
+        var profile=maps(run.configuration.get("roster")).stream()
+                .filter(p->original.participantId.equals(LabService.participantId(p))&&original.personaId.equals(text(p.get("personaId"))))
+                .findFirst().orElseThrow(()->new IllegalArgumentException("Original training participant missing from frozen roster"));
+        var heldOut=new HashSet<String>();var usedJobs=new HashSet<String>();var sourceArchives=new TreeSet<String>();
+        for(var item:allCases) {
+            require(run.id.equals(item.runId),"案例不属于本课程");
+            String job=text(map(item.data.get("source")).get("jobId"));if(!job.isBlank())usedJobs.add(job);
+            if("HOLDOUT".equals(item.purpose))heldOut.add(item.sourceGroup);
+            if("DEVELOPMENT".equals(item.purpose)&&"REAL_GAME".equals(item.sourceType)) {
+                String archive=text(map(item.data.get("source")).get("archiveId"));
+                if(!archive.isBlank()&&("game:"+archive).equals(item.sourceGroup))sourceArchives.add(archive);
+            }
+        }
+        usedJobs.add(text(map(original.data.get("source")).get("jobId")));
+        var candidates=new ArrayList<Map<String,Object>>();
+        for(String archive:sourceArchives) {
+            if(heldOut.contains("game:"+archive))continue;
+            var completed=archives.findById(archive).filter(a->"werewolf".equals(a.getGameId())&&a.getPlayerCount()==9
+                    &&a.getFinishedAt()!=null&&!text(a.getWinner()).isBlank()&&!"ABORTED".equals(a.getWinner()));
+            if(completed.isEmpty())continue;
+            for(var job:jobs.findByInstanceIdOrderByCreatedAtAsc(archive)) {
+                if(usedJobs.contains(job.getId())||!validSource(job)||!compatibleRules(map(run.configuration.get("rules")),job)
+                        ||!original.personaId.equals(text(map(job.getObservation().get("persona")).get("id"))))continue;
+                var trace=matchingTrace(job);if(trace.isEmpty())continue;
+                var data=realCase(job,trace.get());var prompt=maps(data.get("actualPrompt"));
+                if(!"EXACT".equals(data.get("originalPromptStatus"))
+                        ||!Set.of("system","user").stream().allMatch(role->prompt.stream().anyMatch(m->role.equals(m.get("role"))&&!text(m.get("content")).isBlank())))continue;
+                var row=caseRow(run.id,"DEVELOPMENT","game:"+archive,"REAL_GAME",profile,job.getId(),data);
+                String practiceTaskId=UUID.nameUUIDFromBytes((run.id+":replacement-practice:"+row.get("id")).getBytes(StandardCharsets.UTF_8)).toString();
+                var prepared=minimumTeachingInput(run,data,original.participantId,practiceTaskId);
+                if(!prepared.ready())continue;
+                data.put("replacementForCaseId",original.id);
+                data.put("inputPreflight",Map.of("practiceTaskId",practiceTaskId,"minimumCodePoints",prepared.codePoints(),
+                        "headroomForFuturePracticeReply",LabTrainingInput.MAX_CODE_POINTS-prepared.codePoints(),
+                        "basis","COMPLETE_KNOWN_INPUTS_FUTURE_PRACTICE_REPLY_UNKNOWN"));
+                candidates.add(caseRow(run.id,"DEVELOPMENT","game:"+archive,"REAL_GAME",profile,job.getId(),data));
+            }
+        }
+        return candidates.stream().min(Comparator.<Map<String,Object>>comparingInt(c->number(map(map(c.get("data")).get("inputPreflight")).get("minimumCodePoints"),Integer.MAX_VALUE))
+                .thenComparing(c->text(map(map(c.get("data")).get("source")).get("jobId"))));
+    }
+
+    /** Exact known inputs only. A real future practice reply must still pass the send-time size check. */
+    public LabTrainingInput.Prepared minimumTeachingInput(LabTrainingRun run,Map<String,Object> caseData,String participantId,String practiceTaskId) {
+        var observation=json.convertValue(caseData.get("observation"),VisibleObservation.class);
+        var memory=new LinkedHashMap<>(observation.memory());
+        for(String key:List.of("approved","approvedExperience","strategy"))memory.remove(key);
+        memory.put("lab",Map.of("experimentId",run.experimentId,"matchId",practiceTaskId,"labRunMode","TRAINING","trainingV2",true,"scenarioEvaluation",true));
+        var model=map(caseData.get("modelSelection"));
+        if(model.isEmpty())model=maps(run.configuration.get("roster")).stream().filter(p->participantId.equals(LabService.participantId(p)))
+                .map(p->map(p.get("modelSelection"))).findFirst().orElseThrow();
+        var selected=LabStrategyService.select(map(run.configuration.get("baseStrategy")),text(observation.self().get("role")),observation.phase(),observation.rules(),model,observation.turnKind());
+        if(!selected.isEmpty())memory.put("strategy",selected);
+        observation=new VisibleObservation(observation.gameId(),observation.instanceId(),observation.phase(),observation.round(),observation.actorId(),observation.turnKind(),
+                observation.self(),observation.players(),observation.rules(),observation.events(),observation.privateFacts(),observation.legalActions(),observation.persona(),memory,observation.knowledge());
+        var input=new LabTrainingInput();var practicePrompt=input.prepare(playerSystem,AiPromptProjection.project(rules,observation));
+        if(!practicePrompt.ready())return practicePrompt;
+        var payload=new LinkedHashMap<String,Object>();payload.put("observation",caseData.get("observation"));payload.put("validEvidenceIds",caseData.get("validEvidenceIds"));payload.put("caseRubric",caseData.get("expectedRubric"));
+        payload.put("sourceAction",caseData.get("actualAction"));payload.put("actualPrompt",caseData.get("actualPrompt"));payload.put("actualPromptStatus",caseData.get("originalPromptStatus"));payload.put("outcomeTruth",caseData.get("outcomeTruth"));
+        payload.put("source",caseData.get("source"));payload.put("objective",caseData.get("focus"));
+        var practice=new LinkedHashMap<String,Object>();practice.put("action",Map.of());practice.put("speech","");practice.put("evidenceEventIds",List.of());
+        practice.put("programChecks",Map.of());practice.put("usedStrategy",selected);practice.put("quality",Map.of());payload.put("practice",practice);
+        payload.put("practicePrompt",practicePrompt.messages().stream().map(m->Map.of("role",m.role(),"content",m.content())).toList());
+        String role=text(observation.self().get("role"));payload.put("previousCards",maps(map(map(run.configuration.get("baseStrategy")).get("content")).get("cards")).stream()
+                .filter(c->Set.of("GENERAL",role).contains(text(c.get("role")))).toList());
+        return input.prepare(LabTrainingTeaching.TEACH_SYSTEM,payload);
+    }
+
     private boolean validSource(AiTurnJob job) {
         var view=job.getObservation();return "SUCCEEDED".equals(job.getStatus()) && "werewolf".equals(view.get("gameId"))
                 && Objects.equals(job.getActorId(),view.get("actorId")) && Objects.equals(job.getInstanceId(),view.get("instanceId"))
                 && Objects.equals(job.getKind(),view.get("turnKind"));
     }
     private boolean compatibleRules(LabExperiment experiment,AiTurnJob job) {
-        var expected=map(experiment.configuration.get("rules"));var actual=map(job.getObservation().get("rules"));
+        return compatibleRules(map(experiment.configuration.get("rules")),job);
+    }
+    private boolean compatibleRules(Map<String,Object> expected,AiTurnJob job) {
+        var actual=map(job.getObservation().get("rules"));
         return List.of("template","playerCount","witchRule","winCondition","hasLastWords").stream()
                 .allMatch(key->text(expected.get(key)).equals(text(actual.get(key))));
     }

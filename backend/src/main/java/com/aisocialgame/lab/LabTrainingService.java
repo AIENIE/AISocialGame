@@ -28,7 +28,7 @@ public class LabTrainingService {
     final AppProperties properties;
     final ObjectMapper json;
     final TransactionTemplate tx;
-    private final LabTrainingCaseFactory factory;
+    final LabTrainingCaseFactory factory;
     private final com.aisocialgame.service.v2.V2GameService game;
     public LabTrainingService(LabTrainingRunRepository runs,LabTrainingCaseRepository cases,LabTrainingTaskRepository tasks,
             LabExperimentRepository experiments,LabMatchRepository matches,LabEvaluationRepository evaluations,
@@ -183,9 +183,20 @@ public class LabTrainingService {
     }
     public Map<String,Object> material(String experiment,String operation) {
         var run=owned(experiment,operation);var rows=cases.findByRunIdOrderByOrdinalAsc(run.id);
-        return Map.of("items",rows,"coverage",Map.of("development",rows.stream().filter(c->"DEVELOPMENT".equals(c.purpose)).count(),
+        var replaced=map(run.configuration.get("caseReplacements"));
+        return Map.of("items",rows,"caseReplacements",replaced,"coverage",Map.of("development",activeDevelopment(run,rows).size(),
                 "holdout",rows.stream().filter(c->"HOLDOUT".equals(c.purpose)).count(),"holdoutSourceGroups",rows.stream().filter(c->"HOLDOUT".equals(c.purpose)).map(c->c.sourceGroup).distinct().count(),
-                "excluded",rows.stream().filter(c->"EXCLUDED".equals(c.purpose)).count()));
+                "excluded",rows.stream().filter(c->"EXCLUDED".equals(c.purpose)).count()+replaced.size()));
+    }
+    static List<LabTrainingCase> activeDevelopment(LabTrainingRun run,List<LabTrainingCase> rows) {
+        var replaced=map(run.configuration.get("caseReplacements"));
+        return rows.stream().filter(c->"DEVELOPMENT".equals(c.purpose)&&!replaced.containsKey(c.id)).toList();
+    }
+    static String representativeCaseId(LabTrainingRun run,List<LabTrainingCase> rows) {
+        String id=rows.stream().filter(c->"DEVELOPMENT".equals(c.purpose)).map(c->c.id).findFirst().orElse("");
+        var replaced=map(run.configuration.get("caseReplacements"));var visited=new HashSet<String>();
+        while(replaced.containsKey(id)&&visited.add(id))id=text(replaced.get(id));
+        return id;
     }
     public Map<String,Object> cost(String experimentId) {
         var experiment=experiments.findById(experimentId).orElseThrow();var out=new LinkedHashMap<>(budgets.totals(experimentId));

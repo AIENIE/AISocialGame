@@ -61,6 +61,14 @@ it("reloads an unresolved browser operation and retries only the saved identity 
   await render(experiment(false));expect(api.createTrainingRun).not.toHaveBeenCalled();
   await click("使用原操作 ID 重试创建");expect(api.createTrainingRun).toHaveBeenCalledWith("experiment",request);
 });
+it("starts the normal automatic course directly while keeping the representative trial optional",async()=>{
+  api.controlTrainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{representativeOnly:false}}));
+  await render();expect(container.textContent).toContain("开始课程后自动推进练习、策略合并、回测和独立评测");
+  expect(button("试跑一个代表案例")).toBeDefined();await click("开始课程");
+  expect(api.controlTrainingRun).toHaveBeenCalledExactlyOnceWith("experiment","operation","start");
+  expect(button("暂停训练")).toBeDefined();expect(button("案例已检查，继续训练")).toBeUndefined();
+  expect(api.createTrainingRun).not.toHaveBeenCalled();
+});
 it("uses the representative case gate and continues the same run only after explicit review",async()=>{
   api.controlTrainingRun.mockResolvedValue(run({status:"PAUSED",reason:"REPRESENTATIVE_CASE_READY"}));
   await render();await click("试跑一个代表案例");expect(api.controlTrainingRun).toHaveBeenLastCalledWith("experiment","operation","start-one");
@@ -93,6 +101,39 @@ it("keeps the next case out of current work until the representative gate is rel
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{representativeOnly:true},tasks:[{id:"first",caseId:"first-case",kind:"PRACTICE",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"teach",caseId:"first-case",kind:"TEACH",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"next",caseId:"next-case",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0}]}));
   await render();const status=container.querySelector('[aria-label="当前训练状态"]')!;
   expect(status.textContent).toContain("最近保存任务 · 教练诊断");expect(status.textContent).not.toContain("next-case");
+  expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
+it("retains an oversized second development case without counting its replacement as a ninth exercise",async()=>{
+  const material=Array.from({length:40},(_,index)=>({id:`case-${index}`,purpose:index<8?"DEVELOPMENT":"HOLDOUT",sourceType:"ARCHIVED",sourceGroup:`source-${index<8?index:Math.floor(index/4)}`,personaId:"ai1",participantId:"p1",contentHash:`hash-${index}`,data:{}}));
+  api.trainingCases.mockResolvedValue({items:material,coverage:{development:8,holdout:32},caseReplacements:{}});
+  api.trainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{caseReplacements:{}},tasks:[]}));
+  await render();expect(api.trainingCases).toHaveBeenCalledTimes(1);
+  const replacements={"case-1":"replacement-case"};
+  api.trainingCases.mockResolvedValue({items:[...material,{...material[1],id:"replacement-case",contentHash:"replacement-hash"}],coverage:{development:8,holdout:32,excluded:1},caseReplacements:replacements});
+  api.trainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{caseReplacements:replacements},progress:{...run().progress,totalTasks:18},tasks:[
+    {id:"old-practice",caseId:"case-1",kind:"PRACTICE",status:"SKIPPED",reason:"MATERIAL_TOO_LARGE",attempt:0,paidRetries:0,requestId:null,diagnostics:{inputCodePoints:33330,calls:[]}},
+    {id:"old-teach",caseId:"case-1",kind:"TEACH",status:"SKIPPED",reason:"MATERIAL_TOO_LARGE",attempt:0,paidRetries:0,requestId:null,diagnostics:{calls:[]}},
+    {id:"replacement-practice",caseId:"replacement-case",kind:"PRACTICE",status:"RUNNING",attempt:0,paidRetries:0}]}));
+  await click("查询原训练状态");await flush();
+  expect(api.trainingCases).toHaveBeenCalledTimes(2);
+  expect(container.querySelector('[aria-label="当前训练状态"]')?.textContent).toContain("replacement-case");
+  expect(container.textContent).toContain("当前开发练习 8 个案例 · 独立保留题 32 个单元");
+  expect(container.textContent).toContain("已替换材料 1 份，不计入开发练习题数");expect(container.textContent).toContain("case-1 · 材料过大，已替换");
+  expect(container.textContent).toContain("原材料与任务记录保留，不计为额外开发题");expect(container.textContent).toContain("任务完成 0/18");
+  expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0);expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
+it("follows a replacement chain from the first development case when selecting representative work",async()=>{
+  const material=["original","intermediate","active","next"].map(id=>({id,purpose:"DEVELOPMENT",sourceType:"ARCHIVED",sourceGroup:"same-source",personaId:"ai1",participantId:"p1",contentHash:id,data:{}}));
+  api.trainingCases.mockResolvedValue({items:material,coverage:{development:2,excluded:2},caseReplacements:{original:"intermediate",intermediate:"active"}});
+  api.trainingRun.mockResolvedValue(run({status:"RUNNING",configuration:{representativeOnly:true},tasks:[
+    {id:"old",caseId:"original",kind:"PRACTICE",status:"SKIPPED",reason:"MATERIAL_TOO_LARGE",attempt:0,paidRetries:0},
+    {id:"middle",caseId:"intermediate",kind:"PRACTICE",status:"SKIPPED",reason:"MATERIAL_TOO_LARGE",attempt:0,paidRetries:0},
+    {id:"later",caseId:"next",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0},
+    {id:"selected",caseId:"active",kind:"PRACTICE",status:"RUNNING",attempt:0,paidRetries:0}]}));
+  await render();const status=container.querySelector('[aria-label="当前训练状态"]')!;
+  for(let tick=0;tick<10&&!status.textContent?.includes("玩家练习 · active");tick++)await flush();
+  expect(status.textContent).toContain("当前任务 · 玩家练习 · 进行中");expect(status.textContent).toContain("玩家练习 · active");expect(status.textContent).not.toContain("玩家练习 · next");
+  expect(container.textContent).toContain("当前开发练习 2 个案例");expect(container.textContent).toContain("已替换材料 2 份");
   expect(api.controlTrainingRun).not.toHaveBeenCalled();
 });
 it("shows the persisted paid-redo wait without treating the new request as already sent",async()=>{

@@ -66,8 +66,7 @@ public class LabTrainingWorker {
         s.mutate(id,(run,experiment)->{
             if(!Set.of("RUNNING","PAUSED").contains(run.status) || Set.of("GAMES","REPORT").contains(run.stage))return;
             var rows=s.tasks.findByRunIdOrderByOrdinalAsc(id);long now=System.currentTimeMillis();
-            String representative=flag(run.configuration.get("representativeOnly"))?s.cases.findByRunIdOrderByOrdinalAsc(id).stream()
-                    .filter(c->"DEVELOPMENT".equals(c.purpose)).map(c->c.id).findFirst().orElse(""):"";
+            String representative=flag(run.configuration.get("representativeOnly"))?LabTrainingService.representativeCaseId(run,s.cases.findByRunIdOrderByOrdinalAsc(id)):"";
             for(var task:rows) {
                 if(flag(run.configuration.get("representativeOnly")) && !task.caseId.equals(representative))continue;
                 if(!Set.of("PENDING","WAITING","RUNNING").contains(task.status) || task.notBeforeEpochMs>now || task.leaseUntilEpochMs>now)continue;
@@ -81,6 +80,8 @@ public class LabTrainingWorker {
                 if(laneBusy && !recovering)continue;
                 if(!recovering)try {s.budgets.requireRemaining(experiment);}catch(ApiException exhausted){run.status="PAUSED";run.reason=exhausted.getCode();experiment.status="PAUSED";experiment.reason=run.reason;continue;}
                 var item=s.cases.findById(task.caseId).orElseThrow();
+                if("PRACTICE".equals(task.kind) && task.input.isEmpty() && LabTrainingService.requestIds(task).isEmpty()
+                        && replaceOversizedMaterial(run,experiment,item,task,rows))return;
                 if(task.input.isEmpty()) prepare(run,item,task,rows);
                 if("FAILED".equals(task.status)) {s.tasks.save(task);continue;}
                 task.status="RUNNING";task.reason=null;task.updatedAtEpochMs=now;
@@ -89,6 +90,35 @@ public class LabTrainingWorker {
                 s.tasks.saveAndFlush(task);result[0]=new Claim(run,item,task);return;
             }
         });return result[0];
+    }
+    private boolean replaceOversizedMaterial(LabTrainingRun run,LabExperiment experiment,LabTrainingCase item,LabTrainingTask practice,List<LabTrainingTask> rows) {
+        var preflight=s.factory.minimumTeachingInput(run,item.data,item.participantId,practice.id);
+        if(preflight==null || preflight.ready())return false;
+        var originalTasks=rows.stream().filter(t->item.id.equals(t.caseId)&&Set.of("PRACTICE","TEACH").contains(t.kind)).toList();
+        if(originalTasks.stream().anyMatch(t->!LabTrainingService.requestIds(t).isEmpty()))return false;
+        for(var task:originalTasks) {
+            task.status="SKIPPED";task.reason="MATERIAL_TOO_LARGE";task.updatedAtEpochMs=System.currentTimeMillis();
+            task.input.put("encoded",preflight.encoded());task.input.put("codePoints",preflight.codePoints());
+            task.input.put("preflightOnly",true);s.tasks.save(task);
+        }
+        var all=s.cases.findByRunIdOrderByOrdinalAsc(run.id);var replacement=s.factory.replacement(experiment,run,item,all);
+        if(replacement.isEmpty()) {
+            var gaps=new ArrayList<>(maps(run.assessment.get("materialGaps")));
+            gaps.add(Map.of("caseId",item.id,"reason","NO_COMPATIBLE_REPLACEMENT","codePoints",preflight.codePoints()));
+            run.assessment.put("materialGaps",gaps);run.reason="TRAINING_MATERIAL_INSUFFICIENT";return true;
+        }
+        var data=replacement.get();var next=new LabTrainingCase();next.id=text(data.get("id"));next.runId=run.id;
+        next.ordinal=all.stream().mapToInt(c->c.ordinal).max().orElse(0)+1;next.purpose="DEVELOPMENT";
+        next.sourceType=text(data.get("sourceType"));next.sourceGroup=text(data.get("sourceGroup"));next.personaId=text(data.get("personaId"));
+        next.participantId=text(data.get("participantId"));next.data=map(data.get("data"));next.contentHash=text(data.get("contentHash"));s.cases.save(next);
+        var mapping=new LinkedHashMap<>(map(run.configuration.get("caseReplacements")));mapping.put(item.id,next.id);run.configuration.put("caseReplacements",mapping);
+        var amendments=new ArrayList<>(maps(run.assessment.get("materialAmendments")));
+        amendments.add(Map.of("originalCaseId",item.id,"replacementCaseId",next.id,"originalContentHash",item.contentHash,"replacementContentHash",next.contentHash,
+                "reason","MATERIAL_TOO_LARGE","codePoints",preflight.codePoints(),"atEpochMs",System.currentTimeMillis()));run.assessment.put("materialAmendments",amendments);
+        var task=new LabTrainingTask();task.id=text(map(next.data.get("inputPreflight")).get("practiceTaskId"));
+        if(task.id.isBlank())throw new IllegalStateException("Replacement practice identity missing");
+        task.runId=run.id;task.caseId=next.id;task.kind="PRACTICE";task.variant="BASELINE";task.ordinal=practice.ordinal;task.taskKey=next.id+":PRACTICE:BASELINE";s.tasks.save(task);
+        s.addTask(run,next,"TEACH",null,practice.ordinal+1);return true;
     }
     private boolean dependencies(LabTrainingTask task,List<LabTrainingTask> rows) {
         String dependency="TEACH".equals(task.kind)?"PRACTICE":"JUDGE".equals(task.kind)?"HOLDOUT":"";
@@ -281,8 +311,8 @@ public class LabTrainingWorker {
             var rows=s.tasks.findByRunIdOrderByOrdinalAsc(id);var material=s.cases.findByRunIdOrderByOrdinalAsc(id);
             if("PRACTICE".equals(run.stage)) {
                 if(flag(run.configuration.get("representativeOnly"))) {
-                    var first=material.stream().filter(c->"DEVELOPMENT".equals(c.purpose)).findFirst().orElseThrow();
-                    var representative=rows.stream().filter(t->first.id.equals(t.caseId)&&Set.of("PRACTICE","TEACH").contains(t.kind)).toList();
+                    String first=LabTrainingService.representativeCaseId(run,material);
+                    var representative=rows.stream().filter(t->first.equals(t.caseId)&&Set.of("PRACTICE","TEACH").contains(t.kind)).toList();
                     if(representative.size()==2 && representative.stream().allMatch(t->TERMINAL.contains(t.status))) {
                         run.status="PAUSED";run.reason=representative.stream().allMatch(t->"SUCCEEDED".equals(t.status))?"REPRESENTATIVE_CASE_READY":"REPRESENTATIVE_CASE_FAILED";experiment.reason=run.reason;return;
                     }
@@ -295,7 +325,7 @@ public class LabTrainingWorker {
                 if(merged.applied()==0){complete(run,experiment,"NO_VALID_STRATEGY_UPDATE");return;}
                 var version=s.strategies.createTrainingVersion(experiment,run,merged.content());run.candidateStrategyVersionId=version.id;
                 if(!merged.conflicts().isEmpty())experiment.configuration.put("trainingPublicationBlocked",Map.of("strategyVersionId",version.id,"reason","UNRESOLVED_STRATEGY_CONFLICT"));
-                int ordinal=1000;for(var item:material)if("DEVELOPMENT".equals(item.purpose))s.addTask(run,item,"REHEARSAL","CANDIDATE",ordinal++);
+                int ordinal=1000;for(var item:LabTrainingService.activeDevelopment(run,material))s.addTask(run,item,"REHEARSAL","CANDIDATE",ordinal++);
                 run.stage="REHEARSAL";return;
             }
             if("REHEARSAL".equals(run.stage)) {

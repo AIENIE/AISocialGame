@@ -156,6 +156,33 @@ class LabTrainingWorkerTest {
         assertFalse(map(restored.get("practice")).containsKey("diagnostics"));assertEquals(false,map(map(restored.get("practice")).get("quality")).get("repaired"));
         assertEquals(7000,map(practice.result.get("diagnostics")).get("promptTokens"));assertTrue(map(practice.result.get("diagnostics")).containsKey("rawOutput"));
     }
+    @Test void oversizedFutureLessonIsReplacedBeforeChargingPracticeAndKeepsFrozenOriginals() {
+        var f=new Fixture();var run=f.run();run.configuration.put("representativeOnly",true);
+        var item=f.item("DEVELOPMENT","development","ai1");var originalData=LabStrategyService.copy(item.data);
+        var practice=f.task(run,item,"PRACTICE","BASELINE");var teach=f.task(run,item,"TEACH",null);
+        when(f.factory.minimumTeachingInput(eq(run),eq(item.data),eq(item.participantId),eq(practice.id)))
+                .thenReturn(new LabTrainingInput.Prepared("TOO_LARGE",List.of(),33000,Map.of("full","original material")));
+        var replacementData=new LinkedHashMap<>(item.data);replacementData.put("inputPreflight",Map.of("practiceTaskId","replacement-practice"));
+        var replacement=Map.<String,Object>of("id","replacement-case","sourceType","REAL_GAME","sourceGroup","development","personaId","ai1","participantId","p1","data",replacementData,"contentHash","new-hash");
+        when(f.factory.replacement(eq(f.experiment),eq(run),eq(item),anyList())).thenReturn(Optional.of(replacement));
+        assertFalse(f.worker().process(f.experiment.id));verifyNoInteractions(f.client,f.generator);
+        assertEquals("SKIPPED",practice.status);assertEquals("MATERIAL_TOO_LARGE",teach.reason);assertEquals(originalData,item.data);assertEquals("hash",item.contentHash);
+        assertEquals("replacement-case",map(run.configuration.get("caseReplacements")).get(item.id));
+        assertEquals("replacement-case",LabTrainingService.representativeCaseId(run,new ArrayList<>(f.caseRows.values())));
+        assertEquals(1,LabTrainingService.activeDevelopment(run,new ArrayList<>(f.caseRows.values())).size());
+        var next=f.taskRows.get("replacement-practice");assertEquals("PENDING",next.status);assertNull(next.requestId);assertEquals(practice.ordinal,next.ordinal);
+        var material=f.service.material(f.experiment.id,run.operationId);assertEquals(1,map(material.get("coverage")).get("development"));
+        assertEquals(1L,map(material.get("coverage")).get("excluded"));assertEquals(1,maps(run.assessment.get("materialAmendments")).size());
+    }
+    @Test void missingReplacementKeepsMaterialGapAndDoesNotBlockIndependentDevelopment() {
+        var f=new Fixture();var run=f.run();var item=f.item("DEVELOPMENT","development","ai1");var practice=f.task(run,item,"PRACTICE","BASELINE");f.task(run,item,"TEACH",null);
+        var other=f.item("DEVELOPMENT","development","ai2");f.task(run,other,"PRACTICE","BASELINE");f.task(run,other,"TEACH",null);
+        when(f.factory.minimumTeachingInput(eq(run),eq(item.data),eq(item.participantId),eq(practice.id)))
+                .thenReturn(new LabTrainingInput.Prepared("TOO_LARGE",List.of(),33000,Map.of("full","original material")));
+        when(f.factory.replacement(eq(f.experiment),eq(run),eq(item),anyList())).thenReturn(Optional.empty());
+        f.worker().process(f.experiment.id);assertEquals("RUNNING",run.status);assertEquals("SKIPPED",practice.status);
+        assertEquals("NO_COMPATIBLE_REPLACEMENT",maps(run.assessment.get("materialGaps")).getFirst().get("reason"));verifyNoInteractions(f.client,f.generator);
+    }
     @Test void missingOrFailedDependenciesNeverCallTheJudgeOrDeclareSuccess() {
         for(boolean failed:List.of(false,true)) {
             var f=new Fixture();var run=f.run();run.stage="HOLDOUT";var item=f.item("HOLDOUT","holdout","ai1");

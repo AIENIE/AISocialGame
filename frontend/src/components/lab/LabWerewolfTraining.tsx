@@ -24,6 +24,14 @@ function httpStatus(error:unknown):number|undefined {
 function savedRequest(key:string):CreateLabTrainingRun|undefined {
   try {const value=JSON.parse(localStorage.getItem(key)??"null");if(value?.goal==="RULES_EVIDENCE"&&typeof value.operationId==="string")return value;} catch { /* Invalid browser state cannot authorize a run. */ }
 }
+function currentCase(id:string|undefined,replacements:Record<string,string>):string|undefined {
+  const visited=new Set<string>();
+  while(id&&replacements[id]) {
+    if(visited.has(id))return;
+    visited.add(id);id=replacements[id];
+  }
+  return id;
+}
 function pauseMessage(reason?:string|null) {
   if(reason==="REPRESENTATIVE_CASE_READY")return "代表案例的练习与教练诊断已完成。先查看回答、证据与建议，再决定是否继续全部训练。";
   if(reason==="REPRESENTATIVE_CASE_FAILED")return "代表案例未完成，训练已暂停。请先查看下方失败原因并处理；已成功的玩家回答继续保留。";
@@ -31,7 +39,7 @@ function pauseMessage(reason?:string|null) {
   if(reason?.includes("UNKNOWN")||reason?.includes("RECONCILIATION"))return "当前调用结果或用量仍待确认，已保存现场。请查看原请求状态，不要另建训练重复生成。";
   return "训练已保留当前进度。请检查当前任务和诊断，再决定下一步。";
 }
-function TaskDetail({task}:{task:LabTrainingTask}) {
+function TaskDetail({task,replacedBy}:{task:LabTrainingTask;replacedBy?:string}) {
   const result=task.result;
   const calls=task.diagnostics?.calls??[];
   const lastCall=calls.at(-1);
@@ -41,7 +49,8 @@ function TaskDetail({task}:{task:LabTrainingTask}) {
   return <article className="lab-training-task">
     <div className="lab-actions justify-between"><strong>{kinds[task.kind]??task.kind} · {task.caseId}</strong><span className="lab-state">{statuses[task.status]??task.status}</span></div>
     <p className="lab-small mt-2">{task.variant&&`${task.variant} · `}尝试 {task.attempt} · 已付费重试 {task.paidRetries}</p>
-    {materialTooLarge&&<p className="lab-error mt-2" role="alert">输入材料超过 32000 Unicode 字符上限{typeof task.diagnostics?.inputCodePoints==="number"&&`（当前 ${task.diagnostics.inputCodePoints} 字符）`}。请先修复材料编码，再恢复当前训练。{confirmedUnsent&&"本任务未发送模型请求，未产生调用费用。"}</p>}
+    {replacedBy&&<p className="lab-note mt-2">材料过大，已替换。原材料与任务记录保留，不计为额外开发题；当前案例：<span className="break-all">{replacedBy}</span>。</p>}
+    {materialTooLarge&&!replacedBy&&<p className="lab-error mt-2" role="alert">输入材料超过 32000 Unicode 字符上限{typeof task.diagnostics?.inputCodePoints==="number"&&`（当前 ${task.diagnostics.inputCodePoints} 字符）`}。请先修复材料编码，再恢复当前训练。{confirmedUnsent&&"本任务未发送模型请求，未产生调用费用。"}</p>}
     {task.reason==="PAID_REDO_WAIT"&&typeof task.notBeforeEpochMs==="number"&&<p className="lab-note mt-2">独立计费重试等待：{task.notBeforeEpochMs>Date.now()?`还需 ${Math.ceil((task.notBeforeEpochMs-Date.now())/1000)} 秒` : "等待调度发送"}。原请求与费用记录继续保留。</p>}
     {lastCall&&<p className="lab-small mt-2">正文 TTFT：{seconds(lastCall.timing?.firstTextMs)} · 总耗时：{seconds(lastCall.timing?.totalMs)} · 此请求实扣：{typeof lastCall.billedPoints==="number"?`${lastCall.billedPoints} 积分`:"待确认"}</p>}
     {task.status==="RUNNING"&&task.startedAtEpochMs&&<p className="lab-small mt-2">当前任务已等待 {Math.max(0,Math.floor((Date.now()-task.startedAtEpochMs)/1000))} 秒</p>}
@@ -65,7 +74,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const operationId=pending?.operationId||selectedOperation||summary?.operationId;
   const queryKey=["admin","lab","training-run",experiment.id,operationId];
   const query=useQuery({queryKey,queryFn:({signal})=>adminLabApi.trainingRun(experiment.id,operationId!,signal),enabled:!!operationId,refetchInterval:5000,retry:false});
-  const cases=useQuery({queryKey:["admin","lab","training-cases",experiment.id,operationId],queryFn:({signal})=>adminLabApi.trainingCases(experiment.id,operationId!,signal),enabled:!!query.data,staleTime:60000});
+  const cases=useQuery({queryKey:["admin","lab","training-cases",experiment.id,operationId,JSON.stringify(query.data?.configuration.caseReplacements??{})],queryFn:({signal})=>adminLabApi.trainingCases(experiment.id,operationId!,signal),enabled:!!query.data,staleTime:60000});
   const run=query.data;
   useEffect(()=>{
     if(pending&&run?.operationId===pending.operationId){localStorage.removeItem(storageKey);setSelectedOperation(pending.operationId);setPending(undefined);setMessage("");reload();}
@@ -90,7 +99,10 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const refreshStatus=async()=>{const result=await query.refetch();if(result.isSuccess){setControlUnknown(false);setMessage("");reload();}};
   const activeStep=step??(!run||run.status==="DRAFT"?0:run.stage==="PRACTICE"?1:["MERGE","REHEARSAL"].includes(run.stage)?2:3);
   const tasks=run?.tasks??[];
-  const representativeCaseId=cases.data?.items.find(item=>item.purpose==="DEVELOPMENT")?.id??tasks.find(task=>task.kind==="PRACTICE")?.caseId;
+  const caseReplacements={...cases.data?.caseReplacements,...run?.configuration.caseReplacements};
+  const representativeCaseId=currentCase(cases.data?.items.find(item=>item.purpose==="DEVELOPMENT")?.id??tasks.find(task=>task.kind==="PRACTICE")?.caseId,caseReplacements);
+  const activeCases=(cases.data?.items??[]).filter(item=>!caseReplacements[item.id]);
+  const retainedCases=(cases.data?.items??[]).filter(item=>!!caseReplacements[item.id]);
   const currentTasks=run?.configuration.representativeOnly===true?tasks.filter(task=>task.caseId===representativeCaseId):tasks;
   const liveTask=currentTasks.find(task=>["RUNNING","WAITING"].includes(task.status))??currentTasks.find(task=>task.status==="BLOCKED")??(run?.status==="RUNNING"&&run.stage!=="GAMES"?currentTasks.find(task=>task.status==="PENDING"):undefined);
   const currentTask=liveTask??(run?.status==="PAUSED"?currentTasks.filter(task=>task.status==="FAILED").at(-1):undefined)??currentTasks.filter(task=>task.status==="SUCCEEDED").at(-1);
@@ -110,13 +122,13 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         {run.status==="PAUSED"&&<p className="lab-note mt-3" role="status">{pauseMessage(run.reason)}</p>}
         {run.nextStep&&<p className="lab-small mt-3">下一步：{run.nextStep}</p>}
         <div className="lab-actions mt-3">
-          {run.status==="DRAFT"&&<Button disabled={busy} onClick={()=>control.mutate("start-one")}>试跑一个代表案例</Button>}
+          {run.status==="DRAFT"&&<><Button disabled={busy} onClick={()=>control.mutate("start")}>开始课程</Button><Button variant="outline" disabled={busy} onClick={()=>control.mutate("start-one")}>试跑一个代表案例</Button></>}
           {run.status==="PAUSED"&&<Button disabled={busy} onClick={()=>control.mutate("resume")}>{run.reason==="REPRESENTATIVE_CASE_READY"?"案例已检查，继续训练":"继续当前训练"}</Button>}
           {run.status==="RUNNING"&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("pause")}>暂停训练</Button>}
           {!["COMPLETED","STOPPED"].includes(run.status)&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("stop")}>结束本次训练</Button>}
           <Button variant="ghost" disabled={query.isFetching} onClick={()=>void refreshStatus()}>查询原训练状态</Button>
         </div>
-        {currentTask&&<details className="mt-4" open><summary>{liveTask?"当前任务":"最近保存任务"} · {kinds[currentTask.kind]} · {statuses[currentTask.status]}</summary><TaskDetail task={currentTask}/></details>}
+        {currentTask&&<details className="mt-4" open><summary>{liveTask?"当前任务":"最近保存任务"} · {kinds[currentTask.kind]} · {statuses[currentTask.status]}</summary><TaskDetail task={currentTask} replacedBy={caseReplacements[currentTask.caseId]&&currentCase(currentTask.caseId,caseReplacements)}/></details>}
       </section>}
       {message&&<p className="lab-error mt-3" role="alert">{message}</p>}
       {pending&&!run&&<div className="lab-note mt-3" role="status"><p>训练操作已保存 · {pending.operationId}。响应未确认时只查询这个操作。</p><div className="lab-actions mt-2"><Button variant="outline" disabled={query.isFetching||create.isPending} onClick={()=>void refreshStatus()}>查回原训练</Button>{httpStatus(query.error)===404&&<Button variant="outline" disabled={create.isPending} onClick={()=>create.mutate(pending)}>使用原操作 ID 重试创建</Button>}</div></div>}
@@ -124,13 +136,15 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
       {run&&query.error&&<p className="lab-error mt-3">状态更新失败，下面保留最近一次结果；请查询原训练状态。</p>}
       {activeStep===0&&<section className="lab-section"><h2>规则与证据课程</h2><p className="text-sm leading-7">练习只依据当前身份可见的规则、发言和行动证据作答。教练逐题指出具体错误，提出可追溯的小幅策略修改。</p><div className="lab-note mt-4">引擎规则或可见信息错误需要修复产品；策略学习用于改进 AI 的判断与表达。一次训练不会改变模型参数，也不证明通用能力提升。</div>
         <dl className="lab-training-metrics mt-4"><div><dt>开发练习</dt><dd>{run?.progress.developmentCases??8} 个案例</dd></div><div><dt>独立保留题</dt><dd>{run?.progress.holdoutPairs??32} 对回答</dd></div><div><dt>完整对局</dt><dd>{run?.progress.gamePairs??2} 对样本</dd></div></dl>
-        <p className="lab-small mt-4">先完成一个代表案例及诊断并暂停。检查后继续练习、策略合并、回测和独立评测。训练与测试来源分别冻结；重复人格和同源题目不算独立来源。</p>
+        <p className="lab-small mt-4">开始课程后自动推进练习、策略合并、回测和独立评测。也可选择先试跑一个代表案例及诊断，暂停检查后再继续。训练与测试来源分别冻结；重复人格和同源题目不算独立来源。</p>
         {!run&&<Button className="mt-4" disabled={!!pending||create.isPending} onClick={createRun}>创建本次训练</Button>}
         <details className="lab-small mt-4"><summary>阵容、模型与冻结配置</summary><p className="mt-3">玩家：{experiment.configuration?.roster[0]?.modelSelection.modelKey} · {experiment.configuration?.roster[0]?.modelSelection.thinkingMode} {experiment.configuration?.roster[0]?.modelSelection.thinkingEffort}</p><p>教练：{experiment.configuration?.coach.modelKey} · {experiment.configuration?.coach.thinkingMode} {experiment.configuration?.coach.thinkingEffort}</p><pre className="lab-training-json">{JSON.stringify(run?.configuration??experiment.configuration,null,2)}</pre></details>
       </section>}
       {activeStep===1&&<section className="lab-section"><h2>局面练习与逐题诊断</h2><p className="lab-small">这里展示开发练习和练习回测。完成回答只表示调用成功，判断质量以诊断和证据为准。</p>
-        {practice.length?<div className="space-y-4 mt-4">{practice.map(task=><TaskDetail key={task.id} task={task}/>)}</div>:<p className="lab-note mt-4">尚无练习任务。创建训练后，先试跑一个代表案例。</p>}
-        <details className="lab-small mt-4"><summary>案例来源与覆盖</summary>{cases.data?<><p className="mt-2">共 {cases.data.items.length} 个冻结单元 · {new Set(cases.data.items.map(item=>item.sourceGroup)).size} 个来源组；不将单元数当作独立来源数。</p><pre className="lab-training-json">{JSON.stringify({coverage:cases.data.coverage,items:cases.data.items.map(({data:_,...item})=>item)},null,2)}</pre></>:<AdminDataState loading={cases.isPending} error={cases.error} retry={()=>void cases.refetch()}/>}</details>
+        {practice.length?<div className="space-y-4 mt-4">{practice.map(task=><TaskDetail key={task.id} task={task} replacedBy={caseReplacements[task.caseId]&&currentCase(task.caseId,caseReplacements)}/>)}</div>:<p className="lab-note mt-4">尚无练习任务。创建训练后可直接开始课程，也可先试跑一个代表案例。</p>}
+        <details className="lab-small mt-4"><summary>案例来源与覆盖</summary>{cases.data?<><p className="mt-2">当前开发练习 {activeCases.filter(item=>item.purpose==="DEVELOPMENT").length} 个案例 · 独立保留题 {activeCases.filter(item=>item.purpose==="HOLDOUT").length} 个单元；不将重复人格或同源题目算作独立来源。</p>
+          {!!retainedCases.length&&<div className="lab-note mt-3"><p>已替换材料 {retainedCases.length} 份，不计入开发练习题数。</p>{retainedCases.map(item=><p className="break-all mt-2" key={item.id}>{item.id} · 材料过大，已替换 · 当前案例 {currentCase(item.id,caseReplacements)}</p>)}</div>}
+          <pre className="lab-training-json">{JSON.stringify({coverage:cases.data.coverage,caseReplacements,items:cases.data.items.map(({data:_,...item})=>({...item,...(caseReplacements[item.id]?{materialStatus:"材料过大，已替换"}:{})}))},null,2)}</pre></>:<AdminDataState loading={cases.isPending} error={cases.error} retry={()=>void cases.refetch()}/>}</details>
       </section>}
       {activeStep===2&&<section className="lab-section"><h2>从诊断到策略变化</h2><p className="lab-small">逐条查看新增、修改和停用原因。只有合并成功后才产生本次候选版本，练习回测不算独立评测。</p>
         {tasks.filter(task=>task.kind==="TEACH"&&task.result?.changes?.length).map(task=><TaskDetail key={task.id} task={task}/>)}

@@ -30,7 +30,7 @@ export interface LabTrainingTask {
   diagnostics?: { calls?: LabTrainingCall[]; inputCodePoints?: number; failure?: unknown; [key: string]: unknown };
 }
 export interface LabTrainingRun extends LabTrainingSummary {
-  experimentId: string; reason?: string | null; configuration: Record<string, unknown>;
+  experimentId: string; reason?: string | null; configuration: Record<string, unknown> & { caseReplacements?: Record<string, string> };
   progress: { totalTasks: number; completedTasks: number; failedTasks: number; developmentCases: number; holdoutPairs: number; completedHoldoutPairs: number; gamePairs: number; completedGamePairs: number };
   cost: { spentPoints: number; externalPoints: number; totalKnownPoints: number; budgetPoints: number; pendingCalls: number; totalCalls: number; actualCost: number | string };
   tasks: LabTrainingTask[];
@@ -40,4 +40,5 @@ export interface LabTrainingRun extends LabTrainingSummary {
 export interface LabTrainingCases {
   items: { id: string; purpose: string; sourceType: string; sourceGroup: string; personaId: string; participantId: string; contentHash: string; data: Record<string, unknown> }[];
   coverage: Record<string, unknown>;
+  caseReplacements?: Record<string, string>;
 }
