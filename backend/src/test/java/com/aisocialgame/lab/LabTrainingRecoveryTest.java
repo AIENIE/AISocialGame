@@ -158,4 +158,18 @@ class LabTrainingRecoveryTest {
         verify(f.matches,times(1)).saveAndFlush(candidate);verify(f.game,never()).startLab(anyString());
         assertEquals(2,f.matchRows.size());
     }
+
+    @Test void discardingOneExplicitPairIsIdempotentKeepsScenarioScoresAndNeverDiscardsANewerPair() {
+        var f=new Fixture();var run=f.run();run.stage="GAMES";run.status="PAUSED";run.assessment.put("baselineErrors",6);run.assessment.put("candidateErrors",4);
+        var evaluation=new LabEvaluation();evaluation.experimentId=f.experiment.id;evaluation.configuration.put("trainingRunId",run.id);f.evaluationRows.add(evaluation);
+        var match=f.match("PLAYING",run.id);match.evaluationId=evaluation.id;
+        when(f.game.discardLabEvaluation(match.roomId)).thenReturn("aborted-archive");
+        f.service.discardGamePair(f.experiment.id,run.operationId,evaluation.id);
+        assertEquals("ABORTED",match.status);assertEquals("aborted-archive",match.archiveId);assertEquals("STOPPED",evaluation.status);
+        assertEquals(true,evaluation.configuration.get("invalidated"));assertEquals("PAUSED",run.status);assertEquals(4,run.assessment.get("candidateErrors"));
+        var newer=new LabEvaluation();newer.experimentId=f.experiment.id;newer.configuration.put("trainingRunId",run.id);f.evaluationRows.add(newer);
+        f.service.discardGamePair(f.experiment.id,run.operationId,evaluation.id);
+        assertEquals("RUNNING",newer.status);verify(f.game,times(1)).discardLabEvaluation(match.roomId);verifyNoInteractions(f.client,f.generator);
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->f.service.discardGamePair(f.experiment.id,run.operationId,"another-run-pair"));
+    }
 }

@@ -42,6 +42,7 @@
 | POST | /experiments/{id}/training-runs | `{operationId,goal:"RULES_EVIDENCE",externalDiagnostics?:[{requestId,budgetId}]}`，冻结 V2 材料与课程；相同参数返回原运行，不同参数返回 409 |
 | GET | /experiments/{id}/training-runs/{operationId} | 阶段、任务、实际输入、流式进度、TTFT、费用拆分、候选与对照结论 |
 | POST | /experiments/{id}/training-runs/{operationId}/control/{action} | start、start-one、pause、resume、stop；start-one 完成首个代表案例后暂停 |
+| POST | /experiments/{id}/training-runs/{operationId}/game-pairs/{evaluationId}/discard | 暂停后废弃确切的未完成配对；重复提交幂等，只归档中止，不启动新调用；执行中或未知原请求阻止废弃 |
 | GET | /experiments/{id}/training-runs/{operationId}/cases | 冻结开发/保留/排除材料、来源分组及覆盖；仅管理员可读 |
 
 V2 运行状态为 DRAFT / RUNNING / PAUSED / COMPLETED / STOPPED，阶段为 PRACTICE / MERGE / REHEARSAL / HOLDOUT / GAMES / REPORT。任务状态为 PENDING / RUNNING / WAITING / SUCCEEDED / FAILED / BLOCKED / SKIPPED。`COMPLETED` 仅表示本轮已结束，是否改善以 assessment 为准；无可靠更新、不满足继续条件均可正常结束。`cost.spentPoints` 为实验钱包实扣，`externalPoints` 为已确认但未重复扣钱包的外部计价，`totalKnownPoints` 为停止线累计，`pendingCalls` 不计作零。旧未知请求不被课程重发。

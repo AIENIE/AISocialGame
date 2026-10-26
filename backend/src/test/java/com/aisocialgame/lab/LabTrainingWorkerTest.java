@@ -216,11 +216,22 @@ class LabTrainingWorkerTest {
         assertTrue(f.evaluationRows.isEmpty());verify(f.strategies,never()).createTrainingVersion(any(),any(),anyMap());verifyNoInteractions(f.client,f.generator);
     }
     @Test void thirtyTwoIndependentPairsWithImprovementStartOnlyTheFirstRealPairAndDoNotTeach() {
-        var f=new Fixture();var run=f.run();run.stage="HOLDOUT";run.candidateStrategyVersionId="candidate";holdout(f,run,32);
+        var f=new Fixture();var run=f.run();run.stage="HOLDOUT";run.candidateStrategyVersionId="candidate";run.configuration.put("mode","EVALUATE_ONLY");run.configuration.put("evaluationProtocolHash",WerewolfAiProtocol.implementationHash());holdout(f,run,32);
         assertFalse(f.worker().process(f.experiment.id));assertEquals("GAMES",run.stage);assertEquals("IMPROVED",run.assessment.get("status"));
         assertEquals(1,f.evaluationRows.size());assertEquals("p1",f.evaluationRows.getFirst().participantId);assertEquals("VILLAGER",f.evaluationRows.getFirst().configuration.get("targetRole"));
+        assertEquals(true,f.evaluationRows.getFirst().configuration.get("singleAttempt"));
         assertFalse(f.worker().process(f.experiment.id));assertEquals(1,f.evaluationRows.size());verify(f.strategies,never()).createTrainingVersion(any(),any(),anyMap());
         assertTrue(f.taskRows.values().stream().noneMatch(t->"TEACH".equals(t.kind)));verifyNoInteractions(f.client,f.generator);
+    }
+    @Test void discardedPairRemainsInReportButDoesNotRepeatHoldoutOrConsumeACompletedPairSlot() {
+        var f=new Fixture();var run=f.run();run.stage="GAMES";run.candidateStrategyVersionId="candidate";
+        run.configuration.put("mode","EVALUATE_ONLY");run.configuration.put("evaluationProtocolHash",WerewolfAiProtocol.implementationHash());
+        var discarded=new LabEvaluation();discarded.experimentId=f.experiment.id;discarded.status="STOPPED";
+        discarded.configuration.put("trainingRunId",run.id);discarded.configuration.put("invalidated",true);f.evaluationRows.add(discarded);
+        assertFalse(f.worker().process(f.experiment.id));assertEquals("RUNNING",run.status);assertEquals("GAMES",run.stage);
+        assertEquals(2,f.evaluationRows.size());assertEquals(0,run.assessment.get("completedGamePairs"));
+        assertEquals(false,maps(run.assessment.get("gamePairs")).getFirst().get("complete"));
+        assertEquals(true,f.evaluationRows.getLast().configuration.get("singleAttempt"));assertTrue(f.taskRows.isEmpty());verifyNoInteractions(f.client,f.generator);
     }
     @Test void candidateCreationFailureCannotAdvanceToRehearsalOrExposeAPartialCandidate() {
         var f=new Fixture();var run=f.run();run.stage="MERGE";var task=f.teaching(run);task.status="SUCCEEDED";

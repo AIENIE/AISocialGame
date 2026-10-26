@@ -382,7 +382,8 @@ public class LabTrainingWorker {
             if(valid)completed++;outcomes.add(Map.of("evaluationId",evaluation.id,"complete",valid,"statistics",LabService.evaluationView(evaluation,games),"matches",games.stream().map(m->Map.of("id",m.id,"status",m.status,"variant",text(m.variant),"archiveId",text(m.archiveId),"reason",text(m.reason))).toList()));
         }
         run.assessment.put("completedGamePairs",completed);run.assessment.put("gamePairs",outcomes);
-        if(evaluations.size()>completed){complete(run,experiment,"GAME_PAIR_INCOMPLETE");return;}
+        long eligible=evaluations.stream().filter(e->!flag(e.configuration.get("invalidated"))).count();
+        if(eligible>completed){complete(run,experiment,"GAME_PAIR_INCOMPLETE");return;}
         if(completed>=2){complete(run,experiment,"PILOT_COMPLETED");return;}
         try{s.budgets.requireRemaining(experiment);}catch(ApiException e){run.status="PAUSED";run.reason=e.getCode();experiment.status="PAUSED";experiment.reason=run.reason;return;}
         var roster=maps(run.configuration.get("roster"));String persona=completed==0?"ai1":"ai2";
@@ -390,6 +391,7 @@ public class LabTrainingWorker {
         var evaluation=new LabEvaluation();evaluation.experimentId=experiment.id;evaluation.agentId=text(target.get("agentId"));evaluation.participantId=LabService.participantId(target);
         evaluation.pairs=1;evaluation.randomSeed=LabGameConfig.seed(seed(run),"training-pair:"+completed);
         evaluation.configuration.put("gameId","werewolf");evaluation.configuration.put("trainingRunId",run.id);evaluation.configuration.put("roster",roster);evaluation.configuration.put("returnStatus","PAUSED");
+        if("EVALUATE_ONLY".equals(run.configuration.get("mode"))) evaluation.configuration.put("singleAttempt",true);
         evaluation.configuration.put("initialStrategy",run.configuration.get("baseStrategy"));evaluation.configuration.put("candidateStrategy",s.strategies.strategySnapshot(run.candidateStrategyVersionId));
         evaluation.configuration.put("targetRole",completed==0?"VILLAGER":"WEREWOLF");evaluation.configuration.put("candidateFirst",new Random(evaluation.randomSeed).nextBoolean());
         s.evaluations.saveAndFlush(evaluation);experiment.status="RUNNING";experiment.reason=null;

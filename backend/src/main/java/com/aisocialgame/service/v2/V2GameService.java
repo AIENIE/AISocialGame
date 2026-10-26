@@ -232,14 +232,26 @@ public class V2GameService {
         });
     }
     public String stopLabBudget(String roomId) {
+        return stopLabBudget(roomId,"LAB_STOPPED_BY_ADMIN",false);
+    }
+    public String discardLabEvaluation(String roomId) {
+        return stopLabBudget(roomId,"EVALUATION_DISCARDED",true);
+    }
+    private String stopLabBudget(String roomId,String reason,boolean evaluationOnly) {
         return transaction.execute(status -> {
             Room room=rooms.findByIdForUpdate(roomId).orElseThrow();
             GameState state=states.findByIdForUpdate(roomId).orElseThrow();
             RuleSupport.require(room.isLab(),"不是实验室对局");
-            state.getData().remove("labBudgetClock"); state.getData().put("labFailureReason","LAB_STOPPED_BY_ADMIN");
+            if(evaluationOnly) {
+                RuleSupport.require(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state) && state.getData().containsKey("labBudgetClock"),"请先暂停完整评测对局");
+                RuleSupport.require(jobs.findByRoomIdAndStatusIn(roomId,List.of("RUNNING")).isEmpty(),"仍有执行中的行动，先确认原请求状态");
+                RuleSupport.require(jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED")).stream().noneMatch(job ->
+                        com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(RuleSupport.map(job.getObservation().get("generationCheckpoint")))),"仍在等待原请求，不能废弃后重新生成");
+            }
+            state.getData().remove("labBudgetClock"); state.getData().put("labFailureReason",reason);
             state.getData().put("winner","ABORTED"); state.setPhase("SETTLEMENT"); state.setPhaseEndsAt(null);
-            for(var job:jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED","RUNNING"))) finishJob(job,"DISCARDED","LAB_STOPPED_BY_ADMIN");
-            RuleSupport.event(state,"LAB_INTERRUPTED",null,null,"管理员已结束预算暂停的实验对局。",Map.of("reason","LAB_STOPPED_BY_ADMIN"));
+            for(var job:jobs.findByRoomIdAndStatusIn(roomId,List.of("QUEUED","RUNNING"))) finishJob(job,"DISCARDED",reason);
+            RuleSupport.event(state,"LAB_INTERRUPTED",null,null,evaluationOnly?"管理员已废弃本次完整评测，历史记录及费用保留。":"管理员已结束预算暂停的实验对局。",Map.of("reason",reason));
             persist(room,state,rules(state.getGameId()),true);
             return RuleSupport.text(state.getData().get("archiveId"));
         });
@@ -533,13 +545,6 @@ public class V2GameService {
             job.getObservation().put("generationCheckpoint", checkpoint);
             if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state)) {
                 com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint));
-                if(com.aisocialgame.lab.LabCallRecovery.blocked(reason) && !com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint)
-                        && evaluationFailureKnown(job,Map.of())) {
-                    ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules(state.getGameId())).onAiFailure(state,
-                            new TurnRequest(job.getActorId(),job.getKind(),job.getTurnKey()),LocalDateTime.now(),reason);
-                    finishJob(job,"FAILED",reason);persist(rooms.findById(job.getRoomId()).orElseThrow(),state,rules(state.getGameId()),false);
-                    prepareJob(state,rules(state.getGameId()));return;
-                }
                 states.save(state);
             }
             if (com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state)) {
@@ -577,7 +582,10 @@ public class V2GameService {
             TurnRequest turn = new TurnRequest(job.getActorId(), job.getKind(), job.getTurnKey());
             if (rules.isTurnCurrent(state, turn)) {
                 boolean evaluation=com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state);
-                boolean requiredPause=Set.of("AI_CREDIT_INSUFFICIENT","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(reason);
+                boolean requiredPause=com.aisocialgame.lab.LabCallRecovery.blocked(reason)
+                        || Set.of("AI_CREDIT_INSUFFICIENT","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(reason)
+                        || RuleSupport.strings(generation.get("qualityFlags")).stream()
+                            .anyMatch(Set.of("AI_CREDIT_INSUFFICIENT","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED")::contains);
                 if(evaluation && !requiredPause && !evaluationFailureKnown(job,generation)) {
                     var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
                     saved.put("lastCallCode","AI_RESULT_PENDING");saved.put("lastCallState",Map.of("remoteState","UNCONFIRMED_AFTER_FAILURE"));

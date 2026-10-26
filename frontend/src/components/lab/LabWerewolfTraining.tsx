@@ -181,6 +181,10 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         {assessment&&<p className="lab-small mt-3">{scoredPairs!==undefined&&`仅已评分 ${scoredPairs}/${plannedPairs} 对 · `}目标错误：基线 {assessmentPending?"未评分":assessment.baselineErrors??"未评分"} → 候选 {assessmentPending?"未评分":assessment.candidateErrors??"未评分"} · 新增规则错误 {assessmentPending?"未评分":assessment.newRuleErrors??"未评分"} · 新增证据越界 {assessmentPending?"未评分":assessment.newEvidenceLeaks??"未评分"}</p>}
         <details className="mt-4"><summary>保留题回答与盲评明细 · {tests.length} 项任务</summary><div className="space-y-4 mt-3">{tests.map(task=><TaskDetail key={task.id} task={task}/>)}</div></details>
         <section className="mt-6" aria-label="完整九人对局"><h3 className="font-medium">完整九人对局（达标后执行）</h3>
+          {!!run?.gamePairAttempts?.length&&<div className="lab-small mt-3" aria-label="完整对局尝试">{run.gamePairAttempts.map(pair=><div key={pair.evaluationId} className="mt-3">
+            <p>{pair.discarded?"已废弃的配对 · 不计为正常完成":"完整对局配对"} · {statuses[pair.status]??pair.status}</p>
+            {pair.matches.map(match=><p key={match.id}><Link to={`/admin/lab/${experiment.id}/matches/${match.id}`}>{match.variant==="BASELINE"?"基线":"候选"}对局</Link> · {({PLAYING:"进行中",WAITING:"尚未开始",ABORTED:"已中止",REVIEWED:"已结束"} as Record<string,string>)[match.status]??match.status}{match.reason&&` · ${match.reason}`}</p>)}
+          </div>)}</div>}
           <LabLiveMatches gameId="werewolf" matches={experiment.activeMatches??[]} adminExperimentId={experiment.id}/>
           {gameEvaluations.length?<LabEvaluationResults gameId="werewolf" evaluations={gameEvaluations}/>:<p className="lab-small mt-3">本次尚无完整对局结果。独立保留题完整评测并达到改善标准后，自动执行 {run?.progress.gamePairs??2} 组成对的九人对局。</p>}
         </section>

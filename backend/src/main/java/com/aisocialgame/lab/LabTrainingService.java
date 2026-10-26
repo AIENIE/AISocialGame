@@ -180,6 +180,29 @@ public class LabTrainingService {
         });
         return inspect(experimentId,operation);
     }
+    public Map<String,Object> discardGamePair(String experimentId,String operation,String evaluationId) {
+        var original=owned(experimentId,operation);
+        mutate(original.id,(run,experiment)->{
+            var evaluation=evaluations.findByExperimentIdOrderByCreatedAtDesc(experimentId).stream()
+                    .filter(e->evaluationId.equals(e.id)&&run.id.equals(e.configuration.get("trainingRunId"))).findFirst().orElseThrow(LabService::missing);
+            if(flag(evaluation.configuration.get("invalidated"))) return;
+            require("PAUSED".equals(run.status)&&"GAMES".equals(run.stage)&&"PAUSED".equals(experiment.status),"请先暂停当前完整评测");
+            require("RUNNING".equals(evaluation.status),"只能废弃当前未完成的评测配对");
+            for(var match:matches.findByEvaluationIdOrderBySequenceNumberAsc(evaluationId)) {
+                if("PLAYING".equals(match.status)) match.archiveId=game.discardLabEvaluation(match.roomId);
+                if(Set.of("WAITING","PLAYING").contains(match.status)) {
+                    match.status="ABORTED";match.reason="EVALUATION_DISCARDED";match.finishedAt=java.time.LocalDateTime.now();
+                    match.snapshot.put("trainingStopped",true);matches.save(match);
+                }
+            }
+            evaluation.status="STOPPED";evaluation.configuration.put("invalidated",true);
+            evaluation.configuration.put("invalidatedAtEpochMs",System.currentTimeMillis());evaluations.save(evaluation);
+            run.reason="GAME_PAIR_DISCARDED";experiment.reason=run.reason;
+            run.assessment.put("discardedGamePairs",evaluations.findByExperimentIdOrderByCreatedAtDesc(experimentId).stream()
+                    .filter(e->run.id.equals(e.configuration.get("trainingRunId"))&&flag(e.configuration.get("invalidated"))).map(e->e.id).toList());
+        });
+        return inspect(experimentId,operation);
+    }
     LabTrainingRun owned(String experiment,String operation) {return runs.findByExperimentIdAndOperationId(experiment,operation).orElseThrow(LabService::missing);}
     void mutate(String id,java.util.function.BiConsumer<LabTrainingRun,LabExperiment> operation) {
         LabCallRecovery.commit(()->tx.executeWithoutResult(status->{
@@ -202,6 +225,10 @@ public class LabTrainingService {
         progress.put("completedHoldoutPairs",rows.stream().filter(t->"JUDGE".equals(t.kind)&&"SUCCEEDED".equals(t.status)).count());
         progress.put("completedGamePairs",run.assessment.getOrDefault("completedGamePairs",0));out.put("progress",progress);
         out.put("cost",cost(experimentId));out.put("tasks",rows.stream().map(this::taskView).toList());
+        out.put("gamePairAttempts",evaluations.findByExperimentIdOrderByCreatedAtDesc(experimentId).stream()
+                .filter(e->run.id.equals(e.configuration.get("trainingRunId"))).map(e->Map.of("evaluationId",e.id,"status",e.status,
+                        "discarded",flag(e.configuration.get("invalidated")),"matches",matches.findByEvaluationIdOrderBySequenceNumberAsc(e.id).stream()
+                            .map(m->Map.of("id",m.id,"status",m.status,"variant",text(m.variant),"reason",text(m.reason),"archiveId",text(m.archiveId))).toList())).toList());
         out.put("nextStep",nextStep(run));return out;
     }
     public Map<String,Object> material(String experiment,String operation) {

@@ -173,8 +173,10 @@ public class LabRuntime {
             room.getPrivateConfig().put("labSeatSeed",LabGameConfig.seed(match.randomSeed,"seats"));
             match.snapshot.put("seeds",Map.of("seatSeed",LabGameConfig.seed(match.randomSeed,"seats"),"roleSeed",LabGameConfig.seed(match.randomSeed,"roles")));
         }
-        room.getPrivateConfig().put("lab",Map.of("experimentId",experiment.id,"matchId",match.id,
+        var lab=new LinkedHashMap<String,Object>(Map.of("experimentId",experiment.id,"matchId",match.id,
                 "labRunMode",evaluation==null?"TRAINING":"EVALUATION","modelSelection",map(roster.getFirst().get("modelSelection"))));
+        if(werewolf && evaluation!=null && flag(evaluation.configuration.get("singleAttempt"))) lab.put("scenarioEvaluation",true);
+        room.getPrivateConfig().put("lab",lab);
         if(werewolf && evaluation!=null && !text(evaluation.configuration.get("targetRole")).isBlank())
             room.getPrivateConfig().put("labRoleAssignments",roleAssignments(players,roster.size(),evaluation.participantId,text(evaluation.configuration.get("targetRole")),match.randomSeed));
         room.getPrivateConfig().put("labPlayers",players);

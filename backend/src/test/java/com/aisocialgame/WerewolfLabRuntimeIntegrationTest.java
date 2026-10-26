@@ -133,12 +133,40 @@ class WerewolfLabRuntimeIntegrationTest {
         verifyNoInteractions(client);
     }
 
-    @Test void evaluationConfirmedUnsentExhaustionSkipsWithoutPausing() {
-        var room=room("EVALUATION");var job=claim(room);
-        runtime.defer(job.getId(),Map.of("calls",0,"lastCallCode","AI_REQUEST_NOT_SENT","transportAttempt",4),"LAB_CALL_RETRIES_EXHAUSTED");
-        assertEquals("FAILED",jobs.findById(job.getId()).orElseThrow().getStatus());
-        assertFalse(states.findById(room.getId()).orElseThrow().getData().containsKey("labCallPause"));
+    @Test void evaluationBlockedTransportFreezesTheSameOpportunityInsteadOfCreatingEndlessSkippedActions() {
+        for(String reason:List.of("LAB_CALL_RETRIES_EXHAUSTED","LAB_CALL_NO_PROGRESS","LAB_CALL_UNCERTAIN")) {
+            var room=room("EVALUATION");var job=claim(room);
+            var before=states.findById(room.getId()).orElseThrow();var phase=before.getData().get("phaseSerial");
+            runtime.defer(job.getId(),Map.of("calls",0,"lastCallCode","AI_REQUEST_NOT_SENT","transportAttempt",4),reason);
+            runtime.tick(room.getId());runtime.tick(room.getId());
+            assertEquals("QUEUED",jobs.findById(job.getId()).orElseThrow().getStatus());
+            var state=states.findById(room.getId()).orElseThrow();assertEquals(reason,state.getData().get("labCallPause"));
+            assertEquals(phase,state.getData().get("phaseSerial"));assertTrue(state.getData().containsKey("labBudgetClock"));
+            assertNull(coordinator.claim(job.getId()));
+            assertEquals(0,maps(state.getData().get("events")).stream().filter(e->"AI_ACTION_FAILED".equals(e.get("type"))).count());
+        }
         verifyNoInteractions(client);
+    }
+
+    @Test void evaluationCreditFailureInsideGenerationCannotSkipToAnotherBillableAction() {
+        var room=room("EVALUATION");var job=claim(room);
+        runtime.fail(job.getId(),"REQUEST_FAILED",Map.of("qualityFlags",List.of("AI_CREDIT_INSUFFICIENT"),"calls",0,"responsesObserved",0));
+        assertEquals("QUEUED",jobs.findById(job.getId()).orElseThrow().getStatus());
+        assertEquals("AI_CREDIT_INSUFFICIENT",states.findById(room.getId()).orElseThrow().getData().get("labCallPause"));
+        assertNull(coordinator.claim(job.getId()));verifyNoInteractions(client);
+    }
+
+    @Test void discardEvaluationRequiresPauseAndConfirmedUnsentAndPreservesAnAbortedArchive() {
+        var room=room("EVALUATION");var job=claim(room);
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->runtime.discardLabEvaluation(room.getId()));
+        runtime.defer(job.getId(),Map.of("calls",1,"lastCallCode","AI_RESULT_PENDING","lastCallState",Map.of("remoteState","RUNNING")),"LAB_CALL_NO_PROGRESS");
+        assertThrows(com.aisocialgame.exception.ApiException.class,()->runtime.discardLabEvaluation(room.getId()));
+        var saved=jobs.findById(job.getId()).orElseThrow();
+        saved.getObservation().put("generationCheckpoint",Map.of("calls",0,"lastCallCode","AI_REQUEST_NOT_SENT"));jobs.saveAndFlush(saved);
+        var archive=runtime.discardLabEvaluation(room.getId());assertFalse(archive.isBlank());
+        var state=states.findById(room.getId()).orElseThrow();assertEquals("SETTLEMENT",state.getPhase());
+        assertEquals("ABORTED",state.getData().get("winner"));assertEquals("EVALUATION_DISCARDED",state.getData().get("labFailureReason"));
+        assertEquals("DISCARDED",jobs.findById(job.getId()).orElseThrow().getStatus());verifyNoInteractions(client);
     }
 
     @Test void evaluationUnknownAfterDeadlineWaitsForOriginalThenCountsRecoveredResultAsTimeoutExactlyOnce() {

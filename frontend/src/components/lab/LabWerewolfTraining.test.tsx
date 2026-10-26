@@ -49,6 +49,12 @@ it("starts evaluation-only calibration without offering a paid teaching represen
   await render();expect(container.textContent).toContain("五项协议校准");expect(button("试跑一个代表案例")).toBeUndefined();
   await click("开始校准与独立复测");expect(api.controlTrainingRun).toHaveBeenCalledWith("experiment","operation","start");
 });
+it("keeps a discarded full game visible without counting it as a completed pair",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"PAUSED",stage:"GAMES",gamePairAttempts:[{evaluationId:"failed-pair",status:"STOPPED",discarded:true,matches:[{id:"failed-match",status:"ABORTED",variant:"BASELINE",reason:"EVALUATION_DISCARDED",archiveId:"archive"}]}]}));
+  await render();await step("对照评测");expect(container.textContent).toContain("已废弃的配对 · 不计为正常完成");
+  expect(container.querySelector('a[href="/admin/lab/experiment/matches/failed-match"]')).not.toBeNull();
+  expect(container.textContent).toContain("完整对局配对完成0/2");expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
 it("requires an exact candidate before creating another independent evaluation",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"COMPLETED",stage:"REPORT"}));
   api.createTrainingRun.mockImplementation(async(_id:string,request:Record<string,unknown>)=>{expect(JSON.parse(localStorage.getItem("lab-training-run:experiment")!)).toEqual(request);return run({operationId:request.operationId as string,stage:"CALIBRATION",configuration:{mode:"EVALUATE_ONLY"}});});

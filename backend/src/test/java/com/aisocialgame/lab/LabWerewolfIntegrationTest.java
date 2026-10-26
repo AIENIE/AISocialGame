@@ -24,6 +24,7 @@ class LabWerewolfIntegrationTest {
     @Autowired LabRuntime runtime;
     @Autowired LabExperimentRepository experiments;
     @Autowired LabMatchRepository matches;
+    @Autowired LabEvaluationRepository evaluations;
     @Autowired RoomRepository rooms;
     @Autowired GameStateRepository states;
     @MockitoBean AiModelConfigService models;
@@ -53,6 +54,7 @@ class LabWerewolfIntegrationTest {
         String target=LabService.participantId(maps(experiment.configuration.get("roster")).getFirst());
         var request=new LabRequests.Evaluation(target,null,1,null,"candidate","paired-operation","WITCH",202610261L);
         var evaluation=service.evaluate(id,request);assertEquals(evaluation.get("id"),service.evaluate(id,request).get("id"));
+        var row=evaluations.findById(text(evaluation.get("id"))).orElseThrow();row.configuration.put("singleAttempt",true);evaluations.saveAndFlush(row);
         var first=next(id,1);var state=states.findById(first.roomId).orElseThrow();state.setPhase("SETTLEMENT");states.saveAndFlush(state);
         runtime.advance(id);runtime.advance(id);var second=matches.findByExperimentIdAndSequenceNumber(id,2).orElseThrow();
         if(!"PLAYING".equals(second.status)) {runtime.advance(id);second=matches.findById(second.id).orElseThrow();}
@@ -63,6 +65,11 @@ class LabWerewolfIntegrationTest {
             assertEquals("CANDIDATE".equals(match.variant) && entry.getKey().equals("lab-"+target),!snapshot.isEmpty());
         }
         assertEquals(Set.of("BASELINE","CANDIDATE"),Set.of(first.variant,second.variant));assertFalse(experiment.configuration.containsKey("strategyHeadId"));
+        for(var match:List.of(first,second)) {
+            var room=rooms.findById(match.roomId).orElseThrow();assertEquals(true,map(room.getPrivateConfig().get("lab")).get("scenarioEvaluation"));
+            assertFalse(room.getConfig().containsKey("scenarioEvaluation"));
+            assertEquals(50_000,LabRunPolicy.decisionMillis(states.findById(match.roomId).orElseThrow()));
+        }
     }
     @Test void publicTrialMarkerIsFrozenWhiteListWithoutRoleOrEvidenceSignals() {
         var state=new GameState();state.setGameId("werewolf");
