@@ -136,6 +136,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const scoredPairs=!assessmentPending&&typeof assessment?.completedPairs==="number"?assessment.completedPairs:undefined;
   const plannedPairs=typeof assessment?.plannedPairs==="number"?assessment.plannedPairs:run?.progress.holdoutPairs??32;
   const gameEvaluations=run?.candidateStrategyVersionId?(experiment.evaluations??[]).filter(value=>value.candidateStrategyVersionId===run.candidateStrategyVersionId):[];
+  const legacyGameBlocked=run?.configuration.mode==="EVALUATE_ONLY"&&run.stage==="GAMES"&&run.gamePairAttempts?.some(pair=>pair.status==="RUNNING"&&pair.singleAttempt===false);
   return <div className="lab-workspace lab-training-workspace">
     <Link to="/admin/lab" className="lab-small inline-block mb-5">← 返回实验室</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">WEREWOLF / TRAINING</div><h1>{experiment.name}</h1><p>先练习规则与证据，再用独立题目检验策略变化。</p></div>{run&&<span className="lab-state">{runStatus}</span>}</header>
@@ -146,11 +147,12 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         {run.nextStep&&<p className="lab-small mt-3">下一步：{run.nextStep}</p>}
         <div className="lab-actions mt-3">
           {run.status==="DRAFT"&&<><Button disabled={busy} onClick={()=>control.mutate("start")}>{run.configuration.mode==="EVALUATE_ONLY"?"开始校准与独立复测":"开始课程"}</Button>{run.configuration.mode!=="EVALUATE_ONLY"&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("start-one")}>试跑一个代表案例</Button>}</>}
-          {run.status==="PAUSED"&&<Button disabled={busy||["PROTOCOL_CALIBRATION_FAILED","EVALUATION_IMPLEMENTATION_CHANGED"].includes(run.reason??"")} onClick={()=>control.mutate("resume")}>{run.reason==="REPRESENTATIVE_CASE_READY"?"案例已检查，继续训练":"继续当前训练"}</Button>}
+          {run.status==="PAUSED"&&<Button disabled={busy||legacyGameBlocked||["PROTOCOL_CALIBRATION_FAILED","EVALUATION_IMPLEMENTATION_CHANGED"].includes(run.reason??"")} onClick={()=>control.mutate("resume")}>{run.reason==="REPRESENTATIVE_CASE_READY"?"案例已检查，继续训练":"继续当前训练"}</Button>}
           {run.status==="RUNNING"&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("pause")}>暂停训练</Button>}
           {!["COMPLETED","STOPPED"].includes(run.status)&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("stop")}>结束本次训练</Button>}
           <Button variant="ghost" disabled={query.isFetching} onClick={()=>void refreshStatus()}>查询原训练状态</Button>
         </div>
+        {legacyGameBlocked&&<p className="lab-note mt-3">旧完整对局未启用单次作答，需先废弃本次配对；记录及费用保留。</p>}
         {currentTask&&<details className="mt-4" open><summary>{liveTask?"当前任务":"最近保存任务"} · {kinds[currentTask.kind]} · {statuses[currentTask.status]}</summary><TaskDetail task={currentTask} replacedBy={caseReplacements[currentTask.caseId]&&currentCase(currentTask.caseId,caseReplacements)}/></details>}
       </section>}
       {message&&<p className="lab-error mt-3" role="alert">{message}</p>}

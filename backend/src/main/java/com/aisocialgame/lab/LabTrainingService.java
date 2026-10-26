@@ -128,6 +128,9 @@ public class LabTrainingService {
         if("EVALUATE_ONLY".equals(original.configuration.get("mode"))) {
             require(!"start-one".equals(action),"独立复测从完整的五项协议校准开始");
             if(Set.of("start","resume").contains(action))require(!Set.of("PROTOCOL_CALIBRATION_FAILED","EVALUATION_IMPLEMENTATION_CHANGED").contains(text(original.reason)),"本次校准失败或执行版本变化，请保留结果，不能重开原评测");
+            if("resume".equals(action)&&"GAMES".equals(original.stage)) require(evaluations.findByExperimentIdOrderByCreatedAtDesc(experimentId).stream()
+                    .filter(e->original.id.equals(e.configuration.get("trainingRunId"))&&"RUNNING".equals(e.status))
+                    .allMatch(e->flag(e.configuration.get("singleAttempt"))),"旧完整对局未启用单次作答，请先废弃本次配对，保留结果与费用");
         }
         if(Set.of("start","start-one","resume").contains(action)) {
             var selections=new ArrayList<Map<String,Object>>();selections.add(map(original.configuration.get("coach")));
@@ -226,7 +229,7 @@ public class LabTrainingService {
         progress.put("completedGamePairs",run.assessment.getOrDefault("completedGamePairs",0));out.put("progress",progress);
         out.put("cost",cost(experimentId));out.put("tasks",rows.stream().map(this::taskView).toList());
         out.put("gamePairAttempts",evaluations.findByExperimentIdOrderByCreatedAtDesc(experimentId).stream()
-                .filter(e->run.id.equals(e.configuration.get("trainingRunId"))).map(e->Map.of("evaluationId",e.id,"status",e.status,
+                .filter(e->run.id.equals(e.configuration.get("trainingRunId"))).map(e->Map.of("evaluationId",e.id,"status",e.status,"singleAttempt",flag(e.configuration.get("singleAttempt")),
                         "discarded",flag(e.configuration.get("invalidated")),"matches",matches.findByEvaluationIdOrderBySequenceNumberAsc(e.id).stream()
                             .map(m->Map.of("id",m.id,"status",m.status,"variant",text(m.variant),"reason",text(m.reason),"archiveId",text(m.archiveId))).toList())).toList());
         out.put("nextStep",nextStep(run));return out;

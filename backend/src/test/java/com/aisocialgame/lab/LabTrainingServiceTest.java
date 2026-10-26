@@ -16,6 +16,14 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class LabTrainingServiceTest {
+    @Test void resumingLegacyIndependentGameIsRejectedBeforeModelPreflightOrChangingTheRun() {
+        var f=new LabTrainingFixture();var run=f.run();run.status="PAUSED";run.stage="GAMES";run.configuration.put("mode","EVALUATE_ONLY");
+        var evaluation=new LabEvaluation();evaluation.experimentId=f.experiment.id;evaluation.configuration.put("trainingRunId",run.id);f.evaluationRows.add(evaluation);
+        assertThrows(ApiException.class,()->f.service.control(f.experiment.id,run.operationId,"resume"));
+        assertEquals("PAUSED",run.status);assertEquals("PAUSED",f.experiment.status);verifyNoInteractions(f.calls);
+        evaluation.configuration.put("singleAttempt",true);f.service.control(f.experiment.id,run.operationId,"resume");
+        assertEquals("RUNNING",run.status);assertEquals("RUNNING",f.experiment.status);
+    }
     @Test void evaluationOnlyFreezesExistingCandidateAndEmptyBaselineWithoutTeachingOrLegacyHashChanges() {
         var f=new LabTrainingFixture();var rows=f.material();rows.subList(5,8).clear();for(int i=0;i<5;i++)rows.get(i).put("purpose","CALIBRATION");
         when(f.factory.buildEvaluation(any(),anyString(),eq(LabEvaluationMaterials.VERSION))).thenReturn(rows);

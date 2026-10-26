@@ -55,6 +55,11 @@ it("keeps a discarded full game visible without counting it as a completed pair"
   expect(container.querySelector('a[href="/admin/lab/experiment/matches/failed-match"]')).not.toBeNull();
   expect(container.textContent).toContain("完整对局配对完成0/2");expect(api.controlTrainingRun).not.toHaveBeenCalled();
 });
+it("prevents resuming an evaluation game created before single-attempt enforcement",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"PAUSED",stage:"GAMES",configuration:{mode:"EVALUATE_ONLY"},gamePairAttempts:[{evaluationId:"old-pair",status:"RUNNING",discarded:false,singleAttempt:false,matches:[]}]}));
+  await render();expect(button("继续当前训练").disabled).toBe(true);expect(container.textContent).toContain("旧完整对局未启用单次作答");
+  expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
 it("requires an exact candidate before creating another independent evaluation",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"COMPLETED",stage:"REPORT"}));
   api.createTrainingRun.mockImplementation(async(_id:string,request:Record<string,unknown>)=>{expect(JSON.parse(localStorage.getItem("lab-training-run:experiment")!)).toEqual(request);return run({operationId:request.operationId as string,stage:"CALIBRATION",configuration:{mode:"EVALUATE_ONLY"}});});

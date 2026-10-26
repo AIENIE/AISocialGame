@@ -36,7 +36,7 @@ export interface LabTrainingRun extends LabTrainingSummary {
   tasks: LabTrainingTask[];
   assessment: { status?: "NOT_RUN" | "INCOMPLETE" | "NO_IMPROVEMENT" | "REGRESSION" | "IMPROVED"; baselineErrors?: number; candidateErrors?: number; improvedSourceGroups?: number | string[]; newRuleErrors?: number; newEvidenceLeaks?: number; conflicts?: unknown[]; [key: string]: unknown };
   coverage?: { plannedPairs: number; scoredPairs: number; unscoredPairs: number; failedPlayerRequests: number };
-  gamePairAttempts?: { evaluationId: string; status: string; discarded: boolean; matches: { id: string; status: string; variant: string; reason: string; archiveId: string }[] }[];
+  gamePairAttempts?: { evaluationId: string; status: string; discarded: boolean; singleAttempt?: boolean; matches: { id: string; status: string; variant: string; reason: string; archiveId: string }[] }[];
   nextStep?: string;
 }
 export interface LabTrainingCases {
