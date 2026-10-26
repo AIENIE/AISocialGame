@@ -92,6 +92,24 @@ it("labels an empty assessment as not yet evaluated in both evaluation and trial
   await step("对照评测");expect(container.textContent).toContain("尚未评测。练习成绩与独立测试分开统计");
   await step("角色试用");expect(container.textContent).toContain("本次评测：尚未评测。");
 });
+it("distinguishes ongoing holdout evaluation from conditional full-game evaluation before aggregation",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"RUNNING",stage:"HOLDOUT",assessment:{},candidateStrategyVersionId:"candidate",progress:{...run().progress,completedHoldoutPairs:4}}));
+  await render();expect(container.textContent).toContain("保留题配对完成4/32");
+  expect(container.textContent).toContain("正在评测，结果尚未汇总");expect(container.textContent).not.toContain("尚未评测");expect(container.textContent).not.toContain("尚未运行对照评测");
+  const games=container.querySelector('[aria-label="完整九人对局"]')!;
+  expect(games.textContent).toContain("完整九人对局（达标后执行）");expect(games.textContent).toContain("独立保留题完整评测并达到改善标准后，自动执行 2 组成对的九人对局");
+  await step("角色试用");expect(container.textContent).toContain("本次评测：正在评测，结果尚未汇总。");
+  expect(api.controlTrainingRun).not.toHaveBeenCalled();expect(api.publishStrategy).not.toHaveBeenCalled();
+});
+it("shows recorded full-game results without replacing a completed holdout assessment with a running label",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"RUNNING",stage:"GAMES",assessment:{status:"IMPROVED"},candidateStrategyVersionId:"candidate"}));
+  const stats={games:0,wins:0,winRate:0,validActionRate:0,failureRate:0,attemptedGames:0,failedGames:0,roles:{}};
+  const value=experiment();value.evaluations=[{id:"paired-games",agentId:"agent",participantId:"participant",status:"RUNNING",pairs:1,completedGames:0,validPairs:0,baseline:stats,candidate:stats,winRateDifference:0,candidateStrategyVersionId:"candidate"}];
+  await render(value);expect(container.textContent).toContain("在本次样本中观察到改善");expect(container.textContent).not.toContain("正在评测，结果尚未汇总");
+  const games=container.querySelector('[aria-label="完整九人对局"]')!;
+  expect(games.querySelector("table")).not.toBeNull();expect(games.textContent).not.toContain("本次尚无完整对局结果");
+  expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
 it("shows the blocked teaching task before later pending work",async()=>{
   api.trainingRun.mockResolvedValue(run({status:"RUNNING",tasks:[{id:"first",caseId:"first-case",kind:"PRACTICE",status:"SUCCEEDED",attempt:1,paidRetries:0},{id:"blocked",caseId:"first-case",kind:"TEACH",status:"BLOCKED",attempt:1,paidRetries:0,reason:"AI_USAGE_UNKNOWN"},{id:"next",caseId:"next-case",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0}]}));
   await render();const status=container.querySelector('[aria-label="当前训练状态"]')!;

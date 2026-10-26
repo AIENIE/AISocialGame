@@ -112,7 +112,9 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const busy=control.isPending||controlUnknown;
   const remaining=cost?cost.budgetPoints-cost.totalKnownPoints:experiment.budgetPoints-experiment.cost.spentPoints;
   const assessment=run?.assessment;
-  const assessmentLabel=assessments[assessment?.status??"NOT_RUN"]??"尚未评测";
+  const assessmentPending=run?.stage==="HOLDOUT"&&run.status==="RUNNING"&&(!assessment?.status||assessment.status==="NOT_RUN");
+  const assessmentLabel=assessmentPending?"正在评测，结果尚未汇总":assessments[assessment?.status??"NOT_RUN"]??"尚未评测";
+  const gameEvaluations=run?.candidateStrategyVersionId?(experiment.evaluations??[]).filter(value=>value.candidateStrategyVersionId===run.candidateStrategyVersionId):[];
   return <div className="lab-workspace lab-training-workspace">
     <Link to="/admin/lab" className="lab-small inline-block mb-5">← 返回实验室</Link>
     <header className="lab-heading"><div><div className="lab-eyebrow">WEREWOLF / TRAINING</div><h1>{experiment.name}</h1><p>先练习规则与证据，再用独立题目检验策略变化。</p></div>{run&&<span className="lab-state">{statuses[run.status]}</span>}</header>
@@ -154,8 +156,10 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         <p className="lab-note mt-4">{assessmentLabel}。练习成绩与独立测试分开统计；少量完整对局仅作先导检查，不足以证明胜率提升。</p>
         {assessment&&<p className="lab-small mt-3">目标错误：基线 {assessment.baselineErrors??"未评分"} → 候选 {assessment.candidateErrors??"未评分"} · 新增规则错误 {assessment.newRuleErrors??"未评分"} · 新增证据越界 {assessment.newEvidenceLeaks??"未评分"}</p>}
         <details className="mt-4"><summary>保留题回答与盲评明细 · {tests.length} 项任务</summary><div className="space-y-4 mt-3">{tests.map(task=><TaskDetail key={task.id} task={task}/>)}</div></details>
-        <LabLiveMatches gameId="werewolf" matches={experiment.activeMatches??[]} adminExperimentId={experiment.id}/>
-        <LabEvaluationResults gameId="werewolf" evaluations={(experiment.evaluations??[]).filter(value=>value.candidateStrategyVersionId===run?.candidateStrategyVersionId)}/>
+        <section className="mt-6" aria-label="完整九人对局"><h3 className="font-medium">完整九人对局（达标后执行）</h3>
+          <LabLiveMatches gameId="werewolf" matches={experiment.activeMatches??[]} adminExperimentId={experiment.id}/>
+          {gameEvaluations.length?<LabEvaluationResults gameId="werewolf" evaluations={gameEvaluations}/>:<p className="lab-small mt-3">本次尚无完整对局结果。独立保留题完整评测并达到改善标准后，自动执行 {run?.progress.gamePairs??2} 组成对的九人对局。</p>}
+        </section>
         {assessment&&<details className="lab-small mt-4"><summary>完整评测结论</summary><pre className="lab-training-json">{JSON.stringify(assessment,null,2)}</pre></details>}
       </section>}
       {activeStep===4&&<section className="lab-section"><h2>选择角色试用</h2><p className="lab-note">训练和评测均不会自动修改正式角色。试用后新开狼人杀对局会显示“效果待验证”，可随时撤回。</p>
