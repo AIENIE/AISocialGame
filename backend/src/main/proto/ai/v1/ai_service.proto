@@ -368,6 +368,14 @@ enum BudgetCallState {
   BUDGET_CALL_STATE_RECONCILIATION_REQUIRED = 5;
 }
 
+// Execution evidence is independent of billing/result state. Missing means UNKNOWN.
+enum BudgetExecutionState {
+  BUDGET_EXECUTION_STATE_UNKNOWN = 0;
+  BUDGET_EXECUTION_STATE_NOT_STARTED = 1;
+  BUDGET_EXECUTION_STATE_RUNNING = 2;
+  BUDGET_EXECUTION_STATE_TERMINATED = 3;
+}
+
 message PrepareCallBudgetRequest {
   // Original request, with a non-empty logical request_id and no budget credential.
   oneof request {
@@ -445,6 +453,11 @@ message GetBudgetCallStatusResponse {
   // Present only with a committed monetary success, including authoritative usage.
   optional BudgetCharge charge = 14;
   optional ChatStreamProgress stream_progress = 15;
+  // TERMINATED is persisted only after the owning gateway worker finishes cleanup.
+  // Expiry, missing ownership after restart and historical records remain UNKNOWN.
+  optional BudgetExecutionState execution_state = 16;
+  // Present only with durable TERMINATED evidence; not a provider cancellation acknowledgement.
+  optional int64 execution_ended_at_epoch_ms = 17;
 }
 
 service AiGatewayService {

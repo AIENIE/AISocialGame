@@ -227,6 +227,29 @@ class BoundedAiClientTest {
         assertEquals(32768,prepared.get().getMaxOutputTokens());assertEquals(0,sends.get());verifyNoInteractions(escrow);
     }
 
+    @Test void executionEvidenceIsPresenceAwareAndNeverInferredFromSettlement() {
+        var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);
+        var row=new AiCreditReservation();row.id="unknown";row.projectKey="aisocialgame";row.userId=85;row.requestId="original";row.budgetId="budget";row.state="USAGE_UNKNOWN";
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192);
+        status=GetBudgetCallStatusResponse.newBuilder().setState(BudgetCallState.BUDGET_CALL_STATE_RECONCILIATION_REQUIRED).build();
+        var historical=client.inspectExecution("aisocialgame",85,"same-request");assertEquals("UNKNOWN",historical.get("executionState"));assertFalse(historical.containsKey("executionEndedAtEpochMs"));
+        status=status.toBuilder().setExecutionState(BudgetExecutionState.BUDGET_EXECUTION_STATE_TERMINATED).setExecutionEndedAtEpochMs(1234).build();
+        var terminated=client.inspectExecution("aisocialgame",85,"same-request");assertEquals("TERMINATED",terminated.get("executionState"));assertEquals(1234L,terminated.get("executionEndedAtEpochMs"));
+        assertEquals("USAGE_UNKNOWN",terminated.get("state"));assertEquals(0,sends.get());assertEquals(0,prepares.get());
+    }
+
+    @Test void externalAuthoritativeDiagnosticDoesNotRegisterOrDebitWallet() {
+        var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,mock(AiCallBudgetService.class),true,8192);
+        String budgetId="9bc49951-c4e2-4cf6-804f-5d141f398c22";
+        status=GetBudgetCallStatusResponse.newBuilder().setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setUsageAuthoritative(true)
+                .setCharge(BudgetCharge.newBuilder().setCreditPoints(1).setTotalCost("0.005269").setCurrency("CNY").setPriceVersionId(9)).build();
+        var diagnostic=client.inspectExternalCharge("aisocialgame",85,"same-request",budgetId);
+        assertEquals(1L,diagnostic.get("creditPoints"));assertEquals(false,diagnostic.get("walletDeductionPerformed"));verifyNoInteractions(escrow,reservations);assertEquals(0,sends.get());assertEquals(0,prepares.get());
+        status=status.toBuilder().setUsageAuthoritative(false).build();assertThrows(com.aisocialgame.exception.ApiException.class,()->client.inspectExternalCharge("aisocialgame",85,"same-request",budgetId));
+    }
+
     @Test void diagnosticOptInDoesNotChangeAnExistingReservationFingerprintOrResend() {
         var escrow = mock(AiCallSettlementService.class); var reservations = mock(AiCreditReservationRepository.class);
         var client = new BoundedAiClient(stub, escrow, reservations, mock(AiCallBudgetService.class), true, 8192);

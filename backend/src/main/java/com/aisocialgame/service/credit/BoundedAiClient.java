@@ -154,6 +154,8 @@ public class BoundedAiClient {
         out.put("state",row.state);out.put("billedPoints",row.billedPoints);out.put("billedCost",row.billedCost);
         if (remote!=null) {
             out.put("remoteState",remote.getState().name().replace("BUDGET_CALL_STATE_",""));
+            out.put("executionState",remote.hasExecutionState()?remote.getExecutionState().name().replace("BUDGET_EXECUTION_STATE_",""):"UNKNOWN");
+            if(remote.hasExecutionEndedAtEpochMs())out.put("executionEndedAtEpochMs",remote.getExecutionEndedAtEpochMs());
             if (remote.hasStreamProgress()) {
                 out.put("partialContent",remote.getStreamProgress().getContent());
                 if (remote.getStreamProgress().hasTiming()) out.put("timing",timing(remote.getStreamProgress().getTiming()));
@@ -168,6 +170,33 @@ public class BoundedAiClient {
             if (result.hasStreamTiming()) out.put("timing",timing(result.getStreamTiming()));
         }
         return out;
+    }
+    /** Execution lifecycle must be read from the authority, never inferred from accounting state. */
+    public Map<String,Object> inspectExecution(String project,long userId,String requestId) {
+        var out=new java.util.LinkedHashMap<>(inspect(project,userId,requestId));
+        if(!out.containsKey("budgetId")) return out;
+        try {
+            var status=remoteStatus(project,userId,requestId,(String)out.get("budgetId"));
+            out.put("executionState",status.hasExecutionState()?status.getExecutionState().name().replace("BUDGET_EXECUTION_STATE_",""):"UNKNOWN");
+            if(status.hasExecutionEndedAtEpochMs())out.put("executionEndedAtEpochMs",status.getExecutionEndedAtEpochMs());
+        } catch(RuntimeException failure) {out.put("executionState","UNKNOWN");}
+        return out;
+    }
+    /** Imports an already charged diagnostic into a run's cost boundary, without touching its wallet. */
+    public Map<String,Object> inspectExternalCharge(String project,long userId,String requestId,String budgetId) {
+        if(requestId==null || requestId.isBlank() || requestId.length()>128 || budgetId==null || !budgetId.matches("[a-fA-F0-9-]{36}"))
+            throw new ApiException(HttpStatus.BAD_REQUEST,"外部诊断请求标识无效");
+        var status=remoteStatus(project,userId,requestId,budgetId);
+        if(status.getState()!=BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED || !status.getUsageAuthoritative() || !status.hasCharge()
+                || !"CNY".equals(status.getCharge().getCurrency()) || status.getCharge().getCreditPoints()<0)
+            throw new ApiException(HttpStatus.CONFLICT,"外部诊断尚无权威费用，不可计作已知实耗");
+        return Map.of("requestId",requestId,"budgetId",budgetId,"creditPoints",status.getCharge().getCreditPoints(),
+                "cost",status.getCharge().getTotalCost(),"currency","CNY","priceVersionId",status.getCharge().getPriceVersionId(),
+                "walletDeductionPerformed",false,"usageAuthoritative",true);
+    }
+    private GetBudgetCallStatusResponse remoteStatus(String project,long userId,String requestId,String budgetId) {
+        return stub.withDeadlineAfter(5,TimeUnit.SECONDS).getBudgetCallStatus(GetBudgetCallStatusRequest.newBuilder()
+                .setProjectKey(project).setUserId(userId).setRequestId(requestId).setBudgetId(budgetId).setOperation(BudgetOperation.BUDGET_OPERATION_CHAT).build());
     }
     private static Map<String,Object> timing(ChatStreamTiming timing) {
         var out=new java.util.LinkedHashMap<String,Object>();
