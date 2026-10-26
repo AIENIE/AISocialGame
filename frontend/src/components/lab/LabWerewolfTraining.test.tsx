@@ -43,6 +43,20 @@ it("separates historical spending, external diagnostic pricing, unknown usage an
   await step("对照评测");expect(container.textContent).toContain("保留题配对完成0/32");expect(container.textContent).toContain("完整对局配对完成0/2");
   expect(api.controlTrainingRun).not.toHaveBeenCalled();expect(api.publishStrategy).not.toHaveBeenCalled();
 });
+it("starts evaluation-only calibration without offering a paid teaching representative",async()=>{
+  api.trainingRun.mockResolvedValue(run({stage:"CALIBRATION",configuration:{mode:"EVALUATE_ONLY"},coverage:{plannedPairs:32,scoredPairs:0,unscoredPairs:32,failedPlayerRequests:0}}));
+  api.controlTrainingRun.mockResolvedValue(run({status:"RUNNING",stage:"CALIBRATION",configuration:{mode:"EVALUATE_ONLY"}}));
+  await render();expect(container.textContent).toContain("五项协议校准");expect(button("试跑一个代表案例")).toBeUndefined();
+  await click("开始校准与独立复测");expect(api.controlTrainingRun).toHaveBeenCalledWith("experiment","operation","start");
+});
+it("requires an exact candidate before creating another independent evaluation",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"COMPLETED",stage:"REPORT"}));
+  api.createTrainingRun.mockImplementation(async(_id:string,request:Record<string,unknown>)=>{expect(JSON.parse(localStorage.getItem("lab-training-run:experiment")!)).toEqual(request);return run({operationId:request.operationId as string,stage:"CALIBRATION",configuration:{mode:"EVALUATE_ONLY"}});});
+  await render();await step("选课程");expect(button("创建独立复测").disabled).toBe(true);
+  await act(async()=>{const select=container.querySelector<HTMLSelectElement>('#evaluation-candidate')!;select.value="unrelated";select.dispatchEvent(new Event("change",{bubbles:true}));});
+  await click("创建独立复测");expect(api.createTrainingRun).toHaveBeenCalledWith("experiment",expect.objectContaining({mode:"EVALUATE_ONLY",candidateStrategyVersionId:"unrelated",materialSetVersion:"rules-evidence-eval-v2.1"}));
+  expect(api.publishStrategy).not.toHaveBeenCalled();
+});
 it("persists operation identity before create and recovers a lost response without another creation",async()=>{
   api.trainingRun.mockRejectedValue({response:{status:404}});
   api.createTrainingRun.mockImplementation(async(_id:string,request:{operationId:string})=>{

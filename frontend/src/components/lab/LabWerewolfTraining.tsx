@@ -10,9 +10,10 @@ import type { LabExperiment, LabStrategyList } from "@/types/lab";
 import type { CreateLabTrainingRun, LabTrainingControl, LabTrainingRun, LabTrainingTask } from "@/types/labTraining";
 
 const steps=["选课程","局面练习","策略变化","对照评测","角色试用"];
-const stages:Record<string,string>={PRACTICE:"局面练习与教学",MERGE:"合并策略变化",REHEARSAL:"练习回测",HOLDOUT:"独立保留题评测",GAMES:"完整对局对照",REPORT:"汇总评测结果"};
+const stages:Record<string,string>={CALIBRATION:"五项协议校准",PRACTICE:"局面练习与教学",MERGE:"合并策略变化",REHEARSAL:"练习回测",HOLDOUT:"独立保留题评测",GAMES:"完整对局对照",REPORT:"汇总评测结果"};
 const statuses:Record<string,string>={DRAFT:"尚未开始",RUNNING:"进行中",PAUSED:"已暂停",COMPLETED:"本轮已收尾",STOPPED:"已停止",PENDING:"等待执行",WAITING:"等待原请求",SUCCEEDED:"已完成",FAILED:"失败",BLOCKED:"需要处理",SKIPPED:"已跳过"};
-const kinds:Record<string,string>={PRACTICE:"玩家练习",TEACH:"教练诊断",REHEARSAL:"练习回测",HOLDOUT:"保留题回答",JUDGE:"盲评裁判"};
+const kinds:Record<string,string>={CALIBRATION:"协议校准",PRACTICE:"玩家练习",TEACH:"教练诊断",REHEARSAL:"练习回测",HOLDOUT:"保留题回答",JUDGE:"盲评裁判"};
+const failureCategories:Record<string,string>={INPUT_DEFECT:"输入缺陷",OUTPUT_PROTOCOL:"输出协议错误",ILLEGAL_ACTION:"非法动作",SEMANTIC_ERROR:"语义问题",CALL_FAILURE:"调用故障"};
 const assessments:Record<string,string>={NOT_RUN:"尚未评测",INCOMPLETE:"评测未完整完成",NO_IMPROVEMENT:"未观察到改善",REGRESSION:"发现退步或新问题",IMPROVED:"在本次样本中观察到改善"};
 const grade=(value:string)=>({PASS:"通过",FAIL:"发现问题",UNSCORED:"未评分"}[value]??value);
 const seconds=(ms:number|null|undefined)=>typeof ms==="number"?`${(ms/1000).toFixed(1)} 秒`:"尚未记录";
@@ -33,6 +34,8 @@ function currentCase(id:string|undefined,replacements:Record<string,string>):str
   return id;
 }
 function pauseMessage(reason?:string|null) {
+  if(reason==="PROTOCOL_CALIBRATION_FAILED")return "协议校准未通过，独立评测尚未启动。原回复与费用已保存，请先处理问题。";
+  if(reason==="EVALUATION_IMPLEMENTATION_CHANGED")return "本轮冻结后的执行版本发生变化，评测已暂停，现有结果不能合并为独立通过。";
   if(reason==="REPRESENTATIVE_CASE_READY")return "代表案例的练习与教练诊断已完成。先查看回答、证据与建议，再决定是否继续全部训练。";
   if(reason==="REPRESENTATIVE_CASE_FAILED")return "代表案例未完成，训练已暂停。请先查看下方失败原因并处理；已成功的玩家回答继续保留。";
   if(reason?.includes("BUDGET"))return "已达到费用停止线，新调用已暂停；已发出的请求继续结算。";
@@ -47,6 +50,7 @@ function TaskDetail({task,replacedBy}:{task:LabTrainingTask;replacedBy?:string})
   const materialTooLarge=task.reason==="MATERIAL_TOO_LARGE";
   const confirmedUnsent=materialTooLarge&&!task.requestId&&Array.isArray(task.diagnostics?.calls)&&calls.length===0;
   return <article className="lab-training-task">
+    {typeof task.diagnostics?.failureCategory==="string"&&failureCategories[task.diagnostics.failureCategory]&&<p className="lab-error mb-2">{failureCategories[task.diagnostics.failureCategory]}{Array.isArray(task.diagnostics.failureFlags)&&` · ${task.diagnostics.failureFlags.join(" / ")}`}</p>}
     <div className="lab-actions justify-between"><strong>{kinds[task.kind]??task.kind} · {task.caseId}</strong><span className="lab-state">{statuses[task.status]??task.status}</span></div>
     <p className="lab-small mt-2">{task.variant&&`${task.variant} · `}尝试 {task.attempt} · 已付费重试 {task.paidRetries}</p>
     {replacedBy&&<p className="lab-note mt-2">材料过大，已替换。原材料与任务记录保留，不计为额外开发题；当前案例：<span className="break-all">{replacedBy}</span>。</p>}
@@ -70,6 +74,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const [step,setStep]=useState<number>();
   const [message,setMessage]=useState("");
   const [controlUnknown,setControlUnknown]=useState(false);
+  const [evaluationCandidate,setEvaluationCandidate]=useState("");
   const summary=experiment.trainingRuns?.find(item=>item.id===experiment.activeTrainingRunId)??experiment.trainingRuns?.[0];
   const operationId=pending?.operationId||selectedOperation||summary?.operationId;
   const queryKey=["admin","lab","training-run",experiment.id,operationId];
@@ -96,8 +101,14 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
     try {localStorage.setItem(storageKey,JSON.stringify(request));} catch {setMessage("无法保存操作标识，本次未创建训练。请允许浏览器保存站点数据。");return;}
     setPending(request);setMessage("");create.mutate(request);
   };
+  const createEvaluation=()=>{
+    if(pending||create.isPending||!evaluationCandidate||run&&!['COMPLETED','STOPPED'].includes(run.status))return;
+    const request:CreateLabTrainingRun={operationId:crypto.randomUUID(),goal:"RULES_EVIDENCE",mode:"EVALUATE_ONLY",candidateStrategyVersionId:evaluationCandidate,materialSetVersion:"rules-evidence-eval-v2.1"};
+    try{localStorage.setItem(storageKey,JSON.stringify(request));}catch{setMessage("无法保存操作标识，本次未创建复测。");return;}
+    setPending(request);setMessage("");create.mutate(request);
+  };
   const refreshStatus=async()=>{const result=await query.refetch();if(result.isSuccess){setControlUnknown(false);setMessage("");reload();}};
-  const activeStep=step??(!run||run.status==="DRAFT"?0:run.stage==="PRACTICE"?1:["MERGE","REHEARSAL"].includes(run.stage)?2:3);
+  const activeStep=step??(!run||run.status==="DRAFT"?0:["CALIBRATION","PRACTICE"].includes(run.stage)?1:["MERGE","REHEARSAL"].includes(run.stage)?2:3);
   const tasks=run?.tasks??[];
   const taskCounts=tasks.reduce((counts,task)=>{
     if(task.status==="SUCCEEDED")counts.succeeded++;
@@ -113,7 +124,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
   const currentTasks=run?.configuration.representativeOnly===true?tasks.filter(task=>task.caseId===representativeCaseId):tasks;
   const liveTask=currentTasks.find(task=>["RUNNING","WAITING"].includes(task.status))??currentTasks.find(task=>task.status==="BLOCKED")??(run?.status==="RUNNING"&&run.stage!=="GAMES"?currentTasks.find(task=>task.status==="PENDING"):undefined);
   const currentTask=liveTask??(run?.status==="PAUSED"?currentTasks.filter(task=>task.status==="FAILED").at(-1):undefined)??currentTasks.filter(task=>task.status==="SUCCEEDED").at(-1);
-  const practice=tasks.filter(task=>["PRACTICE","TEACH","REHEARSAL"].includes(task.kind));
+  const practice=tasks.filter(task=>["CALIBRATION","PRACTICE","TEACH","REHEARSAL"].includes(task.kind));
   const tests=tasks.filter(task=>["HOLDOUT","JUDGE"].includes(task.kind));
   const cost=run?.cost;
   const busy=control.isPending||controlUnknown;
@@ -134,8 +145,8 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         {run.status==="PAUSED"&&<p className="lab-note mt-3" role="status">{pauseMessage(run.reason)}</p>}
         {run.nextStep&&<p className="lab-small mt-3">下一步：{run.nextStep}</p>}
         <div className="lab-actions mt-3">
-          {run.status==="DRAFT"&&<><Button disabled={busy} onClick={()=>control.mutate("start")}>开始课程</Button><Button variant="outline" disabled={busy} onClick={()=>control.mutate("start-one")}>试跑一个代表案例</Button></>}
-          {run.status==="PAUSED"&&<Button disabled={busy} onClick={()=>control.mutate("resume")}>{run.reason==="REPRESENTATIVE_CASE_READY"?"案例已检查，继续训练":"继续当前训练"}</Button>}
+          {run.status==="DRAFT"&&<><Button disabled={busy} onClick={()=>control.mutate("start")}>{run.configuration.mode==="EVALUATE_ONLY"?"开始校准与独立复测":"开始课程"}</Button>{run.configuration.mode!=="EVALUATE_ONLY"&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("start-one")}>试跑一个代表案例</Button>}</>}
+          {run.status==="PAUSED"&&<Button disabled={busy||["PROTOCOL_CALIBRATION_FAILED","EVALUATION_IMPLEMENTATION_CHANGED"].includes(run.reason??"")} onClick={()=>control.mutate("resume")}>{run.reason==="REPRESENTATIVE_CASE_READY"?"案例已检查，继续训练":"继续当前训练"}</Button>}
           {run.status==="RUNNING"&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("pause")}>暂停训练</Button>}
           {!["COMPLETED","STOPPED"].includes(run.status)&&<Button variant="outline" disabled={busy} onClick={()=>control.mutate("stop")}>结束本次训练</Button>}
           <Button variant="ghost" disabled={query.isFetching} onClick={()=>void refreshStatus()}>查询原训练状态</Button>
@@ -150,6 +161,8 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
         <dl className="lab-training-metrics mt-4"><div><dt>开发练习</dt><dd>{run?.progress.developmentCases??8} 个案例</dd></div><div><dt>独立保留题</dt><dd>{run?.progress.holdoutPairs??32} 对回答</dd></div><div><dt>完整对局</dt><dd>{run?.progress.gamePairs??2} 对样本</dd></div></dl>
         <p className="lab-small mt-4">开始课程后自动推进练习、策略合并、回测和独立评测。也可选择先试跑一个代表案例及诊断，暂停检查后再继续。训练与测试来源分别冻结；重复人格和同源题目不算独立来源。</p>
         {!run&&<Button className="mt-4" disabled={!!pending||create.isPending} onClick={createRun}>创建本次训练</Button>}
+        {run&&["COMPLETED","STOPPED"].includes(run.status)&&<div className="lab-note mt-4"><label htmlFor="evaluation-candidate">独立复测候选版本</label><select id="evaluation-candidate" className="ml-3 rounded border p-2" value={evaluationCandidate} onChange={event=>setEvaluationCandidate(event.target.value)}><option value="">选择确切版本</option>{strategies?.items.map(item=><option key={item.id} value={item.id}>v{item.sequenceNumber} · {item.id}</option>)}</select><p className="lab-small mt-2">冻结所选版本，使用空策略基线。先完成五项协议校准，再评测新来源题；本轮不教学、不修改候选，费用沿用本实验累计停止线。</p><Button className="mt-3" disabled={!evaluationCandidate||!!pending||create.isPending} onClick={createEvaluation}>创建独立复测</Button></div>}
+        {run?.configuration.mode==="EVALUATE_ONLY"&&<p className="lab-note mt-3">本轮为独立复测，候选版本固定；五项校准不计入策略改善样本。</p>}
         <details className="lab-small mt-4"><summary>阵容、模型与冻结配置</summary><p className="mt-3">玩家：{experiment.configuration?.roster[0]?.modelSelection.modelKey} · {experiment.configuration?.roster[0]?.modelSelection.thinkingMode} {experiment.configuration?.roster[0]?.modelSelection.thinkingEffort}</p><p>教练：{experiment.configuration?.coach.modelKey} · {experiment.configuration?.coach.thinkingMode} {experiment.configuration?.coach.thinkingEffort}</p><pre className="lab-training-json">{JSON.stringify(run?.configuration??experiment.configuration,null,2)}</pre></details>
       </section>}
       {activeStep===1&&<section className="lab-section"><h2>局面练习与逐题诊断</h2><p className="lab-small">这里展示开发练习和练习回测。完成回答只表示调用成功，判断质量以诊断和证据为准。</p>
@@ -164,6 +177,7 @@ export function LabWerewolfTraining({experiment,strategies,reload,budgetEditor,h
       </section>}
       {activeStep===3&&<section className="lab-section"><h2>独立对照评测</h2><dl className="lab-training-metrics"><div><dt>保留题配对完成</dt><dd>{run?.progress.completedHoldoutPairs??0}/{run?.progress.holdoutPairs??32}</dd></div><div><dt>完整对局配对完成</dt><dd>{run?.progress.completedGamePairs??0}/{run?.progress.gamePairs??2}</dd></div></dl>
         <p className="lab-note mt-4">{assessmentLabel}。练习成绩与独立测试分开统计；少量完整对局仅作先导检查，不足以证明胜率提升。</p>
+        {run?.coverage&&<p className="lab-small mt-2">计划 {run.coverage.plannedPairs} 对 · 完整评分 {run.coverage.scoredPairs} 对 · 尚无完整评分 {run.coverage.unscoredPairs} 对 · 玩家无效请求 {run.coverage.failedPlayerRequests} 次</p>}
         {assessment&&<p className="lab-small mt-3">{scoredPairs!==undefined&&`仅已评分 ${scoredPairs}/${plannedPairs} 对 · `}目标错误：基线 {assessmentPending?"未评分":assessment.baselineErrors??"未评分"} → 候选 {assessmentPending?"未评分":assessment.candidateErrors??"未评分"} · 新增规则错误 {assessmentPending?"未评分":assessment.newRuleErrors??"未评分"} · 新增证据越界 {assessmentPending?"未评分":assessment.newEvidenceLeaks??"未评分"}</p>}
         <details className="mt-4"><summary>保留题回答与盲评明细 · {tests.length} 项任务</summary><div className="space-y-4 mt-3">{tests.map(task=><TaskDetail key={task.id} task={task}/>)}</div></details>
         <section className="mt-6" aria-label="完整九人对局"><h3 className="font-medium">完整九人对局（达标后执行）</h3>

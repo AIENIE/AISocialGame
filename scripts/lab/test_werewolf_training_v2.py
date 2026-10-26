@@ -62,6 +62,21 @@ class FakeApi:
 
 
 class TrainingTest(unittest.TestCase):
+    def test_independent_evaluation_freezes_candidate_and_starts_calibration_without_teaching(self):
+        with tempfile.TemporaryDirectory() as folder:
+            saved = training.initialize(SimpleNamespace(state=str(Path(folder)/"state.json"),experiment_id="experiment",source_commit="commit",external_diagnostics=None,
+                mode="EVALUATE_ONLY",candidate_strategy_version_id="candidate-v1",material_set_version="rules-evidence-eval-v2.1"))
+            training.validate_state(saved)
+            self.assertEqual(saved["request"]["candidateStrategyVersionId"],"candidate-v1")
+            value=run();value["operationId"]=saved["request"]["operationId"];api=FakeApi(value);training.advance(saved,api,lambda _:None)
+            self.assertTrue(api.posts[-1][0].endswith("/control/start"))
+            self.assertFalse(any(path.endswith("/start-one") for path,_ in api.posts))
+
+    def test_failed_calibration_preserves_operation_and_never_restarts_it(self):
+        saved=state();value=run();value.update(status="PAUSED",stage="CALIBRATION",reason="PROTOCOL_CALIBRATION_FAILED");api=FakeApi(value)
+        with self.assertRaisesRegex(training.Attention,"PROTOCOL_CALIBRATION_FAILED"):training.advance(saved,api,lambda _:None)
+        self.assertEqual([],api.posts);self.assertEqual("operation",saved["request"]["operationId"])
+
     def test_offline_initialization_freezes_identity_and_external_references(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "state.json"

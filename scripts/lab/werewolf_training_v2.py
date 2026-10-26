@@ -38,6 +38,9 @@ def initialize(args):
     if path.exists():
         raise Attention("STATE_ALREADY_EXISTS")
     request = {"operationId": str(uuid.uuid4()), "goal": "RULES_EVIDENCE"}
+    if getattr(args,"mode","TRAIN_AND_EVALUATE") == "EVALUATE_ONLY":
+        if not args.candidate_strategy_version_id or not args.material_set_version: raise Attention("EVALUATION_REQUIRES_FROZEN_CANDIDATE_AND_MATERIALS")
+        request.update(mode="EVALUATE_ONLY",candidateStrategyVersionId=args.candidate_strategy_version_id,materialSetVersion=args.material_set_version)
     if args.external_diagnostics:
         rows = json.loads(Path(args.external_diagnostics).read_text(encoding="utf-8-sig"))
         if not isinstance(rows, list) or any(not isinstance(row, dict) or set(row) != {"requestId", "budgetId"}
@@ -193,7 +196,7 @@ def advance(state, api, save):
     if state.get("pendingControl"):
         raise Attention("CONTROL_OUTCOME_UNCONFIRMED_QUERY_ORIGINAL_RUN")
     if value["status"] == "DRAFT":
-        return control(state, api, "start-one", save)
+        return control(state, api, "start" if state["request"].get("mode")=="EVALUATE_ONLY" else "start-one", save)
     if value["status"] == "PAUSED":
         raise Attention(value.get("reason") or "TRAINING_PAUSED")
     if value["status"] == "STOPPED":
@@ -274,6 +277,9 @@ def main():
     parser.add_argument("--api-helper")
     parser.add_argument("--experiment-id")
     parser.add_argument("--source-commit")
+    parser.add_argument("--mode",choices=["TRAIN_AND_EVALUATE","EVALUATE_ONLY"],default="TRAIN_AND_EVALUATE")
+    parser.add_argument("--candidate-strategy-version-id")
+    parser.add_argument("--material-set-version")
     parser.add_argument("--external-diagnostics")
     parser.add_argument("--reviewed-by", default="")
     parser.add_argument("--review-notes", default="")
