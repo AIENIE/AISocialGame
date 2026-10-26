@@ -15,6 +15,7 @@ class FakeApi:
     def __init__(self):
         self.detail = None
         self.matches = []
+        self.diagnostics = {}
         self.posts = []
         self.lose = None
         self.commit_create = True
@@ -34,7 +35,7 @@ class FakeApi:
             if "/scenario-evaluations/" in path:
                 return deepcopy(self.detail["configuration"]["scenarioRuns"][path.rsplit("/", 1)[-1]])
             if path.endswith("/diagnostics"):
-                return {"calls": []}
+                return deepcopy(self.diagnostics.get(path.split("/")[-2], {"calls": []}))
             return deepcopy(self.detail)
         self.posts.append((path, deepcopy(body)))
         if path == pilot.PREFIX:
@@ -123,6 +124,64 @@ class PilotTests(unittest.TestCase):
         self.assertIn("费用待确认记录 1 笔", markdown)
         self.assertNotIn("matchCalls不含独立情境", markdown)
         self.assertEqual(1, len(self.api.posts))
+
+    def test_failure_export_distinguishes_finished_game_from_unfinished_training(self):
+        self.runner.create()
+        self.api.matches = [{"id": "first", "status": "REVIEW_FAILED", "archiveId": "first-archive"},
+                            {"id": "aborted", "status": "ABORTED", "archiveId": "aborted-archive"},
+                            {"id": "playing", "status": "PLAYING"}]
+        self.api.detail.update(status="PAUSED", reason="RECONCILIATION_REQUIRED", reviewFailed=True)
+        self.api.detail["cost"].update(spentPoints=194, pendingCalls=2)
+        self.api.strategies = {"items": [], "bindings": []}
+        self.api.diagnostics["first"] = {"failure": {"code": "RECONCILIATION_REQUIRED"}, "calls": [
+            {"requestId": "original", "state": "USAGE_UNKNOWN", "billedPoints": None},
+            {"requestId": "authorized-replacement", "state": "USAGE_UNKNOWN", "billedPoints": None}]}
+        self.assertNotIn("actualTrainingGames", self.runner.state)
+        receipt = self.runner.export()
+        import json
+        document = json.loads(Path(receipt["json"]).read_text(encoding="utf-8"))
+        self.assertEqual({"normallyEndedGames": 1, "successfulReviews": 0, "trainingClosedLoops": 0,
+            "plannedTrainingGames": 2, "scenarioCompletedAttempts": 0, "scenarioCompletedPairs": 0,
+            "scenarioLegalSuccessPairs": 0, "scenarioPlannedPairs": 20, "validGamePairs": 0,
+            "plannedGamePairs": 1, "sharedStrategyVersions": 0, "candidateStrategyVersionId": None}, document["progressSummary"])
+        self.assertEqual("RECONCILIATION_REQUIRED", document["matchDiagnostics"][0]["failure"]["code"])
+        self.assertEqual([None, None], [call["billedPoints"] for call in document["matchCalls"]])
+        self.assertEqual(3, len(document["matches"]))
+        markdown = Path(receipt["markdown"]).read_text(encoding="utf-8")
+        for expected in ["正常结束对局数（含评测）：1；成功复盘数：0；训练闭环数：0 / 计划 2", "待确认 2", "没有共享策略可发布", "尚未冻结候选策略", "RECONCILIATION_REQUIRED"]:
+            self.assertIn(expected, markdown)
+        self.assertNotIn("训练实际完成：0", markdown)
+        self.assertEqual(1, len(self.api.posts))
+
+    def test_export_counts_partial_scenario_attempts_separately_from_legal_pairs(self):
+        self.runner.create()
+        self.api.training_done()
+        self.runner.advance()
+        self.api.scenarios_done()
+        run = next(iter(self.api.detail["configuration"]["scenarioRuns"].values()))
+        run["status"] = "PAUSED"
+        run["results"][0]["status"] = "FAILED"
+        run["results"][2]["status"] = "RUNNING"
+        self.api.matches = [{"id": status, "status": status, "archiveId": "archive-" + status}
+                            for status in ["FINISHED", "REVIEWING", "REVIEW_FAILED", "REVIEWED", "ABORTED"]]
+        self.api.matches.append({"id": "unarchived", "status": "REVIEWED"})
+        self.api.matches.extend({"id": variant, "status": "REVIEWED", "variant": variant, "archiveId": "archive-" + variant}
+                                for variant in ["BASELINE", "CANDIDATE"])
+        self.api.detail["evaluations"] = [{"id": "pair", "status": "COMPLETED", "validPairs": 1, "pairedOutcomes": None}]
+        self.runner.state["actualTrainingGames"] = 999  # A cached cursor is not the reporting authority.
+        receipt = self.runner.export()
+        import json
+        document = json.loads(Path(receipt["json"]).read_text(encoding="utf-8"))
+        summary = document["progressSummary"]
+        self.assertEqual((6, 1, 1), (summary["normallyEndedGames"], summary["successfulReviews"], summary["trainingClosedLoops"]))
+        self.assertEqual((39, 19, 18), (summary["scenarioCompletedAttempts"], summary["scenarioCompletedPairs"], summary["scenarioLegalSuccessPairs"]))
+        self.assertEqual((1, 1), (summary["validGamePairs"], summary["plannedGamePairs"]))
+        self.assertEqual("FAILED", document["scenarioRuns"][0]["results"][0]["status"])
+        self.assertEqual("RUNNING", document["scenarioRuns"][0]["results"][2]["status"])
+        markdown = Path(receipt["markdown"]).read_text(encoding="utf-8")
+        self.assertIn("不表示语义、事实或策略通过人工评审", markdown)
+        self.assertNotIn("训练实际完成：999", markdown)
+        self.assertEqual(2, len(self.api.posts))
 
     def test_unknown_creation_without_match_never_posts_again(self):
         self.api.lose = "/experiments"

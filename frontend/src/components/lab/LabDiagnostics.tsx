@@ -6,7 +6,7 @@ import { AdminDataState } from "@/components/admin/AdminDataState";
 import { failureText } from "./labFailures";
 
 export function LabDiagnostics({experimentId,matchId}:{experimentId:string;matchId:string}) {
-  const query=useQuery({queryKey:["admin","lab","diagnostics",experimentId,matchId],queryFn:({signal})=>adminLabApi.diagnostics(experimentId,matchId,signal)});
+  const query=useQuery({queryKey:["admin","lab","diagnostics",experimentId,matchId],queryFn:({signal})=>adminLabApi.diagnostics(experimentId,matchId,signal),refetchInterval:5000});
   if(!query.data) return <AdminDataState loading={query.isPending} error={query.error} retry={()=>void query.refetch()}/>;
   const data=query.data,issue=data.failure;
   const spent=data.calls.reduce((total,call)=>total+(call.billedPoints??0),0);

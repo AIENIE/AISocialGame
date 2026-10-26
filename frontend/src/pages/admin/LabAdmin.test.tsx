@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import LabAdmin from "./LabAdmin";
 import { AdminLabObservation, AdminReplayPage } from "./LabObservation";
+import { LabDiagnostics } from "@/components/lab/LabDiagnostics";
 import type { LabExperiment, LabStrategyList } from "@/types/lab";
 
 const api=vi.hoisted(()=>({list:vi.fn(),agents:vi.fn(),detail:vi.fn(),matches:vi.fn(),experiences:vi.fn(),create:vi.fn(),observe:vi.fn(),replay:vi.fn(),diagnostics:vi.fn(),updateBudget:vi.fn(),control:vi.fn(),strategies:vi.fn(),assessStrategy:vi.fn(),publishStrategy:vi.fn(),strategyPublication:vi.fn(),evaluate:vi.fn(),evaluateStrategy:vi.fn(),startScenarios:vi.fn(),scenarioRun:vi.fn()}));
@@ -96,6 +97,24 @@ it("puts the known historical rule error and settled cost before the history, wi
   expect(container.textContent).toContain("从下一局继续");
   expect(container.querySelector('a[href="/admin/replays/archive"]')).not.toBeNull();
   expect(api.diagnostics).toHaveBeenCalledWith("source","match",expect.any(AbortSignal));
+});
+it("refreshes visible diagnostics as settled cost and unknown requests change",async()=>{
+  const value={matchId:"match",sequenceNumber:1,status:"REVIEW_FAILED",tasks:[],calls:[
+    {requestId:"settled",state:"SETTLED",billedPoints:233},{requestId:"original",state:"USAGE_UNKNOWN",billedPoints:null}]};
+  api.diagnostics.mockResolvedValue(value);
+  vi.useFakeTimers();
+  try {
+    await act(async()=>root.render(<QueryClientProvider client={client}><MemoryRouter><LabDiagnostics experimentId="source" matchId="match"/></MemoryRouter></QueryClientProvider>));
+    await act(async()=>vi.advanceTimersByTimeAsync(1));
+    expect(container.textContent).toContain("233 积分");expect(container.textContent).toContain("用量待确认 1 笔");
+    expect(api.diagnostics).toHaveBeenCalledTimes(1);
+    api.diagnostics.mockResolvedValue({...value,calls:[{...value.calls[0],billedPoints:240},value.calls[1],
+      {requestId:"authorized-replacement",state:"USAGE_UNKNOWN",billedPoints:null}]});
+    await act(async()=>vi.advanceTimersByTimeAsync(5000));
+    expect(api.diagnostics).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("240 积分");expect(container.textContent).toContain("用量待确认 2 笔");
+    expect(api.control).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
 });
 it("allows every slot to use the same profile and submits no concurrency setting",async()=>{
   await render("/admin/lab");await act(async()=>button("新建实验").click());

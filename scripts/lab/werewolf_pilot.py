@@ -388,9 +388,10 @@ class Pilot:
     def export(self):
         detail, matches = self.snapshot()
         strategies = self.api("GET", self.endpoint("/strategies"))
-        calls = []
+        calls, match_diagnostics = [], []
         for row in matches:
             diagnostics = self.api("GET", self.endpoint(f"/matches/{row['id']}/diagnostics"))
+            match_diagnostics.append({"matchId": row["id"], **diagnostics})
             for call in diagnostics.get("calls", []):
                 calls.append({"matchId": row["id"], **call})
         scenario_runs, scenario_calls = [], []
@@ -399,6 +400,33 @@ class Pilot:
             scenario_runs.append(scenario)
             for call in scenario.get("calls", []):
                 scenario_calls.append({"operationId": operation_id, "runId": scenario["id"], **call})
+        ended = [row for row in matches if row.get("archiveId") and row["status"] in ["FINISHED", "REVIEWING", "REVIEW_FAILED", "REVIEWED"]]
+        reviewed = [row for row in ended if row["status"] == "REVIEWED" and (not row.get("variant") or row["variant"] == "TRAINING")]
+        completed_attempts = completed_scenario_pairs = legal_scenario_pairs = 0
+        for scenario in scenario_runs:
+            pairs = {}
+            for row in scenario.get("results", []):
+                if row.get("status") in ["SUCCEEDED", "FAILED"]:
+                    completed_attempts += 1
+                if row.get("caseId") and row.get("variant") in ["BASELINE", "CANDIDATE"]:
+                    pairs.setdefault(row["caseId"], {}).setdefault(row["variant"], []).append(row.get("status"))
+            for pair in pairs.values():
+                baseline, candidate = pair.get("BASELINE", []), pair.get("CANDIDATE", [])
+                if len(baseline) == len(candidate) == 1:
+                    completed_scenario_pairs += all(status in ["SUCCEEDED", "FAILED"] for status in baseline + candidate)
+                    legal_scenario_pairs += baseline == candidate == ["SUCCEEDED"]
+        manifest = detail["configuration"].get("scenarioManifest", [])
+        progress_summary = {
+            "normallyEndedGames": len(ended), "successfulReviews": len(reviewed),
+            "trainingClosedLoops": len(reviewed),
+            "plannedTrainingGames": self.state["manifest"]["configuration"]["targetGames"],
+            "scenarioCompletedAttempts": completed_attempts, "scenarioCompletedPairs": completed_scenario_pairs,
+            "scenarioLegalSuccessPairs": legal_scenario_pairs, "scenarioPlannedPairs": len(manifest) if manifest else 20,
+            "validGamePairs": sum(item.get("validPairs", (item.get("pairedOutcomes") or {}).get("sampleSize", 0)) for item in detail.get("evaluations", [])),
+            "plannedGamePairs": len(self.state["evaluations"]),
+            "sharedStrategyVersions": len(strategies["items"]),
+            "candidateStrategyVersionId": self.state.get("candidateStrategyVersionId"),
+        }
         unique_calls = {call["requestId"]: call for call in calls + scenario_calls}
         known_points = sum(call["billedPoints"] for call in unique_calls.values() if call.get("billedPoints") is not None)
         call_summary = {"uniqueRequests": len(unique_calls), "knownBilledPoints": known_points,
@@ -407,7 +435,8 @@ class Pilot:
                         "authoritativePendingCalls": detail["cost"]["pendingCalls"],
                         "knownPointsDifference": detail["cost"]["spentPoints"] - known_points}
         result = {"exportedAt": now(), "run": self.state, "experiment": detail, "matches": matches,
-                  "strategies": strategies, "matchCalls": calls, "scenarioRuns": scenario_runs,
+                  "progressSummary": progress_summary, "strategies": strategies, "matchDiagnostics": match_diagnostics,
+                  "matchCalls": calls, "scenarioRuns": scenario_runs,
                   "scenarioCalls": scenario_calls, "callSummary": call_summary,
                   "limitations": ["先导样本不证明稳定能力提升。", "保守区间假设各配对相互独立；同一来源的相关样本不能视为独立。", "情境合法性不等于语义或策略正确性。", "对局调用与独立情境调用分列，并按requestId去重汇总；待确认费用保留null，实扣总额以实验权威汇总为准。", "未执行角色发布，版本保持效果待验证。"]}
         destination = self.path.parent / (self.path.stem + "-results.json")
@@ -415,7 +444,13 @@ class Pilot:
         lines = ["# 狼人杀共享策略先导结果", "", f"实验：[{detail['id']}]({ORIGIN}/admin/lab/{detail['id']})", "",
                  f"状态：{detail['status']}；实扣 {detail['cost']['spentPoints']} / 3000 积分；待确认 {detail['cost']['pendingCalls']}。",
                  "执行完成与费用结算分开记录；仍有待确认费用时，不代表结算完成或免费。",
-                 f"训练实际完成：{self.state.get('actualTrainingGames', 0)} 局；计划上限 2 局，900 积分检查线可能提前结束训练。",
+                 f"当前原因：{detail.get('reason') or '未提供'}。",
+                 f"正常结束对局数（含评测）：{progress_summary['normallyEndedGames']}；成功复盘数：{progress_summary['successfulReviews']}；训练闭环数：{progress_summary['trainingClosedLoops']} / 计划 {progress_summary['plannedTrainingGames']}。",
+                 "正常结束只统计有归档且处于 FINISHED / REVIEWING / REVIEW_FAILED / REVIEWED 的对局，排除 ABORTED；成功复盘与训练闭环只统计 REVIEWED 训练对局，评测不调用教练，不能计入复盘成功。",
+                 "900 积分检查线可能提前结束训练；已结束但复盘失败的对局不会写成训练闭环。",
+                 f"情境已完成尝试：{completed_attempts}；两边均已终态的尝试配对：{completed_scenario_pairs} / 计划 {progress_summary['scenarioPlannedPairs']}；两边合法成功配对：{legal_scenario_pairs}。",
+                 "情境合法成功只表示两边状态均为 SUCCEEDED，不表示语义、事实或策略通过人工评审。",
+                 f"完整对局有效配对数：{progress_summary['validGamePairs']} / 计划 {progress_summary['plannedGamePairs']}。",
                  "计划配置：DeepSeek LOW 玩家、GPT-6.1 Sol MAX 教练；实际流式链路与时间指标须由调用诊断另行核验。", "",
                  "效果待验证；该先导不用于宣称胜率或能力已提升。未向正式角色自动发布。", "",
                  "## 调用与结算", "",
@@ -424,6 +459,9 @@ class Pilot:
                  f"实验权威汇总：实扣 {detail['cost']['spentPoints']} 积分，待确认 {detail['cost']['pendingCalls']} 笔；与请求已确认积分之差 {call_summary['knownPointsDifference']}。",
                  "两个调用集合均保留原请求 ID、结算状态与费用；缺少权威费用的值保持 null，不按零费用处理。", "",
                  "## 共享策略版本"]
+        if not strategies["items"]:
+            lines.extend(["", "没有共享策略可发布：尚未产生共享策略版本。"])
+        lines.append("评测候选策略：" + (self.state.get("candidateStrategyVersionId") or "尚未冻结候选策略") + "。")
         versions_by_id = {version["id"]: version for version in strategies["items"]}
         for version in sorted(strategies["items"], key=lambda item: item["sequenceNumber"]):
             lines.extend(["", f"### v{version['sequenceNumber']} · {version['id']}", "",
@@ -437,7 +475,6 @@ class Pilot:
                 before = next((item for item in previous.get("content", {}).get("cards", []) if item["id"] == card["id"]), None)
                 if before and before.get("counterEvidence", []) != card.get("counterEvidence", []):
                     lines.append(f"  - 反例变化：前版 {len(before.get('counterEvidence', []))} 项 → 当前 {len(card.get('counterEvidence', []))} 项。")
-        manifest = detail["configuration"].get("scenarioManifest", [])
         groups = {item["sourceGroup"] for item in manifest if item.get("sourceGroup")}
         lines.extend(["", "## 情境评测样本", "", f"冻结情境单元：{len(manifest)}；每个单元比较初始与候选策略，最多 {len(manifest)*2} 次调用。"])
         if groups:
@@ -463,7 +500,7 @@ class Pilot:
                 lines.append("- 本记录未提供成对胜负分布与区间。")
             lines.extend(["", "区间假设各配对相互独立；先导样本不足以证明能力提升。", ""])
         lines.extend(["", "## 评测与限制", ""] + result["limitations"])
-        lines.extend(["", "完整配置、原操作 ID、情境结果、成对整局结果、调用结算和证据见同名 JSON。"])
+        lines.extend(["", "完整配置、原操作 ID、对局诊断与失败状态、情境结果、成对整局结果、调用结算和证据见同名 JSON。"])
         destination.with_suffix(".md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         return {"status": "EXPORTED", "json": str(destination), "markdown": str(destination.with_suffix('.md')),
                 "executionCompleted": self.state.get("executionCompleted", False), "effect": "NOT_VERIFIED"}
