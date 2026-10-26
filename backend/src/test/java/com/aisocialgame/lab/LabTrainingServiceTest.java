@@ -57,8 +57,22 @@ class LabTrainingServiceTest {
         var item=f.item("DEVELOPMENT","development","ai1");var task=f.task(run,item,"TEACH",null);task.status="BLOCKED";task.requestId="original";task.checkpoint.put("waitingSinceEpochMs",1L);
         f.service.control(f.experiment.id,run.operationId,"start-one");assertEquals(true,run.configuration.get("representativeOnly"));assertEquals("WAITING",task.status);assertEquals("original",task.requestId);
         f.service.control(f.experiment.id,run.operationId,"pause");assertEquals("PAUSED",run.status);assertEquals("ADMIN_PAUSED",run.reason);
-        f.service.control(f.experiment.id,run.operationId,"resume");assertEquals(false,run.configuration.get("representativeOnly"));assertEquals("RUNNING",run.status);assertEquals("original",task.requestId);
+        f.service.control(f.experiment.id,run.operationId,"resume");assertEquals(true,run.configuration.get("representativeOnly"));assertEquals("RUNNING",run.status);assertEquals("original",task.requestId);
         verify(f.calls,times(2)).preflight(any(),eq(LabCoachLimits.MAX_OUTPUT_TOKENS));
+    }
+    @Test void resumeRepreparesOnlyUnsentOversizedMaterialAndKeepsTheRepresentativeCheckpoint() {
+        var f=new LabTrainingFixture();var run=f.run();run.status="PAUSED";run.reason="REPRESENTATIVE_CASE_FAILED";run.configuration.put("representativeOnly",true);
+        var item=f.item("DEVELOPMENT","development","ai1");
+        var practice=f.task(run,item,"PRACTICE","BASELINE");practice.status="SUCCEEDED";practice.requestId="paid-player";practice.result.put("speech","preserved");
+        var teach=f.task(run,item,"TEACH",null);teach.status="FAILED";teach.reason="MATERIAL_TOO_LARGE";teach.input.put("payload",Map.of("original","full material"));
+        var sent=f.task(run,item,"JUDGE",null);sent.status="FAILED";sent.reason="MATERIAL_TOO_LARGE";sent.checkpoint.put("requestHistory",List.of("original-sent"));sent.input.put("payload",Map.of("keep",true));
+        f.service.control(f.experiment.id,run.operationId,"resume");
+        assertEquals(true,run.configuration.get("representativeOnly"));assertEquals("SUCCEEDED",practice.status);assertEquals("preserved",practice.result.get("speech"));
+        assertEquals("PENDING",teach.status);assertTrue(teach.input.isEmpty());assertEquals(0,teach.paidRetries);
+        assertEquals("full material",map(map(maps(teach.checkpoint.get("inputPreparationHistory")).getFirst().get("input")).get("payload")).get("original"));
+        assertEquals("FAILED",sent.status);assertFalse(sent.input.isEmpty());
+        run.status="PAUSED";run.reason="REPRESENTATIVE_CASE_READY";
+        f.service.control(f.experiment.id,run.operationId,"resume");assertEquals(false,run.configuration.get("representativeOnly"));
     }
     @Test void exhaustedBudgetDoesNotResumeOrClearPreservedProgress() {
         var f=new LabTrainingFixture();var run=f.run();run.status="PAUSED";run.reason=LabBudgetService.EXHAUSTED;

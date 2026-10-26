@@ -148,6 +148,13 @@ def acknowledge(state, reviewed_by, review_notes):
     record(state, "REPRESENTATIVE_REVIEW_RECORDED")
 
 
+def unsent_material_failure(task):
+    """Only a confirmed pre-send material failure may be resumed after repair."""
+    return (task.get("status") == "FAILED" and task.get("kind") in {"TEACH", "JUDGE"}
+            and task.get("reason") == "MATERIAL_TOO_LARGE" and task.get("requestId") in {None, ""}
+            and task.get("diagnostics", {}).get("calls") == [])
+
+
 def control(state, api, action, save):
     value = poll(state, api)
     save(state)
@@ -163,7 +170,8 @@ def control(state, api, action, save):
             if value.get("reason") == "REPRESENTATIVE_CASE_READY":
                 if state.get("representativeReview", {}).get("resultHash") != representative_fingerprint(value):
                     raise Attention("REVIEW_REPRESENTATIVE_BEFORE_CONTINUING")
-            elif any(task["status"] in {"FAILED", "BLOCKED", "WAITING"} for task in value.get("tasks", [])):
+            elif any(task["status"] in {"FAILED", "BLOCKED", "WAITING"} and not unsent_material_failure(task)
+                     for task in value.get("tasks", [])):
                 raise Attention("CURRENT_FAILURE_REQUIRES_REVIEW_NO_AUTOMATIC_RETRY")
     state["pendingControl"] = {"action": action, "at": now()}
     save(state)

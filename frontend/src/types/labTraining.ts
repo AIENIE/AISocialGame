@@ -18,8 +18,8 @@ export interface LabTrainingChange {
 export interface LabTrainingTask {
   id: string; caseId: string; kind: "PRACTICE" | "TEACH" | "REHEARSAL" | "HOLDOUT" | "JUDGE";
   variant?: string; status: "PENDING" | "RUNNING" | "WAITING" | "SUCCEEDED" | "FAILED" | "BLOCKED" | "SKIPPED";
-  reason?: string | null; requestId?: string; attempt: number; paidRetries: number;
-  startedAtEpochMs?: number; updatedAtEpochMs?: number; notBeforeEpochMs?: number;
+  reason?: string | null; requestId?: string | null; attempt: number; paidRetries: number;
+  startedAtEpochMs?: number | null; updatedAtEpochMs?: number; notBeforeEpochMs?: number;
   result?: {
     action?: Record<string, unknown>; speech?: string; evidenceEventIds?: string[];
     diagnosis?: { category: string; summary: string; evidenceIds: string[] };

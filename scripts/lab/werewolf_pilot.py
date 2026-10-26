@@ -134,6 +134,10 @@ class Api:
         except Attention:
             raise
         except Exception as error:
+            # The in-memory Python helper exposes only a sanitized status code.
+            # In particular an authoritative GET 404 is required before creation.
+            if self.module and re.fullmatch(r"API_HTTP_[1-5][0-9]{2}", str(error)):
+                raise Attention(str(error)) from None
             raise Attention("API_OUTCOME_UNKNOWN_" + type(error).__name__) from None
 
 

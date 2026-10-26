@@ -126,6 +126,44 @@ class TrainingTest(unittest.TestCase):
             training.advance(saved, api, lambda _: None)
         self.assertEqual(api.posts, [])
 
+    def test_explicit_resume_repairs_only_confirmed_unsent_teacher_material_and_preserves_the_same_run(self):
+        for kind in ("TEACH", "JUDGE"):
+            with self.subTest(kind=kind):
+                saved, value = state(), representative()
+                value.update(reason="REPRESENTATIVE_CASE_FAILED", configuration={"representativeOnly": True})
+                original_player = deepcopy(value["tasks"][0])
+                value["tasks"][1].update(kind=kind, status="FAILED", reason="MATERIAL_TOO_LARGE", requestId=None,
+                                         diagnostics={"calls": [], "inputCodePoints": 40001})
+                api = FakeApi(value)
+                with self.assertRaisesRegex(training.Attention, "REPRESENTATIVE_CASE_FAILED"):
+                    training.advance(saved, api, lambda _: None)
+                self.assertEqual(api.posts, [])
+                result = training.control(saved, api, "resume", lambda _: None)
+                self.assertEqual(api.posts, [(training.route(saved) + "/control/resume", None)])
+                self.assertEqual(result["id"], "run")
+                self.assertTrue(result["configuration"]["representativeOnly"])
+                self.assertEqual(result["tasks"][0], original_player)
+                self.assertEqual(saved["request"]["operationId"], "operation")
+                self.assertTrue(saved["usagePending"])
+                self.assertFalse(saved["settlementComplete"])
+
+    def test_resume_material_whitelist_rejects_sent_unknown_unverified_and_other_failed_tasks(self):
+        failure = {"id": "teach", "caseId": "case-one", "kind": "TEACH", "status": "FAILED",
+                   "reason": "MATERIAL_TOO_LARGE", "requestId": None, "diagnostics": {"calls": []}}
+        variants = [{"requestId": "original-request"},
+                    {"diagnostics": {"calls": [{"requestId": "unknown", "state": "RECONCILIATION_REQUIRED"}]}},
+                    {"diagnostics": {}}, {"kind": "PRACTICE"}, {"reason": "COACH_FORMAT_INVALID"},
+                    {"status": "WAITING"}, {"status": "BLOCKED"}]
+        for override in variants:
+            with self.subTest(override=override):
+                value = run()
+                value.update(status="PAUSED", reason="REPRESENTATIVE_CASE_FAILED",
+                             tasks=[deepcopy(failure), {**deepcopy(failure), "id": "other", **override}])
+                api = FakeApi(value)
+                with self.assertRaises(training.Attention):
+                    training.control(state(), api, "resume", lambda _: None)
+                self.assertEqual(api.posts, [])
+
     def test_cost_stop_includes_external_authoritative_points(self):
         value = run()
         value["cost"].update(spentPoints=2999, externalPoints=1, totalKnownPoints=3000)
@@ -178,6 +216,19 @@ class TrainingTest(unittest.TestCase):
             self.assertIn("preserved", text)
             self.assertEqual(report["run"]["tasks"][0]["status"], "FAILED")
             self.assertEqual(api.posts, [])
+
+
+class PythonHelperProtocolTest(unittest.TestCase):
+    def test_exact_sanitized_http_errors_are_preserved_but_unknown_messages_are_hidden(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helper = Path(directory) / "helper.py"
+            helper.write_text('def request(method, path, body=None):\n    raise RuntimeError(path)\n', encoding="utf-8")
+            api = training.Api(helper)
+            for code in ("API_HTTP_404", "API_HTTP_500"):
+                with self.assertRaisesRegex(training.Attention, "^" + code + "$"):
+                    api("GET", code)
+            with self.assertRaisesRegex(training.Attention, "^API_OUTCOME_UNKNOWN_RuntimeError$"):
+                api("GET", "private helper detail must not escape")
 
 
 if __name__ == "__main__":

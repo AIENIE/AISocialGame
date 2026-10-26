@@ -26,6 +26,7 @@ function savedRequest(key:string):CreateLabTrainingRun|undefined {
 }
 function pauseMessage(reason?:string|null) {
   if(reason==="REPRESENTATIVE_CASE_READY")return "代表案例的练习与教练诊断已完成。先查看回答、证据与建议，再决定是否继续全部训练。";
+  if(reason==="REPRESENTATIVE_CASE_FAILED")return "代表案例未完成，训练已暂停。请先查看下方失败原因并处理；已成功的玩家回答继续保留。";
   if(reason?.includes("BUDGET"))return "已达到费用停止线，新调用已暂停；已发出的请求继续结算。";
   if(reason?.includes("UNKNOWN")||reason?.includes("RECONCILIATION"))return "当前调用结果或用量仍待确认，已保存现场。请查看原请求状态，不要另建训练重复生成。";
   return "训练已保留当前进度。请检查当前任务和诊断，再决定下一步。";
@@ -35,9 +36,12 @@ function TaskDetail({task}:{task:LabTrainingTask}) {
   const calls=task.diagnostics?.calls??[];
   const lastCall=calls.at(-1);
   const speech=result?.speech??(typeof result?.action?.content==="string"?result.action.content:undefined);
+  const materialTooLarge=task.reason==="MATERIAL_TOO_LARGE";
+  const confirmedUnsent=materialTooLarge&&!task.requestId&&Array.isArray(task.diagnostics?.calls)&&calls.length===0;
   return <article className="lab-training-task">
     <div className="lab-actions justify-between"><strong>{kinds[task.kind]??task.kind} · {task.caseId}</strong><span className="lab-state">{statuses[task.status]??task.status}</span></div>
     <p className="lab-small mt-2">{task.variant&&`${task.variant} · `}尝试 {task.attempt} · 已付费重试 {task.paidRetries}</p>
+    {materialTooLarge&&<p className="lab-error mt-2" role="alert">输入材料超过 32000 Unicode 字符上限{typeof task.diagnostics?.inputCodePoints==="number"&&`（当前 ${task.diagnostics.inputCodePoints} 字符）`}。请先修复材料编码，再恢复当前训练。{confirmedUnsent&&"本任务未发送模型请求，未产生调用费用。"}</p>}
     {task.reason==="PAID_REDO_WAIT"&&typeof task.notBeforeEpochMs==="number"&&<p className="lab-note mt-2">独立计费重试等待：{task.notBeforeEpochMs>Date.now()?`还需 ${Math.ceil((task.notBeforeEpochMs-Date.now())/1000)} 秒` : "等待调度发送"}。原请求与费用记录继续保留。</p>}
     {lastCall&&<p className="lab-small mt-2">正文 TTFT：{seconds(lastCall.timing?.firstTextMs)} · 总耗时：{seconds(lastCall.timing?.totalMs)} · 此请求实扣：{typeof lastCall.billedPoints==="number"?`${lastCall.billedPoints} 积分`:"待确认"}</p>}
     {task.status==="RUNNING"&&task.startedAtEpochMs&&<p className="lab-small mt-2">当前任务已等待 {Math.max(0,Math.floor((Date.now()-task.startedAtEpochMs)/1000))} 秒</p>}

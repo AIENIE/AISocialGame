@@ -127,11 +127,23 @@ public class LabTrainingService {
             if("pause".equals(action)) {run.status="PAUSED";run.reason="ADMIN_PAUSED";}
             else if("stop".equals(action)) {run.status="STOPPED";run.reason="ADMIN_STOPPED";}
             else {
+                boolean retryRepresentative="resume".equals(action) && flag(run.configuration.get("representativeOnly"))
+                        && !"REPRESENTATIVE_CASE_READY".equals(run.reason);
                 budgets.requireRemaining(experiment);run.status="RUNNING";run.reason=null;
                 experiment.configuration.remove("budgetPaused");
-                run.configuration.put("representativeOnly","start-one".equals(action));
-                for(var task:tasks.findByRunIdOrderByOrdinalAsc(run.id)) if("BLOCKED".equals(task.status) && !text(task.requestId).isBlank()) {
-                    task.status="WAITING";task.notBeforeEpochMs=0;task.checkpoint.remove("waitingSinceEpochMs");tasks.save(task);
+                run.configuration.put("representativeOnly","start-one".equals(action) || retryRepresentative);
+                for(var task:tasks.findByRunIdOrderByOrdinalAsc(run.id)) {
+                    if("BLOCKED".equals(task.status) && !text(task.requestId).isBlank()) {
+                        task.status="WAITING";task.notBeforeEpochMs=0;task.checkpoint.remove("waitingSinceEpochMs");tasks.save(task);
+                    } else if("FAILED".equals(task.status) && "MATERIAL_TOO_LARGE".equals(task.reason)
+                            && Set.of("TEACH","JUDGE").contains(task.kind) && requestIds(task).isEmpty()) {
+                        // Explicit resume may re-encode unsent material after a local preparation fix.
+                        // Retain the previous input and never reset a task that has a request identity.
+                        var history=new ArrayList<>(maps(task.checkpoint.get("inputPreparationHistory")));
+                        history.add(Map.of("reason",task.reason,"input",LabStrategyService.copy(task.input),"atEpochMs",System.currentTimeMillis()));
+                        task.checkpoint.put("inputPreparationHistory",history);task.input=new LinkedHashMap<>();
+                        task.status="PENDING";task.reason=null;tasks.save(task);
+                    }
                 }
             }
             experiment.status="GAMES".equals(run.stage) && "RUNNING".equals(run.status)?"RUNNING":"PAUSED";
@@ -197,6 +209,7 @@ public class LabTrainingService {
             records.add(record);
         }
         diagnostics.put("attemptHistory",row.checkpoint.getOrDefault("attemptHistory",List.of()));
+        diagnostics.put("inputPreparationHistory",row.checkpoint.getOrDefault("inputPreparationHistory",List.of()));
         diagnostics.put("input",row.input);
         diagnostics.put("calls",records);out.put("diagnostics",diagnostics);return out;
     }

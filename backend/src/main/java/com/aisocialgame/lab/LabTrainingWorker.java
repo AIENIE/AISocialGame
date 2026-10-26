@@ -127,7 +127,14 @@ public class LabTrainingWorker {
             payload.put("actualPromptStatus",item.data.get("originalPromptStatus"));payload.put("outcomeTruth",item.data.get("outcomeTruth"));
             payload.put("source",item.data.get("source"));payload.put("objective",item.data.get("focus"));
             var practice=rows.stream().filter(t->item.id.equals(t.caseId)&&"PRACTICE".equals(t.kind)).findFirst().orElseThrow();
-            payload.put("practice",practice.result);payload.put("practicePrompt",practice.input.get("actualPrompt"));
+            var teachingPractice=new LinkedHashMap<String,Object>();
+            for(String key:List.of("action","speech","evidenceEventIds","programChecks","usedStrategy"))
+                if(practice.result.containsKey(key))teachingPractice.put(key,practice.result.get(key));
+            var quality=new LinkedHashMap<String,Object>();var diagnostics=map(practice.result.get("diagnostics"));
+            for(String key:List.of("qualityFlags","repaired"))if(diagnostics.containsKey(key))quality.put(key,diagnostics.get(key));
+            teachingPractice.put("quality",quality);
+            // Billing and transport telemetry remain in the task archive, outside the teaching prompt.
+            payload.put("practice",teachingPractice);payload.put("practicePrompt",practice.input.get("actualPrompt"));
             var role=text(map(map(item.data.get("observation")).get("self")).get("role"));
             payload.put("previousCards",maps(map(map(run.configuration.get("baseStrategy")).get("content")).get("cards")).stream()
                     .filter(c->Set.of("GENERAL",role).contains(text(c.get("role")))).toList());

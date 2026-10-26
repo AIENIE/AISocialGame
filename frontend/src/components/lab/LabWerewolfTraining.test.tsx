@@ -108,6 +108,30 @@ it("shows preserved answer, diagnosis, usage and real body timing while keeping 
   expect(technical.open).toBe(false);expect(technical.textContent).toContain("RPC_INTERNAL_DETAIL");
   expect(container.textContent).toContain("不要另建训练重复生成");
 });
+it("explains the observed pre-send material failure and preserves real timing, costs and all five steps",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"PAUSED",reason:"REPRESENTATIVE_CASE_FAILED",configuration:{representativeOnly:true},assessment:{},
+    progress:{...run().progress,totalTasks:16,completedTasks:1,failedTasks:1},cost:{...run().cost,spentPoints:235,totalKnownPoints:236,totalCalls:65},
+    tasks:[{id:"practice",caseId:"case-one",kind:"PRACTICE",status:"SUCCEEDED",attempt:0,paidRetries:0,requestId:"practice:0",result:{speech:"保留首个玩家回答"},diagnostics:{calls:[{requestId:"practice:0",state:"SETTLED",billedPoints:2,timing:{firstTextMs:2631,totalMs:4232}}]}},
+      {id:"teach",caseId:"case-one",kind:"TEACH",status:"FAILED",reason:"MATERIAL_TOO_LARGE",requestId:null,attempt:0,paidRetries:0,startedAtEpochMs:null,diagnostics:{inputCodePoints:40001,calls:[]}},
+      {id:"next",caseId:"case-two",kind:"PRACTICE",status:"PENDING",attempt:0,paidRetries:0}]}));
+  await render();const status=container.querySelector('[aria-label="当前训练状态"]')!,cost=container.querySelector('[aria-label="训练费用"]')!;
+  expect(status.textContent).toContain("代表案例未完成，训练已暂停");expect(status.textContent).toContain("教练诊断 · 失败");expect(status.textContent).not.toContain("case-two");
+  expect(status.querySelector('[role="alert"]')?.textContent).toContain("输入材料超过 32000 Unicode 字符上限（当前 40001 字符）");
+  expect(status.querySelector('[role="alert"]')?.textContent).toContain("本任务未发送模型请求，未产生调用费用");
+  expect(container.textContent).toContain("保留首个玩家回答");expect(container.textContent).toContain("正文 TTFT：2.6 秒 · 总耗时：4.2 秒 · 此请求实扣：2 积分");
+  expect(cost.textContent).toContain("实验累计实扣235 积分");expect(cost.textContent).toContain("独立诊断计价1 积分");expect(cost.textContent).toContain("已知费用合计236 积分");expect(cost.textContent).toContain("待确认调用2 笔");
+  expect(container.querySelectorAll('[aria-label="狼人杀训练步骤"] button')).toHaveLength(5);
+  await step("选课程");expect(container.textContent).toContain("规则与证据课程");
+  await step("策略变化");expect(container.textContent).toContain("学习成功并生成候选版本后才能查看共享策略");
+  await step("对照评测");expect(container.textContent).toContain("尚未评测");expect(container.textContent).toContain("保留题配对完成0/32");
+  await step("角色试用");expect(button("试用发布到所选人格").disabled).toBe(true);
+  expect(api.controlTrainingRun).not.toHaveBeenCalled();expect(api.publishStrategy).not.toHaveBeenCalled();
+});
+it("does not label an oversize task free when an original request exists or call records are unavailable",async()=>{
+  api.trainingRun.mockResolvedValue(run({status:"PAUSED",tasks:[{id:"teach",caseId:"case-one",kind:"TEACH",status:"FAILED",reason:"MATERIAL_TOO_LARGE",requestId:"original",attempt:0,paidRetries:0,diagnostics:{inputCodePoints:40001,calls:[{requestId:"original",state:"RECONCILIATION_REQUIRED",billedPoints:null}]}},{id:"missing",caseId:"case-two",kind:"TEACH",status:"FAILED",reason:"MATERIAL_TOO_LARGE",attempt:0,paidRetries:0}]}));
+  await render();expect(container.textContent).toContain("输入材料超过 32000");expect(container.textContent).toContain("此请求实扣：待确认");
+  expect(container.textContent).not.toContain("未产生调用费用");expect(api.controlTrainingRun).not.toHaveBeenCalled();
+});
 it("refreshes the same run cost and timing without starting additional work",async()=>{
   vi.useFakeTimers();
   await act(async()=>root.render(<QueryClientProvider client={client}><MemoryRouter><LabWerewolfTraining experiment={experiment()} strategies={strategies} reload={reload}/></MemoryRouter></QueryClientProvider>));

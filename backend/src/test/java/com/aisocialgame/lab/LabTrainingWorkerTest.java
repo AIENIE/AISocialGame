@@ -142,6 +142,20 @@ class LabTrainingWorkerTest {
         f.worker().process(f.experiment.id);assertEquals("FAILED",task.status);assertEquals("MATERIAL_TOO_LARGE",task.reason);assertTrue(number(task.input.get("codePoints"),0)>32_000);
         assertEquals("😀".repeat(33_000),LabTrainingInput.decode(map(task.input.get("encoded"))).get("actualPrompt"));verifyNoInteractions(f.client);
     }
+    @Test void teachingKeepsActualPromptsObservationAndActionWithoutDuplicatingBillingTelemetry() {
+        var f=new Fixture();var run=f.run();var task=f.teaching(run);task.input.clear();f.goodCoach();
+        var item=f.caseRows.get(task.caseId);item.data.put("actualPrompt",List.of(Map.of("role","system","content","original exact rules")));
+        var practice=f.taskRows.values().stream().filter(t->"PRACTICE".equals(t.kind)).findFirst().orElseThrow();
+        practice.result.put("action",Map.of("type","SPEAK","content","do not equate claims with facts"));
+        practice.result.put("diagnostics",Map.of("promptTokens",7000,"rawOutput",Map.of("sameAction",true),"qualityFlags",List.of(),"repaired",false));
+        practice.input.put("actualPrompt",List.of(Map.of("role","user","content","new exact visible input")));
+        f.worker().process(f.experiment.id);assertEquals("SUCCEEDED",task.status);
+        var restored=LabTrainingInput.decode(map(task.input.get("encoded")));
+        assertEquals(item.data.get("observation"),restored.get("observation"));assertEquals(item.data.get("actualPrompt"),restored.get("actualPrompt"));
+        assertEquals(practice.input.get("actualPrompt"),restored.get("practicePrompt"));assertEquals(practice.result.get("action"),map(restored.get("practice")).get("action"));
+        assertFalse(map(restored.get("practice")).containsKey("diagnostics"));assertEquals(false,map(map(restored.get("practice")).get("quality")).get("repaired"));
+        assertEquals(7000,map(practice.result.get("diagnostics")).get("promptTokens"));assertTrue(map(practice.result.get("diagnostics")).containsKey("rawOutput"));
+    }
     @Test void missingOrFailedDependenciesNeverCallTheJudgeOrDeclareSuccess() {
         for(boolean failed:List.of(false,true)) {
             var f=new Fixture();var run=f.run();run.stage="HOLDOUT";var item=f.item("HOLDOUT","holdout","ai1");
