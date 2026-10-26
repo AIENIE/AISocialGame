@@ -544,6 +544,17 @@ public class V2GameService {
             }
             job.getObservation().put("generationCheckpoint", checkpoint);
             if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state)) {
+                if(com.aisocialgame.lab.LabCallRecovery.terminatedWithoutResult(checkpoint)) {
+                    var generation=new LinkedHashMap<String,Object>();generation.put("attempts",RuleSupport.maps(checkpoint.get("attempts")));
+                    generation.put("calls",checkpoint.getOrDefault("calls",0));generation.put("responsesObserved",checkpoint.getOrDefault("responses",0));
+                    generation.put("usageComplete",false);generation.put("failureStage","RPC");generation.put("failureCode","AI_REQUEST_TERMINATED");
+                    generation.put("qualityFlags",List.of("AI_REQUEST_TERMINATED"));job.getDiagnostics().put("generation",generation);
+                    job.getDiagnostics().put("callAuthority",RuleSupport.map(checkpoint.get("lastCallState")));
+                    ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules(state.getGameId())).onAiFailure(state,
+                            new TurnRequest(job.getActorId(),job.getKind(),job.getTurnKey()),LocalDateTime.now(),"AI_REQUEST_TERMINATED");
+                    finishJob(job,"FAILED","AI_REQUEST_TERMINATED");persist(rooms.findById(job.getRoomId()).orElseThrow(),state,rules(state.getGameId()),false);
+                    prepareJob(state,rules(state.getGameId()));return;
+                }
                 com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,LocalDateTime.now(),com.aisocialgame.lab.LabCallRecovery.awaitingOriginal(checkpoint));
                 states.save(state);
             }

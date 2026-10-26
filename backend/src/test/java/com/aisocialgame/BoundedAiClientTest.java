@@ -95,6 +95,22 @@ class BoundedAiClientTest {
                 ()->client.recoverOriginal("aisocialgame",85,"same-request")).getCode());
     }
 
+    @Test void recoveryCarriesAuthoritativeExecutionEndWithoutGuessingOrSendingAnotherRequest() {
+        var escrow=mock(AiCallSettlementService.class);var reservations=mock(AiCreditReservationRepository.class);var count=mock(AiCallBudgetService.class);
+        var client=new BoundedAiClient(stub,escrow,reservations,count,false,8192);var row=new AiCreditReservation();
+        row.id="ended";row.budgetId="budget";row.requestId="same-request";row.userId=85;row.projectKey="aisocialgame";row.state="USAGE_UNKNOWN";
+        when(reservations.findByIdentityHash(anyString())).thenReturn(Optional.of(row));when(reservations.findById(row.id)).thenReturn(Optional.of(row));
+        for(var execution:List.of(BudgetExecutionState.BUDGET_EXECUTION_STATE_UNKNOWN,BudgetExecutionState.BUDGET_EXECUTION_STATE_RUNNING,BudgetExecutionState.BUDGET_EXECUTION_STATE_TERMINATED)) {
+            var authority=GetBudgetCallStatusResponse.newBuilder().setBudgetId("budget").setState(BudgetCallState.BUDGET_CALL_STATE_RECONCILIATION_REQUIRED).setExecutionState(execution);
+            for(boolean ended:List.of(false,true)) {
+                if(ended)authority.setExecutionEndedAtEpochMs(123L);else authority.clearExecutionEndedAtEpochMs();status=authority.build();
+                var failure=assertThrows(com.aisocialgame.exception.ApiException.class,()->client.recoverOriginal("aisocialgame",85,"same-request"));
+                assertEquals("AI_RESULT_UNKNOWN",failure.getCode());assertEquals(execution.name().replace("BUDGET_EXECUTION_STATE_",""),failure.getDetails().get("executionState"));
+                assertEquals(ended,failure.getDetails().containsKey("executionEndedAtEpochMs"));assertEquals("USAGE_UNKNOWN",row.state);
+            }
+        }
+        assertEquals(0,prepares.get());assertEquals(0,sends.get());verifyNoInteractions(count);verify(escrow,never()).register(any(),any());
+    }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     void explicitCoachDeadlineReachesTransportWithoutExtendingOrdinaryCalls(boolean coach) {

@@ -40,6 +40,12 @@ public final class LabCallRecovery {
     public static boolean blocked(String reason) {
         return Set.of("LAB_CALL_RETRIES_EXHAUSTED","LAB_CALL_UNCERTAIN","LAB_CALL_NO_PROGRESS").contains(reason);
     }
+    /** Missing usage is not proof of continued execution. This never authorizes a new attempt of the same action. */
+    public static boolean terminatedWithoutResult(Map<String,Object> checkpoint) {
+        var state=map(checkpoint.get("lastCallState"));
+        return "RECONCILIATION_REQUIRED".equals(state.get("remoteState")) && "TERMINATED".equals(state.get("executionState"))
+                && state.get("executionEndedAtEpochMs") instanceof Number ended && ended.longValue()>0;
+    }
     public static boolean ready(Map<String,Object> checkpoint,long now) {
         return !(checkpoint.get("retryAfterEpochMs") instanceof Number n) || n.longValue()<=now;
     }

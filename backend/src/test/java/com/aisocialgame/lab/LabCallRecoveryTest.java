@@ -42,4 +42,13 @@ class LabCallRecoveryTest {
         LabCallRecovery.commit(()->{if(attempts.incrementAndGet()<3) throw new org.springframework.dao.CannotAcquireLockException("fixture");});
         assertEquals(3,attempts.get());
     }
+    @Test void terminalExecutionRequiresBothAuthoritativeStateAndEndTimeAndDoesNotCreateAnotherTransport() {
+        for(String state:List.of("UNKNOWN","RUNNING","TERMINATED"))for(long ended:List.of(0L,123L)) {
+            var saved=Map.<String,Object>of("lastCallState",Map.of("remoteState","RECONCILIATION_REQUIRED","executionState",state,"executionEndedAtEpochMs",ended));
+            assertEquals("TERMINATED".equals(state)&&ended>0,LabCallRecovery.terminatedWithoutResult(saved));
+            assertEquals("vote:0",LabCallRecovery.requestId("vote:0",saved));
+        }
+        assertFalse(LabCallRecovery.terminatedWithoutResult(Map.of("lastCallState",Map.of("remoteState","SUCCEEDED","executionState","TERMINATED","executionEndedAtEpochMs",123L))));
+        assertFalse(LabCallRecovery.terminatedWithoutResult(Map.of("lastCallState",Map.of("remoteState","RECONCILIATION_REQUIRED","executionState","TERMINATED"))));
+    }
 }

@@ -114,8 +114,9 @@ public class BoundedAiClient {
     }
     private ChatCompletionsResponse recover(AiCreditReservation row) {
         BudgetCallState remote=null;
+        GetBudgetCallStatusResponse authority=null;
         if (AiCallSettlementService.pending(row.state)) {
-            try { remote=reconcile(row).getState(); }
+            try { authority=reconcile(row);remote=authority.getState(); }
             catch (RuntimeException unavailable) { log.info("AI result query deferred requestId={} errorType={}",row.requestId,unavailable.getClass().getSimpleName()); }
             row=reservations.findById(row.id).orElseThrow();
         }
@@ -124,9 +125,14 @@ public class BoundedAiClient {
                 "AI 服务已确认原请求未发送，未扣费", "AI_REQUEST_NOT_SENT",
                 Map.of("budgetId",row.budgetId,"settlementState",row.state,"remoteState","FAILED_NOT_SENT"));
         boolean running=remote==BudgetCallState.BUDGET_CALL_STATE_PREPARED || remote==BudgetCallState.BUDGET_CALL_STATE_RUNNING;
-        throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, running?"正在等待原 AI 请求的结果":"原 AI 请求状态暂未确认，保留现场等待查询",
+        var details=new java.util.LinkedHashMap<String,Object>(Map.of("budgetId",row.budgetId,"requestId",row.requestId,"settlementState",row.state,
+                "remoteState",remote==null?"UNKNOWN":remote.name().replace("BUDGET_CALL_STATE_","")));
+        if(authority!=null && authority.hasExecutionState()) details.put("executionState",authority.getExecutionState().name().replace("BUDGET_EXECUTION_STATE_",""));
+        if(authority!=null && authority.hasExecutionEndedAtEpochMs()) details.put("executionEndedAtEpochMs",authority.getExecutionEndedAtEpochMs());
+        boolean terminated="TERMINATED".equals(details.get("executionState")) && details.get("executionEndedAtEpochMs") instanceof Number ended && ended.longValue()>0;
+        throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, running?"正在等待原 AI 请求的结果":terminated?"原 AI 请求执行已终止，无完整结果，用量待确认":"原 AI 请求状态暂未确认，保留现场等待查询",
                 running?"AI_RESULT_PENDING":"AI_RESULT_UNKNOWN",
-                Map.of("budgetId",row.budgetId,"settlementState",row.state,"remoteState",remote==null?"UNKNOWN":remote.name().replace("BUDGET_CALL_STATE_","")));
+                details);
     }
     /** Read-only recovery by the original identity. This method can never prepare or send inference. */
     public ChatCompletionsResponse recoverOriginal(String project,long userId,String requestId) {

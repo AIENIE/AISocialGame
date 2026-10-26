@@ -156,6 +156,32 @@ class WerewolfLabRuntimeIntegrationTest {
         assertNull(coordinator.claim(job.getId()));verifyNoInteractions(client);
     }
 
+    @Test void evaluationTerminatedOriginalWithoutUsageFailsOnlyThatActionAndNeverRegeneratesIt() {
+        var room=room("EVALUATION");var job=claim(room);String original=job.getId()+":0";
+        var saved=Map.<String,Object>of("calls",1,"responses",0,"originalRequestId",original,"lastCallCode","AI_RESULT_UNKNOWN",
+                "lastCallState",Map.of("remoteState","RECONCILIATION_REQUIRED","executionState","TERMINATED","executionEndedAtEpochMs",123L),
+                "attempts",List.of(Map.of("requestId",original,"settlementState","USAGE_UNKNOWN")));
+        runtime.defer(job.getId(),saved,"LAB_CALL_UNCERTAIN");
+        var finished=jobs.findById(job.getId()).orElseThrow();assertEquals("FAILED",finished.getStatus());
+        assertEquals(original,map(finished.getObservation().get("generationCheckpoint")).get("originalRequestId"));
+        assertEquals(false,map(finished.getDiagnostics().get("generation")).get("usageComplete"));
+        assertEquals("TERMINATED",map(finished.getDiagnostics().get("callAuthority")).get("executionState"));
+        var state=states.findById(room.getId()).orElseThrow();assertFalse(state.getData().containsKey("labCallPause"));
+        assertEquals(1,maps(state.getData().get("events")).stream().filter(e->"AI_ACTION_FAILED".equals(e.get("type"))).count());
+        runtime.defer(job.getId(),saved,"LAB_CALL_UNCERTAIN");
+        assertEquals(1,maps(states.findById(room.getId()).orElseThrow().getData().get("events")).stream().filter(e->"AI_ACTION_FAILED".equals(e.get("type"))).count());
+        assertFalse(jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED")).stream().anyMatch(t->t.getId().equals(job.getId())));verifyNoInteractions(client);
+    }
+    @Test void evaluationWithoutExecutionEndEvidenceKeepsTheOpportunityPaused() {
+        for(String execution:List.of("UNKNOWN","RUNNING","TERMINATED")) {
+            var room=room("EVALUATION");var job=claim(room);
+            runtime.defer(job.getId(),Map.of("calls",1,"lastCallCode","AI_RESULT_UNKNOWN","originalRequestId",job.getId()+":0",
+                    "lastCallState",Map.of("remoteState","RECONCILIATION_REQUIRED","executionState",execution)),"LAB_CALL_UNCERTAIN");
+            assertEquals("QUEUED",jobs.findById(job.getId()).orElseThrow().getStatus());
+            assertEquals("LAB_CALL_UNCERTAIN",states.findById(room.getId()).orElseThrow().getData().get("labCallPause"));assertNull(coordinator.claim(job.getId()));
+        }
+        verifyNoInteractions(client);
+    }
     @Test void discardEvaluationRequiresPauseAndConfirmedUnsentAndPreservesAnAbortedArchive() {
         var room=room("EVALUATION");var job=claim(room);
         assertThrows(com.aisocialgame.exception.ApiException.class,()->runtime.discardLabEvaluation(room.getId()));
