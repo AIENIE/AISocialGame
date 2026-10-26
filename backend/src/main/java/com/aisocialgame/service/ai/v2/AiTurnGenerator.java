@@ -41,7 +41,7 @@ public class AiTurnGenerator {
     private final String undercoverSystem;
     private final LongSupplier nanoTime;
 
-    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : PROMPT_VERSION; }
+    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : "werewolf".equals(gameId)?"werewolf-v2.12":PROMPT_VERSION; }
 
     @Autowired
     public AiTurnGenerator(AiGrpcClient client, AppProperties properties, AiMemoryServiceV2 memories, AiSafetyService safety) {
@@ -92,6 +92,10 @@ public class AiTurnGenerator {
                 : modelConfigs.resolve(observation.gameId(), observation.actorId());
         stages.put("modelSelection", selected.toMap());
         VisibleObservation modelObservation = compatibleStrategyObservation(observation, selected);
+        boolean compactReferences=werewolf&&(checkpoint.containsKey("referenceMap")||!checkpoint.containsKey("originalRequestId"));
+        WerewolfAiProtocol.References references=checkpoint.containsKey("referenceMap")
+                ?WerewolfAiProtocol.restore(RuleSupport.map(checkpoint.get("referenceMap"))):WerewolfAiProtocol.references(modelObservation);
+        if(compactReferences)stages.put("referenceMap",references.snapshot());
         stages.put("initialBudgetMs", TimeUnit.NANOSECONDS.toMillis(budgetNanos));
         stages.put("inputFormatVersion", AiPromptProjection.version(observation.gameId()));
         stages.put("promptVersion", promptVersion(observation.gameId()));
@@ -114,8 +118,9 @@ public class AiTurnGenerator {
                 failures = deadlineFailure(failures); break;
             }
             var transport = new LinkedHashMap<String,Object>();
-            if (attempt == resume) for(String key:List.of("transportAttempt","waitingSinceEpochMs","retryAfterEpochMs","lastCallState","lastCallCode","actualPrompt","encoded","codePoints"))
+            if (attempt == resume) for(String key:List.of("transportAttempt","waitingSinceEpochMs","retryAfterEpochMs","lastCallState","lastCallCode","actualPrompt","encoded","codePoints","referenceMap"))
                 if(checkpoint.containsKey(key)) transport.put(key,checkpoint.get(key));
+            if(compactReferences){transport.put("referenceMap",references.snapshot());transport.put("inputFormatVersion",AiPromptProjection.WEREWOLF_VERSION);}
             String requestId=com.aisocialgame.lab.LabCallRecovery.requestId(jobId+":"+attempt,transport);
             if(readOnlyRecovery && recoveringOriginal && !RuleSupport.text(checkpoint.get("originalRequestId")).isBlank())
                 requestId=RuleSupport.text(checkpoint.get("originalRequestId"));
@@ -132,6 +137,7 @@ public class AiTurnGenerator {
                 try {
                     if (basePayload == null) {
                         basePayload = AiPromptProjection.project(adapter, modelObservation);
+                        if(compactReferences)basePayload=WerewolfAiProtocol.encode(basePayload,references);
                         Map<String, Object> sizes = new LinkedHashMap<>();
                         for (var entry : basePayload.entrySet()) sizes.put(entry.getKey(), JSON.writeValueAsBytes(entry.getValue()).length);
                         stages.put("inputSectionBytes", sizes);
@@ -147,6 +153,8 @@ public class AiTurnGenerator {
                 } finally { sample.put("inputPreparationMs", elapsed(preparation)); }
                 String system = undercover ? undercoverSystem : RuleSupport.HOST.equals(observation.actorId()) ? hostSystem : playerSystem;
                 List<AiChatMessageDto> messages = List.of(new AiChatMessageDto("system", system), new AiChatMessageDto("user", user));
+                if(werewolf&&recoveringOriginal&&checkpoint.containsKey("actualPrompt"))
+                    messages=List.of(JSON.convertValue(checkpoint.get("actualPrompt"),AiChatMessageDto[].class));
                 if(trainingV2) {
                     if(recoveringOriginal && checkpoint.containsKey("actualPrompt")) {
                         messages=List.of(JSON.convertValue(checkpoint.get("actualPrompt"),AiChatMessageDto[].class));
@@ -164,6 +172,7 @@ public class AiTurnGenerator {
                     }
                     stages.put("inputCodePoints",transport.get("codePoints"));
                 }
+                if(werewolf)transport.put("actualPrompt",JSON.convertValue(messages,List.class));
                 sample.put("inputBytes",messages.stream().mapToInt(message->message.content().getBytes(StandardCharsets.UTF_8).length).sum());
                 int requestSeconds = (training || readOnlyRecovery) && recoveringOriginal ? com.aisocialgame.lab.LabRunPolicy.requestSeconds(observation)
                         : (int) Math.min(undercover ? 89 : com.aisocialgame.lab.LabRunPolicy.requestSeconds(observation), TimeUnit.NANOSECONDS.toSeconds(remainingNanos(started, budgetNanos)));
@@ -207,7 +216,9 @@ public class AiTurnGenerator {
                 if (undercover && Set.of("length","incomplete").contains(RuleSupport.text(response.finishReason()).toLowerCase(Locale.ROOT))) { failures = List.of("OUTPUT_LIMIT_REACHED"); break; }
                 if (undercover && raw.isBlank()) { failures = List.of("EMPTY_MODEL_RESPONSE"); continue; }
                 AiTurnDecision decision;
+                Map<String,Object> canonicalOutput;
                 List<String> grounding;
+                stage="PARSE";
                 long parsing = nanoTime.getAsLong();
                 try {
                     if (raw.startsWith("```json\n") && raw.endsWith("```")) raw = raw.substring(8, raw.length() - 3).strip();
@@ -216,12 +227,15 @@ public class AiTurnGenerator {
                     }
                     lastOutput = RuleSupport.map(JSON.readValue(raw, Map.class));
                     if (debugRecorder != null) debugRecorder.parsed(jobId, attempt, lastOutput);
-                    decision = parse(lastOutput);
+                    var decoded=WerewolfAiProtocol.decode(observation,lastOutput,compactReferences?references:new WerewolfAiProtocol.References(Map.of(),Map.of()));
+                    canonicalOutput=decoded.output();
+                    if(werewolf){stages.put("canonicalOutput",canonicalOutput);stages.put("protocolNormalizations",decoded.normalizations());}
+                    decision = parse(canonicalOutput);
                 } finally { sample.put("parseMs", elapsed(parsing)); }
                 stage = "VALIDATION";
                 long validating = nanoTime.getAsLong();
                 try {
-                    grounding = AiGrounding.check(observation, lastOutput);
+                    grounding = AiGrounding.check(observation, canonicalOutput);
                     List<String> checked = new ArrayList<>(grounding);
                     checked.addAll(validate(adapter, observation, decision)); failures = checked.stream().distinct().toList();
                 } finally { sample.put("validationMs", elapsed(validating)); }
@@ -233,7 +247,7 @@ public class AiTurnGenerator {
                     return diagnostics(decision, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
                 }
             } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException ex) {
-                failures = List.of("PARSE".equals(stage) ? "INVALID_JSON_FIELDS" : "RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
+                failures = List.of(ex instanceof WerewolfAiProtocol.InvalidReference ref?ref.code:"PARSE".equals(stage) ? "INVALID_JSON_FIELDS" : "RPC".equals(stage) ? classifyFailure(ex) : "LOCAL_GENERATION_ERROR");
                 sample.put("failureStage", stage);
                 if (!"PARSE".equals(stage)) break;
             } catch (Exception ex) {
@@ -326,7 +340,7 @@ public class AiTurnGenerator {
         saved.put("promptTokens",prompt); saved.put("completionTokens",completion); saved.put("modelKey",model);
         saved.put("lastOutput",output); saved.put("failures",failures); saved.put("attempts",new ArrayList<>(attempts));
         saved.put("modelSelection",selection.toMap()); saved.putAll(transport);
-        for(String key:List.of("forbiddenFeedback","actualPrompt","encoded","codePoints"))
+        for(String key:List.of("forbiddenFeedback","actualPrompt","encoded","codePoints","referenceMap","inputFormatVersion"))
             if(previous.containsKey(key)&&!saved.containsKey(key)) saved.put(key,previous.get(key));
         return saved;
     }

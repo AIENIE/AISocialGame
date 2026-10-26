@@ -25,6 +25,37 @@ class LabTrainingCaseFactoryTest {
     final WerewolfRuleSet rules=new WerewolfRuleSet();
     final LabTrainingCaseFactory factory=new LabTrainingCaseFactory(rules,new ObservationFactory(personas,new AiMemoryServiceV2(memories,personas)),jobs,traces,debug,states,archives,json);
 
+    @Test void allGeneratedActionExamplesPassActualParserAndAllValidatorsWithoutProviderCalls() {
+        var client=mock(com.aisocialgame.integration.grpc.client.AiGrpcClient.class);var safety=mock(com.aisocialgame.service.safety.AiSafetyService.class);
+        when(safety.review(anyString(),any(com.aisocialgame.service.safety.AiSafetyContext.class))).thenAnswer(c->new com.aisocialgame.service.safety.AiSafetyResult("ALLOW","LOW","NONE","",c.getArgument(0),null));
+        var generator=new AiTurnGenerator(client,new com.aisocialgame.config.AppProperties(),new AiMemoryServiceV2(memories,personas),safety);
+        var all=new ArrayList<>(factory.build(experiment(),"example-old"));all.addAll(factory.buildEvaluation(experiment(),"example-new",LabEvaluationMaterials.VERSION));int checked=0;
+        for(var row:all) {
+            var observation=json.convertValue(map(row.get("data")).get("observation"),VisibleObservation.class);var refs=WerewolfAiProtocol.references(observation);
+            for(var example:maps(WerewolfAiProtocol.encode(AiPromptProjection.project(rules,observation),refs).get("outputExamples"))) {
+                var decoded=WerewolfAiProtocol.decode(observation,example,refs);assertTrue(decoded.normalizations().isEmpty(),"example must already contain all required fields");
+                assertEquals(List.of(),generator.validate(rules,observation,generator.parse(decoded.output())),row.get("sourceGroup")+":"+example);checked++;
+            }
+        }
+        assertTrue(checked>100);verifyNoInteractions(client);
+    }
+
+    @Test void independentEvaluationRecipesUseRealResourcesAndKeepThirtyTwoPairsSeparateFromCalibration() {
+        var rows=factory.buildEvaluation(experiment(),"independent-run",LabEvaluationMaterials.VERSION);
+        assertEquals(37,rows.size());assertEquals(5,rows.stream().filter(r->"CALIBRATION".equals(r.get("purpose"))).count());
+        assertEquals(8,rows.stream().filter(r->"HOLDOUT".equals(r.get("purpose"))).map(r->r.get("sourceGroup")).distinct().count());
+        for(var row:rows) {
+            var data=map(row.get("data"));var observation=map(data.get("observation"));
+            assertFalse(maps(observation.get("legalActions")).isEmpty(),text(data.get("title")));assertFalse(maps(map(data.get("construction")).get("actions")).isEmpty());
+            String name=text(data.get("title"));
+            if("witch_antidote_spent".equals(name)||"witch_second_night_self".equals(name)) {
+                assertEquals(2,number(observation.get("round"),0));assertTrue(maps(observation.get("legalActions")).stream().noneMatch(a->"WITCH_SAVE".equals(a.get("nightAction"))));
+            }
+            if("hunter_poisoned_last_words".equals(name))assertTrue(maps(observation.get("legalActions")).stream().noneMatch(a->"HUNTER_SHOOT".equals(a.get("type"))));
+            if("seer_two_night_record".equals(name))assertEquals(2,maps(observation.get("events")).stream().filter(e->"SEER_CHECK".equals(e.get("type"))).count());
+        }
+    }
+
     @Test void realTransitionsCreateEightDevelopmentAndEightIndependentHoldoutFamiliesAcrossFourPersonas() {
         var experiment=experiment();var cases=factory.build(experiment,"run-one");
         assertEquals(40,cases.size());assertEquals(40,cases.stream().map(c->c.get("id")).distinct().count());
@@ -66,6 +97,7 @@ class LabTrainingCaseFactoryTest {
         var rejected=job("too-large",archive,huge);var missing=job("missing-prompt",archive,observation);var exact=job("exact-prompt",archive,observation);
         when(jobs.findByInstanceIdOrderByCreatedAtAsc(archive)).thenReturn(List.of(rejected,missing,exact));
         var rawAction=Map.<String,Object>of("type","VOTE","targetPlayerId","abstain");
+        var canonicalAction=Map.<String,Object>of("type","VOTE","targetPlayerId","restored-player");exact.setDiagnostics(Map.of("canonicalOutput",Map.of("action",canonicalAction),"referenceMap",Map.of("players",Map.of("P1","restored-player"),"events",Map.of())));
         when(traces.findByRoomIdAndInstanceIdAndActorPlayerId("source-room",archive,text(observation.get("actorId"))))
                 .thenReturn(List.of(trace(rejected,1L,rawAction),trace(missing,2L,rawAction),trace(exact,3L,rawAction)));
         var stored=new LocalAiDebugTurn();stored.id=exact.getId();stored.actorId=exact.getActorId();stored.instanceId=archive;
@@ -77,7 +109,7 @@ class LabTrainingCaseFactoryTest {
         var excluded=cases.stream().filter(c->"EXCLUDED".equals(c.get("purpose"))).findFirst().orElseThrow();assertEquals("TOO_LARGE",map(excluded.get("data")).get("exclusionReason"));assertEquals(huge,map(excluded.get("data")).get("observation"));
         var actual=cases.stream().filter(c->"REAL_GAME".equals(c.get("sourceType")) && "DEVELOPMENT".equals(c.get("purpose"))).toList();assertEquals(2,actual.size());
         var a=map(actual.get(0).get("data"));assertEquals("MISSING",a.get("originalPromptStatus"));assertEquals(List.of(),a.get("actualPrompt"));
-        var b=map(actual.get(1).get("data"));assertEquals("EXACT",b.get("originalPromptStatus"));assertEquals(prompt,b.get("actualPrompt"));assertEquals(rawAction,b.get("actualAction"));assertEquals(observation,b.get("observation"));
+        var b=map(actual.get(1).get("data"));assertEquals("EXACT",b.get("originalPromptStatus"));assertEquals(prompt,b.get("actualPrompt"));assertEquals(canonicalAction,b.get("actualAction"));assertEquals(rawAction,map(b.get("actualOutput")).get("action"));assertFalse(map(b.get("actualPromptReferences")).isEmpty());assertEquals(observation,b.get("observation"));
         assertEquals("ai1",actual.get(1).get("personaId"));assertEquals("game:"+archive,actual.get(1).get("sourceGroup"));
         stored.payload=Map.of();assertEquals(prompt,b.get("actualPrompt"));
     }

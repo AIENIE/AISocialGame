@@ -54,7 +54,8 @@ public class WerewolfLabReview {
             row.put("usedStrategy",map(map(observation.get("memory")).get("strategy")));
             row.put("failureReasons",strings(job.getDiagnostics().get("failures")));
             var trace=byJob.get(job.getId());
-            var output=trace==null?Map.<String,Object>of():trace.getRawOutput();
+            var canonical=map(job.getDiagnostics().get("canonicalOutput"));
+            var output=canonical.isEmpty()?(trace==null?Map.<String,Object>of():trace.getRawOutput()):canonical;
             if(output.containsKey("action")) row.put("actualAction",output.get("action"));
             var generatedIds=trace==null?Set.<String>of():new HashSet<>(strings(trace.getQuality().get("eventIds")));
             row.put("generatedEvents",maps(state.getData().get("events")).stream()

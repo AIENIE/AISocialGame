@@ -9,7 +9,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 public final class AiPromptProjection {
     public static final int VERSION = 3;
     public static final int UNDERCOVER_VERSION = 5;
-    public static final int WEREWOLF_VERSION = 4;
+    public static final int WEREWOLF_VERSION = 5;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private AiPromptProjection() {}
 
@@ -66,6 +66,8 @@ public final class AiPromptProjection {
                 "self 和 players 的 seatNumber 是页面显示的座位号，从1开始；发言中的‘几号’均用此编号。playerId 是不透明身份标识，不能从其数字推断座位；所有目标仍提交合法列表中的 targetPlayerId。历史发言原文不改写，应根据当前座位表核对指代。");
         payload.put("referenceFormat", "$ref is a JSON pointer within this payload; follow references to the original data. References do not change source or visibility.");
         payload.put("instruction", adapter.instruction(o)); payload.put("observation", observation);
+        if("werewolf".equals(o.gameId())&&!map(o.memory().get("protocolCalibration")).isEmpty())
+            payload.put("protocolCalibration",Map.of("instruction","仅作协议校准，请提交required中指定的合法动作、目标与证据；这不是策略评测。","required",o.memory().get("protocolCalibration")));
         payload.put("informationSources", Map.of("events", sources, "privateKnowledge", privateInfo, "hypotheses", hypotheses, "note", classified.get("note")));
         if (!RuleSupport.HOST.equals(o.actorId())) {
             var conversation = adapter.conversation(o);
@@ -81,6 +83,7 @@ public final class AiPromptProjection {
                 if (a.maxLength() > 0) action.put("content", "本次简短话语");
                 if (!a.targets().isEmpty()) action.put("targetPlayerId", a.targets().getFirst());
                 if (a.nightAction() != null) action.put("nightAction", a.nightAction());
+                if ("WITCH_SAVE".equals(a.nightAction())) action.put("useHeal", true);
                 Map<String, Object> example = new LinkedHashMap<>(); example.put("action", action);
                 // A directed reply needs the current question reference at the decision root, not inside PlayerAction.
                 if ("ANSWER_PLAYER".equals(a.type()) && !conversation.replyTo().isEmpty())

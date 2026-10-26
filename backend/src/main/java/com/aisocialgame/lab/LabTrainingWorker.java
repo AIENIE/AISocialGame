@@ -29,6 +29,9 @@ public class LabTrainingWorker {
         var experiment=s.experiments.findById(experimentId).orElseThrow();
         String id=text(experiment.configuration.get("activeTrainingRunId"));if(id.isBlank())return false;
         var run=s.runs.findById(id).orElseThrow();if(!Set.of("RUNNING","PAUSED").contains(run.status))return false;
+        if("EVALUATE_ONLY".equals(run.configuration.get("mode"))&&!Objects.equals(run.configuration.get("evaluationProtocolHash"),WerewolfAiProtocol.implementationHash())) {
+            s.mutate(id,(r,e)->{r.status="PAUSED";r.reason="EVALUATION_IMPLEMENTATION_CHANGED";e.status="PAUSED";e.reason=r.reason;r.assessment.put("validity","ENGINEERING_CHANGED");});return false;
+        }
         if("RUNNING".equals(run.status))try {advance(id);}catch(RuntimeException failure) {
             s.mutate(id,(r,e)->{r.status="PAUSED";r.reason="TRAINING_STAGE_FAILED";r.assessment.put("stageFailure",Map.of("stage",r.stage,"type",failure.getClass().getSimpleName(),"message",Objects.toString(failure.getMessage(),"")));e.status="PAUSED";e.reason=r.reason;});return false;
         }
@@ -136,18 +139,19 @@ public class LabTrainingWorker {
         if(player(task)) {
             var observation=s.json.convertValue(item.data.get("observation"),VisibleObservation.class);
             var memory=new LinkedHashMap<>(observation.memory());memory.remove("approved");memory.remove("approvedExperience");memory.remove("strategy");
-            memory.put("lab",Map.of("experimentId",run.experimentId,"matchId",task.id,"labRunMode","HOLDOUT".equals(task.kind)?"EVALUATION":"TRAINING",
+            memory.put("lab",Map.of("experimentId",run.experimentId,"matchId",task.id,"labRunMode",Set.of("HOLDOUT","CALIBRATION").contains(task.kind)?"EVALUATION":"TRAINING",
                     "trainingV2",true,"scenarioEvaluation",true));
+            if("CALIBRATION".equals(task.kind))memory.put("protocolCalibration",item.data.get("calibration"));
             var model=map(item.data.get("modelSelection"));
             if(model.isEmpty())model=maps(run.configuration.get("roster")).stream().filter(p->item.participantId.equals(LabService.participantId(p))).map(p->map(p.get("modelSelection"))).findFirst().orElseThrow();
-            var snapshot="CANDIDATE".equals(task.variant)?s.strategies.strategySnapshot(run.candidateStrategyVersionId):map(run.configuration.get("baseStrategy"));
+            var snapshot="CANDIDATE".equals(task.variant)?run.configuration.containsKey("candidateStrategy")?map(run.configuration.get("candidateStrategy")):s.strategies.strategySnapshot(run.candidateStrategyVersionId):map(run.configuration.get("baseStrategy"));
             var selected=LabStrategyService.select(snapshot,text(observation.self().get("role")),observation.phase(),observation.rules(),model,observation.turnKind());
             if(!selected.isEmpty())memory.put("strategy",selected);
             observation=new VisibleObservation(observation.gameId(),observation.instanceId(),observation.phase(),observation.round(),observation.actorId(),observation.turnKind(),
                     observation.self(),observation.players(),observation.rules(),observation.events(),observation.privateFacts(),observation.legalActions(),observation.persona(),memory,observation.knowledge());
             task.input.put("observation",s.json.convertValue(observation,Map.class));task.input.put("usedStrategy",selected);
             task.checkpoint.put("playerCheckpoint",new LinkedHashMap<>(Map.of("modelSelection",model)));
-            task.checkpoint.put("remainingMillis","HOLDOUT".equals(task.kind)?50_000:150_000);
+            task.checkpoint.put("remainingMillis",Set.of("HOLDOUT","CALIBRATION").contains(task.kind)?50_000:150_000);
             return;
         }
         var payload=new LinkedHashMap<String,Object>();payload.put("observation",item.data.get("observation"));
@@ -155,6 +159,7 @@ public class LabTrainingWorker {
         if("TEACH".equals(task.kind)) {
             payload.put("sourceAction",item.data.get("actualAction"));payload.put("actualPrompt",item.data.get("actualPrompt"));
             payload.put("actualPromptStatus",item.data.get("originalPromptStatus"));payload.put("outcomeTruth",item.data.get("outcomeTruth"));
+            payload.put("actualPromptReferences",item.data.getOrDefault("actualPromptReferences",Map.of()));
             payload.put("source",item.data.get("source"));payload.put("objective",item.data.get("focus"));
             var practice=rows.stream().filter(t->item.id.equals(t.caseId)&&"PRACTICE".equals(t.kind)).findFirst().orElseThrow();
             var teachingPractice=new LinkedHashMap<String,Object>();
@@ -165,6 +170,7 @@ public class LabTrainingWorker {
             teachingPractice.put("quality",quality);
             // Billing and transport telemetry remain in the task archive, outside the teaching prompt.
             payload.put("practice",teachingPractice);payload.put("practicePrompt",practice.input.get("actualPrompt"));
+            payload.put("practicePromptReferences",practice.input.getOrDefault("referenceMap",Map.of()));
             var role=text(map(map(item.data.get("observation")).get("self")).get("role"));
             payload.put("previousCards",maps(map(map(run.configuration.get("baseStrategy")).get("content")).get("cards")).stream()
                     .filter(c->Set.of("GENERAL",role).contains(text(c.get("role")))).toList());
@@ -193,7 +199,7 @@ public class LabTrainingWorker {
         try {decision=generator.generate(rules,observation,t.id,remaining,()->true,checkpoint,saved->change(claim,row->{
             row.checkpoint.put("playerCheckpoint",saved);row.requestId=text(saved.get("originalRequestId"));
             if(saved.containsKey("actionExecutionRemainingMs"))row.checkpoint.put("remainingMillis",saved.get("actionExecutionRemainingMs"));
-            for(String key:List.of("actualPrompt","encoded","codePoints"))if(saved.containsKey(key))row.input.put(key,saved.get(key));
+            for(String key:List.of("actualPrompt","encoded","codePoints","referenceMap"))if(saved.containsKey(key))row.input.put(key,saved.get(key));
             remember(row,row.requestId);
         }));}catch(AiTurnGenerator.GenerationDeferred deferred){
             if(!recovery && !"AI_REQUEST_NOT_SENT".equals(deferred.checkpoint().get("lastCallCode"))) {
@@ -203,8 +209,14 @@ public class LabTrainingWorker {
         var result=new LinkedHashMap<String,Object>();result.put("action",s.json.convertValue(decision.action(),Map.class));result.put("speech",decision.speech());
         result.put("evidenceEventIds",decision.evidenceEventIds());result.put("diagnostics",decision.diagnostics());result.put("usedStrategy",t.input.get("usedStrategy"));
         result.put("programChecks",Map.of("legalAction","PASS","evidenceBoundary","PASS","skillResources","PASS","requestCompleted",true));
+        if("CALIBRATION".equals(t.kind)) {
+            var expected=map(claim.item.data.get("calibration"));var actual=map(result.get("action"));
+            boolean matched=expected.entrySet().stream().allMatch(e->"evidenceEventIds".equals(e.getKey())?decision.evidenceEventIds().containsAll(strings(e.getValue())):Objects.equals(e.getValue(),actual.get(e.getKey())));
+            result.put("calibrationExpected",expected);
+            if(!matched){finish(claim,"FAILED","CALIBRATION_EXPECTATION_MISMATCH",result);return;}
+        }
         boolean late=!recovery && (System.nanoTime()-started)/1_000_000>remaining;
-        if("HOLDOUT".equals(t.kind)) {
+        if(Set.of("HOLDOUT","CALIBRATION").contains(t.kind)) {
             var current=s.tasks.findById(t.id).orElseThrow();
             if(!text(current.requestId).isBlank()) {
                 var authority=s.calls.inspect(s.properties.getProjectKey(),s.properties.getAi().getSystemUserId(),current.requestId);
@@ -298,7 +310,7 @@ public class LabTrainingWorker {
     private static void remember(LabTrainingTask t,String request) {
         if(request==null||request.isBlank())return;var ids=new LinkedHashSet<>(strings(t.checkpoint.get("requestHistory")));ids.add(request);t.checkpoint.put("requestHistory",List.copyOf(ids));
     }
-    private static boolean player(LabTrainingTask t){return Set.of("PRACTICE","REHEARSAL","HOLDOUT").contains(t.kind);}
+    private static boolean player(LabTrainingTask t){return Set.of("PRACTICE","REHEARSAL","HOLDOUT","CALIBRATION").contains(t.kind);}
     private static boolean existingResult(LabTrainingTask t) {
         if(t.checkpoint.containsKey("response"))return true;
         var checkpoint=player(t)?map(t.checkpoint.get("playerCheckpoint")):t.checkpoint;
@@ -309,6 +321,15 @@ public class LabTrainingWorker {
         s.mutate(id,(run,experiment)->{
             if(!"RUNNING".equals(run.status))return;
             var rows=s.tasks.findByRunIdOrderByOrdinalAsc(id);var material=s.cases.findByRunIdOrderByOrdinalAsc(id);
+            if("CALIBRATION".equals(run.stage)) {
+                var calibration=rows.stream().filter(t->"CALIBRATION".equals(t.kind)).toList();
+                if(calibration.stream().anyMatch(t->Set.of("FAILED","SKIPPED").contains(t.status))) {run.status="PAUSED";run.reason="PROTOCOL_CALIBRATION_FAILED";experiment.status="PAUSED";experiment.reason=run.reason;return;}
+                if(calibration.stream().anyMatch(t->!TERMINAL.contains(t.status)))return;
+                if(calibration.size()!=5||calibration.stream().anyMatch(t->!"SUCCEEDED".equals(t.status))) {
+                    run.status="PAUSED";run.reason="PROTOCOL_CALIBRATION_FAILED";experiment.status="PAUSED";experiment.reason=run.reason;return;
+                }
+                run.stage="REHEARSAL"; // The shared next-stage builder creates only holdout tasks; no teaching or rehearsal tasks exist in this mode.
+            }
             if("PRACTICE".equals(run.stage)) {
                 if(flag(run.configuration.get("representativeOnly"))) {
                     String first=LabTrainingService.representativeCaseId(run,material);

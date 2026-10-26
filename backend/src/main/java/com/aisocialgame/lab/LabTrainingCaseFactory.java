@@ -107,6 +107,12 @@ public class LabTrainingCaseFactory {
         }
         return List.copyOf(result);
     }
+    public List<Map<String,Object>> buildEvaluation(LabExperiment experiment,String runId,String materialSetVersion) {
+        require(LabEvaluationMaterials.VERSION.equals(materialSetVersion),"独立复测材料版本无效");
+        require(maps(experiment.configuration.get("roster")).size()==9,"独立复测需要完整九人阵容");
+        var scope=map(experiment.configuration.get("rules"));require("standard".equals(scope.get("template"))&&"first_night".equals(scope.get("witchRule"))&&"first_night".equals(scope.get("hasLastWords")),"本材料集适用于九人标准、仅首夜自救及首夜遗言规则");
+        return new LabEvaluationMaterials(rules,observations,json).build(experiment,runId);
+    }
 
     /** Select another complete source decision; never rewrite a case or borrow a held-out source. */
     public Optional<Map<String,Object>> replacement(LabExperiment experiment,LabTrainingRun run,LabTrainingCase original,List<LabTrainingCase> allCases) {
@@ -166,14 +172,16 @@ public class LabTrainingCaseFactory {
         if(!selected.isEmpty())memory.put("strategy",selected);
         observation=new VisibleObservation(observation.gameId(),observation.instanceId(),observation.phase(),observation.round(),observation.actorId(),observation.turnKind(),
                 observation.self(),observation.players(),observation.rules(),observation.events(),observation.privateFacts(),observation.legalActions(),observation.persona(),memory,observation.knowledge());
-        var input=new LabTrainingInput();var practicePrompt=input.prepare(playerSystem,AiPromptProjection.project(rules,observation));
+        var input=new LabTrainingInput();var practicePrompt=input.prepare(playerSystem,WerewolfAiProtocol.encode(AiPromptProjection.project(rules,observation),WerewolfAiProtocol.references(observation)));
         if(!practicePrompt.ready())return practicePrompt;
         var payload=new LinkedHashMap<String,Object>();payload.put("observation",caseData.get("observation"));payload.put("validEvidenceIds",caseData.get("validEvidenceIds"));payload.put("caseRubric",caseData.get("expectedRubric"));
         payload.put("sourceAction",caseData.get("actualAction"));payload.put("actualPrompt",caseData.get("actualPrompt"));payload.put("actualPromptStatus",caseData.get("originalPromptStatus"));payload.put("outcomeTruth",caseData.get("outcomeTruth"));
+        payload.put("actualPromptReferences",caseData.getOrDefault("actualPromptReferences",Map.of()));
         payload.put("source",caseData.get("source"));payload.put("objective",caseData.get("focus"));
         var practice=new LinkedHashMap<String,Object>();practice.put("action",Map.of());practice.put("speech","");practice.put("evidenceEventIds",List.of());
         practice.put("programChecks",Map.of());practice.put("usedStrategy",selected);practice.put("quality",Map.of());payload.put("practice",practice);
         payload.put("practicePrompt",practicePrompt.messages().stream().map(m->Map.of("role",m.role(),"content",m.content())).toList());
+        payload.put("practicePromptReferences",WerewolfAiProtocol.references(observation).snapshot());
         String role=text(observation.self().get("role"));payload.put("previousCards",maps(map(map(run.configuration.get("baseStrategy")).get("content")).get("cards")).stream()
                 .filter(c->Set.of("GENERAL",role).contains(text(c.get("role")))).toList());
         return input.prepare(LabTrainingTeaching.TEACH_SYSTEM,payload);
@@ -218,7 +226,9 @@ public class LabTrainingCaseFactory {
         var prompt=maps(attempt.get("messages"));
         data.put("originalPromptStatus",prompt.isEmpty()?"MISSING":"EXACT");data.put("actualPrompt",prompt);
         data.put("originalPromptRequestId",text(attempt.get("requestId")));
-        data.put("actualAction",copy(map(trace.getRawOutput().get("action"))));data.put("actualOutput",copy(trace.getRawOutput()));
+        var canonical=map(job.getDiagnostics().get("canonicalOutput"));
+        data.put("actualAction",copy(map((canonical.isEmpty()?trace.getRawOutput():canonical).get("action"))));data.put("actualOutput",copy(trace.getRawOutput()));
+        data.put("actualPromptReferences",copy(map(job.getDiagnostics().get("referenceMap"))));
         data.put("originalDiagnostics",copy(job.getDiagnostics()));
         var outcome=new LinkedHashMap<String,Object>();outcome.put("status","SOURCE_NOT_AVAILABLE");
         states.findById(job.getRoomId()).filter(s->job.getInstanceId().equals(text(s.getData().get("archiveId"))))

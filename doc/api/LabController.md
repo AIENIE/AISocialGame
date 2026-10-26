@@ -1,5 +1,9 @@
 # AI 实验室接口
 
+训练运行创建请求兼容增加 `mode`（默认 `TRAIN_AND_EVALUATE`）、`candidateStrategyVersionId`、`materialSetVersion`。`EVALUATE_ONLY` 要求候选属于本实验且规则/模型兼容，本轮材料版本为 `rules-evidence-eval-v2.1`；冻结空策略基线、候选与实现哈希，先执行五个 `CALIBRATION`，通过后再创建 64 个玩家回答及 32 个评审任务。此模式无教学、合并或付费修正；控制接口使用 `start`，不支持 `start-one`。旧请求及操作 ID 的默认参数幂等兼容，参数不同返回冲突。
+
+查询兼容增加 `coverage`（`plannedPairs`、`scoredPairs`、`unscoredPairs`、`failedPlayerRequests`）和任务诊断的 `failureCategory`、`failureFlags`。已有历史评测原值保留，覆盖统计独立计算；短引用映射保存在任务实际输入及请求检查点中，原始模型回复和还原后的输出同时留存。
+
 用户端 `/api/lab` 沿用登录用户会话；管理端 `/api/admin/lab` 沿用管理员会话、来源校验和操作二次确认。
 
 | 方法 | 路径（相对用户端前缀） | 行为 |

@@ -264,7 +264,7 @@ class AiTurnGeneratorTest {
         assertTrue(correction.contains("type、content、targetPlayerId、abstain、nightAction、useHeal、extra"));
         assertTrue(correction.contains("evidenceEventIds、presentation、memoryUpdates必须是与action同级的顶层字段，不能放进action"));
         assertEquals("e1", repairPayload.at("/previousOutput/action/evidenceEventIds/0").asText());
-        assertEquals(json.valueToTree(observation.legalActions()), repairPayload.at("/observation/legalActions"));
+        assertEquals(json.valueToTree(WerewolfAiProtocol.encode(json.convertValue(Map.of("legalActions",observation.legalActions()),Map.class),WerewolfAiProtocol.references(observation))).path("legalActions"), repairPayload.at("/observation/legalActions"));
     }
 
     @Test void correctionSharesTheFiftySecondBudgetIncludingValidationTime() throws Exception {
@@ -744,7 +744,7 @@ class AiTurnGeneratorTest {
             String serialized=json.writeValueAsString(messages);
             assertEquals(serialized.codePointCount(0,serialized.length()),stored.get().get("codePoints"));
             assertTrue(number(stored.get().get("codePoints"),0)<=32_000);
-            assertEquals(json.convertValue(AiPromptProjection.project(adapter,observation),Map.class),com.aisocialgame.lab.LabTrainingInput.decode(map(stored.get().get("encoded"))));
+            assertEquals(json.convertValue(WerewolfAiProtocol.encode(AiPromptProjection.project(adapter,observation),WerewolfAiProtocol.references(observation)),Map.class),com.aisocialgame.lab.LabTrainingInput.decode(map(stored.get().get("encoded"))));
             return new AiChatResult(payload("SPEAK","我先听听大家的判断。",null),"mock-only",10,5);
         });
         var result=generator.generate(adapter,observation,"course-input",50_000,()->true,Map.of(),stored::set);
@@ -785,11 +785,12 @@ class AiTurnGeneratorTest {
         var stored=new java.util.concurrent.atomic.AtomicReference<Map<String,Object>>();
         when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenThrow(pendingResult("AI_RESULT_PENDING"));
         var waiting=assertThrows(AiTurnGenerator.GenerationDeferred.class,()->generator.generate(adapter,observation,"course-recover",50_000,()->true,Map.of(),stored::set));
-        for(String key:List.of("actualPrompt","encoded","codePoints"))assertEquals(stored.get().get(key),waiting.checkpoint().get(key));
+        for(String key:List.of("actualPrompt","encoded","codePoints","referenceMap"))assertEquals(stored.get().get(key),waiting.checkpoint().get(key));
         var original=waiting.checkpoint().get("actualPrompt");
         when(client.recoverChatCompletions(anyString(),anyLong(),eq("course-recover:0"))).thenReturn(new AiChatResult(payload("SPEAK","我先听听大家的判断。",null),"mock-only",10,5));
         generator.generate(adapter,trainingV2Observation(Map.of("laterMaterial","后".repeat(40_000))),"course-recover",0,()->true,waiting.checkpoint(),stored::set);
         assertEquals(original,stored.get().get("actualPrompt"));
+        assertEquals(waiting.checkpoint().get("referenceMap"),stored.get().get("referenceMap"));
         verify(client,times(1)).chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
         verify(client,times(1)).recoverChatCompletions(anyString(),anyLong(),eq("course-recover:0"));
     }

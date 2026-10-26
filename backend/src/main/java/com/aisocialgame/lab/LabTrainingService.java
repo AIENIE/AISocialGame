@@ -15,7 +15,9 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 @Service
 public class LabTrainingService {
     public record ExternalDiagnostic(String requestId,String budgetId) {}
-    public record Request(String operationId,String goal,List<ExternalDiagnostic> externalDiagnostics) {}
+    public record Request(String operationId,String goal,List<ExternalDiagnostic> externalDiagnostics,String mode,String candidateStrategyVersionId,String materialSetVersion) {
+        public Request(String operationId,String goal,List<ExternalDiagnostic> externalDiagnostics){this(operationId,goal,externalDiagnostics,null,null,null);}
+    }
     final LabTrainingRunRepository runs;
     final LabTrainingCaseRepository cases;
     final LabTrainingTaskRepository tasks;
@@ -41,7 +43,12 @@ public class LabTrainingService {
     public Map<String,Object> create(String experimentId,Request request) {
         require(request.operationId()!=null && request.operationId().matches("[A-Za-z0-9_-]{8,64}"),"操作 ID 无效");
         require("RULES_EVIDENCE".equals(request.goal()),"首期课程只支持规则与证据理解");
+        String mode=request.mode()==null?"TRAIN_AND_EVALUATE":request.mode();boolean evaluating="EVALUATE_ONLY".equals(mode);
+        require(Set.of("TRAIN_AND_EVALUATE","EVALUATE_ONLY").contains(mode),"课程运行方式无效");
+        require(evaluating?!text(request.candidateStrategyVersionId()).isBlank():text(request.candidateStrategyVersionId()).isBlank(),"独立复测必须指定候选，训练模式不指定候选");
+        require(evaluating?LabEvaluationMaterials.VERSION.equals(request.materialSetVersion()):request.materialSetVersion()==null||"werewolf-training-v2".equals(request.materialSetVersion()),"材料集版本无效");
         var parameters=new LinkedHashMap<String,Object>();parameters.put("goal",request.goal());
+        if(evaluating){parameters.put("mode",mode);parameters.put("candidateStrategyVersionId",request.candidateStrategyVersionId());parameters.put("materialSetVersion",request.materialSetVersion());}
         var external=request.externalDiagnostics()==null?List.<ExternalDiagnostic>of():request.externalDiagnostics();
         require(external.size()<=8 && external.stream().map(ExternalDiagnostic::budgetId).distinct().count()==external.size(),"外部诊断重复或过多");
         parameters.put("externalDiagnostics",json.convertValue(external,List.class));String hash=LabStrategyService.hash(parameters);
@@ -52,13 +59,18 @@ public class LabTrainingService {
         require(maps(experiment.configuration.get("roster")).stream().map(p->text(p.get("personaId"))).collect(java.util.stream.Collectors.toSet()).equals(Set.of("ai1","ai2","ai3","ai4")),"课程需要福尔摩斯、小丑、华生和露娜四个人格");
         require(Set.of("PAUSED","DRAFT","COMPLETED").contains(experiment.status),"请先暂停实验");
         require(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(experimentId,List.of("WAITING","PLAYING","REVIEWING")).isEmpty(),"当前还有未结束的对局或复盘");
+        var candidate=evaluating?strategies.strategySnapshot(request.candidateStrategyVersionId()):Map.<String,Object>of();
+        if(evaluating) {
+            require(experiment.id.equals(candidate.get("experimentId")),"候选必须属于当前实验");
+            require(maps(experiment.configuration.get("roster")).stream().allMatch(p->LabStrategyService.compatible(candidate,map(experiment.configuration.get("rules")),map(p.get("modelSelection")))),"候选与规则或玩家模型不兼容");
+        }
         var verified=new ArrayList<Map<String,Object>>();
         for(var ref:external) verified.add(calls.inspectExternalCharge(properties.getProjectKey(),properties.getAi().getSystemUserId(),ref.requestId(),ref.budgetId()));
         var draft=new LabTrainingRun();draft.experimentId=experimentId;draft.operationId=request.operationId();draft.requestHash=hash;
-        var material=factory.build(experiment,draft.id);
-        require(material.stream().filter(row->"DEVELOPMENT".equals(row.get("purpose"))).count()==8
+        var material=evaluating?factory.buildEvaluation(experiment,draft.id,request.materialSetVersion()):factory.build(experiment,draft.id);
+        require(material.stream().filter(row->(evaluating?"CALIBRATION":"DEVELOPMENT").equals(row.get("purpose"))).count()==(evaluating?5:8)
                 && material.stream().filter(row->"HOLDOUT".equals(row.get("purpose"))).count()==32,"课程材料须包含八个开发案例和三十二个保留题单元");
-        var developmentSources=new HashSet<String>();material.stream().filter(row->"DEVELOPMENT".equals(row.get("purpose"))).forEach(row->developmentSources.add(text(row.get("sourceGroup"))));
+        var developmentSources=new HashSet<String>();material.stream().filter(row->(evaluating?"CALIBRATION":"DEVELOPMENT").equals(row.get("purpose"))).forEach(row->developmentSources.add(text(row.get("sourceGroup"))));
         require(material.stream().filter(row->"HOLDOUT".equals(row.get("purpose"))).noneMatch(row->developmentSources.contains(text(row.get("sourceGroup")))),"训练与保留来源重叠");
         String id=tx.execute(status->{
             var locked=experiments.lock(experimentId).orElseThrow(LabService::missing);
@@ -76,9 +88,11 @@ public class LabTrainingService {
             draft.configuration.put("rules",LabStrategyService.copy(map(locked.configuration.get("rules"))));
             draft.configuration.put("roster",LabStrategyService.copy(Map.of("items",maps(locked.configuration.get("roster")))).get("items"));
             String base=text(locked.configuration.get("strategyHeadId"));
-            draft.configuration.put("baseStrategy",base.isBlank()?map(locked.configuration.get("initialStrategy")):strategies.strategySnapshot(base));
+            draft.configuration.put("baseStrategy",evaluating?Map.of():base.isBlank()?map(locked.configuration.get("initialStrategy")):strategies.strategySnapshot(base));
+            draft.configuration.put("mode",mode);
+            if(evaluating){draft.stage="CALIBRATION";draft.candidateStrategyVersionId=request.candidateStrategyVersionId();draft.configuration.put("candidateStrategy",candidate);draft.configuration.put("materialSetVersion",request.materialSetVersion());draft.configuration.put("evaluationProtocolHash",com.aisocialgame.service.ai.v2.WerewolfAiProtocol.implementationHash());}
             draft.configuration.put("randomSeed",locked.configuration.getOrDefault("randomSeed",0L));
-            draft.configuration.put("paidRetriesUsed",0);draft.configuration.put("maxPaidRetries",2);
+            draft.configuration.put("paidRetriesUsed",0);draft.configuration.put("maxPaidRetries",evaluating?0:2);
             draft.configuration.put("courseVersion","werewolf-rules-evidence-v2");
             draft.configuration.put("sourceManifestHash",LabStrategyService.hash(material));
             draft.configuration.put("externalDiagnostics",verified);
@@ -92,6 +106,7 @@ public class LabTrainingService {
                     addTask(draft,item,"PRACTICE","BASELINE",ordinal*2);
                     addTask(draft,item,"TEACH",null,ordinal*2+1);
                 }
+                if("CALIBRATION".equals(item.purpose))addTask(draft,item,"CALIBRATION","BASELINE",ordinal);
             }
             locked.configuration.put("trainingV2Enabled",true);locked.configuration.put("activeTrainingRunId",draft.id);
             locked.status="PAUSED";experiments.saveAndFlush(locked);return draft.id;
@@ -110,6 +125,10 @@ public class LabTrainingService {
     public Map<String,Object> control(String experimentId,String operation,String action) {
         require(Set.of("start","start-one","pause","resume","stop").contains(action),"课程控制操作无效");
         var original=owned(experimentId,operation);
+        if("EVALUATE_ONLY".equals(original.configuration.get("mode"))) {
+            require(!"start-one".equals(action),"独立复测从完整的五项协议校准开始");
+            if(Set.of("start","resume").contains(action))require(!Set.of("PROTOCOL_CALIBRATION_FAILED","EVALUATION_IMPLEMENTATION_CHANGED").contains(text(original.reason)),"本次校准失败或执行版本变化，请保留结果，不能重开原评测");
+        }
         if(Set.of("start","start-one","resume").contains(action)) {
             var selections=new ArrayList<Map<String,Object>>();selections.add(map(original.configuration.get("coach")));
             selections.addAll(maps(original.configuration.get("roster")).stream().map(p->map(p.get("modelSelection"))).distinct().toList());
@@ -175,7 +194,11 @@ public class LabTrainingService {
         var progress=new LinkedHashMap<String,Object>();progress.put("totalTasks",rows.size());
         progress.put("completedTasks",rows.stream().filter(t->"SUCCEEDED".equals(t.status)).count());
         progress.put("failedTasks",rows.stream().filter(t->Set.of("FAILED","BLOCKED","SKIPPED").contains(t.status)).count());
-        progress.put("developmentCases",8);progress.put("holdoutPairs",32);progress.put("gamePairs",2);
+        progress.put("developmentCases","EVALUATE_ONLY".equals(run.configuration.get("mode"))?0:8);progress.put("holdoutPairs",32);progress.put("gamePairs",2);
+        progress.put("calibrationCases",rows.stream().filter(t->"CALIBRATION".equals(t.kind)).count());
+        long scored=rows.stream().filter(t->"JUDGE".equals(t.kind)&&"SUCCEEDED".equals(t.status)&&maps(t.result.get("assessments")).size()==2
+                &&maps(t.result.get("assessments")).stream().noneMatch(a->List.of("facts","evidence","response").stream().anyMatch(k->"UNSCORED".equals(a.get(k))))).count();
+        out.put("coverage",Map.of("plannedPairs",32,"scoredPairs",scored,"unscoredPairs",32-scored,"failedPlayerRequests",rows.stream().filter(t->"HOLDOUT".equals(t.kind)&&"FAILED".equals(t.status)).count()));
         progress.put("completedHoldoutPairs",rows.stream().filter(t->"JUDGE".equals(t.kind)&&"SUCCEEDED".equals(t.status)).count());
         progress.put("completedGamePairs",run.assessment.getOrDefault("completedGamePairs",0));out.put("progress",progress);
         out.put("cost",cost(experimentId));out.put("tasks",rows.stream().map(this::taskView).toList());
@@ -222,6 +245,8 @@ public class LabTrainingService {
         diagnostics.put("attemptHistory",row.checkpoint.getOrDefault("attemptHistory",List.of()));
         diagnostics.put("inputPreparationHistory",row.checkpoint.getOrDefault("inputPreparationHistory",List.of()));
         diagnostics.put("input",row.input);
+        var flags=strings(map(row.result.get("diagnostics")).get("qualityFlags"));diagnostics.put("failureFlags",flags);
+        diagnostics.put("failureCategory",failureCategory(row,flags));
         diagnostics.put("calls",records);out.put("diagnostics",diagnostics);return out;
     }
     static List<String> requestIds(LabTrainingTask task) {
@@ -233,6 +258,13 @@ public class LabTrainingService {
     private String nextStep(LabTrainingRun run) {
         if("PAUSED".equals(run.status))return "REPRESENTATIVE_CASE_READY".equals(run.reason)?"代表案例已保存，恢复后继续课程":"已保留进度，等待恢复";
         if(Set.of("COMPLETED","STOPPED").contains(run.status))return run.candidateStrategyVersionId==null?"查看结果，本轮没有可发布的策略":"查看评测与策略差异，手动选择人格试用";
-        return switch(run.stage){case "PRACTICE"->"完成局面练习与针对性教学";case "MERGE"->"合并通过校验的策略修改";case "REHEARSAL"->"复练开发案例，不计入独立效果";case "HOLDOUT"->"完成独立保留题对照";case "GAMES"->"完成两对真实九人对局";default->"生成本轮结果";};
+        return switch(run.stage){case "CALIBRATION"->"先完成五项协议校准，不计入策略提升样本";case "PRACTICE"->"完成局面练习与针对性教学";case "MERGE"->"合并通过校验的策略修改";case "REHEARSAL"->"复练开发案例，不计入独立效果";case "HOLDOUT"->"完成独立保留题对照";case "GAMES"->"完成两对真实九人对局";default->"生成本轮结果";};
+    }
+    private static String failureCategory(LabTrainingTask task,List<String> flags) {
+        if(!Set.of("FAILED","BLOCKED","WAITING").contains(task.status))return "NONE";
+        if("MATERIAL_TOO_LARGE".equals(task.reason)||text(task.reason).contains("INPUT"))return "INPUT_DEFECT";
+        if(flags.stream().anyMatch(f->Set.of("ILLEGAL_ACTION","ILLEGAL_TARGET","MISSING_TARGET","ILLEGAL_ABSTENTION").contains(f)))return "ILLEGAL_ACTION";
+        if(flags.stream().anyMatch(f->f.contains("REFERENCE")||f.contains("EVIDENCE")||f.contains("JSON")||f.contains("useHeal")||"CONTENT_TOO_LONG".equals(f)||f.contains("问题eventId")))return "OUTPUT_PROTOCOL";
+        return flags.isEmpty()?"CALL_FAILURE":"SEMANTIC_ERROR";
     }
 }

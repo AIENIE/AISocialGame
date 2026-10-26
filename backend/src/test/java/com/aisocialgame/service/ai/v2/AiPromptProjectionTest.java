@@ -80,8 +80,8 @@ class AiPromptProjectionTest {
 
                 JsonNode projected = json.valueToTree(AiPromptProjection.project(rules, observation));
                 JsonNode restored = resolve(projected.path("observation"), projected, 0);
-                assertEquals(4, projected.path("inputFormatVersion").asInt());
-                assertEquals(4, AiPromptProjection.version("werewolf"));
+                assertEquals(5, projected.path("inputFormatVersion").asInt());
+                assertEquals(5, AiPromptProjection.version("werewolf"));
                 assertFalse(projected.path("seatNumbering").asText().isBlank());
                 assertEquals(actorSeat + 1, restored.path("self").path("seatNumber").asInt());
                 for (int seat = 0; seat < count; seat++) {

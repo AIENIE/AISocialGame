@@ -16,6 +16,22 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class LabTrainingServiceTest {
+    @Test void evaluationOnlyFreezesExistingCandidateAndEmptyBaselineWithoutTeachingOrLegacyHashChanges() {
+        var f=new LabTrainingFixture();var rows=f.material();rows.subList(5,8).clear();for(int i=0;i<5;i++)rows.get(i).put("purpose","CALIBRATION");
+        when(f.factory.buildEvaluation(any(),anyString(),eq(LabEvaluationMaterials.VERSION))).thenReturn(rows);
+        var snapshot=Map.<String,Object>of("id","candidate-v1","experimentId",f.experiment.id,"contentHash","immutable-hash","content",Map.of("cards",List.of()),
+                "compatibility",Map.of("gameId","werewolf","rules",f.experiment.configuration.get("rules"),"modelSelection",f.player));
+        when(f.strategies.strategySnapshot("candidate-v1")).thenReturn(snapshot);f.experiment.configuration.put("strategyHeadId","unrelated-head");
+        var request=new LabTrainingService.Request("operation-evaluate","RULES_EVIDENCE",null,"EVALUATE_ONLY","candidate-v1",LabEvaluationMaterials.VERSION);
+        var created=f.service.create(f.experiment.id,request);assertEquals(created,f.service.create(f.experiment.id,request));
+        var run=f.runRows.values().iterator().next();assertEquals("CALIBRATION",run.stage);assertEquals("candidate-v1",run.candidateStrategyVersionId);
+        assertEquals(Map.of(),run.configuration.get("baseStrategy"));assertEquals(snapshot,run.configuration.get("candidateStrategy"));assertEquals("unrelated-head",f.experiment.configuration.get("strategyHeadId"));
+        assertEquals(5,f.taskRows.size());assertTrue(f.taskRows.values().stream().allMatch(t->"CALIBRATION".equals(t.kind)));
+        assertThrows(ApiException.class,()->f.service.create(f.experiment.id,new LabTrainingService.Request("operation-evaluate","RULES_EVIDENCE",null,"EVALUATE_ONLY","different",LabEvaluationMaterials.VERSION)));
+        assertThrows(ApiException.class,()->f.service.control(f.experiment.id,run.operationId,"start-one"));verify(f.strategies,never()).createTrainingVersion(any(),any(),any());
+        var legacy=new LabTrainingFixture();legacy.service.create(legacy.experiment.id,new LabTrainingService.Request("old-operation","RULES_EVIDENCE",null));
+        assertNotNull(legacy.service.create(legacy.experiment.id,new LabTrainingService.Request("old-operation","RULES_EVIDENCE",null,"TRAIN_AND_EVALUATE",null,"werewolf-training-v2")));
+    }
     @Test void creationFreezesFortyCasesAndSixteenDevelopmentTasksAndRecoversTheSameOperation() {
         var f=new LabTrainingFixture();var request=new LabTrainingService.Request("operation-create","RULES_EVIDENCE",null);
         var first=f.service.create(f.experiment.id,request);var same=f.service.create(f.experiment.id,request);

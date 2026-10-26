@@ -137,7 +137,8 @@ public final class LabTrainingTeaching {
         String status=!full?"INCOMPLETE":newRules>0 || newLeaks>0 || candidate>baseline?"REGRESSION":candidate<baseline&&!improved.isEmpty()?"IMPROVED":"NO_IMPROVEMENT";
         var result=new LinkedHashMap<String,Object>();result.put("status",status);result.put("completedPairs",complete);result.put("plannedPairs",32);
         result.put("baselineErrors",baseline);result.put("candidateErrors",candidate);result.put("improvedSourceGroups",improved);
-        result.put("newRuleErrors",newRules);result.put("newEvidenceLeaks",newLeaks);result.put("hasUnscored",unscored);
+        result.put("newRuleErrors",newRules);result.put("newEvidenceLeaks",newLeaks);result.put("hasUnscored",unscored||complete<32);
+        result.put("unscoredPairs",32-complete);
         result.put("candidateRuleErrors",candidateRules);result.put("candidateEvidenceLeaks",candidateLeaks);
         result.put("publicationBlocked",candidateRules>0 || candidateLeaks>0);result.put("invalidPairs",invalid);
         result.put("independentSourceGroups",groups.size());result.put("effect","PILOT_MODEL_JUDGED");return result;

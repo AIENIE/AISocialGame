@@ -16,6 +16,23 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class LabTrainingWorkerTest {
+    @Test void evaluationCalibrationFailureOrVersionChangeNeverStartsIndependentRequests() {
+        for(boolean changed:List.of(false,true)) {
+            var f=new Fixture();var run=f.run();f.taskRows.clear();run.stage="CALIBRATION";run.configuration.put("mode","EVALUATE_ONLY");
+            run.configuration.put("evaluationProtocolHash",changed?"different":WerewolfAiProtocol.implementationHash());
+            for(int i=0;i<5;i++){var task=f.service.addTask(run,f.item("CALIBRATION","calibration-"+i,"ai1"),"CALIBRATION","v"+i,i);task.status=i==0?"FAILED":"SUCCEEDED";}
+            f.worker().process(f.experiment.id);assertEquals("PAUSED",run.status);assertEquals(changed?"EVALUATION_IMPLEMENTATION_CHANGED":"PROTOCOL_CALIBRATION_FAILED",run.reason);
+            assertTrue(f.taskRows.values().stream().noneMatch(t->Set.of("HOLDOUT","JUDGE","TEACH").contains(t.kind)));verifyNoInteractions(f.generator,f.client);
+        }
+    }
+    @Test void fiveValidCalibrationsAdvanceOnlyToSixtyFourFrozenAnswersAndThirtyTwoJudges() {
+        var f=new Fixture();var run=f.run();f.taskRows.clear();run.stage="CALIBRATION";run.configuration.put("mode","EVALUATE_ONLY");run.configuration.put("evaluationProtocolHash",WerewolfAiProtocol.implementationHash());
+        for(int i=0;i<5;i++){var task=f.service.addTask(run,f.item("CALIBRATION","calibration-"+i,"ai1"),"CALIBRATION","v"+i,i);task.status="SUCCEEDED";}
+        for(int i=0;i<32;i++)f.item("HOLDOUT","source-"+i/4,"ai"+(i%4+1));
+        when(f.generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any())).thenThrow(new AiTurnGenerator.GenerationDeferred(Map.of(),"AI_RESULT_PENDING"));
+        f.worker().process(f.experiment.id);assertEquals("HOLDOUT",run.stage);assertEquals(64,f.taskRows.values().stream().filter(t->"HOLDOUT".equals(t.kind)).count());
+        assertEquals(32,f.taskRows.values().stream().filter(t->"JUDGE".equals(t.kind)).count());verify(f.generator,times(1)).generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any());verifyNoInteractions(f.client);
+    }
     private static class Fixture extends LabTrainingFixture {
         final AiTurnGenerator generator=mock(AiTurnGenerator.class);
         final AiGrpcClient client=mock(AiGrpcClient.class);
