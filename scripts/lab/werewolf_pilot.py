@@ -14,8 +14,10 @@ only the designated participant's strategy. It is not a strength certification.
 
 create creates one draft; advance starts at most one stage per invocation.
 poll and export never start work. run repeats advance for a bounded time (50s
-by default); it stops on every unexpected pause, unknown outcome, or budget
-limit. Reinvoke after inspecting the saved state. There is no automatic paid
+by default); it stops on every unexpected pause, current-action unknown outcome,
+or actual-spend budget limit. Historical pending fees remain reported separately
+and do not block an independently authorized next stage. Reinvoke after
+inspecting the saved state. There is no automatic paid
 review retry, budget change, publication, or restart of an unknown sent action.
 After reviewing settled scenario failures, an operator may explicitly record
 acknowledge-scenario-failures --reviewed-by <name> --review-notes <assessment>.
@@ -48,6 +50,7 @@ PREFIX = "/api/admin/lab/experiments"
 PLAYER = {"modelKey": "deepseek-flash", "thinkingMode": "ENABLED", "thinkingEffort": "LOW"}
 COACH = {"modelKey": "gpt-6.1-sol", "thinkingMode": "ENABLED", "thinkingEffort": "MAX"}
 ROLES = {"WEREWOLF", "VILLAGER", "SEER", "WITCH", "HUNTER"}
+EXECUTION_DONE = {"PILOT_EXECUTION_COMPLETED", "PILOT_EXECUTION_COMPLETED_USAGE_PENDING"}
 
 
 class Attention(RuntimeError):
@@ -253,8 +256,19 @@ class Pilot:
     def admit(detail):
         if detail["cost"]["spentPoints"] >= 3000 or detail.get("budgetPaused"):
             raise Attention("BUDGET_STOP_LINE_REACHED")
-        if detail["cost"]["pendingCalls"]:
-            raise Attention("USAGE_PENDING_CONFIRMATION_NO_NEW_STAGE")
+
+    def completed_scenario(self, operation_id):
+        # This receipt is scoped to the scenario, unlike the experiment cost total.
+        scenario = self.api("GET", self.endpoint("/scenario-evaluations/" + operation_id))
+        if scenario.get("status") != "COMPLETED":
+            raise Attention("SCENARIO_NOT_COMPLETED_INSPECT_ORIGINAL_REQUEST")
+        if any(row.get("status") not in ["SUCCEEDED", "FAILED"] for row in scenario.get("results", [])):
+            raise Attention("SCENARIO_RESULTS_UNCONFIRMED_INSPECT_ORIGINAL_REQUEST")
+        if not isinstance(scenario.get("calls"), list):
+            raise Attention("SCENARIO_CALL_RECEIPTS_UNAVAILABLE")
+        if any(call.get("state") not in ["SETTLED", "NOT_SENT"] or call.get("billedPoints") is None for call in scenario["calls"]):
+            raise Attention("SCENARIO_UNCONFIRMED_USAGE_INSPECT_ORIGINAL_REQUEST")
+        return scenario
 
     def advance(self):
         detail, matches = self.snapshot()
@@ -307,6 +321,7 @@ class Pilot:
             raise Attention("SCENARIO_PAUSED_" + str(scenario.get("reason", "INSPECT_ORIGINAL_REQUEST")))
         if scenario["status"] != "COMPLETED":
             return self.waiting("SCENARIOS_IN_PROGRESS")
+        scenario = self.completed_scenario(scenario_op)
         results = scenario.get("results", [])
         pairs = {row["caseId"] for row in results if all(any(other["caseId"] == row["caseId"] and other["variant"] == variant for other in results) for variant in ["BASELINE", "CANDIDATE"])}
         if scenario.get("totalCalls") != 40 or len(results) != 40 or len(pairs) != 20:
@@ -342,11 +357,11 @@ class Pilot:
             operation["id"] = result["id"]
             self.save()
             return {"status": "PAIR_STARTED_OR_RECOVERED", "operationId": operation["operationId"], "targetRole": operation["plan"]["targetRole"]}
-        if detail["cost"]["pendingCalls"]:
-            raise Attention("FINAL_USAGE_PENDING_CONFIRMATION")
         self.state["executionCompleted"] = True
+        self.state["settlementComplete"] = detail["cost"]["pendingCalls"] == 0
         self.save()
-        return {"status": "PILOT_EXECUTION_COMPLETED", "trainingGames": len(training), "scenarioPairs": 20,
+        return {"status": "PILOT_EXECUTION_COMPLETED" if self.state["settlementComplete"] else "PILOT_EXECUTION_COMPLETED_USAGE_PENDING",
+                "settlementComplete": self.state["settlementComplete"], "trainingGames": len(training), "scenarioPairs": 20,
                 "gamePairs": len(self.state["evaluations"]), "effect": "NOT_VERIFIED", "cost": detail["cost"]}
 
     def waiting(self, status):
@@ -357,14 +372,12 @@ class Pilot:
     def acknowledge_scenario_failures(self, reviewer, notes):
         if not reviewer or not reviewer.strip() or not notes or not notes.strip():
             raise Attention("EXPLICIT_REVIEWER_AND_REVIEW_NOTES_REQUIRED")
-        detail, _ = self.snapshot()
+        self.snapshot()
         operation_id = self.state["scenario"]["operationId"]
-        scenario = detail["configuration"].get("scenarioRuns", {}).get(operation_id, {})
+        scenario = self.completed_scenario(operation_id)
         results = scenario.get("results", [])
         if scenario.get("status") != "COMPLETED" or len(results) != 40 or not any(row["status"] == "FAILED" for row in results):
             raise Attention("REVIEW_REQUIRES_COMPLETED_SCENARIOS_WITH_RECORDED_FAILURES")
-        if detail["cost"]["pendingCalls"]:
-            raise Attention("UNCONFIRMED_USAGE_CANNOT_BE_ACKNOWLEDGED_AS_SETTLED")
         self.state["scenario"]["failureReview"] = {"reviewedBy": reviewer.strip(), "notes": notes.strip(),
             "reviewedAt": now(), "operationId": operation_id, "resultHash": fingerprint(results),
             "decision": "CONTINUE_PLANNED_PAIRED_GAMES_WITH_FAILURES_PRESERVED"}
@@ -401,6 +414,7 @@ class Pilot:
         write_json(destination, result)
         lines = ["# 狼人杀共享策略先导结果", "", f"实验：[{detail['id']}]({ORIGIN}/admin/lab/{detail['id']})", "",
                  f"状态：{detail['status']}；实扣 {detail['cost']['spentPoints']} / 3000 积分；待确认 {detail['cost']['pendingCalls']}。",
+                 "执行完成与费用结算分开记录；仍有待确认费用时，不代表结算完成或免费。",
                  f"训练实际完成：{self.state.get('actualTrainingGames', 0)} 局；计划上限 2 局，900 积分检查线可能提前结束训练。",
                  "计划配置：DeepSeek LOW 玩家、GPT-6.1 Sol MAX 教练；实际流式链路与时间指标须由调用诊断另行核验。", "",
                  "效果待验证；该先导不用于宣称胜率或能力已提升。未向正式角色自动发布。", "",
@@ -492,7 +506,7 @@ def main():
                 while True:
                     result = pilot.advance()
                     print(json.dumps(result, ensure_ascii=False), flush=True)
-                    if args.action != "run" or result["status"] == "PILOT_EXECUTION_COMPLETED" or time.monotonic() + 10 > deadline:
+                    if args.action != "run" or result["status"] in EXECUTION_DONE or time.monotonic() + 10 > deadline:
                         return 0
                     time.sleep(10)
             print(json.dumps(result, ensure_ascii=False))

@@ -1,9 +1,12 @@
 """Offline protocol substitutes; never import the private administrator helper."""
 from copy import deepcopy
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import werewolf_pilot as pilot
 
@@ -74,7 +77,9 @@ class FakeApi:
         run = next(iter(self.detail["configuration"]["scenarioRuns"].values()))
         run.update(status="COMPLETED", nextIndex=40,
                    results=[{"caseId": str(index), "variant": variant, "status": "SUCCEEDED"}
-                            for index in range(20) for variant in ["BASELINE", "CANDIDATE"]])
+                            for index in range(20) for variant in ["BASELINE", "CANDIDATE"]],
+                   calls=[{"requestId": f"scenario-{index}", "state": "SETTLED", "billedPoints": 1}
+                          for index in range(40)])
         self.detail["configuration"].pop("activeScenario", None)
 
 
@@ -153,16 +158,69 @@ class PilotTests(unittest.TestCase):
         self.assertEqual("PAIRED_GAMES_IN_PROGRESS", restarted.advance()["status"])
         self.assertEqual(1, sum(path.endswith("/evaluations") for path, _ in self.api.posts))
 
-    def test_budget_or_unconfirmed_usage_prevents_next_stage(self):
+    def test_actual_budget_or_budget_pause_prevents_next_stage(self):
         self.runner.create()
         self.api.training_done()
         self.api.detail["cost"]["spentPoints"] = 3000
         with self.assertRaisesRegex(pilot.Attention, "BUDGET"):
             self.runner.advance()
         self.api.detail["cost"].update(spentPoints=20, pendingCalls=1)
-        with self.assertRaisesRegex(pilot.Attention, "USAGE_PENDING"):
+        self.api.detail["budgetPaused"] = True
+        with self.assertRaisesRegex(pilot.Attention, "BUDGET"):
             self.runner.advance()
         self.assertEqual(1, len(self.api.posts))
+
+    def test_authorized_replacement_review_allows_independent_stages_with_old_fee_pending(self):
+        self.runner.create()
+        self.api.training_done()
+        self.api.matches[0]["status"] = "REVIEW_FAILED"
+        self.api.detail["cost"].update(spentPoints=200, pendingCalls=1)
+        with self.assertRaisesRegex(pilot.Attention, "MATCH_OR_REVIEW_FAILED"):
+            self.runner.advance()
+        self.assertEqual(1, len(self.api.posts))
+        # External, explicitly authorized replacement succeeded. The old request's
+        # unknown fee remains in the authoritative aggregate; this runner never retries it.
+        self.api.matches[0]["status"] = "REVIEWED"
+        self.assertEqual("SCENARIOS_STARTED_OR_RECOVERED", self.runner.advance()["status"])
+        self.api.scenarios_done()
+        self.assertEqual("PAIR_STARTED_OR_RECOVERED", self.runner.advance()["status"])
+        self.api.detail["evaluations"][0].update(status="COMPLETED", validPairs=1, completedGames=2)
+        self.api.detail["status"] = "COMPLETED"
+        result = self.runner.advance()
+        self.assertEqual("PILOT_EXECUTION_COMPLETED_USAGE_PENDING", result["status"])
+        self.assertFalse(result["settlementComplete"])
+        self.assertEqual(1, result["cost"]["pendingCalls"])
+        self.assertTrue(self.runner.state["executionCompleted"])
+        restarted = pilot.Pilot(self.path, self.api)
+        self.assertFalse(restarted.state["settlementComplete"])
+        with patch.object(pilot, "Api", return_value=self.api), patch.object(pilot.sys, "argv", [
+                "werewolf_pilot.py", "run", "--state", str(self.path), "--api-helper", "unused.py"]), \
+                patch.object(pilot.time, "sleep") as sleep, redirect_stdout(StringIO()):
+            self.assertEqual(0, pilot.main())
+        sleep.assert_not_called()
+        self.assertEqual(3, len(self.api.posts))
+        self.api.detail["cost"]["pendingCalls"] = 0
+        self.assertTrue(restarted.advance()["settlementComplete"])
+        self.assertEqual(3, len(self.api.posts))
+
+    def test_current_scenario_unknown_result_never_starts_another_stage(self):
+        self.runner.create()
+        self.api.training_done()
+        self.runner.advance()
+        run = next(iter(self.api.detail["configuration"]["scenarioRuns"].values()))
+        run.update(status="PAUSED", reason="LAB_CALL_UNCERTAIN")
+        self.api.detail["cost"]["pendingCalls"] = 1
+        with self.assertRaisesRegex(pilot.Attention, "SCENARIO_PAUSED_LAB_CALL_UNCERTAIN"):
+            self.runner.advance()
+        self.api.scenarios_done()
+        run["calls"][0].update(state="USAGE_UNKNOWN", billedPoints=None)
+        with self.assertRaisesRegex(pilot.Attention, "SCENARIO_UNCONFIRMED_USAGE"):
+            self.runner.advance()
+        run["calls"][0].update(state="SETTLED", billedPoints=1)
+        run["results"][0]["status"] = "RUNNING"
+        with self.assertRaisesRegex(pilot.Attention, "SCENARIO_RESULTS_UNCONFIRMED"):
+            self.runner.advance()
+        self.assertEqual(2, len(self.api.posts))
 
     def test_finished_inflight_overspend_can_finish_without_new_call(self):
         self.runner.create()
@@ -194,13 +252,17 @@ class PilotTests(unittest.TestCase):
         results = next(iter(self.api.detail["configuration"]["scenarioRuns"].values()))["results"]
         results[0]["status"] = "FAILED"
         self.api.detail["cost"]["pendingCalls"] = 1
+        run = next(iter(self.api.detail["configuration"]["scenarioRuns"].values()))
+        run["calls"][0].update(state="USAGE_UNKNOWN", billedPoints=None)
         with self.assertRaisesRegex(pilot.Attention, "UNCONFIRMED_USAGE"):
             self.runner.acknowledge_scenario_failures("reviewer", "Reviewed failure, continue planned pair")
-        self.api.detail["cost"]["pendingCalls"] = 0
+        run["calls"][0].update(state="NOT_SENT", billedPoints=0)
+        # All scenario requests are resolved; one unrelated historical coach fee remains unknown.
         receipt = self.runner.acknowledge_scenario_failures("reviewer", "Reviewed failure, continue planned pair")
         self.assertEqual(0, receipt["paidCallsStarted"])
         self.assertEqual(2, len(self.api.posts))
         self.assertEqual("PAIR_STARTED_OR_RECOVERED", self.runner.advance()["status"])
+        self.assertEqual(1, self.api.detail["cost"]["pendingCalls"])
         self.assertEqual("FAILED", results[0]["status"])
         results[1]["status"] = "FAILED"
         with self.assertRaisesRegex(pilot.Attention, "SCENARIO_FAILURES"):
