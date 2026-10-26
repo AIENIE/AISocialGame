@@ -78,6 +78,27 @@ class LabStrategyPublicationTest {
         legacy.setApprovedSummary("局中修改后的内容");memories.saveAndFlush(legacy);
         assertEquals("旧通用经验",memoryService.snapshot(next,"actor").get("approvedExperience"));
     }
+    @Test void ordinaryObservationUsesActionKindAndKeepsItsPublicationUntilNextGame() throws Exception {
+        var fixture=fixture("GENERAL");var card=maps(content(fixture.job,"GENERAL","说清判断依据。").get("cards")).getFirst();
+        card.put("actionKinds",List.of("SPEAK"));
+        var version=strategies.createVersion(fixture.experiment,fixture.match,"fixture:"+UUID.randomUUID(),Map.of("cards",List.of(card)),compatibility());
+        publications.apply(request("PUBLISH",version.id,List.of("ai1")),"fixture-admin");
+        var first=state();publications.freezeState(first);
+        var selected=map(memoryService.snapshot(first,"actor","SPEAK").get("strategy"));
+        assertEquals(version.id,selected.get("versionId"));
+        assertTrue(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(selected).length()<=1200);
+        assertFalse(memoryService.snapshot(first,"actor","VOTE").containsKey("strategy"));
+        assertFalse(memoryService.snapshot(first,"actor").containsKey("strategy"));
+        var factory=new com.aisocialgame.service.ai.v2.ObservationFactory(mock(PersonaRepository.class),memoryService);
+        var ruleSet=mock(com.aisocialgame.engine.v2.GameRuleSet.class);
+        when(ruleSet.observationRules(any())).thenReturn(rules);when(ruleSet.legalActions(any(),anyString())).thenReturn(List.of());
+        when(ruleSet.privateData(any(),anyString())).thenReturn(Map.of());when(ruleSet.knowledge(any())).thenReturn(List.of());
+        var observation=factory.build(first,ruleSet,new com.aisocialgame.engine.v2.TurnRequest("actor","SPEAK","one"));
+        assertEquals(version.id,map(observation.memory().get("strategy")).get("versionId"));
+        publications.apply(request("WITHDRAW",null,List.of("ai1")),"fixture-admin");publications.freezeState(first);
+        assertEquals(version.id,map(memoryService.snapshot(first,"actor","SPEAK").get("strategy")).get("versionId"));
+        var next=state();publications.freezeState(next);assertFalse(memoryService.snapshot(next,"actor","SPEAK").containsKey("strategy"));
+    }
 
     @Test void labOnlyUsesExplicitFrozenStrategyAndNeverReadsPublishedOrLegacyExperience() {
         var version=version("GENERAL");publications.apply(request("PUBLISH",version.id,List.of("ai1")),"fixture-admin");

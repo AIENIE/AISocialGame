@@ -37,9 +37,13 @@ public class LabRuntime {
     @Transactional
     public void advance(String id) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
-        if(experiment.configuration.containsKey("activeScenario")) return;
-        if("PAUSED".equals(experiment.status) && experiment.configuration.containsKey("manualReview")) return;
+        boolean trainingV2=flag(experiment.configuration.get("trainingV2Enabled"));
         var current=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
+        if(trainingV2 && evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().noneMatch(e->"RUNNING".equals(e.status)
+                && Objects.equals(experiment.configuration.get("activeTrainingRunId"),e.configuration.get("trainingRunId")))
+                && current.stream().noneMatch(m->Objects.equals(experiment.configuration.get("activeTrainingRunId"),m.snapshot.get("trainingRunId")))) return;
+        if(experiment.configuration.containsKey("activeScenario")) return;
+        if(!trainingV2 && "PAUSED".equals(experiment.status) && experiment.configuration.containsKey("manualReview")) return;
         if(!"STOPPING".equals(experiment.status) || !current.isEmpty()) budgets.pauseIfReached(experiment);
         if(LabBudgetService.paused(experiment)) for(var match:current) {
             if("PLAYING".equals(match.status)) game.pauseLabBudget(match.roomId);
@@ -47,8 +51,9 @@ public class LabRuntime {
         }
         for(var match:current) {
             if("WAITING".equals(match.status)) {
+                if(flag(match.snapshot.get("trainingStopped"))) {abortWaiting(match,"ADMIN_STOPPED");continue;}
                 if(LabBudgetService.paused(experiment)) continue;
-                if(!"RUNNING".equals(experiment.status)) { abortWaiting(match,"LAB_PAUSED_BEFORE_START"); continue; }
+                if(!"RUNNING".equals(experiment.status)) { if(!trainingV2)abortWaiting(match,"LAB_PAUSED_BEFORE_START"); continue; }
                 if(match.startsAtEpochMs<=System.currentTimeMillis()) {
                     try { start(match); }
                     catch(ApiException failure) { abortWaiting(match,failure.getCode()==null?"LAB_START_FAILED":failure.getCode()); pause(experiment,match.reason); }
@@ -66,7 +71,7 @@ public class LabRuntime {
                 }
             }
         }
-        advanceReviewCursor(experiment);
+        if(!trainingV2)advanceReviewCursor(experiment);
         var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,ACTIVE);
         boolean reviewPending=experiment.reviewCursor<experiment.nextSequence;
         if(LabBudgetService.paused(experiment) && active.isEmpty() && !reviewPending) {
@@ -102,6 +107,7 @@ public class LabRuntime {
                 }
                 evaluations.save(evaluation);
             } else {
+                if(trainingV2)return;
                 if(experiment.reviewCursor<experiment.nextSequence) { experiments.saveAndFlush(experiment); return; }
                 int target=number(experiment.configuration.get("targetGames"),100);
                 int created=number(experiment.configuration.get("trainingCreated"),0);
@@ -129,6 +135,7 @@ public class LabRuntime {
         var heads=map(evaluation==null?experiment.configuration.get("experiences"):evaluation.configuration.get("initialExperiences"));
         if(evaluation!=null) {
             match.evaluationId=evaluation.id;
+            if(evaluation.configuration.containsKey("trainingRunId"))match.snapshot.put("trainingRunId",evaluation.configuration.get("trainingRunId"));
             boolean candidateFirst=flag(evaluation.configuration.get("candidateFirst"));
             match.variant=(evaluation.nextGame%2==0)==candidateFirst?"CANDIDATE":"BASELINE";
             if("CANDIDATE".equals(match.variant) && evaluation.configuration.containsKey("candidate")) heads.put(evaluation.participantId,evaluation.configuration.get("candidate"));

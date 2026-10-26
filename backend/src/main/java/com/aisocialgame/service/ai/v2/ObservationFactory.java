@@ -20,7 +20,7 @@ public class ObservationFactory {
                 .orElse(Map.of("playerId", actorId, "displayName", "主持人", "role", "HOST"));
         Map<String, Object> publicRules = new LinkedHashMap<>(rules.observationRules(state));
         publicRules.put("ruleVersion", 2);
-        Map<String, Object> memory = RuleSupport.HOST.equals(actorId) ? Map.of() : memories.snapshot(state, actorId);
+        Map<String, Object> memory = RuleSupport.HOST.equals(actorId) ? Map.of() : memories.snapshot(state, actorId, turn.kind());
         if (state.getData().containsKey("lab")) {
             memory = new LinkedHashMap<>(memory);
             Map<String,Object> lab = new LinkedHashMap<>(RuleSupport.map(state.getData().get("lab")));

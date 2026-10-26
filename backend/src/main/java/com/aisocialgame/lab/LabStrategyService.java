@@ -20,6 +20,8 @@ public class LabStrategyService {
     private final LabStrategyVersionRepository versions;
     private final LabExperimentRepository experiments;
     private final AiTurnJobRepository jobs;
+    @org.springframework.beans.factory.annotation.Autowired private LabTrainingCaseRepository trainingCases;
+    @org.springframework.beans.factory.annotation.Autowired private LabTrainingTaskRepository trainingTasks;
     public LabStrategyService(LabStrategyVersionRepository versions,LabExperimentRepository experiments,AiTurnJobRepository jobs) {
         this.versions=versions;this.experiments=experiments;this.jobs=jobs;
     }
@@ -70,6 +72,41 @@ public class LabStrategyService {
         }
     }
 
+    /** Case learning publishes a real course version, without inventing a completed match. */
+    @Transactional
+    public LabStrategyVersion createTrainingVersion(LabExperiment experiment,LabTrainingRun run,Map<String,Object> content) {
+        require(experiment.id.equals(run.experimentId),"课程不属于实验");
+        var normalized=content.keySet().equals(Set.of("cards")) && content.get("cards") instanceof List<?> list && list.isEmpty()
+                ?Map.<String,Object>of("cards",List.of()):validateContent(content);var base=map(run.configuration.get("baseStrategy"));
+        var old=new HashMap<String,Map<String,Object>>();maps(map(base.get("content")).get("cards")).forEach(card->old.put(text(card.get("id")),card));
+        for(var card:maps(normalized.get("cards"))) {
+            if(card.equals(old.get(text(card.get("id")))))continue;
+            for(String field:List.of("evidence","counterEvidence"))for(var reference:maps(card.get(field))) {
+                var item=trainingCases.findById(text(reference.get("caseId"))).orElseThrow(()->invalid("课程证据案例不存在"));
+                var task=trainingTasks.findById(text(reference.get("taskId"))).orElseThrow(()->invalid("课程证据任务不存在"));
+                require(run.id.equals(item.runId) && run.id.equals(task.runId) && item.id.equals(task.caseId)
+                        && "DEVELOPMENT".equals(item.purpose) && "TEACH".equals(task.kind) && "SUCCEEDED".equals(task.status),"策略只能学习本课程成功的开发教学");
+                var observation=map(item.data.get("observation"));
+                require(text(observation.get("actorId")).equals(reference.get("actorId")),"策略证据视角不匹配");
+                require("GENERAL".equals(card.get("role")) || card.get("role").equals(map(observation.get("self")).get("role")),"身份策略证据角色不匹配");
+                require(new HashSet<>(strings(item.data.get("validEvidenceIds"))).containsAll(strings(reference.get("evidenceIds"))),"策略引用了案例外的证据");
+            }
+        }
+        var roster=maps(run.configuration.get("roster"));
+        var compatibility=validateCompatibility(Map.of("gameId","werewolf","rules",run.configuration.get("rules"),"modelSelection",map(roster.getFirst().get("modelSelection"))));
+        String fingerprint=hash(Map.of("content",normalized,"compatibility",compatibility));
+        var size=Map.<String,Object>of("id",UUID.randomUUID().toString(),"contentHash",fingerprint,"compatibility",compatibility);
+        for(var card:maps(normalized.get("cards")))require(encoded(runtimeSelection(size,List.of(runtimeCard(card)))).length()<=1200,"策略卡及元数据超过运行注入上限");
+        String requestId="training-version:"+run.id;
+        var existing=versions.findByRequestId(requestId).orElse(null);
+        if(existing!=null) {require(existing.contentHash.equals(fingerprint),"课程已发布其他内容");return existing;}
+        var version=new LabStrategyVersion();version.experimentId=experiment.id;version.requestId=requestId;
+        version.previousId=text(base.get("id")).isBlank()?null:text(base.get("id"));version.sequenceNumber=versions.latestSequence(experiment.id)+1;
+        version.content=normalized;version.compatibility=compatibility;version.contentHash=fingerprint;
+        version.evidence=Map.of("trainingRunId",run.id,"courseVersion",run.configuration.get("courseVersion"));
+        versions.saveAndFlush(version);experiment.configuration.put("strategyHeadId",version.id);experiments.save(experiment);return version;
+    }
+
     @Transactional(readOnly=true)
     public List<LabStrategyVersion> list(String experimentId) {
         if(!experiments.existsById(experimentId)) throw LabService.missing();
@@ -83,6 +120,12 @@ public class LabStrategyService {
         result.put("content",copy(version.content));result.put("compatibility",copy(version.compatibility));return result;
     }
 
+    public static void requireRuntimeSize(Map<String,Object> card,Map<String,Object> compatibility) {
+        var snapshot=Map.<String,Object>of("id","00000000-0000-0000-0000-000000000000","contentHash","0".repeat(64),"compatibility",validateCompatibility(compatibility));
+        if(encoded(runtimeSelection(snapshot,List.of(runtimeCard(card)))).length()>1200)
+            throw new ApiException(HttpStatus.BAD_REQUEST,"策略卡及元数据超过1200字符，请缩短卡片但保留适用条件与例外","TRAINING_OUTPUT_INVALID",Map.of());
+    }
+
     public static Map<String,Object> validateContent(Map<String,Object> input) {
         require(input!=null && input.keySet().equals(Set.of("cards")),"策略回复只允许 cards 字段");
         require(input.get("cards") instanceof List<?> values && values.stream().allMatch(Map.class::isInstance),"策略卡必须是对象数组");
@@ -90,12 +133,14 @@ public class LabStrategyService {
         var normalized=new ArrayList<Map<String,Object>>();var ids=new HashSet<String>();
         for(var card:cards) {
             require(card.keySet().containsAll(Set.of("id","role","phases","condition","advice","exceptions","evidence"))
-                    && Set.of("id","role","phases","condition","advice","exceptions","evidence","counterEvidence").containsAll(card.keySet()),"策略卡字段不完整或包含未知字段");
+                    && Set.of("id","role","phases","condition","advice","exceptions","evidence","counterEvidence","priority","actionKinds").containsAll(card.keySet()),"策略卡字段不完整或包含未知字段");
             String id=text(card.get("id"));require(id.matches("[A-Za-z0-9_-]{1,64}") && ids.add(id),"策略卡编号无效或重复");
             require(ROLES.contains(text(card.get("role"))),"策略卡身份不支持");
             require(card.get("phases") instanceof List<?> values && values.stream().allMatch(String.class::isInstance),"策略卡阶段必须是字符串数组");
             var phases=strings(card.get("phases"));require(PHASES.containsAll(phases) && phases.stream().distinct().count()==phases.size(),"策略卡阶段不支持");
             var result=new LinkedHashMap<String,Object>();result.put("id",id);result.put("role",card.get("role"));result.put("phases",phases);
+            if(card.containsKey("priority")) {require(card.get("priority") instanceof Number n && n.doubleValue()==n.intValue() && n.intValue()>=0 && n.intValue()<=100,"策略优先级必须为0到100的整数");result.put("priority",((Number)card.get("priority")).intValue());}
+            if(card.containsKey("actionKinds")) {require(card.get("actionKinds") instanceof List<?> kinds && kinds.stream().allMatch(k->k instanceof String s && s.matches("[A-Z_]{1,40}")),"策略动作类型无效");result.put("actionKinds",strings(card.get("actionKinds")));}
             for(String key:List.of("condition","advice","exceptions")) {
                 require(card.get(key) instanceof String,"策略文字字段格式错误");String value=text(card.get(key)).strip();
                 require(value.length()<=1200 && (!value.isBlank() || "exceptions".equals(key)),"策略文字为空或过长");result.put(key,value);
@@ -106,8 +151,9 @@ public class LabStrategyService {
                 if(!card.containsKey(source)) continue;
                 require(card.get(source) instanceof List<?> values && values.stream().allMatch(Map.class::isInstance),"策略证据或反例必须是对象数组");
                 var evidence=maps(card.get(source));require(!"evidence".equals(source) || !evidence.isEmpty(),"策略必须引用支持证据");
-                for(var ref:evidence) require(ref.keySet().equals(Set.of("jobId","actorId","eventIds")) && !text(ref.get("jobId")).isBlank()
-                        && !text(ref.get("actorId")).isBlank() && ref.get("eventIds") instanceof List<?> eventIds
+                for(var ref:evidence) require((ref.keySet().equals(Set.of("jobId","actorId","eventIds")) && !text(ref.get("jobId")).isBlank()
+                        || ref.keySet().equals(Set.of("caseId","taskId","actorId","evidenceIds")) && !text(ref.get("caseId")).isBlank() && !text(ref.get("taskId")).isBlank())
+                        && !text(ref.get("actorId")).isBlank() && ref.get(ref.containsKey("caseId")?"evidenceIds":"eventIds") instanceof List<?> eventIds
                         && !eventIds.isEmpty() && eventIds.stream().allMatch(value->value instanceof String idValue && !idValue.isBlank()),"策略证据或反例格式无效");
                 result.put(source,copyList(evidence));
             }
@@ -141,11 +187,17 @@ public class LabStrategyService {
     /** Select complete applicable cards deterministically; never truncate a card into a different instruction. */
     public static Map<String,Object> select(Map<String,Object> snapshot,String role,String phase,
                                             Map<String,Object> rules,Map<String,Object> selection) {
+        return select(snapshot,role,phase,rules,selection,"");
+    }
+    public static Map<String,Object> select(Map<String,Object> snapshot,String role,String phase,
+                                            Map<String,Object> rules,Map<String,Object> selection,String actionKind) {
         if(snapshot.isEmpty() || !compatible(snapshot,rules,selection)) return Map.of();
         var available=maps(map(snapshot.get("content")).get("cards")).stream()
                 .filter(card->(role.equals(card.get("role")) || "GENERAL".equals(card.get("role")))
-                        && (strings(card.get("phases")).isEmpty() || strings(card.get("phases")).contains(phase)))
-                .sorted(Comparator.comparing((Map<String,Object> card)->!role.equals(card.get("role"))).thenComparing(card->text(card.get("id")))).toList();
+                        && (strings(card.get("phases")).isEmpty() || strings(card.get("phases")).contains(phase))
+                        && (strings(card.get("actionKinds")).isEmpty() || strings(card.get("actionKinds")).contains(actionKind)))
+                .sorted(Comparator.comparingInt((Map<String,Object> card)->-number(card.get("priority"),0))
+                        .thenComparing(card->!role.equals(card.get("role"))).thenComparing(card->text(card.get("id")))).toList();
         var selected=new ArrayList<Map<String,Object>>();
         for(var card:available) { var candidate=new ArrayList<>(selected);candidate.add(runtimeCard(card));if(encoded(runtimeSelection(snapshot,candidate)).length()<=1200) selected=candidate; }
         if(selected.isEmpty()) return Map.of();

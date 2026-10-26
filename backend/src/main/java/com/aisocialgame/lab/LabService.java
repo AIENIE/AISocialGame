@@ -19,6 +19,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 @Service
 @Transactional(readOnly = true)
 public class LabService {
+    @org.springframework.beans.factory.annotation.Autowired private LabTrainingRunRepository trainingRuns;
     private final LabExperimentRepository experiments;
     private final LabAgentRepository agents;
     private final LabExperienceRepository experiences;
@@ -140,6 +141,11 @@ public class LabService {
         result.put("evaluations",evaluations.findByExperimentIdOrderByCreatedAtDesc(id).stream().map(this::evaluationView).toList());
         if(userId!=null) result.put("enrollment",enrollments.findByExperimentIdAndUserId(id,userId).map(this::enrollmentView).orElse(Map.of()));
         if(administrator) {
+            result.put("trainingRuns",trainingRuns.findByExperimentIdOrderByCreatedAtDesc(id).stream().map(run->{
+                var view=new LinkedHashMap<String,Object>();view.put("id",run.id);view.put("operationId",run.operationId);view.put("goal",run.goal);
+                view.put("status",run.status);view.put("stage",run.stage);view.put("candidateStrategyVersionId",run.candidateStrategyVersionId);return view;
+            }).toList());
+            result.put("activeTrainingRunId",experiment.configuration.get("activeTrainingRunId"));
             var configuration=new LinkedHashMap<>(experiment.configuration);
             configuration.remove("concurrency"); configuration.put("roster",roster(configuration));
             result.put("configuration",configuration);
@@ -176,7 +182,7 @@ public class LabService {
     @Transactional
     public Map<String,Object> updateBudget(String id, long points) {
         var experiment=experiments.lock(id).orElseThrow(LabService::missing);
-        long spent=budgets.spentPoints(id);
+        long spent=Math.addExact(budgets.spentPoints(id),LabBudgetService.externalPoints(experiment));
         if(points<1 || points<spent) throw new ApiException(HttpStatus.BAD_REQUEST,"预算不能低于当前已扣积分", "LAB_BUDGET_BELOW_SPENT",
                 Map.of("spentPoints",spent,"minimumPoints",Math.max(1,spent)));
         // A room can freeze between settlement and the experiment coordinator's next pulse.
@@ -187,6 +193,11 @@ public class LabService {
                 preservePause=game.hasRecordedLabBudgetPause(match.roomId) || preservePause;
         if(preservePause) LabBudgetService.markPaused(experiment);
         experiment.budgetPoints=points;
+        if(experiment.configuration.containsKey("activeTrainingRunId") && spent>=points) {
+            trainingRuns.findById(text(experiment.configuration.get("activeTrainingRunId"))).ifPresent(run->{
+                if(Set.of("DRAFT","RUNNING","PAUSED").contains(run.status)) {run.status="PAUSED";run.reason=LabBudgetService.EXHAUSTED;trainingRuns.save(run);}
+            });LabBudgetService.markPaused(experiment);
+        }
         if(experiment.configuration.containsKey("activeScenario") && spent>=points) {
             String operation=text(experiment.configuration.get("activeScenario"));var runs=map(experiment.configuration.get("scenarioRuns"));var run=map(runs.get(operation));
             var current=map(run.get("current"));
@@ -369,6 +380,9 @@ public class LabService {
     }
     public Map<String,Object> evaluationView(LabEvaluation evaluation) {
         var rows=matches.findByEvaluationIdOrderBySequenceNumberAsc(evaluation.id);
+        return evaluationView(evaluation,rows);
+    }
+    static Map<String,Object> evaluationView(LabEvaluation evaluation,List<LabMatch> rows) {
         var result=new LinkedHashMap<String,Object>();
         result.put("id",evaluation.id); result.put("agentId",evaluation.agentId); result.put("participantId",evaluation.participantId); result.put("status",evaluation.status);
         result.put("gameId",LabGameConfig.gameId(evaluation.configuration));

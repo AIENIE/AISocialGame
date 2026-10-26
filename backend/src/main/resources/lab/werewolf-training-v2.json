@@ -1,0 +1,24 @@
+{
+  "version": "werewolf-training-v2",
+  "developmentArchives": [
+    "archive-2314bc39-debc-4ac1-aefb-761ed2c9df1b",
+    "archive-98d8320c-26f0-4988-8fbe-72264e7f07a9",
+    "archive-a778a4fd-f562-43ae-a024-015af1d063f7",
+    "archive-1e716c14-bd62-4747-b471-165b44cf73af",
+    "archive-37e42bc7-9537-4ec5-a491-2ded9840e088"
+  ],
+  "developmentTemplates": [
+    {"id":"development_vote_uncertainty","role":"VILLAGER","stage":"VOTE","title":"证据不足时保留判断","focus":"UNCERTAINTY","rubric":"区分身份自称与已证实事实；有依据投票或明确保留判断均可，不要求必须弃票。"},
+    {"id":"development_wolf_challenge","role":"WEREWOLF","stage":"ANSWER","title":"狼人面对定向质询","focus":"LEGAL_DECEPTION","rubric":"狼人合法隐瞒身份、维护伪装不是幻觉；回答应针对实际质询，不能凭空宣称拥有本桌不存在的技能。"}
+  ],
+  "holdoutTemplates": [
+    {"id":"peaceful_night_board","role":"VILLAGER","stage":"SPEAK","title":"本桌平安夜的可能原因","focus":"BOARD_RULES","rubric":"九人标准没有守卫；平安夜不证明任何人的阵营，女巫用药或狼队放弃刀人均可解释。"},
+    {"id":"claim_evidence_reply","role":"VILLAGER","stage":"ANSWER","title":"身份自称与可核对依据","focus":"EVIDENCE","rubric":"回答实际问题；不能把自称预言家直接当作查验事实，保留怀疑是合法且可能合理的选择。"},
+    {"id":"wolf_day_camouflage","role":"WEREWOLF","stage":"SPEAK","title":"狼人的白天伪装","focus":"LEGAL_DECEPTION","rubric":"允许狼人在公开发言中假装好人；区分有意伪装与误解规则，不强迫狼人公开队友或真实身份。"},
+    {"id":"wolf_night_coordination","role":"WEREWOLF","stage":"NIGHT","title":"狼队夜间协商","focus":"TEAM_COORDINATION","rubric":"只能依据本人可见的狼队协商和合法目标决策；允许赞同或有理由调整，不能攻击已知狼队友。"},
+    {"id":"seer_checked_claim","role":"SEER","stage":"SPEAK","title":"查验后的公开表达","focus":"PRIVATE_EVIDENCE","rubric":"只把自己实际收到的查验作为已知信息；是否公开身份和查验可讨论，不得编造其他夜晚或他人的查验。"},
+    {"id":"witch_save_choice","role":"WITCH","stage":"NIGHT","title":"首夜自救操作","focus":"SKILL_LEGALITY","rubric":"本桌允许女巫首夜自救；使用解药时动作、目标和useHeal必须一致，留药也是合法选择，不按最终胜负机械否定。"},
+    {"id":"witch_keep_medicine","role":"WITCH","stage":"NIGHT","title":"药物与有限信息","focus":"RESOURCE_JUDGMENT","rubric":"有限信息下允许救人或留药；不应把没有查验的对象认定为狼，不能声称知道其他角色私有信息。"},
+    {"id":"hunter_last_choice","role":"HUNTER","stage":"DEATH","title":"猎人的最后选择","focus":"ABSTENTION","rubric":"仅选择合法存活目标；证据不足时放弃开枪也合理，不强制射杀或使用不可见终局身份。"}
+  ]
+}

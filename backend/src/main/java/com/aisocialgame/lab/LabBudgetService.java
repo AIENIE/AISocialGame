@@ -16,6 +16,8 @@ public class LabBudgetService {
     private static final Set<String> ACTIVE = Set.of("RUNNING", "PAUSING", "STOPPING");
     @org.springframework.beans.factory.annotation.Autowired private LabMatchRepository matches;
     @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.repository.GameStateRepository states;
+    @org.springframework.beans.factory.annotation.Autowired private LabTrainingTaskRepository trainingTasks;
+    @org.springframework.beans.factory.annotation.Autowired private LabTrainingRunRepository trainingRuns;
     private final LabExperimentRepository experiments;
     private final AiCreditReservationRepository reservations;
     public LabBudgetService(LabExperimentRepository experiments, AiCreditReservationRepository reservations) {
@@ -27,6 +29,13 @@ public class LabBudgetService {
         var identity = LabCallContext.current();
         if (identity == null) return;
         var experiment = experiments.lock(identity.experimentId()).orElseThrow();
+        if(identity.purpose().startsWith("TRAINING_")) {
+            var task=trainingTasks.findById(identity.matchId()).orElseThrow();
+            var run=trainingRuns.findById(task.runId).orElseThrow();
+            if(!experiment.id.equals(run.experimentId) || !"RUNNING".equals(run.status))
+                throw new ApiException(HttpStatus.CONFLICT,"课程已暂停","LAB_EXPERIMENT_PAUSED",Map.of());
+            requireRemaining(experiment);return;
+        }
         if("SCENARIO".equals(identity.purpose()) && "PAUSED".equals(experiment.status)) {
             var run=com.aisocialgame.engine.v2.RuleSupport.map(com.aisocialgame.engine.v2.RuleSupport.map(experiment.configuration.get("scenarioRuns"))
                     .get(com.aisocialgame.engine.v2.RuleSupport.text(experiment.configuration.get("activeScenario"))));
@@ -45,16 +54,25 @@ public class LabBudgetService {
         requireRemaining(experiment);
     }
     public long spentPoints(String id) { return reservations.labTotals(id).getSpentPoints(); }
+    public static long externalPoints(LabExperiment experiment) {
+        long total=0;
+        for(Object item:com.aisocialgame.engine.v2.RuleSupport.map(experiment.configuration.get("externalDiagnosticCosts")).values()) {
+            var value=com.aisocialgame.engine.v2.RuleSupport.map(item).get("creditPoints");
+            if(value instanceof Number points)total=Math.addExact(total,points.longValue());
+        }
+        return total;
+    }
+    public long totalKnownPoints(LabExperiment experiment) {return Math.addExact(spentPoints(experiment.id),externalPoints(experiment));}
     public void requireRemaining(LabExperiment experiment) {
-        if (spentPoints(experiment.id) >= experiment.budgetPoints) throw exhausted(experiment);
+        if (totalKnownPoints(experiment) >= experiment.budgetPoints) throw exhausted(experiment);
     }
     public boolean isPaused(String id) {
         return experiments.findById(id).map(experiment -> paused(experiment)
-                || ACTIVE.contains(experiment.status) && spentPoints(id) >= experiment.budgetPoints).orElse(false);
+                || ACTIVE.contains(experiment.status) && totalKnownPoints(experiment) >= experiment.budgetPoints).orElse(false);
     }
     public static boolean paused(LabExperiment experiment) { return Boolean.TRUE.equals(experiment.configuration.get("budgetPaused")); }
     public boolean pauseIfReached(LabExperiment experiment) {
-        if (!ACTIVE.contains(experiment.status) || spentPoints(experiment.id) < experiment.budgetPoints) return false;
+        if (!ACTIVE.contains(experiment.status) || totalKnownPoints(experiment) < experiment.budgetPoints) return false;
         markPaused(experiment);
         return true;
     }
@@ -64,7 +82,7 @@ public class LabBudgetService {
     }
     private ApiException exhausted(LabExperiment experiment) {
         return new ApiException(HttpStatus.CONFLICT, "已达到实验预算，调整预算后可继续", EXHAUSTED,
-                Map.of("budgetPoints", experiment.budgetPoints, "spentPoints", spentPoints(experiment.id)));
+                Map.of("budgetPoints", experiment.budgetPoints, "spentPoints", spentPoints(experiment.id),"externalPoints",externalPoints(experiment),"totalKnownPoints",totalKnownPoints(experiment)));
     }
     public void bind(AiCreditReservation row) {
         var identity = LabCallContext.current();

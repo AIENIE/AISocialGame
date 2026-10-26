@@ -27,7 +27,8 @@ public final class LabRunPolicy {
     public static boolean pureWerewolfTraining(VisibleObservation observation) {
         return "werewolf".equals(observation.gameId())
                 && training(map(observation.memory().get("lab")), observation.rules())
-                && !observation.players().isEmpty() && observation.players().stream().allMatch(p -> flag(p.get("ai")));
+                && (flag(map(observation.memory().get("lab")).get("trainingV2"))
+                    || !observation.players().isEmpty() && observation.players().stream().allMatch(p -> flag(p.get("ai"))));
     }
     private static boolean training(Map<String,Object> lab, Map<String,Object> rules) {
         return !lab.isEmpty() && "TRAINING".equals(lab.getOrDefault("labRunMode", rules.get("labRunMode")));

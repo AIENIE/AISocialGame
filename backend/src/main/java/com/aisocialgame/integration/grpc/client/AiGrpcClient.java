@@ -150,7 +150,7 @@ public class AiGrpcClient {
             }
             if (isolatedTransportFixture && callBudget != null) callBudget.consume();
             boolean coach=com.aisocialgame.lab.LabCallContext.current()!=null
-                    && java.util.Set.of("REVIEW","MANUAL_REVIEW").contains(com.aisocialgame.lab.LabCallContext.current().purpose());
+                    && java.util.Set.of("REVIEW","MANUAL_REVIEW","TRAINING_COACH","TRAINING_JUDGE").contains(com.aisocialgame.lab.LabCallContext.current().purpose());
             if (coach) builder.setStreamTimeouts(fireflychat.ai.v1.ChatStreamTimeouts.newBuilder()
                     .setFirstTextMs(com.aisocialgame.lab.LabCoachLimits.FIRST_TEXT_MS)
                     .setIdleMs(com.aisocialgame.lab.LabCoachLimits.IDLE_MS)

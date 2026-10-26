@@ -57,6 +57,18 @@ class LabScenarioServiceTest {
         assertFalse(experiment.configuration.containsKey("strategyHeadId"));verify(strategies,never()).createVersion(any(),any(),anyString(),anyMap(),anyMap());
         assertThrows(ApiException.class,()->service.create(experiment.id,new LabScenarioService.Request("operation-1","different")));
     }
+    @Test void scenarioSelectsTheFrozenStrategyForItsActualActionKind() {
+        var snapshot=new LinkedHashMap<>(strategies.strategySnapshot("candidate"));
+        var speak=new LinkedHashMap<>(maps(map(snapshot.get("content")).get("cards")).getFirst());speak.put("actionKinds",List.of("SPEAK"));
+        var vote=new LinkedHashMap<>(speak);vote.put("id","vote-only");vote.put("actionKinds",List.of("VOTE"));vote.put("advice","只用于投票的建议");
+        snapshot.put("content",Map.of("cards",List.of(speak,vote)));when(strategies.strategySnapshot("candidate")).thenReturn(snapshot);
+        service.create(experiment.id,new LabScenarioService.Request("action-filter","candidate"));
+        service.process(experiment.id);service.process(experiment.id);
+        var observed=org.mockito.ArgumentCaptor.forClass(VisibleObservation.class);
+        verify(generator,times(2)).generate(any(),observed.capture(),anyString(),anyLong(),any(),anyMap(),any());
+        var candidate=observed.getAllValues().stream().filter(value->value.memory().containsKey("strategy")).findFirst().orElseThrow();
+        assertEquals(List.of("facts"),maps(map(candidate.memory().get("strategy")).get("cards")).stream().map(card->text(card.get("id"))).toList());
+    }
     @Test void confirmedUnsentRetryKeepsBusinessJobAndCheckpointAcrossWorkerRecreation() {
         var checkpoint=new LinkedHashMap<String,Object>();checkpoint.put("modelSelection",selection);checkpoint.put("transportAttempt",1);checkpoint.put("lastCallCode","AI_REQUEST_NOT_SENT");
         when(generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any()))

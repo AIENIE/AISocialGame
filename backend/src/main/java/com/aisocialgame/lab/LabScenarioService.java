@@ -131,7 +131,7 @@ public class LabScenarioService {
             var lab=new LinkedHashMap<>(map(memory.get("lab")));lab.put("experimentId",id);lab.put("matchId",run.get("id"));lab.put("labRunMode","EVALUATION");lab.put("scenarioEvaluation",true);memory.put("lab",lab);
             memory.remove("approved");memory.remove("approvedExperience");memory.remove("strategy");
             var snapshot=map(run.get("CANDIDATE".equals(slot.get("variant"))?"candidateSnapshot":"baselineSnapshot"));
-            var selected=LabStrategyService.select(snapshot,text(item.get("role")),observation.phase(),observation.rules(),map(item.get("modelSelection")));
+            var selected=LabStrategyService.select(snapshot,text(item.get("role")),observation.phase(),observation.rules(),map(item.get("modelSelection")),observation.turnKind());
             if(!selected.isEmpty()) memory.put("strategy",selected);
             observation=new VisibleObservation(observation.gameId(),observation.instanceId(),observation.phase(),observation.round(),observation.actorId(),observation.turnKind(),
                     observation.self(),observation.players(),observation.rules(),observation.events(),observation.privateFacts(),observation.legalActions(),observation.persona(),memory,observation.knowledge());

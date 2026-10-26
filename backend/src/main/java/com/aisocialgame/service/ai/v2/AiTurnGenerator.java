@@ -75,7 +75,8 @@ public class AiTurnGenerator {
         boolean undercover = "undercover".equals(observation.gameId());
         boolean werewolf = "werewolf".equals(observation.gameId());
         boolean training = com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(observation);
-        boolean scenario = Boolean.TRUE.equals(RuleSupport.map(observation.memory().get("lab")).get("scenarioEvaluation"));
+        boolean trainingV2 = Boolean.TRUE.equals(RuleSupport.map(observation.memory().get("lab")).get("trainingV2"));
+        boolean scenario = trainingV2 || Boolean.TRUE.equals(RuleSupport.map(observation.memory().get("lab")).get("scenarioEvaluation"));
         boolean readOnlyRecovery = scenario || com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(observation);
         long started = nanoTime.getAsLong();
         long budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, Math.min(undercover ? UNDERCOVER_DECISION_MILLIS : com.aisocialgame.lab.LabRunPolicy.decisionMillis(observation), remainingTurnMillis)));
@@ -113,7 +114,7 @@ public class AiTurnGenerator {
                 failures = deadlineFailure(failures); break;
             }
             var transport = new LinkedHashMap<String,Object>();
-            if (attempt == resume) for(String key:List.of("transportAttempt","waitingSinceEpochMs","retryAfterEpochMs","lastCallState","lastCallCode"))
+            if (attempt == resume) for(String key:List.of("transportAttempt","waitingSinceEpochMs","retryAfterEpochMs","lastCallState","lastCallCode","actualPrompt","encoded","codePoints"))
                 if(checkpoint.containsKey(key)) transport.put(key,checkpoint.get(key));
             String requestId=com.aisocialgame.lab.LabCallRecovery.requestId(jobId+":"+attempt,transport);
             if(readOnlyRecovery && recoveringOriginal && !RuleSupport.text(checkpoint.get("originalRequestId")).isBlank())
@@ -146,7 +147,24 @@ public class AiTurnGenerator {
                 } finally { sample.put("inputPreparationMs", elapsed(preparation)); }
                 String system = undercover ? undercoverSystem : RuleSupport.HOST.equals(observation.actorId()) ? hostSystem : playerSystem;
                 List<AiChatMessageDto> messages = List.of(new AiChatMessageDto("system", system), new AiChatMessageDto("user", user));
-                sample.put("inputBytes", system.getBytes(StandardCharsets.UTF_8).length + user.getBytes(StandardCharsets.UTF_8).length);
+                if(trainingV2) {
+                    if(recoveringOriginal && checkpoint.containsKey("actualPrompt")) {
+                        messages=List.of(JSON.convertValue(checkpoint.get("actualPrompt"),AiChatMessageDto[].class));
+                    } else {
+                        var prepared=new com.aisocialgame.lab.LabTrainingInput().prepare(system,payload);
+                        messages=prepared.messages();
+                        transport.put("actualPrompt",JSON.convertValue(messages,List.class));
+                        transport.put("encoded",prepared.encoded());transport.put("codePoints",prepared.codePoints());
+                        if(!prepared.ready()) {
+                            failures=List.of("MATERIAL_TOO_LARGE");sample.put("failureStage","INPUT_PREPARATION");
+                            stages.put("inputCodePoints",prepared.codePoints());
+                            saveCheckpoint.accept(checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,attempts,selected,checkpoint,transport));
+                            break;
+                        }
+                    }
+                    stages.put("inputCodePoints",transport.get("codePoints"));
+                }
+                sample.put("inputBytes",messages.stream().mapToInt(message->message.content().getBytes(StandardCharsets.UTF_8).length).sum());
                 int requestSeconds = (training || readOnlyRecovery) && recoveringOriginal ? com.aisocialgame.lab.LabRunPolicy.requestSeconds(observation)
                         : (int) Math.min(undercover ? 89 : com.aisocialgame.lab.LabRunPolicy.requestSeconds(observation), TimeUnit.NANOSECONDS.toSeconds(remainingNanos(started, budgetNanos)));
                 if (requestSeconds <= 0) { failures = deadlineFailure(failures); break; }
@@ -254,12 +272,7 @@ public class AiTurnGenerator {
                     if (api.getCode()!=null && Set.of("AI_BUDGET_BUSY","LAB_BUDGET_EXHAUSTED","LAB_EXPERIMENT_PAUSED").contains(api.getCode())) {
                         budgetDeferred = api.getCode();
                         if (!recoveringOriginal) calls--; attempts.remove(sample);
-                        Map<String,Object> saved = new LinkedHashMap<>();
-                        saved.put("nextAttempt",attempt); saved.put("calls",calls); saved.put("responses",responses);
-                        saved.put("promptTokens",promptTokens); saved.put("completionTokens",completionTokens);
-                        saved.put("modelKey",modelKey); saved.put("lastOutput",lastOutput); saved.put("failures",failures); saved.put("attempts",attempts);
-                        saved.put("modelSelection", selected.toMap()); saved.putAll(transport);
-                        if (checkpoint.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",checkpoint.get("forbiddenFeedback"));
+                        Map<String,Object> saved = checkpoint(attempt,calls,responses,promptTokens,completionTokens,modelKey,lastOutput,failures,attempts,selected,checkpoint,transport);
                         throw new GenerationDeferred(saved,budgetDeferred);
                     }
                     for (String key : List.of("budgetId", "settlementState")) if (api.getDetails().containsKey(key)) sample.put(key, api.getDetails().get(key));
@@ -283,6 +296,7 @@ public class AiTurnGenerator {
         stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
         if (undercover || werewolf) {
             String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT"
+                    : failures.contains("MATERIAL_TOO_LARGE") ? "MATERIAL_TOO_LARGE"
                     : failures.contains("OUTPUT_LIMIT_REACHED") ? "OUTPUT_LIMIT_REACHED"
                     : failures.contains("AI_CREDIT_INSUFFICIENT") ? "AI_CREDIT_INSUFFICIENT"
                     : failures.contains("BUDGET_RECONCILIATION_REQUIRED") ? "BUDGET_RECONCILIATION_REQUIRED" : "REQUEST_FAILED";
@@ -312,7 +326,8 @@ public class AiTurnGenerator {
         saved.put("promptTokens",prompt); saved.put("completionTokens",completion); saved.put("modelKey",model);
         saved.put("lastOutput",output); saved.put("failures",failures); saved.put("attempts",new ArrayList<>(attempts));
         saved.put("modelSelection",selection.toMap()); saved.putAll(transport);
-        if(previous.containsKey("forbiddenFeedback")) saved.put("forbiddenFeedback",previous.get("forbiddenFeedback"));
+        for(String key:List.of("forbiddenFeedback","actualPrompt","encoded","codePoints"))
+            if(previous.containsKey(key)&&!saved.containsKey(key)) saved.put(key,previous.get(key));
         return saved;
     }
     static VisibleObservation compatibleStrategyObservation(VisibleObservation observation, AiModelSelection selected) {

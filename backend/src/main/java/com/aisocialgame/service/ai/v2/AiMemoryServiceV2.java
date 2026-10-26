@@ -17,6 +17,9 @@ public class AiMemoryServiceV2 {
         this.repository = repository; this.personas = personas;
     }
     public Map<String, Object> snapshot(GameState state, String actorId) {
+        return snapshot(state, actorId, "");
+    }
+    public Map<String, Object> snapshot(GameState state, String actorId, String turnKind) {
         Map<String, Object> memory = RuleSupport.map(RuleSupport.map(state.getData().get("aiMemoriesV2")).get(actorId));
         boolean currentFormat = RuleSupport.number(memory.get("formatVersion"), 1) >= 2;
         for (String key : AiMemoryEntries.KEYS) {
@@ -43,7 +46,7 @@ public class AiMemoryServiceV2 {
             boolean laboratory=!RuleSupport.map(state.getData().get("lab")).isEmpty();
             Map<String,Object> frozen=laboratory?profile:RuleSupport.map(RuleSupport.map(state.getData().get(com.aisocialgame.lab.LabStrategyService.STATE_SNAPSHOTS)).get(actorId));
             var strategy=com.aisocialgame.lab.LabStrategyService.select(RuleSupport.map(frozen.get("strategySnapshot")),
-                    actor==null?"":actor.getRole(),state.getPhase(),RuleSupport.map(state.getData().get("rules")),RuleSupport.map(frozen.get("modelSelection")));
+                    actor==null?"":actor.getRole(),state.getPhase(),RuleSupport.map(state.getData().get("rules")),RuleSupport.map(frozen.get("modelSelection")),turnKind);
             if(!strategy.isEmpty()) memory.put("strategy",strategy);
             if(!laboratory && "LEGACY".equals(frozen.get("source"))) memory.put("approvedExperience",cut(RuleSupport.text(frozen.get("approvedExperience")),1200));
         } else if (actor != null && actor.getPersonaId() != null) {

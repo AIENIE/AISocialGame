@@ -26,6 +26,7 @@ class LabScenarioControlTest {
         service=new LabService(experiments,mock(LabAgentRepository.class),mock(LabExperienceRepository.class),mock(LabMatchRepository.class),
                 mock(LabEnrollmentRepository.class),mock(LabEvaluationRepository.class),mock(PersonaRepository.class),mock(AiModelConfigService.class),budgets,
                 new ObjectMapper().findAndRegisterModules(),mock(RoomRepository.class),mock(V2GameService.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"trainingRuns",mock(LabTrainingRunRepository.class));
     }
     Map<String,Object> run() {return map(map(experiment.configuration.get("scenarioRuns")).get("op"));}
     @Test void loweringToActualSpendPausesScenarioAndRaisingDoesNotResumeOrLoseTime() {

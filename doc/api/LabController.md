@@ -35,6 +35,14 @@
 | GET | /experiments/{id}/scenario-evaluations/{operationId} | 情境运行状态、进度、逐题结果、原请求检查点和费用 |
 | POST | /strategy-publications | `{operationId,action,strategyVersionId?,personaIds,mode:"TRIAL"}`，action 为 PUBLISH/WITHDRAW |
 | GET | /strategy-publications/{operationId} | 原不可变发布或撤回回执 |
+| POST | /experiments/{id}/training-runs | `{operationId,goal:"RULES_EVIDENCE",externalDiagnostics?:[{requestId,budgetId}]}`，冻结 V2 材料与课程；相同参数返回原运行，不同参数返回 409 |
+| GET | /experiments/{id}/training-runs/{operationId} | 阶段、任务、实际输入、流式进度、TTFT、费用拆分、候选与对照结论 |
+| POST | /experiments/{id}/training-runs/{operationId}/control/{action} | start、start-one、pause、resume、stop；start-one 完成首个代表案例后暂停 |
+| GET | /experiments/{id}/training-runs/{operationId}/cases | 冻结开发/保留/排除材料、来源分组及覆盖；仅管理员可读 |
+
+V2 运行状态为 DRAFT / RUNNING / PAUSED / COMPLETED / STOPPED，阶段为 PRACTICE / MERGE / REHEARSAL / HOLDOUT / GAMES / REPORT。任务状态为 PENDING / RUNNING / WAITING / SUCCEEDED / FAILED / BLOCKED / SKIPPED。`COMPLETED` 仅表示本轮已结束，是否改善以 assessment 为准；无可靠更新、不满足继续条件均可正常结束。`cost.spentPoints` 为实验钱包实扣，`externalPoints` 为已确认但未重复扣钱包的外部计价，`totalKnownPoints` 为停止线累计，`pendingCalls` 不计作零。旧未知请求不被课程重发。
+
+`diagnostics.calls[].executionState` 为 NOT_STARTED / RUNNING / TERMINATED / UNKNOWN；TERMINATED 必须同时有权威 executionEndedAtEpochMs，仅证明网关执行已结束，不保证供应商停止计算。错误回复、RECONCILIATION_REQUIRED、租约过期都不能替代该证明。付费重做受一次/教学任务、两次/运行限制，记录被替代请求；格式修正不另增次数。普通房间发布沿用同一明确版本的 PUBLISH/WITHDRAW 回执，不随课程完成自动发布。
 
 AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffort}`。思考能力遵循已有模型目录；未知能力仅允许 DEFAULT。失效选择保留并报错。
 

@@ -729,6 +729,70 @@ class AiTurnGeneratorTest {
         return new VisibleObservation(base.gameId(),base.instanceId(),base.phase(),base.round(),base.actorId(),base.turnKind(),base.self(),
                 base.players(),base.rules(),base.events(),base.privateFacts(),base.legalActions(),base.persona(),Map.of("lab",lab),base.knowledge());
     }
+    private VisibleObservation trainingV2Observation(Map<String,Object> rules) {
+        var base=werewolfLabObservation("EVALUATION",true);
+        var lab=new LinkedHashMap<>(RuleSupport.map(base.memory().get("lab")));lab.put("trainingV2",true);
+        return new VisibleObservation(base.gameId(),base.instanceId(),base.phase(),base.round(),base.actorId(),base.turnKind(),base.self(),
+                base.players(),rules,base.events(),base.privateFacts(),base.legalActions(),base.persona(),Map.of("lab",lab),base.knowledge());
+    }
+    @Test void trainingV2PersistsExactEncodedPromptBeforeCallingAndCountsCompleteUnicodeInput() throws Exception {
+        var adapter=new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();var observation=trainingV2Observation(Map.of("supplementary","😀"));
+        var stored=new java.util.concurrent.atomic.AtomicReference<Map<String,Object>>();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(call->{
+            List<AiChatMessageDto> messages=call.getArgument(4);
+            assertEquals(json.convertValue(messages,List.class),stored.get().get("actualPrompt"));
+            String serialized=json.writeValueAsString(messages);
+            assertEquals(serialized.codePointCount(0,serialized.length()),stored.get().get("codePoints"));
+            assertTrue(number(stored.get().get("codePoints"),0)<=32_000);
+            assertEquals(json.convertValue(AiPromptProjection.project(adapter,observation),Map.class),com.aisocialgame.lab.LabTrainingInput.decode(map(stored.get().get("encoded"))));
+            return new AiChatResult(payload("SPEAK","我先听听大家的判断。",null),"mock-only",10,5);
+        });
+        var result=generator.generate(adapter,observation,"course-input",50_000,()->true,Map.of(),stored::set);
+        assertEquals(stored.get().get("codePoints"),result.diagnostics().get("inputCodePoints"));
+        verify(client,times(1)).chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
+    }
+    @Test void trainingV2OversizedInputStopsBeforeAnyRpcWithoutTruncatingTheFrozenMaterial() {
+        var observation=trainingV2Observation(Map.of("completeMaterial","😀".repeat(33_000)));
+        var stored=new java.util.concurrent.atomic.AtomicReference<Map<String,Object>>();
+        var failure=assertThrows(AiTurnGenerator.GenerationFailure.class,()->generator.generate(new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet(),
+                observation,"course-too-large",50_000,()->true,Map.of(),stored::set));
+        assertEquals("MATERIAL_TOO_LARGE",failure.getMessage());assertEquals(0,failure.diagnostics().get("calls"));
+        assertTrue(number(stored.get().get("codePoints"),0)>32_000);assertEquals(List.of(),stored.get().get("actualPrompt"));
+        var decoded=com.aisocialgame.lab.LabTrainingInput.decode(map(stored.get().get("encoded")));
+        assertEquals("😀".repeat(33_000),map(map(decoded.get("observation")).get("rules")).get("completeMaterial"));
+        verifyNoInteractions(client);
+    }
+    @Test void trainingV2InvalidFormatIsOnePaidAttemptEvenWithoutTheLegacyScenarioFlag() {
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
+                .thenReturn(new AiChatResult("invalid","mock-only",10,5));
+        var failure=assertThrows(AiTurnGenerator.GenerationFailure.class,()->generator.generate(new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet(),trainingV2Observation(Map.of()),"course-format"));
+        assertEquals(1,failure.diagnostics().get("calls"));assertEquals(true,failure.diagnostics().get("usageComplete"));
+        verify(client,times(1)).chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
+    }
+    @Test void trainingV2DevelopmentKeepsTheHistoricalHumanPerspectiveAndStillUsesTheTrainingWindow() throws Exception {
+        var base=werewolfLabObservation("TRAINING",false);var lab=new LinkedHashMap<>(map(base.memory().get("lab")));lab.put("trainingV2",true);lab.put("scenarioEvaluation",true);
+        var observation=new VisibleObservation(base.gameId(),base.instanceId(),base.phase(),base.round(),base.actorId(),base.turnKind(),base.self(),base.players(),base.rules(),base.events(),base.privateFacts(),base.legalActions(),base.persona(),Map.of("lab",lab),base.knowledge());
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(payload("SPEAK","我先听听大家的判断。",null),"mock-only",10,5));
+        var result=generator.generate(new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet(),observation,"historical-view");
+        assertEquals(150_000L,result.diagnostics().get("initialBudgetMs"));var messages=messageCaptor();
+        verify(client).chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),messages.capture(),eq("historical-view:0"),eq(120));
+        var decoded=com.aisocialgame.lab.LabTrainingInput.decode(map(json.readValue(messages.getValue().getLast().content(),Map.class)));
+        assertEquals(false,maps(map(decoded.get("observation")).get("players")).getLast().get("ai"));
+        assertEquals(false,base.players().getLast().get("ai"));
+    }
+    @Test void trainingV2OriginalRecoveryRetainsExactAuditPromptAcrossDeferredCheckpointAndChangedObservation() throws Exception {
+        var adapter=new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();var observation=trainingV2Observation(Map.of());
+        var stored=new java.util.concurrent.atomic.AtomicReference<Map<String,Object>>();
+        when(client.chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenThrow(pendingResult("AI_RESULT_PENDING"));
+        var waiting=assertThrows(AiTurnGenerator.GenerationDeferred.class,()->generator.generate(adapter,observation,"course-recover",50_000,()->true,Map.of(),stored::set));
+        for(String key:List.of("actualPrompt","encoded","codePoints"))assertEquals(stored.get().get(key),waiting.checkpoint().get(key));
+        var original=waiting.checkpoint().get("actualPrompt");
+        when(client.recoverChatCompletions(anyString(),anyLong(),eq("course-recover:0"))).thenReturn(new AiChatResult(payload("SPEAK","我先听听大家的判断。",null),"mock-only",10,5));
+        generator.generate(adapter,trainingV2Observation(Map.of("laterMaterial","后".repeat(40_000))),"course-recover",0,()->true,waiting.checkpoint(),stored::set);
+        assertEquals(original,stored.get().get("actualPrompt"));
+        verify(client,times(1)).chatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt());
+        verify(client,times(1)).recoverChatCompletions(anyString(),anyLong(),eq("course-recover:0"));
+    }
     @Test void scenarioPersistsOriginalBeforeSendingAndOnlyQueriesItAfterItsExecutionDeadline() throws Exception {
         var adapter=new com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet();var observation=scenarioObservation();
         var stored=new java.util.concurrent.atomic.AtomicReference<Map<String,Object>>();

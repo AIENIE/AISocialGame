@@ -40,6 +40,9 @@ public class LabStrategyAssessmentService {
     @Transactional
     public void requirePublishable(LabStrategyVersion version) {
         var experiment=experiments.lock(version.experimentId).orElseThrow(LabService::missing);
+        var automatic=map(experiment.configuration.get("trainingPublicationBlocked"));
+        if(version.id.equals(automatic.get("strategyVersionId")))
+            throw new ApiException(HttpStatus.CONFLICT,"该版本有未解决的策略冲突或明确规则、视角错误，请生成修正版本", "STRATEGY_ASSESSMENT_BLOCKED",LabStrategyService.copy(automatic));
         var assessment=map(map(experiment.configuration.get("strategyAssessments")).get(version.id));
         if(List.of("ruleError","evidenceLeak","severeContradiction").stream().anyMatch(key->Boolean.TRUE.equals(assessment.get(key))))
             throw new ApiException(HttpStatus.CONFLICT,"该策略存在已确认的规则错误、不可见证据依赖或严重矛盾，请先修正并重新评审", "STRATEGY_ASSESSMENT_BLOCKED",LabStrategyService.copy(assessment));
