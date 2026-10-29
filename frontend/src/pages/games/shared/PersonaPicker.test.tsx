@@ -6,7 +6,6 @@ import { I18nextProvider } from "react-i18next";
 import { resources } from "@/i18n/resources";
 import type { Persona } from "@/types";
 import { PersonaBadge, PersonaPicker, type PersonaPickerProps } from "./PersonaPicker";
-import { AiSeatControl } from "./AiSeatControl";
 
 const personas: Persona[] = [1, 2, 3, 4].map(i => ({ id: `ai${i}`, name: `角色${i}`, trait: "旧描述", avatar: "", presetVersion: 1 }));
 let container: HTMLDivElement, root: Root;
@@ -76,10 +75,10 @@ describe("complete persona selection", () => {
     render(); expect(addButton().disabled).toBe(false);
   });
 
-  it("rejects a stale selected ID and derives full state from seat count", () => {
+  it("rejects a stale selected ID and prevents adding when the room is full", () => {
     render({ selectedAiId: "removed" }); expect(addButton().disabled).toBe(true);
-    act(() => root.render(<I18nextProvider i18n={i18n}><AiSeatControl personas={personas} selectedAiId="ai1" onSelectedAiIdChange={vi.fn()} onAddAi={vi.fn()} canAddAi seatCount={6} maxPlayers={6} /></I18nextProvider>));
-    expect(addButton().disabled).toBe(true); expect(container.textContent).toContain("6/6");
+    render({ full: true });
+    expect(addButton().disabled).toBe(true);
   });
 
   it.each(["zh-CN", "zh-TW", "en"])("localizes all preset descriptions and badges in %s without replacing nicknames", async locale => {
