@@ -68,7 +68,7 @@ class AiConversationScenariosTest {
             var generator = new AiTurnGenerator(client, properties, session.memory, safety);
             String before = json.writeValueAsString(o);
             var decision = generator.generate(session.rule, o, "conversation-" + s.id() + "-" + s.personaId());
-            assertFalse(decision.fallback(), s.id() + ": " + decision.diagnostics());
+            assertNotNull(decision.action(), s.id() + ": " + decision.diagnostics());
             assertEquals(text(content), decision.speech());
             assertEquals(1, decision.diagnostics().get("calls"), "length/style must not trigger repair");
             assertEquals(before, json.writeValueAsString(o));

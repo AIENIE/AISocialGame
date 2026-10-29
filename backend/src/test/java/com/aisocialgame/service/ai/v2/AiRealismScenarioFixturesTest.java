@@ -48,7 +48,7 @@ class AiRealismScenarioFixturesTest {
         var samples = new java.util.ArrayList<java.util.Map<String, Object>>();
         for (var scenario : fixtures.load()) {
             var o = scenario.observation();
-            var decision = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(scenario.adapter(), o));
+            var decision = com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(scenario.adapter(), o));
             var capability = o.legalActions().stream().filter(a -> a.type().equals(decision.action().getType())
                     && java.util.Objects.equals(a.nightAction(), decision.action().getNightAction())).findFirst().orElseThrow();
             if (!capability.targets().isEmpty()) assertTrue(capability.targets().contains(decision.action().getTargetPlayerId()), scenario.id());

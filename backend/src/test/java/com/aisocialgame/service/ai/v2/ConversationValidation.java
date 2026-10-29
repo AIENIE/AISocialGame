@@ -111,8 +111,8 @@ final class ConversationValidation {
                     var decision=evaluate(sample);
                     int before=maps(session.state.getData().get("events")).size();var receipt=session.rule.commitmentAction(session.state,session.actor,decision.action());
                     session.rule.apply(session.state,session.actor,decision.action(),session.now);session.memory.commit(session.state,session.actor,decision,observation,session.rule,before);
-                    AiCommitments.submitted(session.state,receipt,decision.fallback()?"FALLBACK":"MODEL",before);session.rule.advance(session.state,session.now);AiCommitments.reconcile(session.state,session.rule,"OPPORTUNITY_LOST");AiRoundReflection.closeRounds(session.state);
-                    coverage.put("status","APPLIED");coverage.put("action",JSON.convertValue(decision.action(),Map.class));coverage.put("origin",decision.fallback()?"LEGAL_FALLBACK":"MODEL");
+                    AiCommitments.submitted(session.state,receipt,"MODEL",before);session.rule.advance(session.state,session.now);AiCommitments.reconcile(session.state,session.rule,"OPPORTUNITY_LOST");AiRoundReflection.closeRounds(session.state);
+                    coverage.put("status","APPLIED");coverage.put("action",JSON.convertValue(decision.action(),Map.class));coverage.put("origin","MODEL");
                     coverage.put("producedEventIds",maps(session.state.getData().get("events")).stream().skip(before).filter(e->"PUBLIC".equals(e.get("visibility"))||strings(e.get("visibleTo")).contains(session.actor)).map(e->text(e.get("eventId"))).toList());
                     rows.get(id).put("memoryAfter",session.memory.snapshot(session.state,session.actor));persist("RUNNING");
                 } catch(Stop stop){throw stop;} catch(Exception failure){coverage.put("status","SUBMISSION_FAILED");rows.get(id).put("reason","GENERATION_OR_SUBMISSION_EXCEPTION");persist("RUNNING");}
@@ -139,7 +139,7 @@ final class ConversationValidation {
         AiTurnDecision result;
         try{result=generate.run(sample);}catch(Stop stop){row.put("status","NO_RESPONSE");persist("STOPPED");throw stop;}
         catch(Exception failure){row.put("status","NO_RESPONSE");row.put("reason","GENERATION_EXCEPTION");persist("RUNNING");throw failure;}
-        row.put("decision",result);row.put("status",result.fallback()?"LOCAL_FALLBACK":"GENERATED");persist("RUNNING");
+        row.put("decision",result);row.put("status","GENERATED");persist("RUNNING");
         if(strings(result.diagnostics().get("qualityFlags")).stream().anyMatch(STOP_FLAGS::contains))throw new Stop("RESOURCE_AUTHORITY_OR_BOUNDARY_STOP");
         return result;
     }

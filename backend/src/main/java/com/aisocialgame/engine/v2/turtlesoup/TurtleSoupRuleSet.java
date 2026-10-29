@@ -124,7 +124,7 @@ public final class TurtleSoupRuleSet implements GameRuleSet {
             consumeContribution(state, actorId);
         }
         switch (type) {
-            case "PASS" -> { /* A quiet fallback does not fabricate dialogue. */ }
+            case "PASS" -> { }
             case "DISCUSS" -> {
                 String content = requireContent(action, 500);
                 Map<String, Object> discussion = new LinkedHashMap<>();
@@ -174,14 +174,15 @@ public final class TurtleSoupRuleSet implements GameRuleSet {
     @Override public void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now) {
         if (!isTurnCurrent(state, turn)) return;
         if (HOST.equals(turn.actorId())) {
-            PlayerAction unresolved = action("HOST_VERDICT", "", null);
-            unresolved.setExtra(Map.of("requestId", map(state.getData().get("pendingHost")).get("requestId"),
-                    "verdict", "UNRESOLVED", "factIds", List.of()));
-            apply(state, HOST, unresolved, now);
-            // Recovery returns control to the human without spawning further calls after host failure.
+            Map<String, Object> request = map(state.getData().remove("pendingHost"));
+            String failure = "AI 主持请求失败，请稍后重新提交；本次不消耗探索次数或解答机会。";
+            state.getData().put("hostVerdict", failure);
+            event(state, "AI_TURN_FAILED", HOST, text(request.get("actorId")), failure,
+                    Map.of("requestId", request.get("requestId"), "reason", "REQUEST_FAILED"));
             state.getData().put("aiCycleActive", false);
         } else {
-            apply(state, turn.actorId(), action("PASS", "", null), now);
+            consumeContribution(state, turn.actorId());
+            event(state, "AI_TURN_FAILED", turn.actorId(), null, "AI 队友请求失败，本次未发言。", Map.of("reason", "REQUEST_FAILED"));
         }
     }
 
@@ -278,28 +279,6 @@ public final class TurtleSoupRuleSet implements GameRuleSet {
         return List.of("海龟汤是合作还原因果故事。确认一条线索并不意味着关联猜想也已得到证实。",
                 "先拆开人物、时间、地点与因果。被否定的假说值得修正，不能继续当事实重复。",
                 "剧情事实仅来自本局。讨论不消耗次数；正式问题、错误试答和提示消耗探索次数。最后一次解答由真人确认。");
-    }
-
-    @Override public PlayerAction fallback(VisibleObservation observation) {
-        if (!HOST.equals(observation.actorId())) {
-            // Only repeat the latest public verdict, never inspect truth or spend a question.
-            List<Map<String, Object>> answered = observation.events().stream().filter(e -> "TURTLE_SOUP_QUESTION".equals(e.get("type"))).toList();
-            if (!answered.isEmpty() && observation.legalActions().stream().anyMatch(a -> "DISCUSS".equals(a.type()))) {
-                Map<String, Object> qa = map(answered.getLast().get("data"));
-                String question = text(qa.get("question")); String verdict = text(qa.get("verdict"));
-                if (!question.isBlank() && question.length() <= 100 && Set.of("YES", "NO").contains(verdict)) {
-                    String speech = "刚才的问题“" + question + "”，主持回答了“" + ("YES".equals(verdict) ? "是" : "否") + "”。我们先据此核对假设。";
-                    boolean repeated = observation.events().stream().filter(e -> observation.actorId().equals(e.get("actorId")))
-                            .anyMatch(e -> text(e.get("message")).contains(speech));
-                    if (!repeated) return action("DISCUSS", speech, null);
-                }
-            }
-            return action("PASS", "", null);
-        }
-        PlayerAction result = action("HOST_VERDICT", "", null);
-        result.setExtra(Map.of("requestId", text(map(observation.privateFacts().get("pendingHost")).get("requestId")),
-                "verdict", "UNRESOLVED", "factIds", List.of()));
-        return result;
     }
 
     @Override public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {

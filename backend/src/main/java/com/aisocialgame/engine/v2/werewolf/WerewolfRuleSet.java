@@ -458,13 +458,7 @@ public class WerewolfRuleSet implements GameRuleSet {
     }
 
     @Override
-    public PlayerAction fallback(VisibleObservation observation) {
-        return action(SKIP, "", null);
-    }
-
-    @Override
     public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {
-        if (decision.fallback()) return List.of();
         List<String> errors = new ArrayList<>();
         if ("WITCH_SAVE".equalsIgnoreCase(decision.action().getNightAction()) && !decision.action().isUseHeal()) {
             errors.add("使用解药必须同时设置useHeal=true；决定留药时请选择SKIP。");

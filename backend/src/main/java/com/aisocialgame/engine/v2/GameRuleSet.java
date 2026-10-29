@@ -38,13 +38,7 @@ public interface GameRuleSet extends GameAiAdapter {
     default String commitmentExpiry(GameState state, Map<String, Object> opportunity, Map<String, Object> action) {
         return CommitmentRules.expiredReason(state, this, opportunity, action);
     }
-    /** Local recovery only: discard invalid output and close just this automated opportunity. */
-    default void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now) {
-        if (!isTurnCurrent(state, turn)) return;
-        if (legalActions(state, turn.actorId()).stream().anyMatch(a -> "SKIP".equals(a.type()))) {
-            apply(state, turn.actorId(), RuleSupport.action("SKIP", "", null), now);
-        } else throw new IllegalStateException("Rules must provide an automated-turn recovery");
-    }
+    void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now);
     List<LegalAction> legalActions(GameState state, String actorId);
     List<TurnRequest> pendingTurns(GameState state);
     Map<String, Object> publicData(GameState state);

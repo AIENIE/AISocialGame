@@ -360,10 +360,6 @@ public final class UndercoverRuleSet implements GameRuleSet {
         };
     }
 
-    @Override public PlayerAction fallback(VisibleObservation observation) {
-        throw new IllegalStateException("Undercover requires a model decision; recover through onAiFailure");
-    }
-
     @Override public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {
         List<String> errors = new ArrayList<>();
         String word = text(observation.privateFacts().getOrDefault("word", observation.self().get("word")));

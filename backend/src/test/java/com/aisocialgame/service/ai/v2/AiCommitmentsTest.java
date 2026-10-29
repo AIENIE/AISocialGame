@@ -45,7 +45,7 @@ class AiCommitmentsTest {
         assertTrue(memories.validate(o, updates).isEmpty());
         int start = maps(s.getData().get("events")).size();
         event(s, "undercover".equals(s.getGameId()) ? "SPEAK" : "SPEECH", "p0", null, speech, Map.of("content", speech));
-        memories.commit(s, "p0", new AiTurnDecision(action("SPEAK", speech, null), speech, Map.of(), List.of(), updates, false, Map.of()), o, rules(s), start);
+        memories.commit(s, "p0", new AiTurnDecision(action("SPEAK", speech, null), speech, Map.of(), List.of(), updates, Map.of()), o, rules(s), start);
     }
     void promise(GameState s, String quote, String kind, String target, int offset, String ballot) {
         speak(s, quote, Map.of("commitments", List.of(contract(quote, kind, target, offset, ballot))));
@@ -86,8 +86,8 @@ class AiCommitmentsTest {
         for (boolean abstain : List.of(false, true)) {
             GameState s = state(game);
             promise(s, abstain ? "我本轮弃票" : "我本轮投给p1", abstain ? "ABSTAIN" : "VOTE", abstain ? null : "p1", 0, "NORMAL");
-            s.setPhase(phase); submit(s, action(abstain ? "SKIP" : "VOTE", "", abstain ? null : "p1"), "LEGAL_FALLBACK");
-            assertEquals("FULFILLED", status(s, 0)); assertEquals("LEGAL_FALLBACK", map(entries(s).getFirst().get("resolution")).get("origin"));
+            s.setPhase(phase); submit(s, action(abstain ? "SKIP" : "VOTE", "", abstain ? null : "p1"), "REQUEST_FAILED");
+            assertEquals("FULFILLED", status(s, 0)); assertEquals("REQUEST_FAILED", map(entries(s).getFirst().get("resolution")).get("origin"));
         }
     }
     @Test void normalRunoffAndNextRoundHaveSeparateIdentity() {
@@ -98,7 +98,7 @@ class AiCommitmentsTest {
         s.setPhase("VOTING"); submit(s, action("VOTE", "", "p1"), "HUMAN");
         assertEquals(List.of("FULFILLED", "ACTIVE", "ACTIVE"), entries(s).stream().map(e -> e.get("status")).toList());
         s.setPhase("RUNOFF"); s.getData().put("votes", Map.of()); s.getData().put("runoffCandidates", List.of("p1", "p2"));
-        submit(s, action("SKIP", "", null), "TIMEOUT_FALLBACK");
+        submit(s, action("SKIP", "", null), "TIMEOUT");
         assertEquals(List.of("FULFILLED", "NOT_FULFILLED", "ACTIVE"), entries(s).stream().map(e -> e.get("status")).toList());
         s.setRoundNumber(2); s.setPhase("VOTING"); s.getData().put("votes", Map.of());
         submit(s, action("VOTE", "", "p1"), "HUMAN"); assertEquals("FULFILLED", status(s, 2));
@@ -239,7 +239,7 @@ class AiCommitmentsTest {
         var o = new VisibleObservation("turtle_soup", "instance", "DISCUSSION", 1, "p0", "DISCUSS", Map.of(), List.of(), Map.of(), List.of(), Map.of(), List.of(), Map.of(), Map.of(), List.of());
         String quote = "我本轮投给p1";
         event(s, "TURTLE_SOUP_DISCUSSION", "p0", null, quote, Map.of("content", quote));
-        var decision = new AiTurnDecision(action("DISCUSS", quote, null), quote, Map.of(), List.of(), Map.of("commitments", List.of(contract(quote, "VOTE", "p1", 0, "NORMAL"))), false, Map.of());
+        var decision = new AiTurnDecision(action("DISCUSS", quote, null), quote, Map.of(), List.of(), Map.of("commitments", List.of(contract(quote, "VOTE", "p1", 0, "NORMAL"))), Map.of());
         memories.commit(s, "p0", decision, o, soup, 0); assertEquals("UNVERIFIED", status(s, 0));
         s.setPhase("SETTLEMENT"); AiCommitments.reconcile(s, soup, "OPPORTUNITY_LOST"); assertEquals("UNVERIFIED", status(s, 0));
     }

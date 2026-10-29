@@ -173,7 +173,7 @@ class AiTurnCoordinatorTest {
         job.setObservation(Map.of("gameId", "undercover"));
         doCallRealMethod().when(coordinator).run(job);
         GameRuleSet rules = mock(GameRuleSet.class);
-        AiTurnDecision result = AiTurnDecision.fallback(new com.aisocialgame.dto.PlayerAction());
+        AiTurnDecision result = com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(new com.aisocialgame.dto.PlayerAction());
         when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(12_345L);
         when(generator.generate(eq(rules), any(VisibleObservation.class), eq(job.getId()), eq(12_345L), any(java.util.function.BooleanSupplier.class), anyMap())).thenReturn(result);
@@ -193,7 +193,7 @@ class AiTurnCoordinatorTest {
         doCallRealMethod().when(coordinator).run(job);
         GameRuleSet rules = mock(GameRuleSet.class); when(runtime.rules("undercover")).thenReturn(rules);
         when(runtime.remainingTurnMillis(job.getId())).thenReturn(50_000L);
-        var result = new AiTurnDecision(new com.aisocialgame.dto.PlayerAction(), "", Map.of(), List.of(), Map.of(), false, Map.of("latencyMs", 123L));
+        var result = new AiTurnDecision(new com.aisocialgame.dto.PlayerAction(), "", Map.of(), List.of(), Map.of(), Map.of("latencyMs", 123L));
         when(generator.generate(eq(rules), any(), eq(job.getId()), eq(50_000L), any(java.util.function.BooleanSupplier.class), anyMap())).thenReturn(result);
         doThrow(new IllegalStateException("private diagnostic must not persist")).when(runtime).complete(job.getId(), result);
         coordinator.run(job);

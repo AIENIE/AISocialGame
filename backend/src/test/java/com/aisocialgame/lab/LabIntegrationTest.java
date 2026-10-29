@@ -145,7 +145,7 @@ class LabIntegrationTest {
         String word=text(map(pending.getObservation().get("privateFacts")).get("word"));
         for(int attempt=0;attempt<3;attempt++) {
             var running=turns.claim(pending.getId());
-            game.complete(running.getId(),new AiTurnDecision(action("SPEAK",word,null),word,Map.of(),List.of(),Map.of(),false,Map.of("qualityFlags",List.of("SECRET_WORD_LEAK"))));
+            game.complete(running.getId(),new AiTurnDecision(action("SPEAK",word,null),word,Map.of(),List.of(),Map.of(),Map.of("qualityFlags",List.of("SECRET_WORD_LEAK"))));
         }
         var detail=diagnostics.inspect(id,match.id);assertEquals("FORBIDDEN_WORD_ELIMINATED",map(detail.get("failure")).get("code"));
         assertThrows(com.aisocialgame.exception.ApiException.class,()->diagnostics.inspect("different",match.id));
@@ -646,7 +646,7 @@ class LabIntegrationTest {
         match.startsAtEpochMs=0; matches.saveAndFlush(match); lab.advance(id);
         return matches.findById(match.id).orElseThrow();
     }
-    private AiTurnDecision speech() { return new AiTurnDecision(action("SPEAK","它有一种常见的用途。",null),"它有一种常见的用途。",Map.of(),List.of(),Map.of(),false,Map.of()); }
+    private AiTurnDecision speech() { return new AiTurnDecision(action("SPEAK","它有一种常见的用途。",null),"它有一种常见的用途。",Map.of(),List.of(),Map.of(),Map.of()); }
     private void spent(String id,long points) {
         var row=new com.aisocialgame.model.credit.AiCreditReservation(); row.id=UUID.randomUUID().toString();
         row.requestId="fixture-"+row.id; row.identityHash=AiCallSettlementService.hash(row.requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -678,7 +678,7 @@ class LabIntegrationTest {
             var action=immediate && legal.stream().anyMatch(option -> "SELF_DESTRUCT".equals(option.type()))
                     ?action("SELF_DESTRUCT",text(state.getData().get("civilianWord")),null)
                     :speak.isPresent()?action("SPEAK","它有一种常见的用途。",null):action("VOTE","",legal.stream().filter(option -> "VOTE".equals(option.type())).findFirst().orElseThrow().targets().getFirst());
-            game.complete(job.getId(),new AiTurnDecision(action,action.getContent(),Map.of(),List.of(),Map.of(),false,Map.of()));
+            game.complete(job.getId(),new AiTurnDecision(action,action.getContent(),Map.of(),List.of(),Map.of(),Map.of()));
         }
         fail("game did not finish");
     }

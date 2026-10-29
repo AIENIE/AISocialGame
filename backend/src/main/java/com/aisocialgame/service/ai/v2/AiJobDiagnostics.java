@@ -9,7 +9,7 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 public final class AiJobDiagnostics {
     private AiJobDiagnostics() {}
     private static final Set<String> GENERATION_KEYS = Set.of("latencyMs", "calls", "promptTokens", "completionTokens", "usageComplete", "responsesObserved",
-            "qualityFlags", "modelKey", "promptVersion", "repaired", "initialBudgetMs", "inputFormatVersion", "inputSectionBytes", "repairRemainingMs", "fallbackMs", "submissionFailedMs", "failureStage", "failureCode");
+            "qualityFlags", "modelKey", "promptVersion", "repaired", "initialBudgetMs", "inputFormatVersion", "inputSectionBytes", "repairRemainingMs", "submissionFailedMs", "failureStage", "failureCode");
     private static final Set<String> ATTEMPT_KEYS = Set.of("attempt", "transportAttempt", "remoteState", "flags", "failureStage", "inputPreparationMs", "inputBytes", "requestTimeoutMs", "requestRemainingMs",
             "rpcMs", "parseMs", "validationMs", "promptTokens", "completionTokens", "outputBytes", "requestId", "budgetId", "settlementState", "finishReason", "reasoningTokens");
 

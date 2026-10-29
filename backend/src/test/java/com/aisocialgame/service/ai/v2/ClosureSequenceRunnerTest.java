@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static com.aisocialgame.engine.v2.RuleSupport.*;
 
 class ClosureSequenceRunnerTest {
-    @Test void allGamesCoverActualEvidenceActionAndNextRoundIncludingFallback() throws Exception {
+    @Test void allGamesCoverActualEvidenceActionAndNextRoundWithAuthoredOfflineActions() throws Exception {
         var fixtures=new MilestoneClosureScenarios();List<MilestoneClosureScenarios.Sample> samples=new ArrayList<>();
         List<Map<String,Object>> exported=new ArrayList<>();
         fixtures.sequences(s->{
-            samples.add(s);var decision=AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation()));
-            var row=new LinkedHashMap<String,Object>(s.metadata());row.put("coverage",s.coverage());row.put("observation",s.observation());row.put("decision",decision);row.put("status","LOCAL_FALLBACK");exported.add(row);return decision;
+            samples.add(s);var decision=com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation()));
+            var row=new LinkedHashMap<String,Object>(s.metadata());row.put("coverage",s.coverage());row.put("observation",s.observation());row.put("decision",decision);row.put("status","GENERATED");exported.add(row);return decision;
         });
         var document=MilestoneClosureScenarios.header("offline-rule-sequences","SYNTHETIC_TEST");document.put("samples",exported);
         MilestoneClosureScenarios.JSON.writerWithDefaultPrettyPrinter().writeValue(java.nio.file.Path.of("target/closure-sequence-offline-evidence.json").toFile(),document);
@@ -23,7 +23,7 @@ class ClosureSequenceRunnerTest {
             assertTrue(first.events().stream().anyMatch(e->"PUBLIC".equals(e.get("visibility"))));
             assertFalse(strings(series.get(1).coverage().get("requiredVisibleEventIds")).isEmpty());
             assertTrue(second.events().stream().anyMatch(e->"turtle_soup".equals(first.gameId())?"NO".equals(map(e.get("data")).get("verdict")):"undercover".equals(first.gameId())?"VOTE_REVEAL".equals(e.get("type")):text(e.get("message")).contains("撤回")));
-            for(var sample:series){assertEquals("APPLIED",sample.coverage().get("status"));assertEquals("LEGAL_FALLBACK",sample.coverage().get("origin"));assertEquals(sample.observation().phase(),sample.coverage().get("phase"));}
+            for(var sample:series){assertEquals("APPLIED",sample.coverage().get("status"));assertEquals("MODEL",sample.coverage().get("origin"));assertEquals(sample.observation().phase(),sample.coverage().get("phase"));}
             if(!"turtle_soup".equals(first.gameId()))assertTrue(fourth.round()>first.round());
             else assertTrue(number(series.get(3).coverage().get("cycle"),0)>number(series.get(0).coverage().get("cycle"),0));
             assertTrue(maps(fourth.memory().get("recentDecisions")).contains(map(series.get(2).coverage().get("recordedDecision"))));
@@ -50,7 +50,7 @@ class ClosureSequenceRunnerTest {
                     assertTrue(maps(o.memory().get("commitments")).stream().anyMatch(c->"NOT_FULFILLED".equals(c.get("status"))),o.memory().toString());
                     assertTrue(maps(o.memory().get("recentDecisions")).stream().anyMatch(c->"SKIP".equals(c.get("action"))));
                 }
-                return new AiTurnDecision(selected,selected.getContent(),Map.of(),List.of(),updates,false,Map.of());
+                return new AiTurnDecision(selected,selected.getContent(),Map.of(),List.of(),updates,Map.of());
             });
             assertEquals(48,rows.size());for(var row:rows)assertEquals("MODEL",row.coverage().get("origin"));
         }

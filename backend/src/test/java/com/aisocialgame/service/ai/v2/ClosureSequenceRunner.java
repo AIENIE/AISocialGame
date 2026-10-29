@@ -97,11 +97,11 @@ final class ClosureSequenceRunner {
             var expected=new LinkedHashMap<String,Object>();expected.put("stepId",STEPS.get(step));expected.put("coverage",coverage);expected.put("peerMode","SCRIPTED_LEGAL_ACTIONS");
             var sample=new MilestoneClosureScenarios.Sample("sequence:"+rule.gameId()+":"+persona.getId()+":"+(step+1),"SEQUENCE",persona.getId(),rule,observation,expected);
             AiTurnDecision decision=evaluator.run(sample);
-            coverage.put("action",MilestoneClosureScenarios.JSON.convertValue(decision.action(),Map.class));coverage.put("origin",decision.fallback()?"LEGAL_FALLBACK":"MODEL");
+            coverage.put("action",MilestoneClosureScenarios.JSON.convertValue(decision.action(),Map.class));coverage.put("origin","MODEL");
             try {
                 int before=maps(state.getData().get("events")).size();var receipt=rule.commitmentAction(state,actor,decision.action());
                 rule.apply(state,actor,decision.action(),now);memory.commit(state,actor,decision,observation,rule,before);
-                AiCommitments.submitted(state,receipt,decision.fallback()?"FALLBACK":"MODEL",before);rule.advance(state,now);AiCommitments.reconcile(state,rule,"OPPORTUNITY_LOST");AiRoundReflection.closeRounds(state);
+                AiCommitments.submitted(state,receipt,"MODEL",before);rule.advance(state,now);AiCommitments.reconcile(state,rule,"OPPORTUNITY_LOST");AiRoundReflection.closeRounds(state);
                 var produced=maps(state.getData().get("events")).stream().skip(before).filter(e->"PUBLIC".equals(e.get("visibility"))||strings(e.get("visibleTo")).contains(actor)).map(e->text(e.get("eventId"))).toList();
                 var recent=maps(memory.snapshot(state,actor).get("recentDecisions"));var record=recent.isEmpty()?Map.<String,Object>of():recent.getLast();
                 coverage.put("producedEventIds",produced);coverage.put("recordedDecision",record);coverage.put("status","APPLIED");
@@ -135,7 +135,7 @@ final class ClosureSequenceRunner {
             var pending=map(obs.privateFacts().get("pendingHost"));var match=gold.stream().filter(f->Objects.equals(f.get("content"),pending.get("content"))).findFirst();
             var extra=new LinkedHashMap<String,Object>();extra.put("requestId",pending.get("requestId"));extra.put("verdict",match.map(f->f.get("expectedVerdict")).orElse("UNKNOWN"));
             extra.put("factIds",match.map(f->f.get("expectedFactIds")).orElse(List.of()));extra.put("normalizedProposition",match.isPresent()?pending.get("content"):"");
-            var action=action("HOST_VERDICT",null,null);action.setExtra(extra);var decision=AiTurnDecision.fallback(action);
+            var action=action("HOST_VERDICT",null,null);action.setExtra(extra);var decision=com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(action);
             if(!rule.validateDecision(obs,decision).isEmpty())throw new IllegalStateException("INVALID_SCRIPTED_HOST_VERDICT");
             return submit(HOST,action,"SCRIPTED_HOST_FIXTURE");
         }

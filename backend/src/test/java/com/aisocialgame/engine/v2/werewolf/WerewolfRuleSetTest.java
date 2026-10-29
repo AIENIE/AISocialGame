@@ -628,34 +628,12 @@ class WerewolfRuleSetTest {
     }
 
     @Test
-    void modelFailureNeverFabricatesSkillsSpeechOrVotes() {
-        GameState state = game("standard", 6);
-        GamePlayerState witch = role(state, "WITCH");
-        untilRole(state, "WITCH", p -> "WEREWOLF".equals(p.getRole()) ? night("WOLF_KILL", witch, "") : skip());
-        PlayerAction failedSkill = rules.fallback(observation(state, witch));
-        assertEquals("SKIP", failedSkill.getType());
-        assertFalse(failedSkill.isUseHeal());
-        assertNull(failedSkill.getTargetPlayerId());
-        act(state, witch, failedSkill);
-        while ("NIGHT".equals(state.getPhase())) act(state, current(state), skip());
-        if ("DAY_DISCUSS".equals(state.getPhase())) {
-            PlayerAction failedSpeech = rules.fallback(observation(state, current(state)));
-            assertEquals("SKIP", failedSpeech.getType());
-            assertEquals("", failedSpeech.getContent());
-        }
-        reachVoting(state);
-        PlayerAction failedVote = rules.fallback(observation(state, state.getPlayers().stream().filter(GamePlayerState::isAlive).findFirst().orElseThrow()));
-        assertEquals("SKIP", failedVote.getType());
-        assertNull(failedVote.getTargetPlayerId());
-    }
-
-    @Test
     void generatedWitchSaveMustExplicitlyUseAntidoteInsteadOfSilentlyBecomingSkip() {
         GameState state = game("standard", 6);
         GamePlayerState witch = role(state, "WITCH");
         untilRole(state, "WITCH", p -> "WEREWOLF".equals(p.getRole()) ? night("WOLF_KILL", witch, "") : skip());
         PlayerAction missingFlag = night("WITCH_SAVE", witch, "");
-        AiTurnDecision invalid = new AiTurnDecision(missingFlag, "", Map.of(), List.of(), Map.of(), false, Map.of());
+        AiTurnDecision invalid = new AiTurnDecision(missingFlag, "", Map.of(), List.of(), Map.of(), Map.of());
         assertTrue(rules.validateDecision(observation(state, witch), invalid).stream().anyMatch(message -> message.contains("useHeal=true")));
         missingFlag.setUseHeal(true);
         assertTrue(rules.validateDecision(observation(state, witch), invalid).isEmpty());

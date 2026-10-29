@@ -43,7 +43,7 @@ class WerewolfLabRuntimeIntegrationTest {
         var queued=jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED")).getFirst();
         var job=coordinator.claim(queued.getId());assertNotNull(job);assertTrue(runtime.beginWerewolfTurn(job.getId()));return job;
     }
-    private AiTurnDecision skip() {return new AiTurnDecision(action("SKIP","",null),"",Map.of(),List.of(),Map.of(),false,Map.of());}
+    private AiTurnDecision skip() {return new AiTurnDecision(action("SKIP","",null),"",Map.of(),List.of(),Map.of(),Map.of());}
 
     @Test void trainingPendingRecoveryPreservesTheSameActionAndItsRemainingTime() {
         var room=room("TRAINING");var job=claim(room);

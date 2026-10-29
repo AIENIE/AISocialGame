@@ -138,7 +138,7 @@ class V2WerewolfPrivacyIntegrationTest {
         clearInvocations(push);
 
         // Complete a deterministic legal decision without invoking a remote model.
-        runtime.complete(claimed.getId(), new AiTurnDecision(action, suggestion, Map.of(), List.of(), Map.of(), false, Map.of()));
+        runtime.complete(claimed.getId(), new AiTurnDecision(action, suggestion, Map.of(), List.of(), Map.of(), Map.of()));
 
         assertEquals("SUCCEEDED", jobs.findById(claimed.getId()).orElseThrow().getStatus());
         verify(push).pushPrivate(eq(humanWolf), argThat(event -> refreshFor(event, room.getId())));
@@ -216,7 +216,7 @@ class V2WerewolfPrivacyIntegrationTest {
         clearInvocations(push);
 
         var ballot = RuleSupport.action("VOTE", "", human);
-        runtime.complete(claimed.getId(), new AiTurnDecision(ballot, "", Map.of(), List.of(), Map.of(), false, Map.of()));
+        runtime.complete(claimed.getId(), new AiTurnDecision(ballot, "", Map.of(), List.of(), Map.of(), Map.of()));
 
         assertEquals("SUCCEEDED", jobs.findById(claimed.getId()).orElseThrow().getStatus());
         GameStateResponse after = view(room, human);

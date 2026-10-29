@@ -71,10 +71,9 @@ def base_checks(manifest, evidence, review, ids=None, expected_set="closure-v2")
         if any(k not in row or row[k] != item.get(k) for k in META): problems.append(key + ":METADATA_MISMATCH")
         if item.get("gameId") not in GAMES or item.get("group") not in ("SINGLE", "SEQUENCE", "HOST"): problems.append(key + ":INVALID_MANIFEST_GROUP")
         if item.get("personaId") not in (("HOST",) if item.get("group") == "HOST" else ("ai1", "ai2", "ai3", "ai4")): problems.append(key + ":INVALID_PERSONA")
-        decision = row.get("decision", {}); fallback = decision.get("fallback") if isinstance(decision, dict) else None
-        if type(fallback) is not bool: problems.append(key + ":FALLBACK_UNKNOWN")
-        expected = "LOCAL_FALLBACK" if fallback is True else "GENERATED" if fallback is False else None
-        if expected is None or row.get("status") != expected: problems.append(key + ":STATUS_FALLBACK_CONFLICT")
+        decision = row.get("decision", {})
+        if row.get("status") != "GENERATED" or not isinstance(decision, dict) or not isinstance(decision.get("action"), dict):
+            problems.append(key + ":GENERATION_NOT_PROVEN")
         if judgment.get("visibleInformation") != "NO_OBSERVED_VIOLATION": problems.append(key + ":BOUNDARY_NOT_PASSED")
         if item.get("group") == "HOST":
             if judgment.get("hostCorrect") is not True or not references_valid(judgment.get("hostEvidence"), rows, key): problems.append(key + ":HOST_NOT_PASSED")
@@ -90,7 +89,6 @@ def pilot(manifest, evidence, review):
     if len(ids) != 12 or len(set(ids)) != 12 or any(planned.get(i, {}).get("group") != "SINGLE" for i in ids): problems.append("INVALID_PILOT_INVENTORY")
     if {(planned.get(i, {}).get("gameId"), planned.get(i, {}).get("personaId")) for i in ids} != {(g, p) for g in GAMES for p in ("ai1", "ai2", "ai3", "ai4")}: problems.append("INVALID_PILOT_MATRIX")
     if review.get("status") != "PASS": problems.append("PILOT_REVIEW_NOT_PASSED")
-    if sum(r.get("decision", {}).get("fallback") is True for r in rows.values()) > 1: problems.append("PILOT_FALLBACK_GATE")
     for r in reviews.values():
         if any(not number(r.get("scores", {}).get(d), 4, 5) for d in DIMENSIONS): problems.append("PILOT_SCORE_GATE")
     return {"algorithmPassed": not problems, "pilotPassed": not problems and manifest.get("evidenceKind") == "REAL_MODEL", "problems": sorted(set(problems))}
@@ -101,12 +99,8 @@ def measure(manifest, evidence, review, games=None, runtime=None, games_sha256=N
     groups = {}
     for group in ("SINGLE", "SEQUENCE", "HOST"):
         ids = [k for k, p in planned.items() if p["group"] == group]
-        reported = [k for k in ids if rows.get(k, {}).get("status") in ("GENERATED", "LOCAL_FALLBACK")]
-        known = [k for k in reported if type(rows[k].get("decision", {}).get("fallback")) is bool]
-        completed = [k for k in known if rows[k]["status"] == ("LOCAL_FALLBACK" if rows[k]["decision"]["fallback"] else "GENERATED")]
-        fallback = sum(rows[k]["decision"]["fallback"] for k in known)
-        group_result = dict(planned=len(ids), completed=len(completed), fallbackKnown=len(known), fallbackUnknown=len(ids)-len(known), fallbackCount=fallback,
-                            fallbackRatio=fallback/len(known) if known else None, means={})
+        completed = [k for k in ids if rows.get(k, {}).get("status") == "GENERATED" and isinstance(rows[k].get("decision", {}).get("action"), dict)]
+        group_result = dict(planned=len(ids), completed=len(completed), means={})
         for persona in (() if group == "HOST" else ("ALL", "ai1", "ai2", "ai3", "ai4")):
             subset = [k for k in ids if persona == "ALL" or planned[k]["personaId"] == persona]
             dimensions = {}
@@ -129,9 +123,6 @@ def measure(manifest, evidence, review, games=None, runtime=None, games_sha256=N
                 or any(p.get("gameId") != game or p.get("group") == "HOST" for p in selected)):
                 problems.append(f"{game}:{behavior}:PERSONA_DIFFERENCE_NOT_PASSED")
     problems.extend(sequence_checks(planned, rows))
-    known = sum(groups[g]["fallbackKnown"] for g in ("SINGLE", "SEQUENCE")); fallback = sum(groups[g]["fallbackCount"] for g in ("SINGLE", "SEQUENCE"))
-    ratio = fallback/known if known else None
-    if known != 168 or ratio is None or ratio > .1: problems.append("FALLBACK_GATE")
     final = runtime_checks(manifest, games, runtime, games_sha256)
     attempts = [a for r in rows.values() for a in r.get("decision", {}).get("diagnostics", {}).get("attempts", [])]
     measurements = {}
@@ -142,7 +133,7 @@ def measure(manifest, evidence, review, games=None, runtime=None, games_sha256=N
     synthetic = manifest.get("evidenceKind") != "REAL_MODEL"
     return dict(algorithmPassed=not problems, evaluationPassed=not problems and not synthetic, L4Passed=not problems and not final and not synthetic,
                 synthetic=synthetic, finalAlgorithmPassed=not problems and not final, problems=sorted(set(problems)), finalGateProblems=sorted(set(final)), groups=groups,
-                multiplayerPersonaFallbackRatio=ratio, measurements=measurements, reviewType="CODING_AGENT_NOT_INDEPENDENT_HUMAN_BLIND_REVIEW")
+                measurements=measurements, reviewType="CODING_AGENT_NOT_INDEPENDENT_HUMAN_BLIND_REVIEW")
 
 def sequence_checks(planned, rows):
     problems = []
@@ -162,7 +153,7 @@ def sequence_checks(planned, rows):
                 or type(cover.get("round")) is not int or cover.get("round") != obs.get("round")
                 or not isinstance(cover.get("producedEventIds"),list) or (not cover.get("producedEventIds") and not cover.get("recordedDecision"))
                 or cover.get("action") != row.get("decision", {}).get("action")
-                or cover.get("origin") != ("LEGAL_FALLBACK" if row.get("decision",{}).get("fallback") is True else "MODEL")):
+                or cover.get("origin") != "MODEL"):
                 problems.append(key+":SEQUENCE_NOT_APPLIED")
             if planned[key]["stepId"] != "INITIAL" and (not cover.get("requiredVisibleEventIds") or not set(cover.get("requiredVisibleEventIds", [])) <= visible):
                 problems.append(key+":SEQUENCE_EVIDENCE_MISSING")

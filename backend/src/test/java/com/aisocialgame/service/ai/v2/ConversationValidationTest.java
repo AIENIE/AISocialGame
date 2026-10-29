@@ -14,7 +14,7 @@ class ConversationValidationTest {
     @BeforeAll static void freeze()throws Exception { frozen=ConversationValidation.freeze("SYNTHETIC_TEST"); }
     static AiTurnDecision mockDecision(MilestoneClosureScenarios.Sample sample) {
         var a=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(sample.adapter(), sample.observation());
-        return new AiTurnDecision(a,a.getContent(),Map.of(),List.of(),Map.of(),false,Map.of("calls",1,"repaired",false));
+        return new AiTurnDecision(a,a.getContent(),Map.of(),List.of(),Map.of(),Map.of("calls",1,"repaired",false));
     }
     @Test void frozenNinetySixActuallySubmitAndPreservePilotOnResume()throws Exception {
         assertEquals(96,maps(frozen.manifest().get("samples")).size());assertEquals(12,strings(frozen.manifest().get("pilotIds")).size());
@@ -33,9 +33,9 @@ class ConversationValidationTest {
         var resumed=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("second.json"),ConversationValidation.read(pilot.output),"PILOT",Set.of(),s->{calls.incrementAndGet();return mockDecision(s);});resumed.run();assertEquals(12,calls.get());assertEquals(1,resumed.rows.values().stream().filter(r->"NO_RESPONSE".equals(r.get("status"))).count());
         assertThrows(IllegalArgumentException.class,()->new ConversationValidation(frozen.manifest(),frozen.bundle(),pilot.output,Map.of(),"PILOT",Set.of(),ConversationValidationTest::mockDecision));
     }
-    @Test void reservedBeforeCrashIsNeverRetriedAndResourceFallbackStopsBeforeApply()throws Exception {
+    @Test void reservedBeforeCrashIsNeverRetriedAndResourceFailureStopsBeforeApply()throws Exception {
         String id=strings(frozen.manifest().get("pilotIds")).getFirst();var calls=new AtomicInteger();
-        var run=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("run.json"),Map.of(),"PILOT",Set.of(id),s->{calls.incrementAndGet();var a=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation());return new AiTurnDecision(a,a.getContent(),Map.of(),List.of(),Map.of(),true,Map.of("qualityFlags",List.of("MODEL_RESOURCE_EXHAUSTED")));});
+        var run=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("run.json"),Map.of(),"PILOT",Set.of(id),s->{calls.incrementAndGet();var a=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation());return new AiTurnDecision(a,a.getContent(),Map.of(),List.of(),Map.of(),Map.of("qualityFlags",List.of("MODEL_RESOURCE_EXHAUSTED")));});
         assertThrows(ConversationValidation.Stop.class,run::run);assertEquals(1,calls.get());assertEquals("NO_RESPONSE",run.rows.get(id).get("status"));assertTrue(run.rows.values().stream().noneMatch(r->"APPLIED".equals(map(r.get("coverage")).get("status"))));
     }
     @Test void partialSequenceKeepsGapWhileOtherIndependentSequencesFinish()throws Exception {

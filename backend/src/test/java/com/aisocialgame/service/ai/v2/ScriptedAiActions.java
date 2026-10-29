@@ -2,14 +2,25 @@ package com.aisocialgame.service.ai.v2;
 
 import com.aisocialgame.dto.PlayerAction;
 import java.util.List;
+import java.util.Map;
 import static com.aisocialgame.engine.v2.RuleSupport.*;
 
 /** Authored offline actions, never available to the production engine. */
 public final class ScriptedAiActions {
     private ScriptedAiActions() {}
+    public static AiTurnDecision decision(PlayerAction action) {
+        return new AiTurnDecision(action, action.getContent(), Map.of(), List.of(), Map.of(), Map.of());
+    }
     public static PlayerAction action(GameAiAdapter adapter, VisibleObservation observation) {
         if ("werewolf".equals(observation.gameId())) return werewolfAction(observation);
-        if (!"undercover".equals(observation.gameId())) return adapter.fallback(observation);
+        if ("turtle_soup".equals(observation.gameId())) {
+            if (!HOST.equals(observation.actorId())) return com.aisocialgame.engine.v2.RuleSupport.action("DISCUSS", "离线测试讨论" + observation.events().size(), null);
+            var verdict = com.aisocialgame.engine.v2.RuleSupport.action("HOST_VERDICT", "", null);
+            verdict.setExtra(Map.of("requestId", map(observation.privateFacts().get("pendingHost")).get("requestId"),
+                    "verdict", "UNRESOLVED", "factIds", List.of()));
+            return verdict;
+        }
+        if (!"undercover".equals(observation.gameId())) throw new IllegalArgumentException("No authored fixture for " + adapter.gameId());
         if (observation.legalActions().stream().anyMatch(a -> "SKIP".equals(a.type()))) return com.aisocialgame.engine.v2.RuleSupport.action("SKIP", "", null);
         return com.aisocialgame.engine.v2.RuleSupport.action("SPEAK", "这是一条离线测试描述，序号" + observation.round() + "之" + observation.events().size() + "。", null);
     }

@@ -24,13 +24,8 @@ class ConversationValidationTests(unittest.TestCase):
     def test_relabeling_mock_without_rpc_receipts_does_not_pass(self):
         for document in (self.m,self.b,self.e,self.r):document["evidenceKind"]="REAL_MODEL"
         result=self.result();self.assertFalse(result["qualityPassed"]);self.assertTrue(any('RPC_RESERVATIONS_MISSING' in p for p in result['problems']))
-    def test_missing_wrong_fallback_status_and_scope_rejected(self):
-        for value in (None,0,"false",True):
-            with self.subTest(value=value):
-                self.e=copy.deepcopy(self.__class__.e);self.e["samples"][0]["decision"]["fallback"]=value
-                with self.assertRaises(ValueError):self.result()
-    def test_fallback_keeps_denominator_and_excludes_normal_scores(self):
-        row=self.e["samples"][0];row["status"]="LOCAL_FALLBACK";row["decision"]["fallback"]=True
+    def test_failure_keeps_denominator_and_excludes_normal_scores(self):
+        row=self.e["samples"][0];row["status"]="NO_RESPONSE";row.pop("decision")
         result=self.result();self.assertFalse(result["algorithmPassed"]);self.assertEqual(48,result["groups"]["SINGLE"]["planned"]);self.assertEqual(47,result["groups"]["SINGLE"]["normal"])
     def test_verdict_reason_reference_and_score_type(self):
         for change in (dict(verdict="FAIL"),dict(verdict="INSUFFICIENT_EVIDENCE"),dict(reason="  "),dict(evidence=[dict(sampleId="missing",pointer="/decision/action/type")])):
@@ -59,12 +54,6 @@ class ConversationValidationTests(unittest.TestCase):
         self.assertFalse(measure(self.m,self.b,self.e,self.r,"synthetic-hash",True)["algorithmPassed"])
     def test_unapproved_proposal_cannot_authorize(self):
         with self.assertRaises(ValueError):grant_check(self.m,dict(authorizationStatus="NOT_AUTHORIZED"),"unused","unused","unused","hash",74,"PILOT")
-    def test_historical_exception_is_singular_explicit_and_integral(self):
-        hold=dict(id="reservation",budget_id="budget",request_id="request",project_key="aisocialgame",user_id=85,state="HELD",reserved_temp=0,reserved_permanent=1049600)
-        historical_hold_check(None)
-        historical_hold_check(hold)
-        for invalid in ([hold],dict(hold,user_id=86),dict(hold,project_key="other"),dict(hold,state="SETTLED"),dict(hold,reserved_permanent=1.5),dict(hold,reserved_temp=True),dict(hold,request_id=""),dict(hold,ignoreAll=True)):
-            with self.subTest(invalid=invalid),self.assertRaises(ValueError):historical_hold_check(invalid)
     def test_empty_batch_has_zero_actual_attempts_without_fabricated_history(self):
         with tempfile.TemporaryDirectory() as directory:
             p=Path(directory)/'new.jsonl';p.write_bytes(b'')

@@ -131,7 +131,7 @@ public class LocalAiDebugRecorder {
         try {
             var action = RuleSupport.map(JSON.convertValue(decision.action(), Map.class));
             afterCommit(() -> write(jobId, () -> null, row -> {
-                row.payload.put("appliedAction", action); row.payload.put("fallback", decision.fallback());
+                row.payload.put("appliedAction", action);
             }));
         } catch (RuntimeException failure) { captureFailed(jobId, failure); }
     }

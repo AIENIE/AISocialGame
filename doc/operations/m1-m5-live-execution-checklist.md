@@ -61,7 +61,7 @@
 2. `Test-MilestoneClosure.ps1 -Phase Preflight -BudgetFile <原外部账本> -ManifestFile <冻结清单>` 只读验证；未获额度只运行此阶段。
 3. 使用同一脚本 `-Phase Pilot`，提供已核实 `EnvironmentFile`、`ApprovalFile` 和新的仓库外 `EvidenceFile`。只执行三款玩法各四 Persona 的首个代表样本，共 12 个，计入正式样本。
 4. 按冻结尺度逐例检查先导。审查文件保存 PASS/失败、样本引用、evidenceFile 及其 SHA-256；指纹须一致。资源/鉴权/预算/越权错误立即停止扩大。普通语义质量不达门槛也不继续消费其余样本。
-5. `-Phase Remaining` 需提供 `PilotEvidenceFile`、`PilotReviewFile`，完成剩余 108 单情境 +48 连续步骤 +12 主持样例。连续步骤用真实规则提交动作，再构造下一观察。保留所有失败与 fallback，输出新文件，不覆盖先导原文件。
+5. `-Phase Remaining` 需提供 `PilotEvidenceFile`、`PilotReviewFile`，完成剩余 108 单情境 +48 连续步骤 +12 主持样例。连续步骤用真实规则提交动作，再构造下一观察。保留所有失败与无响应，输出新文件，不覆盖先导原文件。
 6. 六局 API 验收使用 `Test-GameRealismV2Live.ps1`，传 `TokensFile`、`EvidenceFile`、`ClosureApprovalFile`、`ClosureManifestFile`、`SoupAnswerFile`。六种配置各从开局到结算；Closure 模式不允许 ResumeEvidenceFile 拼接历史。汤底验收答案文件在运行前由审查者冻结，记录 hash；普通玩家提交答案必须 SOLVED，不能 REVEAL。此脚本是普通账号 API 驱动的流程验收，不是独立人工盲评。
 7. 六局在同一冻结版本执行，为 M1～M5 共用证据；任何修复造成版本变化后，旧数据继续保留，新版重新覆盖全部要求。
 
@@ -71,11 +71,11 @@
 
 先导与最终评审都必须保存实际决策文件的 evidenceSha256，并使用同一严格判定器。三款玩法四项人格行为逐项填写 `PASS / FAIL / INSUFFICIENT_EVIDENCE`、非空 assessment 和结构化 references；至少引用同玩法同情境的两个不同 Persona，连续样本须同一步骤。引用使用 sampleId 加 `/decision/...` pointer 或观察中的 eventId，手写 PASS 或任意文字不能代替完整证据。
 
-六局的 archiveId 必须来自实际公开响应且局内稳定；指标按 instanceId/archiveId 与 jobId 核对，保存六局证据文件 SHA-256、批次和集合。任一缺失、错配、未知 fallback、重复/孤立 trace 都阻止最终通过。失败/无响应不计完成，合成测试不能成为真实验收结果。
+六局的 archiveId 必须来自实际公开响应且局内稳定；指标按 instanceId/archiveId 与 jobId 核对，保存六局证据文件 SHA-256、批次和集合。任一缺失、错配、重复/孤立 trace 都阻止最终通过。失败/无响应不计完成，合成测试不能成为真实验收结果。
 
 `Measure-MilestoneClosure.ps1` 接收 Manifest/Evidence/Review，六局完成后再传 Games/Runtime。没有六局与运行指标时只能判断离散评测，L4Passed 必为 false。
 
-逐项检查：120/48/12 无缺失；三款各 1 真人和 3 真人的六局完整；两局汤 SOLVED；单情境与连续序列总体及四 Persona 的四项均值各 ≥4；两组 fallback 各 ≤10%；主持 fallback 单列；无已确认越权/伪造系统裁决/非法提交；终态诊断和成功任务 trace 关联 100%；无 QUEUED/RUNNING 残留。阶段延迟、字节、实际 token、缺失样本均报告；不能用输入体积替代速度结论。
+逐项检查：120/48/12 无缺失；三款各 1 真人和 3 真人的六局完整；两局汤 SOLVED；单情境与连续序列总体及四 Persona 的四项均值各 ≥4；无已确认越权/伪造系统裁决/非法提交；终态诊断和成功任务 trace 关联 100%；无 QUEUED/RUNNING 残留。阶段延迟、字节、实际 token、缺失样本均报告；不能用输入体积替代速度结论。
 
 遇资源、鉴权、预算耗尽或越权立即停止新增调用并保存脱敏原因和仓库外原始证据。禁止重置账本、换 caller、转移预算、删除失败样本、在新版本中拼接旧局。
 

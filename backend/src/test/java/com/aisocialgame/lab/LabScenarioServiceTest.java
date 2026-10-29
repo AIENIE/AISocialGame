@@ -42,7 +42,7 @@ class LabScenarioServiceTest {
             manifest.add(Map.of("caseId","case-"+i,"personaId","ai"+i%4,"role","VILLAGER","observation",json.convertValue(observation,Map.class),"modelSelection",selection,"seed",(long)i));
         }
         experiment.configuration.put("scenarioManifest",manifest);
-        when(generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any())).thenReturn(new AiTurnDecision(action("SPEAK","判断保持开放",null),"判断保持开放",Map.of(),List.of("visible"),Map.of(),false,Map.of("calls",1)));
+        when(generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any())).thenReturn(new AiTurnDecision(action("SPEAK","判断保持开放",null),"判断保持开放",Map.of(),List.of("visible"),Map.of(),Map.of("calls",1)));
     }
     @Test void fortyCallsUseFrozenAlternativesAndOriginalOperationNeverRunsAgain() {
         var request=new LabScenarioService.Request("operation-1","candidate");service.create(experiment.id,request);
@@ -73,7 +73,7 @@ class LabScenarioServiceTest {
         var checkpoint=new LinkedHashMap<String,Object>();checkpoint.put("modelSelection",selection);checkpoint.put("transportAttempt",1);checkpoint.put("lastCallCode","AI_REQUEST_NOT_SENT");
         when(generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any()))
                 .thenThrow(new AiTurnGenerator.GenerationDeferred(checkpoint,"AI_REQUEST_NOT_SENT"))
-                .thenReturn(new AiTurnDecision(action("SPEAK","等待证据",null),"等待证据",Map.of(),List.of(),Map.of(),false,Map.of()));
+                .thenReturn(new AiTurnDecision(action("SPEAK","等待证据",null),"等待证据",Map.of(),List.of(),Map.of(),Map.of()));
         service.create(experiment.id,new LabScenarioService.Request("operation-2","candidate"));assertTrue(service.process(experiment.id));
         var restored=new LabScenarioService(experiments,matches,strategies,budgets,generator,rules,json,mock(PlatformTransactionManager.class));
         assertTrue(restored.process(experiment.id));var run=restored.inspect(experiment.id,"operation-2");assertEquals(1,run.get("nextIndex"));
@@ -101,7 +101,7 @@ class LabScenarioServiceTest {
     @Test void lateOriginalResultIsSavedAsTimeoutRatherThanSuccessAfterRestart() {
         when(generator.generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any()))
                 .thenThrow(new AiTurnGenerator.GenerationDeferred(Map.of("lastCallCode","AI_RESULT_PENDING","originalRequestId","original","calls",1),"AI_RESULT_PENDING"))
-                .thenReturn(new AiTurnDecision(action("SPEAK","迟到但保存的结果",null),"迟到但保存的结果",Map.of(),List.of(),Map.of(),false,Map.of("calls",1,"usageComplete",true)));
+                .thenReturn(new AiTurnDecision(action("SPEAK","迟到但保存的结果",null),"迟到但保存的结果",Map.of(),List.of(),Map.of(),Map.of("calls",1,"usageComplete",true)));
         service.create(experiment.id,new LabScenarioService.Request("operation-late","candidate"));service.process(experiment.id);
         var runs=map(experiment.configuration.get("scenarioRuns"));var run=map(runs.get("operation-late"));var current=map(run.get("current"));
         current.put("deadlineEpochMs",System.currentTimeMillis()-60_000);run.put("current",current);runs.put("operation-late",run);experiment.configuration.put("scenarioRuns",runs);
@@ -130,7 +130,7 @@ class LabScenarioServiceTest {
                 var runs=map(experiment.configuration.get("scenarioRuns"));var run=map(runs.get(operation));run.put("totalCalls",1);run.put("status","STOPPED");run.put("reason","ADMIN_STOPPED");
                 runs.put(operation,run);experiment.configuration.put("scenarioRuns",runs);experiment.status="STOPPED";experiment.configuration.put("activeScenario","replacement");
                 if(deferred) throw new AiTurnGenerator.GenerationDeferred(Map.of("originalRequestId","original"),"LAB_CALL_UNCERTAIN");
-                return new AiTurnDecision(action("SPEAK","保存结果",null),"保存结果",Map.of(),List.of(),Map.of(),false,Map.of());
+                return new AiTurnDecision(action("SPEAK","保存结果",null),"保存结果",Map.of(),List.of(),Map.of(),Map.of());
             }).when(generator).generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any());
             assertTrue(service.process(experiment.id));var run=service.inspect(experiment.id,operation);
             assertEquals("STOPPED",run.get("status"));assertEquals("ADMIN_STOPPED",run.get("reason"));assertEquals("STOPPED",experiment.status);
@@ -143,7 +143,7 @@ class LabScenarioServiceTest {
         doAnswer(call->{
             var runs=map(experiment.configuration.get("scenarioRuns"));var run=map(runs.get("operation-pause"));run.put("status","PAUSED");run.put("reason","ADMIN_PAUSED");
             runs.put("operation-pause",run);experiment.configuration.put("scenarioRuns",runs);
-            return new AiTurnDecision(action("SPEAK","保存结果",null),"保存结果",Map.of(),List.of(),Map.of(),false,Map.of());
+            return new AiTurnDecision(action("SPEAK","保存结果",null),"保存结果",Map.of(),List.of(),Map.of(),Map.of());
         }).when(generator).generate(any(),any(),anyString(),anyLong(),any(),anyMap(),any());
         service.process(experiment.id);var run=service.inspect(experiment.id,"operation-pause");
         assertEquals(1,run.get("nextIndex"));assertEquals("PAUSED",run.get("status"));assertEquals("ADMIN_PAUSED",run.get("reason"));

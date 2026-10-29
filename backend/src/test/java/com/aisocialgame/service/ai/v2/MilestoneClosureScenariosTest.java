@@ -9,7 +9,7 @@ class MilestoneClosureScenariosTest {
         assertEquals(120,singles.size());assertEquals(12,hosts.size());assertEquals(48,fixtures.sequenceIds().size());
         Set<String> seen=new HashSet<>();List<Map<String,Object>> rows=new ArrayList<>();
         for(var sample:singles) {assertTrue(seen.add(sample.id()));rows.add(sample.metadata());assertFalse(sample.observation().persona().isEmpty());}
-        fixtures.sequences(sample -> { assertTrue(seen.add(sample.id())); rows.add(sample.metadata());return AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(sample.adapter(), sample.observation())); });
+        fixtures.sequences(sample -> { assertTrue(seen.add(sample.id())); rows.add(sample.metadata());return com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(sample.adapter(), sample.observation())); });
         for(var sample:hosts) {assertTrue(seen.add(sample.id()));rows.add(sample.metadata());}
         assertEquals(180,seen.size());Files.createDirectories(Path.of("target"));
         var manifest=MilestoneClosureScenarios.header("closure-v2-"+UUID.randomUUID(),"REAL_MODEL");

@@ -54,7 +54,7 @@ class TurtleSoupRuleSetTest {
             assertEquals(0, number(state.getData().get("questionCount"), -1));
             assertEquals(HOST, rules.pendingTurns(state).getFirst().actorId());
             PlayerAction answer = verdict(state, f.verdict(), f.factIds(), f.question());
-            assertTrue(rules.validateDecision(observation(state, HOST), AiTurnDecision.fallback(answer)).isEmpty());
+            assertTrue(rules.validateDecision(observation(state, HOST), com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(answer)).isEmpty());
             rules.apply(state, HOST, answer, NOW);
             assertEquals(Set.of("YES", "NO", "IRRELEVANT").contains(f.verdict()) ? 1 : 0, state.getData().get("questionCount"));
             assertEquals(f.verdict(), maps(rules.publicData(state).get("qaHistory")).getFirst().get("verdict"));
@@ -117,11 +117,11 @@ class TurtleSoupRuleSetTest {
         GameState state = state("midnight_train", 12, false);
         rules.apply(state, "human", action("SUBMIT_SOLUTION", "她没有死亡，也不是车窗反光，围巾无关。", null), NOW);
         PlayerAction unsupported = solutionVerdict(state, true, List.of("death"));
-        assertFalse(rules.validateDecision(observation(state, HOST), AiTurnDecision.fallback(unsupported)).isEmpty());
+        assertFalse(rules.validateDecision(observation(state, HOST), com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(unsupported)).isEmpty());
         PlayerAction complete = solutionVerdict(state, true, new ArrayList<>(catalog.require("midnight_train").requiredFactIds()));
         var extra = map(complete.getExtra()); extra.put("contradictionFactIds", List.of("death")); complete.setExtra(extra);
         assertThrows(RuntimeException.class, () -> rules.apply(state, HOST, complete, NOW));
-        AiTurnDecision leak = new AiTurnDecision(solutionVerdict(state, false, List.of()), catalog.require("midnight_train").solution(), Map.of(), List.of(), Map.of(), false, Map.of());
+        AiTurnDecision leak = new AiTurnDecision(solutionVerdict(state, false, List.of()), catalog.require("midnight_train").solution(), Map.of(), List.of(), Map.of(), Map.of());
         assertFalse(rules.validateDecision(observation(state, HOST), leak).isEmpty());
     }
 
@@ -132,8 +132,10 @@ class TurtleSoupRuleSetTest {
         assertTrue(rules.legalActions(state, "human").stream().anyMatch(a -> a.type().equals("SUBMIT_SOLUTION")));
         assertFalse(rules.legalActions(state, "human").stream().anyMatch(a -> a.type().equals("ASK_QUESTION")));
         rules.apply(state, "human", action("SUBMIT_SOLUTION", "最后的共同解答", null), NOW);
-        PlayerAction fallback = rules.fallback(observation(state, HOST));
-        rules.apply(state, HOST, fallback, NOW);
+        int answered = maps(state.getData().get("qaHistory")).size();
+        rules.onAiFailure(state, rules.pendingTurns(state).getFirst(), NOW);
+        assertEquals(answered, maps(state.getData().get("qaHistory")).size());
+        assertTrue(text(state.getData().get("hostVerdict")).contains("请求失败"));
         assertEquals("FINAL_ANSWER", state.getPhase()); assertEquals(1, state.getData().get("finalAnswerRemaining"));
         rules.apply(state, "human", action("SUBMIT_SOLUTION", "修改后的最终解答", null), NOW);
         rules.apply(state, HOST, solutionVerdict(state, false, List.of()), NOW);
@@ -247,7 +249,8 @@ class TurtleSoupRuleSetTest {
             assertEquals(1, state.getData().get("finalAnswerRemaining"));
             assertTrue(map(state.getData().get("pendingHost")).isEmpty());
             assertTrue(rules.pendingTurns(state).isEmpty());
-            assertEquals("UNRESOLVED", maps(state.getData().get("qaHistory")).getLast().get("verdict"));
+            assertTrue(maps(state.getData().get("qaHistory")).isEmpty());
+            assertEquals("AI_TURN_FAILED", maps(state.getData().get("events")).getLast().get("type"));
             String visible = mapper.writeValueAsString(rules.publicData(state));
             assertFalse(visible.contains("factIds")); assertFalse(visible.contains("手机"));
             assertFalse(visible.contains(catalog.require("rainy_key").solution()));
@@ -268,25 +271,22 @@ class TurtleSoupRuleSetTest {
         TurnRequest second = rules.pendingTurns(state).getFirst();
         assertNotEquals(first.actorId(), second.actorId());
         assertEquals(1, state.getData().get("aiContributions"));
-        assertEquals(logs, state.getLogs().size()); assertEquals(0, state.getData().get("questionCount"));
+        assertEquals(logs + 1, state.getLogs().size()); assertEquals(0, state.getData().get("questionCount"));
+        assertTrue(text(state.getLogs().getLast().getMessage()).contains("请求失败"));
         rules.onAiFailure(state, first, NOW.plusSeconds(21));
         assertEquals(second, rules.pendingTurns(state).getFirst());
         rules.onAiFailure(state, second, NOW.plusSeconds(22));
-        assertTrue(rules.pendingTurns(state).isEmpty()); assertEquals(logs, state.getLogs().size());
+        assertTrue(rules.pendingTurns(state).isEmpty()); assertEquals(logs + 2, state.getLogs().size());
     }
 
-    @Test void playerFallbackUsesOnlyPublicVerdictWithoutSpendingQuestionOrRevealingTruth() {
+    @Test void playerFailureRecordsFailureWithoutDialogueOrSpendingQuestion() {
         GameState state = state("rainy_key", 12, true);
         askAndAnswer(state, "是否有备用钥匙？", "YES", List.of("spare"), "存在备用钥匙");
-        VisibleObservation base = observation(state, "ai-1");
-        var visible = maps(state.getData().get("events")).stream().filter(e -> "PUBLIC".equals(e.get("visibility"))).toList();
-        VisibleObservation input = new VisibleObservation(base.gameId(), base.instanceId(), base.phase(), base.round(), base.actorId(), base.turnKind(),
-                base.self(), base.players(), base.rules(), visible, base.privateFacts(), base.legalActions(), base.persona(), base.memory(), base.knowledge());
         int before = number(state.getData().get("questionCount"), 0);
-        PlayerAction fallback = rules.fallback(input);
-        assertEquals("DISCUSS", fallback.getType()); assertTrue(fallback.getContent().contains("是否有备用钥匙"));
-        assertFalse(fallback.getContent().contains(catalog.require("rainy_key").solution()));
-        rules.apply(state, "ai-1", fallback, NOW);
+        int discussionCount = maps(state.getData().get("discussionHistory")).size();
+        rules.onAiFailure(state, rules.pendingTurns(state).getFirst(), NOW);
+        assertEquals(discussionCount, maps(state.getData().get("discussionHistory")).size());
+        assertEquals("AI_TURN_FAILED", maps(state.getData().get("events")).getLast().get("type"));
         assertEquals(before, number(state.getData().get("questionCount"), 0));
     }
 
