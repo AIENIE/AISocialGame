@@ -1,6 +1,5 @@
 package com.aisocialgame.lab;
 
-import com.aisocialgame.engine.v2.undercover.UndercoverWordCatalog;
 import com.aisocialgame.repository.*;
 import com.aisocialgame.repository.credit.AiCreditReservationRepository;
 import org.springframework.stereotype.Service;
@@ -16,11 +15,10 @@ public class LabDiagnosticsService {
     private final LocalAiDebugTurnRepository debug;
     private final GameStateRepository states;
     private final AiCreditReservationRepository reservations;
-    private final UndercoverWordCatalog words;
 
     public LabDiagnosticsService(LabMatchRepository matches,AiTurnJobRepository jobs,LocalAiDebugTurnRepository debug,
-            GameStateRepository states,AiCreditReservationRepository reservations,UndercoverWordCatalog words) {
-        this.matches=matches;this.jobs=jobs;this.debug=debug;this.states=states;this.reservations=reservations;this.words=words;
+            GameStateRepository states,AiCreditReservationRepository reservations) {
+        this.matches=matches;this.jobs=jobs;this.debug=debug;this.states=states;this.reservations=reservations;
     }
     public Map<String,Object> inspect(String experimentId,String matchId) {
         var match=matches.findById(matchId).orElseThrow(LabService::missing);
@@ -50,15 +48,6 @@ public class LabDiagnosticsService {
                 var sample=samples.entrySet().stream().max(Comparator.comparingInt(entry -> number(entry.getKey(),-1))).map(entry -> map(entry.getValue())).orElse(Map.of());
                 var action=map(map(sample.get("parsedOutput")).get("action"));
                 if(!action.isEmpty()) failure.put("action",Map.of("type",text(action.get("type")),"content",text(action.get("content"))));
-                if("undercover-v1.1".equals(job.getDiagnostics().get("promptVersion")) && "SUBMISSION_EXCEPTION".equals(reason) && "SPEAK".equals(action.get("type")))
-                    states.findById(match.roomId).filter(state -> Objects.equals(match.archiveId,state.getData().get("archiveId"))).ifPresent(state -> {
-                        String content=text(action.get("content")),own=text(map(job.getObservation().get("self")).get("word"));
-                        boolean blank="BLANK".equals(map(job.getObservation().get("self")).get("role"));
-                        if((blank || !words.containsForbidden(content,own)) && (words.containsForbidden(content,text(state.getData().get("civilianWord")))
-                                || words.containsForbidden(content,text(state.getData().get("undercoverWord"))))) {
-                            failure.put("code","LEGACY_WORD_SCOPE_REJECTION");failure.put("inferred",true);
-                        }
-                    });
             });
         }
         if(!failure.isEmpty()) result.put("failure",failure);

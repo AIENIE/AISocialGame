@@ -49,8 +49,6 @@ import java.util.UUID;
 public class ProjectCreditService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.aisocialgame.service.credit.TemporaryCreditService temporaryCredits;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.aisocialgame.repository.credit.AiCreditReservationRepository aiReservations;
     private static final String CREDIT_TYPE_UNSPECIFIED = "CREDIT_TYPE_UNSPECIFIED";
     private static final String CREDIT_TYPE_TEMP = "CREDIT_TYPE_TEMP";
     private static final String CREDIT_TYPE_PERMANENT = "CREDIT_TYPE_PERMANENT";
@@ -106,7 +104,7 @@ public class ProjectCreditService {
             tempExpiresAt = null;
         }
         if (temporaryCredits != null) {
-            tempBalance = Math.addExact(tempBalance, temporaryCredits.returnedBalance(account));
+            tempBalance = Math.addExact(tempBalance, temporaryCredits.lotBalance(account));
             tempExpiresAt = temporaryCredits.earliestExpiry(account, tempExpiresAt);
         }
         return new BalanceSnapshot(
@@ -583,51 +581,6 @@ public class ProjectCreditService {
         return toBalanceSnapshot(account, publicTokens);
     }
 
-    @Transactional
-    public BalanceSnapshot migrateFromPayServiceSnapshot(long userId,
-                                                         long projectTempTokens,
-                                                         long projectPermanentTokens,
-                                                         long publicPermanentTokens,
-                                                         String operator) {
-        String requestId = appProperties.getProjectKey() + ":migrate:" + userId;
-        if (creditLedgerEntryRepository.findByRequestId(requestId).isPresent()) {
-            return getBalance(userId, publicPermanentTokens);
-        }
-
-        CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
-        if (aiReservations != null && aiReservations.existsByUserIdAndProjectKey(userId, appProperties.getProjectKey())) {
-            throw new ApiException(HttpStatus.CONFLICT, "已有 AI 预算流水，不能再用历史快照覆盖项目余额");
-        }
-        long deltaTemp = projectTempTokens - account.getTempBalance();
-        long deltaPermanent = projectPermanentTokens - account.getPermanentBalance();
-        account.setTempBalance(Math.max(0, projectTempTokens));
-        account.setPermanentBalance(Math.max(0, projectPermanentTokens));
-        if (projectTempTokens > 0) {
-            account.setTempExpiresAt(Instant.now().plusSeconds(Math.max(1, appProperties.getCredit().getTempExpiryDays()) * 86400L));
-        } else {
-            account.setTempExpiresAt(null);
-        }
-        creditAccountRepository.save(account);
-
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("operator", StringUtils.hasText(operator) ? operator.trim() : "admin");
-        metadata.put("source", "payservice_snapshot");
-        creditLedgerService.insertLedgerEntry(
-                requestId,
-                userId,
-                "MIGRATION_INIT",
-                deltaTemp,
-                deltaPermanent,
-                0,
-                publicPermanentTokens,
-                "MIGRATION",
-                metadata,
-                null,
-                account
-        );
-        return toBalanceSnapshot(account, publicPermanentTokens);
-    }
-
     private String validateRedeemCode(CreditRedeemCode redeemCode) {
         if (!redeemCode.isActive()) {
             return "兑换码已停用";
@@ -709,7 +662,7 @@ public class ProjectCreditService {
             expiresAt = null;
         }
         if (temporaryCredits != null) {
-            temp = Math.addExact(temp, temporaryCredits.returnedBalance(account));
+            temp = Math.addExact(temp, temporaryCredits.lotBalance(account));
             expiresAt = temporaryCredits.earliestExpiry(account, expiresAt);
         }
         return new BalanceSnapshot(publicPermanentTokens, temp, account.getPermanentBalance(), expiresAt);

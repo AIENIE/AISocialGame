@@ -147,7 +147,7 @@ public class LabStrategyService {
             }
             require(encoded(runtimeCard(result)).length()<=1200,"单张策略卡超过运行注入上限");
             for(String source:List.of("evidence","counterEvidence")) {
-                // Missing counter-evidence stays absent, preserving the exact shape of legacy cards.
+                // Counter-evidence is optional in the current strategy schema.
                 if(!card.containsKey(source)) continue;
                 require(card.get(source) instanceof List<?> values && values.stream().allMatch(Map.class::isInstance),"策略证据或反例必须是对象数组");
                 var evidence=maps(card.get(source));require(!"evidence".equals(source) || !evidence.isEmpty(),"策略必须引用支持证据");

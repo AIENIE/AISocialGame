@@ -1,6 +1,5 @@
 package com.aisocialgame.lab;
 
-import com.aisocialgame.engine.v2.undercover.UndercoverWordCatalog;
 import com.aisocialgame.model.*;
 import com.aisocialgame.model.credit.AiCreditReservation;
 import com.aisocialgame.repository.*;
@@ -18,8 +17,7 @@ class LabDiagnosticsServiceTest {
     final LocalAiDebugTurnRepository debug=mock(LocalAiDebugTurnRepository.class);
     final GameStateRepository states=mock(GameStateRepository.class);
     final AiCreditReservationRepository reservations=mock(AiCreditReservationRepository.class);
-    final UndercoverWordCatalog words=new UndercoverWordCatalog();
-    final LabDiagnosticsService service=new LabDiagnosticsService(matches,jobs,debug,states,reservations,words);
+    final LabDiagnosticsService service=new LabDiagnosticsService(matches,jobs,debug,states,reservations);
     final LabMatch match=new LabMatch();
 
     @BeforeEach void fixture() {
@@ -75,17 +73,15 @@ class LabDiagnosticsServiceTest {
         assertFalse(map(service.inspect(match.experimentId,match.id).get("failure")).containsKey("modelKey"));
     }
 
-    @Test void legacyUndercoverSubmissionDiagnosisKeepsItsSavedActionAndRuleInference() {
+    @Test void savedPlayerFailureIsReportedWithoutInferringDifferentCause() {
         match.status="ABORTED";match.reason="SUBMISSION_EXCEPTION";
         var job=playerFailure();job.getDiagnostics().put("promptVersion","undercover-v1.1");
         job.getDiagnostics().put("terminalReason","SUBMISSION_EXCEPTION");job.getDiagnostics().remove("generation");
         when(jobs.findByInstanceIdOrderByCreatedAtAsc(match.archiveId)).thenReturn(List.of(job));
         var record=new LocalAiDebugTurn();record.payload.put("attempts",Map.of("0",Map.of("parsedOutput",Map.of("action",Map.of("type","SPEAK","content","other word")))));
         when(debug.findById(job.getId())).thenReturn(Optional.of(record));
-        var state=new GameState(match.roomId,"undercover","SETTLEMENT");state.getData().putAll(Map.of("archiveId",match.archiveId,"civilianWord","civilian","undercoverWord","other word"));
-        when(states.findById(match.roomId)).thenReturn(Optional.of(state));
         var failure=map(service.inspect(match.experimentId,match.id).get("failure"));
-        assertEquals("LEGACY_WORD_SCOPE_REJECTION",failure.get("code"));assertEquals(true,failure.get("inferred"));
+        assertEquals("SUBMISSION_EXCEPTION",failure.get("code"));assertFalse(failure.containsKey("inferred"));
         assertEquals("SUBMISSION",failure.get("stage"));assertEquals("player-job",failure.get("jobId"));
         assertEquals("旧玩家",failure.get("actorName"));assertEquals("deepseek-flash",failure.get("modelKey"));
         assertEquals("other word",map(failure.get("action")).get("content"));

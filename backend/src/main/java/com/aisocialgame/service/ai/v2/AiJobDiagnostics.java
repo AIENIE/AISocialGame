@@ -43,15 +43,15 @@ public final class AiJobDiagnostics {
         if (elapsed < 0) { d.put("clockAnomaly", "CLOCK_MOVED_BACKWARD"); return OptionalLong.empty(); }
         return OptionalLong.of(elapsed);
     }
-    public static boolean overdue(AiTurnJob job, Instant now, ZoneId legacyZone) {
-        return overdue(job.getDiagnostics(), job.getStartedAt(), now, legacyZone);
+    public static boolean overdue(AiTurnJob job, Instant now) {
+        return overdue(job.getDiagnostics(), now);
     }
-    public static boolean overdue(Map<String, Object> diagnostics, LocalDateTime legacyStarted, Instant now, ZoneId legacyZone) {
+    public static boolean overdue(Map<String, Object> diagnostics, Instant now) {
         if (diagnostics != null && diagnostics.get("executionDeadlineEpochMs") instanceof Number n)
             return now.toEpochMilli() > n.longValue() + 10_000;
         if (diagnostics != null && diagnostics.get("startedEpochMs") instanceof Number)
             return age(new LinkedHashMap<>(diagnostics), "startedEpochMs", now).orElse(-1) > 60_000;
-        return legacyStarted != null && legacyStarted.isBefore(LocalDateTime.ofInstant(now, legacyZone).minusSeconds(60));
+        return false;
     }
     public static void completed(AiTurnJob job, String reason, Instant now) {
         Map<String, Object> d = job.getDiagnostics();

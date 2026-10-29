@@ -284,7 +284,7 @@ public class V2GameService {
             else { RuleSupport.require(!room.isLab(), "实验房间由实验室调度"); requireHost(room, user); }
             GameState previous = states.findByIdForUpdate(roomId).orElse(null);
             if (previous != null && !"SETTLEMENT".equals(previous.getPhase())) {
-                RuleSupport.require(RuleSupport.number(previous.getData().get("ruleVersion"), 1) == 2, "请先完成当前旧版本对局");
+
                 return response(room, previous, user == null ? null : user.getId());
             }
             GameRuleSet rules = rules(gameId);
@@ -314,7 +314,7 @@ public class V2GameService {
             if(validationBudgetPaused(roomId)) throw new ApiException(HttpStatus.CONFLICT,"本次验收已达到积分实扣停止线","AI_VALIDATION_BUDGET_EXHAUSTED",Map.of());
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
-            RuleSupport.require(RuleSupport.number(state.getData().get("ruleVersion"), 1) == 2, "对局版本不匹配");
+
             GameRuleSet rules = rules(gameId);
             GamePlayerState actor = RuleSupport.player(state, user.getId());
             String requestKey = user.getId() + ":" + RuleSupport.text(action.getRequestId());
@@ -363,7 +363,7 @@ public class V2GameService {
     public boolean acceptSideChat(String roomId, String actorId, String type, String content) {
         lifecycle.requireActive(roomId);
         GameStateRepository.RoutingSnapshot current = states.findRoutingSnapshotByRoomId(roomId).orElse(null);
-        if (current == null || RuleSupport.number(current.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(current.getPhase())) return true;
+        if (current == null || "SETTLEMENT".equals(current.getPhase())) return true;
         if ("TEXT".equals(type) && "turtle_soup".equals(current.getGameId())) {
             User user = new User(); user.setId(actorId);
             action(current.getGameId(), roomId, user, RuleSupport.action("DISCUSS", content, null)); return true;
@@ -384,7 +384,7 @@ public class V2GameService {
         transaction.executeWithoutResult(status -> {
             Room room = rooms.findByIdForUpdateSkipLocked(roomId).orElse(null); if (room == null || room.getStatus() != RoomStatus.PLAYING) return;
             GameState state = states.findByIdForUpdateSkipLocked(roomId).orElse(null);
-            if (state == null || RuleSupport.number(state.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(state.getPhase())) return;
+            if (state == null || "SETTLEMENT".equals(state.getPhase())) return;
             int beforeSafety=RuleSupport.maps(state.getData().get("events")).size();
             boolean frozen=syncSafetyClock(state);
             frozen=syncLabBudgetClock(state) || frozen;
@@ -577,7 +577,7 @@ public class V2GameService {
             GameState state = states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
             AiTurnJob job = jobs.findByIdForUpdate(jobId).orElse(null);
             if (job == null || !"RUNNING".equals(job.getStatus())) return;
-            if ("RECOVERY_TIMEOUT".equals(reason) && !AiJobDiagnostics.overdue(job, java.time.Instant.now(), java.time.ZoneId.systemDefault())) return;
+            if ("RECOVERY_TIMEOUT".equals(reason) && !AiJobDiagnostics.overdue(job, java.time.Instant.now())) return;
             if (!generation.isEmpty()) job.getDiagnostics().put("generation", AiJobDiagnostics.generation(generation));
             job.getDiagnostics().put("failureReason", reason);
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
@@ -728,7 +728,7 @@ public class V2GameService {
         }
         // The event table is the complete history for new V2 instances. Keep only
         // the live public window in the mutable state row after event persistence.
-        if (Boolean.TRUE.equals(state.getData().get("eventTableComplete")) && state.getLogs().size() > 100)
+        if (state.getLogs().size() > 100)
             state.setLogs(new ArrayList<>(state.getLogs().subList(state.getLogs().size() - 100, state.getLogs().size())));
         states.saveAndFlush(state);
         if (publicChanged) publishAfterCommit(room, state);

@@ -11,7 +11,7 @@ public final class LocalAiDebugView {
                        int round, String phase, String kind, String status, String terminalReason, String modelKey,
                        Long promptTokens, Long completionTokens, Long cacheReadTokens, Long cacheWriteTokens, Long reasoningTokens,
                        Boolean usageAuthoritative, boolean usageComplete, int attemptCount, int responseCount, Long latencyMs,
-                       LocalDateTime createdAt, LocalDateTime updatedAt, boolean legacy) {}
+                       LocalDateTime createdAt, LocalDateTime updatedAt) {}
     public record Usage(int turns, int attempts, int responses, Long promptTokens, Long completionTokens,
                         Long cacheReadTokens, Long cacheWriteTokens, Long reasoningTokens, boolean complete, Boolean authoritative) {}
     public record Round(int round, String phase, Usage usage, int problems) {}

@@ -8,7 +8,7 @@ import type { AiDebugDetail, AiDebugTurn } from "@/types/aiDebug";
 import AiDebugWorkbench from "./AiDebugWorkbench";
 
 vi.mock("@/services/api", () => ({ localAiDebugApi: { instances: vi.fn(), summary: vi.fn(), turns: vi.fn(), detail: vi.fn() } }));
-const turn: AiDebugTurn = { id: "job-old", actorId: "ai-1", actorName: "青禾", seatNumber: 1, roleKey: "SPY", round: 1, phase: "DESCRIPTION", kind: "SPEAK", status: "SUCCEEDED", terminalReason: "MODEL_ACTION_APPLIED", modelKey: "fixture-model", promptTokens: 100, completionTokens: 20, cacheReadTokens: 0, cacheWriteTokens: null, reasoningTokens: 12, usageAuthoritative: true, usageComplete: true, attemptCount: 2, responseCount: 2, latencyMs: 1200, createdAt: "2026-10-20T10:00:00", updatedAt: "2026-10-20T10:00:02", legacy: false };
+const turn: AiDebugTurn = { id: "job-old", actorId: "ai-1", actorName: "青禾", seatNumber: 1, roleKey: "SPY", round: 1, phase: "DESCRIPTION", kind: "SPEAK", status: "SUCCEEDED", terminalReason: "MODEL_ACTION_APPLIED", modelKey: "fixture-model", promptTokens: 100, completionTokens: 20, cacheReadTokens: 0, cacheWriteTokens: null, reasoningTokens: 12, usageAuthoritative: true, usageComplete: true, attemptCount: 2, responseCount: 2, latencyMs: 1200, createdAt: "2026-10-20T10:00:00", updatedAt: "2026-10-20T10:00:02" };
 const detail: AiDebugDetail = { turn, data: { attempts: {
   "0": { attempt: 0, requestId: "job-old:0", state: "RESPONSE", messages: [{ role: "system", content: "完整系统提示" }, { role: "user", content: "{\"privateWord\":\"唯一私有词\",\"memory\":{\"belief\":\"已保存信念\"}}" }], rawOutput: "invalid first output", reasoningText: "上游实际思考", reasoningKind: "TEXT", promptTokens: 100, completionTokens: 20, cacheReadTokens: 0, flags: ["INVALID_JSON_ENVELOPE"] },
   "1": { attempt: 1, requestId: "job-old:1", state: "RESPONSE", rawOutput: "{\"action\":{\"content\":\"修正正文\"}}", parsedOutput: { action: { content: "修正正文" }, evidenceEventIds: ["event-1"] }, reasoningKind: "NOT_PROVIDED", flags: [] },
@@ -65,11 +65,4 @@ it("keeps the chosen action and reading position when new actions arrive, and sc
   expect(vi.mocked(localAiDebugApi.turns).mock.lastCall?.[2].actorId).toBe("ai-1");
   await act(async () => document.querySelector<HTMLButtonElement>('.ai-debug-rounds button:nth-of-type(2)')!.click()); await flush();
   expect(vi.mocked(localAiDebugApi.turns).mock.lastCall?.[2]).toMatchObject({ round: 1, phase: "DESCRIPTION", page: 0 });
-});
-
-it("labels legacy material without constructing missing prompts or provider thought", async () => {
-  vi.mocked(localAiDebugApi.detail).mockResolvedValue({ turn: { ...turn, legacy: true }, data: { legacy: true, observationSnapshot: { role: "saved-role" }, outputSummary: "历史输出摘要" } });
-  await render(); expect(document.body.textContent).toContain("无法事后还原"); expect(document.body.textContent).toContain("已有观察快照");
-  await click("思考"); expect(document.body.textContent).toContain("没有返回可展示的思考文本");
-  expect(document.body.textContent).not.toContain("上游实际思考");
 });

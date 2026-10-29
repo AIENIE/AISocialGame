@@ -21,13 +21,11 @@ public class AiMemoryServiceV2 {
     }
     public Map<String, Object> snapshot(GameState state, String actorId, String turnKind) {
         Map<String, Object> memory = RuleSupport.map(RuleSupport.map(state.getData().get("aiMemoriesV2")).get(actorId));
-        boolean currentFormat = RuleSupport.number(memory.get("formatVersion"), 1) >= 2;
         for (String key : AiMemoryEntries.KEYS) {
             if (memory.containsKey(key)) memory.put(key, "commitments".equals(key)
-                    ? AiCommitments.stored(memory.get(key), RuleSupport.number(memory.get("formatVersion"), 1), RuleSupport.text(state.getData().get("archiveId")), actorId)
-                    : AiMemoryEntries.stored(memory.get(key), true, currentFormat));
+                    ? AiCommitments.stored(memory.get(key))
+                    : AiMemoryEntries.stored(memory.get(key)));
         }
-        if (!memory.isEmpty()) memory.put("formatVersion", AiMemoryEntries.FORMAT_VERSION);
         Map<String, Object> emotion = RuleSupport.map(memory.get("emotion"));
         GamePlayerState actor = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId)).findFirst().orElse(null);
         if (!emotion.isEmpty()) {
@@ -125,7 +123,7 @@ public class AiMemoryServiceV2 {
         if (!emotion.isEmpty()) memory.put("emotion", Map.of("name", RuleSupport.text(emotion.get("name")),
                 "intensity", Math.max(0, Math.min(3, RuleSupport.number(emotion.get("intensity"), 0))),
                 "eventId", RuleSupport.text(emotion.get("eventId")), "round", state.getRoundNumber()));
-        memory.put("hypotheses", AiMemoryEntries.merge(AiMemoryEntries.stored(memory.get("hypotheses"), true, true), proposals.get("hypotheses").entries()));
+        memory.put("hypotheses", AiMemoryEntries.merge(AiMemoryEntries.stored(memory.get("hypotheses")), proposals.get("hypotheses").entries()));
         AiCommitments.update(state, rules, actorId, memory, decision, observation, newEventStart);
         LinkedHashSet<String> descriptions = new LinkedHashSet<>(RuleSupport.strings(memory.get("usedDescriptions")));
         RuleSupport.strings(updates.get("usedDescriptions")).stream().limit(8).map(s -> cut(s, 160)).forEach(descriptions::add);

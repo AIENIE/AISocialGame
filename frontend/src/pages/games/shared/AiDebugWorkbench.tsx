@@ -100,7 +100,7 @@ export default function AiDebugWorkbench(props: { gameId: string; roomId: string
           <p><span>第 {t.round} 轮 · {phaseText(t.phase)} · {kindText[t.kind] || t.kind}</span><time>{timeText(t.createdAt)}</time></p>
           <p className="ai-debug-model"><span>{t.modelKey || "等待模型选择"}</span><span>{t.latencyMs == null ? "" : `${(t.latencyMs / 1000).toFixed(1)}s`}{t.attemptCount > 1 ? ` · ${t.attemptCount} 次尝试` : ""}</span></p>
           <div className="ai-debug-row-tokens"><span>输入 <b>{tokenText(t.promptTokens)}</b></span><span>缓存 <b>{tokenText(t.cacheReadTokens)}</b></span><span>输出 <b>{tokenText(t.completionTokens)}</b></span></div>
-          {t.legacy && <small className="ai-debug-legacy">历史记录 · 原文未完整采集</small>}
+
         </button>)}{turns.isPending && instanceId && <Notice>正在读取行动…</Notice>}{!turns.isPending && rows.length === 0 && <div className="ai-debug-empty"><Bug size={28} /><h3>{instanceId ? "尚无匹配的 AI 行动" : "等待对局开始"}</h3><p>每次 AI 行动及修正尝试会自动记录。</p></div>}</div>
         <footer className="ai-debug-pagination"><button disabled={page === 0} onClick={() => { setPage(page - 1); setChosenTurn(null); setFollow(false); }}>上一页</button><span>{page + 1} / {totalPages}</span><button disabled={page + 1 >= totalPages} onClick={() => { setPage(page + 1); setChosenTurn(null); setFollow(false); }}>下一页</button></footer>
       </section>
@@ -135,7 +135,7 @@ function TurnDetail({ detail }: { detail: AiDebugDetail }) {
     matches[0]?.setAttribute("data-active", ""); matches[0]?.scrollIntoView?.({ block: "center" });
   }, [search, tab, attempt, structured]);
   const selected = attempts.find(a => a.attempt === attempt);
-  const parsed = selected?.parsedOutput || data.parsedOutput;
+  const parsed = selected?.parsedOutput;
   const basis = parsed ? Object.fromEntries(Object.entries(parsed).filter(([key]) => /reason|reflect|evidence|memory|belief|confidence/i.test(key))) : {};
   return <>
     <div className="ai-debug-detail-heading"><div><h2>{actorText(turn)}</h2><p>第 {turn.round} 轮 · {phaseText(turn.phase)} · {kindText[turn.kind] || turn.kind}</p></div><span className="ai-debug-status" data-status={turn.status}>{statusText[turn.status] || turn.status}</span></div>
@@ -148,15 +148,15 @@ function TurnDetail({ detail }: { detail: AiDebugDetail }) {
     }}>{label}</button>)}</div>
     <div className="ai-debug-text-tools"><label><Search size={14} /><input aria-label="查找详情文本" placeholder="查找文本" value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); moveMatch(e.shiftKey ? -1 : 1); } }} /></label>{search && <><small aria-live="polite">{matchCount ? activeMatch + 1 : 0}/{matchCount}</small><button className="ai-debug-search-next" aria-label="下一个匹配" title="Enter 下一个，Shift+Enter 上一个" onClick={() => moveMatch(1)}><ChevronRight size={14} /></button></>}<label><input type="checkbox" checked={wrap} onChange={e => setWrap(e.target.checked)} />自动换行</label>{tab === "input" && <label><input type="checkbox" checked={structured} onChange={e => setStructured(e.target.checked)} />结构视图</label>}</div>
     <div id="ai-debug-panel" role="tabpanel" ref={content} aria-labelledby={`ai-debug-tab-${tab}`} className="ai-debug-content" data-wrap={wrap}>
-      {turn.legacy && <Notice>此行动在完整采集启用前产生，仅展示已保存资料。实际请求原文和思考内容无法事后还原。</Notice>}
+
       {tab === "input" && <>{selected?.messages?.length ? selected.messages.map((message, index) => <details className="ai-debug-message" key={`${selected.attempt}:${index}`} open={message.role !== "system"}>
         <summary>{message.role === "system" ? "系统提示" : message.role === "user" ? "角色输入" : message.role}<span>{message.content.length.toLocaleString()} 字符</span></summary>
         <TextBlock text={message.content} title={`输入 ${message.role}`} search={search} structured={structured} />
-      </details>) : <Notice>{turn.legacy ? "实际发送消息未保存。下方为已有观察快照，不代表完整请求。" : "请求内容尚未准备完成。"}</Notice>}{turn.legacy && data.observationSnapshot && <JsonTree value={data.observationSnapshot} label="已保存观察快照" search={search} />}</>}
-      {tab === "thinking" && <><section className="ai-debug-section"><h3>上游思考{selected?.reasoningKind === "SUMMARY" ? "摘要" : "文本"}<span>供应商实际返回</span></h3>{selected?.reasoningText ? <TextBlock title="思考" text={selected.reasoningText} search={search} /> : <Notice>{selected?.reasoningKind === "GATEWAY_NOT_PROVIDED" ? "当前网关响应未提供调试字段，可能来自旧版本或历史回执。" : "本次没有返回可展示的思考文本。推理 token 数不能还原思考内容。"}</Notice>}</section>
+      </details>) : <Notice>未保存请求原文。</Notice>}</>}
+      {tab === "thinking" && <><section className="ai-debug-section"><h3>上游思考{selected?.reasoningKind === "SUMMARY" ? "摘要" : "文本"}<span>供应商实际返回</span></h3>{selected?.reasoningText ? <TextBlock title="思考" text={selected.reasoningText} search={search} /> : <Notice>{selected?.reasoningKind === "GATEWAY_NOT_PROVIDED" ? "当前响应未提供可展示的调试字段。" : "本次没有返回可展示的思考文本。推理 token 数不能还原思考内容。"}</Notice>}</section>
         <section className="ai-debug-section"><h3>角色决策依据与反思<span>结构化输出字段</span></h3>{Object.keys(basis).length ? <JsonTree value={basis} label="决策依据" search={search} /> : <Notice>没有已保存的决策依据或反思字段。</Notice>}</section></>}
-      {tab === "output" && <><section className="ai-debug-section"><h3>模型原始正文</h3>{selected?.rawOutput !== undefined ? <TextBlock title="原始输出" text={selected.rawOutput} search={search} /> : <Notice>{data.outputSummary || "模型正文尚未返回或未保存。"}</Notice>}</section>{parsed && <section className="ai-debug-section"><h3>解析结果</h3><JsonTree value={parsed} label="结构化输出" search={search} /></section>}
-        <section className="ai-debug-section"><h3>本局采用的动作{data.fallback && <span>规则降级</span>}</h3>{data.appliedAction ? <JsonTree value={data.appliedAction} label="实际执行动作" search={search} /> : <Notice>{turn.status === "SUCCEEDED" ? "没有采集到实际执行动作。" : "此结果尚未用于本局，或已失败、超时、丢弃。"}{turn.terminalReason ? ` ${turn.terminalReason}` : ""}</Notice>}</section></>}
+      {tab === "output" && <><section className="ai-debug-section"><h3>模型原始正文</h3>{selected?.rawOutput !== undefined ? <TextBlock title="原始输出" text={selected.rawOutput} search={search} /> : <Notice>模型正文尚未返回或未保存。</Notice>}</section>{parsed && <section className="ai-debug-section"><h3>解析结果</h3><JsonTree value={parsed} label="结构化输出" search={search} /></section>}
+        <section className="ai-debug-section"><h3>本局采用的动作</h3>{data.appliedAction ? <JsonTree value={data.appliedAction} label="实际执行动作" search={search} /> : <Notice>{turn.status === "SUCCEEDED" ? "没有采集到实际执行动作。" : "此结果尚未用于本局，或已失败、超时、丢弃。"}{turn.terminalReason ? ` ${turn.terminalReason}` : ""}</Notice>}</section></>}
       {tab === "call" && <><CallUsage attempt={selected} turn={turn} /><JsonTree label="调用参数与结果" search={search} value={{ requestId: selected?.requestId, state: selected?.state, modelKey: selected?.modelKey || turn.modelKey, modelSelection: data.modelSelection, promptVersion: data.promptVersion, inputFormatVersion: data.inputFormatVersion, requestTimeoutMs: selected?.requestTimeoutMs, latencyMs: selected?.latencyMs, parseMs: selected?.parseMs, validationMs: selected?.validationMs, flags: selected?.flags, failureStage: selected?.failureStage, finishReason: selected?.finishReason, budgetId: selected?.budgetId, settlementState: selected?.settlementState, terminalReason: turn.terminalReason }} /></>}
     </div>
   </>;

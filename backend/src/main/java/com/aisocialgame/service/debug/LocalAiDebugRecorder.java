@@ -81,7 +81,7 @@ public class LocalAiDebugRecorder {
             Boolean authority = response.hasUsageAuthoritative() ? Boolean.valueOf(response.getUsageAuthoritative()) : budgetUsageAuthoritative;
             if (authority != null) sample.put("usageAuthoritative", authority);
             boolean usageSourceKnown = sample.get("usageAuthoritative") instanceof Boolean;
-            // Legacy scalar defaults cannot distinguish omitted usage from a real zero.
+            // Scalar defaults without usage authority cannot distinguish omitted usage from a real zero.
             if (usageSourceKnown || response.getPromptTokens() != 0) sample.put("promptTokens", response.getPromptTokens());
             if (usageSourceKnown || response.getCompletionTokens() != 0) sample.put("completionTokens", response.getCompletionTokens());
             if (response.hasReasoningTokens()) sample.put("reasoningTokens", response.getReasoningTokens());

@@ -34,7 +34,7 @@ public final class RuleSupport {
         state.getData().put("events", new ArrayList<>());
         // New V2 instances write each event to game_events in the same transaction.
         // Legacy instances have no marker and must verify table completeness first.
-        state.getData().put("eventTableComplete", true);
+
         state.getData().put("phaseSerial", 0);
         return state;
     }

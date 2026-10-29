@@ -34,7 +34,6 @@ class LocalAiDebugTest {
     private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
     private final RoomAccessPolicy access = mock(RoomAccessPolicy.class);
     private final RoomRepository rooms = mock(RoomRepository.class);
-    private final AiDecisionTraceRepository traces = mock(AiDecisionTraceRepository.class);
     private String roomId, instance;
     private LocalAiDebugService service;
 
@@ -42,7 +41,7 @@ class LocalAiDebugTest {
         roomId = UUID.randomUUID().toString(); instance = UUID.randomUUID().toString();
         Room room = new Room(); room.setId(roomId); room.setGameId("undercover");
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
-        service = new LocalAiDebugService(recorder, access, rooms, jobs, records, traces);
+        service = new LocalAiDebugService(recorder, access, rooms, jobs, records);
     }
 
     private VisibleObservation observation(String actor, int round) {
@@ -105,28 +104,28 @@ class LocalAiDebugTest {
         assertNull(row.usageAuthoritative);
     }
 
-    @Test void omittedLegacyZeroIsUnknownUntilBudgetStatusProvidesAuthoritativeProof() {
+    @Test void omittedScalarZeroIsUnknownUntilBudgetStatusProvidesAuthoritativeProof() {
         var job = job("ai", 1); begin(job, 0);
-        var legacy = ChatCompletionsResponse.newBuilder().setContent("historical response").build();
-        recorder.response(job.getId() + ":0", legacy);
+        var response = ChatCompletionsResponse.newBuilder().setContent("response without usage").build();
+        recorder.response(job.getId() + ":0", response);
         var row = records.findById(job.getId()).orElseThrow();
         assertNull(row.promptTokens); assertNull(row.completionTokens); assertNull(row.usageAuthoritative); assertFalse(row.usageComplete);
         assertEquals(1, row.responseCount);
-        assertEquals("historical response", RuleSupport.map(RuleSupport.map(row.payload.get("attempts")).get("0")).get("rawOutput"));
-        recorder.response(job.getId() + ":0", legacy, true);
-        recorder.response(job.getId() + ":0", legacy);
+        assertEquals("response without usage", RuleSupport.map(RuleSupport.map(row.payload.get("attempts")).get("0")).get("rawOutput"));
+        recorder.response(job.getId() + ":0", response, true);
+        recorder.response(job.getId() + ":0", response);
         row = records.findById(job.getId()).orElseThrow();
         assertEquals(0L, row.promptTokens); assertEquals(0L, row.completionTokens); assertTrue(row.usageAuthoritative);
         assertTrue(row.usageComplete); assertNull(row.cacheReadTokens); assertEquals(1, row.responseCount);
         var knownCache = job("other-ai", 1); begin(knownCache, 0);
-        recorder.response(knownCache.getId() + ":0", legacy.toBuilder().setPromptTokens(20).setCacheTokens(5).build());
+        recorder.response(knownCache.getId() + ":0", response.toBuilder().setPromptTokens(20).setCacheTokens(5).build());
         var known = records.findById(knownCache.getId()).orElseThrow();
         assertEquals(20L, known.promptTokens); assertEquals(5L, known.cacheReadTokens); assertNull(known.completionTokens);
     }
 
     @Test void readsPersistedRecordsThroughANewServiceAndSeparatesRoundsAndInstances() {
         var a = job("ai-a", 1); var b = job("ai-b", 2); begin(a, 0); recorder.response(a.getId() + ":0", response("first"));
-        var restored = new LocalAiDebugService(new LocalAiDebugRecorder(records, new AdminAuthPolicy("local", "password"), manager), access, rooms, jobs, records, traces);
+        var restored = new LocalAiDebugService(new LocalAiDebugRecorder(records, new AdminAuthPolicy("local", "password"), manager), access, rooms, jobs, records);
         assertEquals(2, restored.summary("undercover", roomId, "viewer", instance).rounds().size());
         assertEquals(List.of(b.getId()), restored.turns("undercover", roomId, "viewer", instance, 2, null, "ai-b", null, 0, 50).getItems().stream().map(LocalAiDebugView.Turn::id).toList());
         String original = instance; instance = UUID.randomUUID().toString(); var c = job("host", 1);
@@ -149,7 +148,7 @@ class LocalAiDebugTest {
     @Test void environmentMembershipAndRecordOwnershipBoundariesAreEnforced() {
         for (String env : List.of("test", "production")) {
             var disabled = new LocalAiDebugRecorder(records, new AdminAuthPolicy(env, "totp"), manager);
-            var restricted = new LocalAiDebugService(disabled, access, rooms, jobs, records, traces);
+            var restricted = new LocalAiDebugService(disabled, access, rooms, jobs, records);
             assertFalse(restricted.available(roomId, "viewer"));
             assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> restricted.summary("undercover", roomId, "viewer", instance)).getStatus());
             var job = new AiTurnJob(); disabled.queued(job); assertFalse(disabled.enabled());
@@ -163,15 +162,15 @@ class LocalAiDebugTest {
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.detail("werewolf", roomId, "viewer", job.getId())).getStatus());
     }
 
-    @Test void historicalJobsExposeOnlySavedSnapshotsAndExplicitlyMissingOriginalMessages() {
+    @Test void uncapturedJobsDoNotBecomeReconstructedDebugRecords() {
         var job = new AiTurnJob(); job.setId(UUID.randomUUID().toString()); job.setRoomId(roomId); job.setInstanceId(instance);
         job.setActorId("historical-ai"); job.setKind("SPEAK"); job.setTurnKey(job.getId()); job.setStatus("SUCCEEDED");
         job.setObservation(RuleSupport.map(json.convertValue(observation("historical-ai", 1), Map.class)));
         job.getDiagnostics().put("generation", Map.of("promptTokens", 123, "completionTokens", 45, "calls", 1, "responsesObserved", 1, "usageComplete", true));
         jobs.saveAndFlush(job);
-        var detail = service.detail("undercover", roomId, "viewer", job.getId());
-        assertTrue(detail.turn().legacy()); assertEquals(123L, detail.turn().promptTokens());
-        assertTrue(detail.data().containsKey("observationSnapshot")); assertFalse(detail.data().containsKey("attempts"));
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class,
+                () -> service.detail("undercover", roomId, "viewer", job.getId())).getStatus());
+        assertTrue(service.turns("undercover", roomId, "viewer", instance, null, null, null, null, 0, 20).getItems().isEmpty());
         assertFalse(records.existsById(job.getId()));
     }
 

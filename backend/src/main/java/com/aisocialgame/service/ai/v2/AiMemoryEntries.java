@@ -7,7 +7,6 @@ public final class AiMemoryEntries {
     public static final int FORMAT_VERSION = 4;
     public static final List<String> KEYS = List.of("hypotheses", "commitments");
     private static final Set<String> INPUT_FIELDS = Set.of("text", "hypothesis", "content", "eventId", "evidenceEventIds", "confidence");
-    private static final Set<String> SOURCES = Set.of("MODEL_PROPOSAL", "LEGACY_UNVERIFIED");
     private AiMemoryEntries() {}
 
     public record Parsed(List<Map<String, Object>> entries, List<String> errors) {}
@@ -19,7 +18,7 @@ public final class AiMemoryEntries {
         if (!(value instanceof List<?> list)) return new Parsed(List.of(), List.of("INVALID_MEMORY_FIELDS"));
         for (Object item : list) {
             try {
-                Map<String, Object> entry = decode(item, hypothesis, false, false);
+                Map<String, Object> entry = decode(item, hypothesis, false);
                 if (!visibleIds.containsAll(ids(entry))) throw invalid("INVISIBLE_MEMORY_EVIDENCE");
                 entry.put("round", round);
                 entry.put("source", "MODEL_PROPOSAL");
@@ -30,26 +29,24 @@ public final class AiMemoryEntries {
         return new Parsed(List.copyOf(entries), List.copyOf(errors));
     }
 
-    /** No mutation, inferred provenance or parsing of old Map.toString() fragments. */
-    public static List<Map<String, Object>> stored(Object value, boolean hypothesis, boolean currentFormat) {
+    public static List<Map<String, Object>> stored(Object value) {
         if (!(value instanceof List<?> list)) return List.of();
         List<Map<String, Object>> result = new ArrayList<>();
         for (Object item : list) {
-            try { result.add(decode(item, hypothesis, true, currentFormat)); }
-            catch (InvalidEntry ignored) { /* Invalid persisted shapes cannot become model authority. */ }
+            result.add(decode(item, true, true));
         }
         return merge(List.of(), result);
     }
 
-    private static Map<String, Object> decode(Object item, boolean hypothesis, boolean stored, boolean currentFormat) {
+    private static Map<String, Object> decode(Object item, boolean hypothesis, boolean stored) {
         Map<String, Object> result = new LinkedHashMap<>();
         String text;
         List<String> evidence = List.of();
         if (item instanceof String string) {
+            if (stored) throw invalid("INVALID_MEMORY_FIELDS");
             text = nonblank(string);
         } else if (item instanceof Map<?, ?> map) {
-            Set<String> allowed = new HashSet<>(INPUT_FIELDS);
-            if (stored) allowed.addAll(Set.of("round", "source"));
+            Set<String> allowed = stored ? Set.of("text", "evidenceEventIds", "confidence", "round", "source") : INPUT_FIELDS;
             if (!allowed.containsAll(map.keySet())) throw invalid("INVALID_MEMORY_FIELDS");
             text = null;
             for (String alias : List.of("text", "hypothesis", "content")) {
@@ -76,17 +73,14 @@ public final class AiMemoryEntries {
                     throw invalid("INVALID_MEMORY_CONFIDENCE");
                 result.put("confidence", ((Number) map.get("confidence")).doubleValue());
             }
-            if (stored && currentFormat && map.get("source") instanceof String source && SOURCES.contains(source) && validRound(map.get("round"))) {
+            if (stored) {
+                if (!"MODEL_PROPOSAL".equals(map.get("source")) || map.get("round") == null || !validRound(map.get("round"))) throw invalid("INVALID_MEMORY_FIELDS");
                 result.put("source", map.get("source"));
                 result.put("round", map.get("round"));
             }
         } else throw invalid("INVALID_MEMORY_FIELDS");
         result.put("text", cut(text, 160));
         result.put("evidenceEventIds", stored ? tail(evidence, 6) : evidence);
-        if (stored && !result.containsKey("source")) {
-            result.put("source", "LEGACY_UNVERIFIED");
-            result.put("round", null);
-        }
         return result;
     }
 
@@ -115,9 +109,8 @@ public final class AiMemoryEntries {
 
     public static Set<String> evidenceIds(Map<String, Object> memory) {
         Set<String> result = new LinkedHashSet<>();
-        boolean current = memory.get("formatVersion") instanceof Number n && n.intValue() >= 2;
-        for (Map<String, Object> entry : stored(memory.get("hypotheses"), true, current)) result.addAll(ids(entry));
-        for (Map<String, Object> entry : AiCommitments.stored(memory.get("commitments"), current ? ((Number) memory.get("formatVersion")).intValue() : 1, "", "")) {
+        for (Map<String, Object> entry : stored(memory.get("hypotheses"))) result.addAll(ids(entry));
+        for (Map<String, Object> entry : AiCommitments.stored(memory.get("commitments"))) {
             result.addAll(com.aisocialgame.engine.v2.RuleSupport.strings(entry.get("evidenceEventIds")));
             result.addAll(com.aisocialgame.engine.v2.RuleSupport.strings(com.aisocialgame.engine.v2.RuleSupport.map(entry.get("resolution")).get("evidenceEventIds")));
         }

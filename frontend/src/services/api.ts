@@ -476,14 +476,6 @@ export const adminApi = {
     const res = await adminApiClient.post("/admin/billing/reversal", payload);
     return res.data;
   },
-  async migrateUserBalance(userId: number) {
-    const res = await adminApiClient.post("/admin/billing/migrate-user", { userId });
-    return res.data;
-  },
-  async migrateAllUserBalances(batchSize = 100) {
-    const res = await adminApiClient.post("/admin/billing/migrate-all", { batchSize });
-    return res.data;
-  },
   async createRedeemCode(payload: {
     code?: string;
     tokens: number;

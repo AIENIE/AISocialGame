@@ -12,12 +12,12 @@ import java.util.*;
 public class TemporaryCreditService {
     private final CreditTempLotRepository lots;
     public TemporaryCreditService(CreditTempLotRepository lots) { this.lots=lots; }
-    public List<CreditTempLot> available(CreditAccount account, Instant now) {
+    private List<CreditTempLot> available(CreditAccount account, Instant now) {
         return lots.findByUserIdAndProjectKeyAndRemainingGreaterThan(account.getUserId(),account.getProjectKey(),0)
             .stream().filter(l -> l.expiresAt==null || l.expiresAt.isAfter(now))
             .sorted(Comparator.comparing(l -> l.expiresAt, Comparator.nullsLast(Comparator.naturalOrder()))).toList();
     }
-    public long returnedBalance(CreditAccount account) {
+    public long lotBalance(CreditAccount account) {
         return available(account,Instant.now()).stream().mapToLong(l->l.remaining).reduce(0,Math::addExact);
     }
     public Instant earliestExpiry(CreditAccount account,Instant bucketExpiry) {

@@ -245,7 +245,6 @@ class AiTurnCoordinatorTest {
     private AiTurnJobRepository.RecoveryCandidate recovery(AiTurnJob job) {
         return new AiTurnJobRepository.RecoveryCandidate() {
             public String getId() { return job.getId(); }
-            public java.time.LocalDateTime getStartedAt() { return job.getStartedAt(); }
             public Map<String, Object> getDiagnostics() { return job.getDiagnostics(); }
         };
     }

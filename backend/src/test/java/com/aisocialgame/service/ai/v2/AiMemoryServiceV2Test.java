@@ -25,7 +25,7 @@ class AiMemoryServiceV2Test {
 
     @Test void newGameWithSamePersonaResetsWordsRolesAndRelationshipsButKeepsReviewedGeneralExperience() {
         GameState previous = state("previous");
-        previous.getData().put("aiMemoriesV2", Map.of("p0", Map.of("hypotheses", List.of("本局秘密词是咖啡"), "beliefs", Map.of("p1", Map.of("hypothesis", "旧局卧底")),
+        previous.getData().put("aiMemoriesV2", Map.of("p0", Map.of("formatVersion", 4, "hypotheses", List.of(Map.of("text", "本局秘密词是咖啡", "evidenceEventIds", List.of(), "round", 1, "source", "MODEL_PROPOSAL")), "beliefs", Map.of("p1", Map.of("hypothesis", "旧局卧底")),
                 "relationships", Map.of("p1", Map.of("trust", -3)), "emotion", Map.of("name", "disappointed", "intensity", 3, "round", 1))));
         AiPersonaMemory approved = new AiPersonaMemory("persona", "undercover", "GENERAL_V2");
         approved.setReviewStatus("APPROVED"); approved.setApprovedSummary("改变投票立场时解释新出现的公开依据。");
@@ -130,12 +130,12 @@ class AiMemoryServiceV2Test {
 
     @Test void multiRoundMemoryRetainsRevisedJudgmentAndUnverifiedCommitmentWithoutInventingFulfillment() {
         GameState state = state("multi-round");
-        state.getData().put("aiMemoriesV2", Map.of("p0", Map.of("commitments", List.of("我会再看一轮"))));
-        Map<String, Object> old = map(state.getData().get("aiMemoriesV2"));
+        service.commit(state, "p0", new AiTurnDecision(action("SPEAK", "我会再看一轮", null), "我会再看一轮", Map.of(), List.of(),
+                Map.of("commitments", List.of("我会再看一轮")), Map.of()), observation(state));
+        Map<String, Object> saved = map(state.getData().get("aiMemoriesV2"));
         var read = service.snapshot(state, "p0");
-        assertEquals("LEGACY_UNVERIFIED", maps(read.get("commitments")).getFirst().get("source"));
-        assertEquals(old, state.getData().get("aiMemoriesV2"));
-        assertFalse(map(old.get("p0")).containsKey("formatVersion"));
+        assertEquals("MODEL_PROPOSAL", maps(read.get("commitments")).getFirst().get("source"));
+        assertEquals(saved, state.getData().get("aiMemoriesV2"));
         for (int round = 1; round <= 2; round++) {
             state.setRoundNumber(round);
             VisibleObservation base = observation(state);
@@ -160,9 +160,9 @@ class AiMemoryServiceV2Test {
         assertEquals("MODEL_PROPOSAL", hypothesis.get("source"));
         assertEquals(List.of("e1", "e2"), hypothesis.get("evidenceEventIds"));
         var commitment = maps(memory.get("commitments")).getFirst();
-        assertEquals("我会再看一轮", commitment.get("text")); assertNull(commitment.get("round"));
+        assertEquals("我会再看一轮", commitment.get("text")); assertEquals(1, commitment.get("round"));
         assertEquals("UNVERIFIED", commitment.get("status"));
-        assertEquals(2, maps(memory.get("recentDecisions")).size());
+        assertEquals(3, maps(memory.get("recentDecisions")).size());
     }
 
     @Test void invalidStructuredMemoryIsRejectedBeforeAnyReducerMutation() {

@@ -155,19 +155,6 @@ class AiCommitmentsTest {
         speak(s, "我撤回投给p1的承诺", Map.of("commitmentWithdrawals", List.of(Map.of("id", first, "sourceQuote", "我撤回投给p1的承诺"))));
         promise(s, "我本轮投给p2", "VOTE", "p2", 0, "NORMAL"); assertEquals(16, entries(s).size()); assertTrue(entries(s).stream().noneMatch(e -> first.equals(e.get("id"))));
     }
-    @Test void legacyProvenanceIsPreservedWithoutReadMutationOrRetroactiveFulfillment() {
-        GameState s = state("undercover");
-        Map<String, Object> original = Map.of("p0", Map.of("formatVersion", 2, "commitments", List.of(Map.of("text", "我本轮投给p1", "evidenceEventIds", List.of("old"), "round", 1, "source", "MODEL_PROPOSAL")),
-                "hypotheses", List.of(Map.of("text", "一个猜测", "evidenceEventIds", List.of("old"), "round", 1, "source", "MODEL_PROPOSAL", "confidence", .5))));
-        s.getData().put("aiMemoriesV2", original);
-        var first = memories.snapshot(s, "p0"); assertEquals(first, memories.snapshot(s, "p0")); assertEquals(original, s.getData().get("aiMemoriesV2"));
-        assertEquals("MODEL_PROPOSAL", entries(s).getFirst().get("source")); assertEquals(1, entries(s).getFirst().get("round"));
-        assertEquals("UNVERIFIED", status(s, 0)); assertEquals(.5, maps(first.get("hypotheses")).getFirst().get("confidence"));
-        AiCommitments.reconcile(s, undercover, "TIMEOUT"); assertEquals(original, s.getData().get("aiMemoriesV2"));
-        s.setPhase("VOTING"); memories.normalizeOnAction(s, "p0"); submit(s, action("VOTE", "", "p1"), "HUMAN");
-        assertEquals("UNVERIFIED", status(s, 0)); assertEquals(AiMemoryEntries.FORMAT_VERSION, map(map(s.getData().get("aiMemoriesV2")).get("p0")).get("formatVersion"));
-        assertTrue(memories.snapshot(state("undercover"), "p0").isEmpty());
-    }
     @Test void codecRejectsServerFieldsWrongTypesInvisibleEvidenceAndConflictingAliases() {
         for (Map<String, Object> p : List.of(Map.<String,Object>of("text", "承诺", "status", "FULFILLED"), Map.<String,Object>of("text", "承诺", "roundOffset", .5),
                 Map.<String,Object>of("text", "承诺", "action", "VOTE"), Map.<String,Object>of("text", "承诺", "sourceQuote", 123)))

@@ -25,7 +25,6 @@ class AiCallSettlementTest {
     @Autowired TemporaryCreditService temporary;
     @Autowired CreditLedgerEntryRepository ledger;
     @Autowired PlatformTransactionManager manager;
-    @Autowired com.aisocialgame.service.ProjectCreditService projectCredits;
     ChatCompletionsRequest request;
     PrepareCallBudgetResponse budget;
     Instant originalExpiry;
@@ -128,14 +127,5 @@ class AiCallSettlementTest {
         assertEquals(180,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
         assertEquals("NOT_SENT",reservations.findById(claim.reservation().id).orElseThrow().state);
         assertFalse(ledger.findByRequestId("ai-consume:"+claim.reservation().id).isPresent());
-    }
-    @Test void historicalBalanceImportCannotOverwritePostpaidDebits() {
-        var claim=escrow.register(request,budget);
-        assertThrows(com.aisocialgame.exception.ApiException.class,
-                ()->projectCredits.migrateFromPayServiceSnapshot(userId,80,100,0,"test"));
-        escrow.reconcile(claim.reservation().id,success(20,10));
-        assertThrows(com.aisocialgame.exception.ApiException.class,
-                ()->projectCredits.migrateFromPayServiceSnapshot(userId,80,100,0,"test"));
-        assertEquals(150,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
     }
 }

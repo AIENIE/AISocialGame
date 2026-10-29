@@ -26,7 +26,7 @@ public final class AiGrounding {
                 .map(AiGrounding::excerpt).toList();
         return Map.of("currentRound", tail(current, 12), "ownStatements", tail(own, 8),
                 "usedDescriptions", tail(strings(o.memory().get("usedDescriptions")), 12),
-                "commitmentsToVerify", tail(AiCommitments.stored(o.memory().get("commitments"), number(o.memory().get("formatVersion"), 1), o.instanceId(), o.actorId()), 16),
+                "commitmentsToVerify", tail(AiCommitments.stored(o.memory().get("commitments")), 16),
                 "note", "原文摘录仅供核对；记忆中的承诺和猜测不是事实。未提供的历史不得补写。回应先对照自己的原话。");
     }
     private static Map<String, Object> excerpt(Map<String, Object> e) {
