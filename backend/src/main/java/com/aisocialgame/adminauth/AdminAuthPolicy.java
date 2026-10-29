@@ -51,7 +51,7 @@ public record AdminAuthPolicy(String environment, String authMode) {
         @Profile("test")
         @ConditionalOnClass(name = "org.junit.jupiter.api.Test")
         AdminAuthPolicy testAdminAuthPolicy() {
-            // This compatibility bean exists only on the Maven/JUnit test classpath.
+            // This test policy exists only on the Maven/JUnit test classpath.
             // A packaged application started with the Spring `test` profile has no
             // policy bean and therefore fails closed instead of enabling password mode.
             return new AdminAuthPolicy(ENV_LOCAL, MODE_PASSWORD);

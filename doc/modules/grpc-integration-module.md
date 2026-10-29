@@ -11,7 +11,7 @@
 - `integration/grpc/client/BillingGrpcClient`
   - 通用积分读取、通用转专属、项目积分迁移、onboarding 初始化
 - `integration/grpc/client/AiGrpcClient`
-  - 模型列表、对话、embeddings、ocr；proto 保留 `GenerateImage` 契约但 AISocialGame 当前不新增生图业务入口
+  - 模型目录与对话；项目内 embeddings/OCR 包装已退役，proto 保留 `GenerateImage` 契约但 AISocialGame 当前不新增生图业务入口
 - `integration/grpc/auth/UserGrpcAuthClientInterceptor`
   - 自动注入短期、调用方隔离的 `authorization: Bearer <JWT>`，不发送旧 `x-internal-token`
 - `integration/grpc/auth/BillingGrpcAuthClientInterceptor`

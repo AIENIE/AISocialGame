@@ -2,7 +2,7 @@
 
 ## 正常交流专项附录（2026-09-22，conversation-v1）
 
-本附录用于 social-v2.8 / 输入 v3 的交流目的与篇幅专项，沿用下文四维尺度及既有通过门槛，不添加第五项总分。十二情境 × 四 Persona 的离线产物 `conversation-offline-evidence.json` 属于 `SYNTHETIC_TEST`；mock 台词只验证提交链路，不能评为模型拟真通过。其 `review` 初始状态为 `NOT_REVIEWED`。
+本附录用于 social-v2.11 / 输入 v3 的交流目的与篇幅专项，沿用下文四维尺度及既有通过门槛，不添加第五项总分。十二情境 × 四 Persona 的离线产物 `conversation-offline-evidence.json` 属于 `SYNTHETIC_TEST`；mock 台词只验证提交链路，不能评为模型拟真通过。其 `review` 初始状态为 `NOT_REVIEWED`。
 
 在真实输出上增加三个证据记录，每项填写 `PASS / FAIL / INSUFFICIENT_EVIDENCE`、非空 `reason`、可定位的 `evidence`（样本 ID、输出字段路径、必要的可见 eventId）：
 
@@ -122,7 +122,7 @@
 
 ## 当前版本 96 样本交流验证（conversation-validation-v1）
 
-本独立配置使用 social-v2.8 / 输入 v3 / 记忆 v4：12 个交流情境 × 四款 Persona，以及三款玩法 × 四款 Persona × 连续四步，共 96 个决策。原 180 样本收尾清单保持独立。没有对照组，不报告改善幅度或真人不可区分性。
+本独立配置使用 social-v2.11 / 输入 v3 / 记忆 v4：12 个交流情境 × 四款 Persona，以及三款玩法 × 四款 Persona × 连续四步，共 96 个决策。原 180 样本收尾清单保持独立。没有对照组，不报告改善幅度或真人不可区分性。
 
 先导为卧底直接质疑、狼人杀反证回应、海龟汤真人准备提问，各四人格共 12 个，包含在 96 中。先导须正常生成、合法提交、完整证据、无确认越权，四维均值各 ≥4；三项交流检查全部 PASS，才能进入余下样本。完整结果按专项与连续两组分别统计，整体及每款 Persona 四维均值都须 ≥4。
 

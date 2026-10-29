@@ -16,7 +16,6 @@ public class AppProperties {
     private Credit credit = new Credit();
     private Admin admin = new Admin();
     private External external = new External();
-    private DemoSeed demoSeed = new DemoSeed();
     private Cors cors = new Cors();
 
     public String getProjectKey() {
@@ -72,14 +71,6 @@ public class AppProperties {
 
     public void setExternal(External external) {
         this.external = external;
-    }
-
-    public DemoSeed getDemoSeed() {
-        return demoSeed;
-    }
-
-    public void setDemoSeed(DemoSeed demoSeed) {
-        this.demoSeed = demoSeed;
     }
 
     public Cors getCors() {
@@ -499,15 +490,4 @@ public class AppProperties {
         }
     }
 
-    public static class DemoSeed {
-        private boolean enabled = false;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-    }
 }

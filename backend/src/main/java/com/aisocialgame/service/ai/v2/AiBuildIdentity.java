@@ -3,7 +3,7 @@ package com.aisocialgame.service.ai.v2;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
-/** Build-time resource only. Missing legacy provenance stays unknown; never trust caller-supplied IDs. */
+/** Build-time resource only. Unavailable provenance stays unknown; never trust caller-supplied IDs. */
 public final class AiBuildIdentity {
     private AiBuildIdentity() {}
     private static final Map<String, String> VALUE = read();

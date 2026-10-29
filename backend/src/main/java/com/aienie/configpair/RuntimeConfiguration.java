@@ -16,7 +16,7 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.SimpleCommandLinePropertySource;
 import org.springframework.core.env.StandardEnvironment;
 
-/** A single effective ConfigData view for preflight and legacy configuration consumers. */
+/** A single effective ConfigData view for preflight and application configuration consumers. */
 public final class RuntimeConfiguration {
     private static volatile ConfigurableEnvironment configured;
     private static volatile Map<String, String> values;

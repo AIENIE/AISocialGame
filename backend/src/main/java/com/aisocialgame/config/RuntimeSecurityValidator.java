@@ -32,10 +32,6 @@ public class RuntimeSecurityValidator {
     private final boolean redisSslEnabled;
     private final String redisUsername;
     private final String redisPassword;
-    private final String qdrantHost;
-    private final int qdrantPort;
-    private final boolean qdrantEnabled;
-    private final String qdrantApiKey;
     private final String userGrpcNegotiationType;
     private final String billingGrpcNegotiationType;
     private final String aiGrpcNegotiationType;
@@ -52,10 +48,6 @@ public class RuntimeSecurityValidator {
                                     @Value("${spring.data.redis.ssl.enabled:false}") boolean redisSslEnabled,
                                     @Value("${spring.data.redis.username:}") String redisUsername,
                                     @Value("${spring.data.redis.password:}") String redisPassword,
-                                    @Value("${qdrant.host:}") String qdrantHost,
-                                    @Value("${qdrant.http-port:0}") int qdrantPort,
-                                    @Value("${qdrant.enabled:false}") boolean qdrantEnabled,
-                                    @Value("${qdrant.api-key:}") String qdrantApiKey,
                                     @Value("${grpc.client.user.negotiationType:}") String userGrpcNegotiationType,
                                     @Value("${grpc.client.billing.negotiationType:}") String billingGrpcNegotiationType,
                                     @Value("${grpc.client.ai.negotiationType:}") String aiGrpcNegotiationType,
@@ -71,10 +63,6 @@ public class RuntimeSecurityValidator {
         this.redisSslEnabled = redisSslEnabled;
         this.redisUsername = redisUsername;
         this.redisPassword = redisPassword;
-        this.qdrantHost = qdrantHost;
-        this.qdrantPort = qdrantPort;
-        this.qdrantEnabled = qdrantEnabled;
-        this.qdrantApiKey = qdrantApiKey;
         this.userGrpcNegotiationType = userGrpcNegotiationType;
         this.billingGrpcNegotiationType = billingGrpcNegotiationType;
         this.aiGrpcNegotiationType = aiGrpcNegotiationType;
@@ -123,8 +111,7 @@ public class RuntimeSecurityValidator {
             return;
         }
         validateDataTransport(adminAuthPolicy.environment(), datasourceUrl, redisHost, redisPort,
-                redisSslEnabled, redisUsername, redisPassword, qdrantHost, qdrantPort,
-                qdrantEnabled, qdrantApiKey, violations);
+                redisSslEnabled, redisUsername, redisPassword, violations);
     }
 
     private void validateGrpc(List<String> violations) {
@@ -140,10 +127,6 @@ public class RuntimeSecurityValidator {
                                       boolean redisSslEnabled,
                                       String redisUsername,
                                       String redisPassword,
-                                      String qdrantHost,
-                                      int qdrantPort,
-                                      boolean qdrantEnabled,
-                                      String qdrantApiKey,
                                       List<String> violations) {
         if (AdminAuthPolicy.ENV_LOCAL.equals(runtimeEnv)) {
             return;
@@ -159,10 +142,6 @@ public class RuntimeSecurityValidator {
                     || StringUtils.hasText(redisUsername) || StringUtils.hasText(redisPassword)) {
                 violations.add("test Redis must use unauthenticated plaintext redis.testhut.top:16379 exactly as rebaselined");
             }
-            if (qdrantEnabled && (!("http://qdrant.testhut.top").equalsIgnoreCase(qdrantHost)
-                    || qdrantPort != 16333 || StringUtils.hasText(qdrantApiKey))) {
-                violations.add("test Qdrant must use unauthenticated http://qdrant.testhut.top:16333 exactly as rebaselined");
-            }
             return;
         }
         if (!AdminAuthPolicy.ENV_PRODUCTION.equals(runtimeEnv)) {
@@ -176,11 +155,6 @@ public class RuntimeSecurityValidator {
         }
         if (!redisSslEnabled || !StringUtils.hasText(redisPassword)) {
             violations.add("production Redis must use TLS and authentication");
-        }
-        if (qdrantEnabled && (qdrantHost == null
-                || !qdrantHost.toLowerCase(Locale.ROOT).startsWith("https://")
-                || !StringUtils.hasText(qdrantApiKey))) {
-            violations.add("production Qdrant must use HTTPS and authentication");
         }
     }
 

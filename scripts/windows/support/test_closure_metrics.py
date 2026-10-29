@@ -7,7 +7,7 @@ from closure_metrics import DIMENSIONS, GAMES, STEPS, measure, pilot
 class ClosureMetricsTest(unittest.TestCase):
     def full_case(self):
         header = dict(evaluationSchemaVersion=2,evaluationSetVersion="closure-v2",batchId="offline-test",sourceFingerprint="a"*64,buildId="b"*64,
-                      promptVersion="social-v2.8",inputFormatVersion=3,memoryFormatVersion=4,evidenceKind="SYNTHETIC_TEST")
+                      promptVersion="social-v2.11",inputFormatVersion=3,memoryFormatVersion=4,evidenceKind="SYNTHETIC_TEST")
         planned=[]; rows=[]; reviews=[]
         for game in GAMES:
             for group,count in (("SINGLE",10),("SEQUENCE",4)):

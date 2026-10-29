@@ -43,9 +43,9 @@ class GameRealismMetricsTest {
     }
     static void closureInstanceIsolation() throws Exception {
         String room="10000000-0000-0000-0000-000000000001",instance="20000000-0000-0000-0000-000000000001",old="20000000-0000-0000-0000-000000000002";
-        var evidence=GameRealismMetrics.JSON.createObjectNode();evidence.put("evaluationSchemaVersion",2);evidence.put("evaluationSetVersion","closure-v2");evidence.put("batchId","test");evidence.put("sourceFingerprint","a".repeat(64));evidence.put("buildId","b".repeat(64));evidence.put("promptVersion","social-v2.8");evidence.put("inputFormatVersion",3);evidence.put("memoryFormatVersion",4);evidence.put("evidenceKind","SYNTHETIC_TEST");
+        var evidence=GameRealismMetrics.JSON.createObjectNode();evidence.put("evaluationSchemaVersion",2);evidence.put("evaluationSetVersion","closure-v2");evidence.put("batchId","test");evidence.put("sourceFingerprint","a".repeat(64));evidence.put("buildId","b".repeat(64));evidence.put("promptVersion","social-v2.11");evidence.put("inputFormatVersion",3);evidence.put("memoryFormatVersion",4);evidence.put("evidenceKind","SYNTHETIC_TEST");
         evidence.putArray("scenarios").addObject().put("roomId",room).put("archiveId",instance);
-        var q=GameRealismMetrics.JSON.createObjectNode();q.put("instanceId",instance);q.put("jobId","job-current");q.put("sourceFingerprint","a".repeat(64));q.put("buildId","b".repeat(64));q.put("promptVersion","social-v2.8");q.put("calls",1);q.putArray("flags");
+        var q=GameRealismMetrics.JSON.createObjectNode();q.put("instanceId",instance);q.put("jobId","job-current");q.put("sourceFingerprint","a".repeat(64));q.put("buildId","b".repeat(64));q.put("promptVersion","social-v2.11");q.put("calls",1);q.putArray("flags");
         var d=q.deepCopy();d.put("terminalStatus","SUCCEEDED");d.put("terminalReason","MODEL_ACTION_APPLIED");
         Object[][] jobRows={{"job-current",room,instance,"actor","SUCCEEDED",null,null,d.toString()}};
         var historic=q.deepCopy();historic.put("instanceId",old);historic.put("jobId","job-old");

@@ -40,7 +40,7 @@ $validationArguments+=@('--mode','gate','--phase',$Phase.ToUpperInvariant(),'--g
 $validationCanonical=@{
  ENV='local';APP_ENV='local';AIENIE_RUNTIME_PLANE='windows-local';APP_PROJECT_KEY='aisocialgame'
  AI_GRPC_ADDR='static://localaiservice.testhut.top:22011';AI_GRPC_NEGOTIATION_TYPE='TLS';GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION=$localGrpcTrust
- APP_AI_DEFAULT_MODEL='deepseek-flash';APP_AI_SYSTEM_USER_ID='85';APP_GAME_SCHEDULER_ENABLED='false';APP_DEMO_SEED_ENABLED='false';QDRANT_ENABLED='false'
+ APP_AI_DEFAULT_MODEL='deepseek-flash';APP_AI_SYSTEM_USER_ID='85';APP_GAME_SCHEDULER_ENABLED='false'
  LOGGING_FILE_NAME='';LOGGING_LEVEL_ROOT='OFF';LOGGING_LEVEL_APP='OFF';AI_CONVERSATION_REAL='1'
  AI_CONVERSATION_MANIFEST=$validationManifest;AI_CONVERSATION_BUNDLE=$validationBundle;AI_CONVERSATION_GRANT=$validationGrant
  AI_CONVERSATION_OUTPUT=$validationOutput;AI_CONVERSATION_PHASE=$Phase.ToUpperInvariant();AI_CONVERSATION_JAR=$validationJar[0].FullName
@@ -85,7 +85,7 @@ $validationCanonical.GRPC_SHARED_SECRET=$validationValues.GRPC_SHARED_SECRET
 $validationPrevious=@{}
 try{
  foreach($name in @([Environment]::GetEnvironmentVariables('Process').Keys)){
-  if([string]$name -match '^(APP_|AI_|AIENIE_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|QDRANT_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')){
+  if([string]$name -match '^(APP_|AI_|AIENIE_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')){
    $validationPrevious[$name]=[Environment]::GetEnvironmentVariable($name,'Process');[Environment]::SetEnvironmentVariable($name,$null,'Process')
   }
  }

@@ -119,7 +119,6 @@ $canonical = [ordered]@{
     SPRING_DATASOURCE_URL = $sharedTarget.jdbcUrl
     SPRING_JPA_HIBERNATE_DDL_AUTO = 'validate'
     SPRING_DATA_REDIS_HOST = 'localredis.testhut.top'; SPRING_DATA_REDIS_PORT = '26379'; SPRING_DATA_REDIS_SSL_ENABLED = 'false'
-    QDRANT_HOST = 'http://localqdrant.testhut.top'; QDRANT_PORT = '26333'
     USER_GRPC_ADDR = 'static://localuserservice.testhut.top:22001'
     BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:22021'
     AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'
@@ -130,7 +129,7 @@ $canonical = [ordered]@{
     APP_EXTERNAL_GRPC_AUTH_REQUIRED = 'true'
     SSO_USER_SERVICE_BASE_URL = 'https://localuserservice.testhut.top'
     SSO_CALLBACK_URL = 'https://localsocialgame.testhut.top/sso/callback'
-    APP_GAME_SCHEDULER_ENABLED = 'false'; APP_DEMO_SEED_ENABLED = 'false'
+    APP_GAME_SCHEDULER_ENABLED = 'false'
     AI_REALISM_LOGIN_BOOTSTRAP = '1'; AI_REALISM_ACCOUNTS_FILE = $accountsPath; AI_REALISM_TOKENS_FILE = $outputPath
 }
 $maven = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path

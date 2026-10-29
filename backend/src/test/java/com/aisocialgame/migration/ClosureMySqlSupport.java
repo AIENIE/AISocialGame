@@ -36,7 +36,7 @@ public final class ClosureMySqlSupport {
     public static void properties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url",()->url("runtime")); registry.add("spring.datasource.username",()->"root");registry.add("spring.datasource.password",ClosureMySqlSupport::password);
         registry.add("spring.datasource.driver-class-name",()->"com.mysql.cj.jdbc.Driver");registry.add("spring.jpa.hibernate.ddl-auto",()->"none");registry.add("spring.jpa.properties.hibernate.dialect",()->"org.hibernate.dialect.MySQLDialect");
-        registry.add("app.demo-seed-enabled",()->false);registry.add("app.game.scheduler-enabled",()->false);
+        registry.add("app.game.scheduler-enabled",()->false);
     }
     public static void evidence(String name,Object value) throws Exception {
         Path dir=Path.of(System.getenv("AIENIE_CLOSURE_MYSQL_EVIDENCE"));

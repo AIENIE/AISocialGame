@@ -38,25 +38,6 @@
   - `reason` (string, required)
 - 响应：`BalanceView`
 
-## POST `/migrate-user`
-
-- 用途：按用户将 pay-service 项目积分快照迁移到本地（幂等）
-- Body
-  - `userId` (long, required)
-- 响应：`BalanceView`
-
-## POST `/migrate-all`
-
-- 用途：对已落地到本项目本地库的全部用户执行批量迁移
-- Body（可空）
-  - `batchSize` (int, optional, `1~500`，默认 `100`)
-- 响应：`AdminMigrateAllBalanceResponse`
-  - `scanned` (long)
-  - `success` (long)
-  - `failed` (long)
-  - `batchSize` (int)
-  - `failures` (最多保留前 100 条失败明细)
-
 ## POST `/redeem-codes`
 
 - 用途：创建本项目兑换码（用于发放本地专属积分）

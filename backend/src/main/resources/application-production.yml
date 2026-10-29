@@ -28,9 +28,6 @@ spring:
           target: static://payservice.seekerhut.com:12021
         ai:
           target: static://aiservice.seekerhut.com:12011
-qdrant:
-  host: https://base.seekerhut.com
-  http-port: '16333'
 app:
   sso:
     user-service-base-url: https://userservice.seekerhut.com
@@ -40,8 +37,6 @@ app:
   security:
     allow-weak-runtime-defaults: false
     allow-plaintext-grpc: false
-  demo-seed:
-    enabled: false
   external:
     userservice-jwt:
       secret: ${GRPC_SHARED_SECRET}
