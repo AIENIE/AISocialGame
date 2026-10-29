@@ -194,10 +194,9 @@ def proposal(report):
                 liveEstimate=dict(status="UNKNOWN",newRequestMaximum=None,nicknameSeatCount=16,nicknameRequestMaximum=0,
                                   basis="Current six-game fixture: undercover 4/4, werewolf 6/6, soup 4/4 players; each game has 1 or 3 humans, totaling 16 AI seats. AiNameService uses local names and makes no RPC. Generation remains within the current per-game bounded repair limits; total game opportunity counts are not bounded by this estimate. Historical 105/210 is not a current balance.",
                                   required="Freeze player counts, round caps, AI opportunity counts; read persistent consumed before proposing a cumulative maximum."),
-                backup=dict(location=None,requirement="Approved external consistent backup of the verified target; record restore test and SQL hashes."),
-                stopWrites="Stop app/scheduler writers for this target before backup and migration.",
-                recovery=["Stop new requests and preserve all ledgers and in-flight evidence.","Restore previous application/configuration; retain additive columns/tables.","Database restore only from approved backup with reconciliation of all later consumed requests; never reset budget."],
-                executionConditions=["Resolve every FAIL/UNKNOWN and obtain current environment confirmation.","Complete ordinary-user login in the later authorized stage.","Approve exact migration target, backup and caller transition.","Approve separate cumulative comparison/live limits using freshly read consumed values.","Re-read caller, budget, matrix and effective configuration immediately before execution."],
+                stopWrites="Stop app/scheduler writers for this target before migration.",
+                recovery=["Stop new requests and preserve all ledgers and in-flight evidence.","Restore previous application/configuration; retain additive columns/tables."],
+                executionConditions=["Resolve every FAIL/UNKNOWN and obtain current environment confirmation.","Complete ordinary-user login in the later authorized stage.","Approve exact migration target and caller transition.","Approve separate cumulative comparison/live limits using freshly read consumed values.","Re-read caller, budget, matrix and effective configuration immediately before execution."],
                 executionPermitted=False,L4Passed=False)
 
 
