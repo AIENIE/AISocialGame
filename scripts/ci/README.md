@@ -45,11 +45,11 @@ Center 文件都不是这两个阶段的输入，也不得进入产物。
 
 ## Production bundle
 
-Build 阶段设置 `AIENIE_RELEASE_ENVIRONMENT=production` 后，入口生成 production Compose、
-运行合同和 SQL migration ledger/checkpoint 合同。生产 schema 计划必须由平台签名的 v4 外层
-清单明确选择，禁止运行时自动猜测；没有有效 v4 授权时保持冻结。可写目录只允许位于
-`/srv/aienie-products/ai-social-game`，外部连接只使用 `seekerhut.com` TLS authority。
-夜间备份只包含 records；logs 按 `operational-log` 分类排除，env/admin 等保护配置不在备份集合内。
+Build 阶段设置 `AIENIE_RELEASE_ENVIRONMENT=production` 后，入口生成 production Compose 和运行文件，并在 `release/sql/` 提供当前建库快照及冻结的增量 SQL 目录。
+
+本项目已退役应用内发布授权复核、部署端签名/镜像/SQL 哈希绑定、SQL 自动执行及执行账本、恢复点生成和备份前置检查。发布前由操作者另行准备备份并选择尚未执行的 SQL；构建和启动不会自动执行这些 SQL。本轮清理没有发布 stag/prod，也没有删除其他环境已有的数据库表、执行记录或备份。
+
+容器权限约束继续使用现有配置。运行时 TLS、鉴权、数据源、环境、标识、监听和配置覆盖校验沿用当前实现。
 
 ## 本仓库模块
 

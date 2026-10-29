@@ -24,8 +24,8 @@ class CleanupMySqlTest {
             statement.execute("CREATE TABLE credit_accounts (id BIGINT PRIMARY KEY, temp_balance BIGINT, permanent_balance BIGINT)");
             statement.execute("INSERT INTO credit_accounts VALUES (1,80,100)");
             var script = Path.of("sql/20261029_retire_credit_holds.sql");
-            ProductionSocialMigrationMain.executeScript(connection, script);
-            ProductionSocialMigrationMain.executeScript(connection, script);
+            ClosureMySqlMigrationTest.script(connection, script.toString());
+            ClosureMySqlMigrationTest.script(connection, script.toString());
             try (var result = statement.executeQuery("SELECT state,billed_points,billing_quote_base64 FROM ai_credit_reservations")) {
                 assertTrue(result.next()); assertEquals("USAGE_UNKNOWN",result.getString(1));
                 assertNull(result.getObject(2)); assertEquals("current-quote",result.getString(3)); assertFalse(result.next());
@@ -42,7 +42,7 @@ class CleanupMySqlTest {
 
     @Test void removesOnlyOwnedHistoryAndApprovedFinanceWhileKeepingNativeDataAndFourteenMoneyUnknowns() throws Exception {
         try (var connection=ClosureMySqlSupport.connect("cleanup")) {
-            ProductionSocialMigrationMain.executeScript(connection,Path.of("sql/schema.sql"));
+            ClosureMySqlMigrationTest.script(connection,"sql/schema.sql");
             insert(connection,"rooms",Map.of("id","old-room","room_code","100001","game_id","undercover","status","EXPIRED"));
             insert(connection,"rooms",Map.of("id","current-room","room_code","100002","game_id","undercover","status","PLAYING"));
             insert(connection,"game_states",Map.of("room_id","old-room","game_id","undercover","phase","SETTLEMENT","data","{}"));

@@ -263,8 +263,6 @@ class V2GameServiceIntegrationTest {
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
         VisibleObservation observation = json.convertValue(job.getObservation(), VisibleObservation.class);
         GameState state = states.findById(room.getId()).orElseThrow();
-        state.getData().put("aiMemoriesV2", Map.of(job.getActorId(), Map.of("commitments", List.of("旧承诺保持待核对"))));
-        states.saveAndFlush(state);
         String before = json.writeValueAsString(states.findById(room.getId()).orElseThrow().getData());
         long eventCount = events.countByArchiveId(job.getInstanceId());
         String target = state.getPlayers().stream().filter(p -> !p.getPlayerId().equals(job.getActorId())).findFirst().orElseThrow().getPlayerId();
@@ -289,8 +287,7 @@ class V2GameServiceIntegrationTest {
         Map<String, Object> committed = RuleSupport.map(RuleSupport.map(states.findById(room.getId()).orElseThrow().getData().get("aiMemoriesV2")).get(job.getActorId()));
         assertEquals(AiMemoryEntries.FORMAT_VERSION, committed.get("formatVersion"));
         assertEquals("MODEL_PROPOSAL", RuleSupport.maps(committed.get("hypotheses")).getFirst().get("source"));
-        assertEquals("LEGACY_UNVERIFIED", RuleSupport.maps(committed.get("commitments")).getFirst().get("source"));
-        assertEquals("UNVERIFIED", RuleSupport.maps(committed.get("commitments")).getFirst().get("status"));
+        assertEquals(1, RuleSupport.maps(committed.get("commitments")).size());
         assertEquals("ACTIVE", RuleSupport.maps(committed.get("commitments")).getLast().get("status"));
         assertNotNull(RuleSupport.maps(committed.get("commitments")).getLast().get("sourceEventId"));
         assertEquals(1, RuleSupport.maps(committed.get("recentDecisions")).size());

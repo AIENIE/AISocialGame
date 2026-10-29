@@ -3,7 +3,7 @@
     [ValidateRange(0,65535)][int]$Port=0,
     [ValidateSet('8.4.11','8.0.45')][string]$ServerVersion='8.4.11',
     [switch]$VerifyFailureCleanup,
-    [string]$MigrationTests='ClosureMySqlMigrationTest,GeneratedPlanMySqlTest',
+    [string]$MigrationTests='ClosureMySqlMigrationTest,CleanupMySqlTest',
     [switch]$MigrationsOnly
 )
 Set-StrictMode -Version Latest; $ErrorActionPreference='Stop'
