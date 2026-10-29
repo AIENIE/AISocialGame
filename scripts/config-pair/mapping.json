@@ -264,9 +264,6 @@
     ],
     "SERVER_ADDRESS": [
       "server.address"
-    ],
-    "AIENIE_ADMIN_EMERGENCY_ACCEPTANCE": [
-      "runtime.acceptance.admin-emergency-codes"
     ]
   }
 }

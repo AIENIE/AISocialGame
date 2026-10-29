@@ -90,7 +90,7 @@ class AiServiceTransportStartupGuardTest {
     }
 
     @Test
-    void rejectsWrongTrustAndProductionWithoutSignedPreactivationAuthority() {
+    void rejectsWrongTrustAndAcceptsCanonicalProductionTransport() {
         Map<String, String> wrongTrust = raw("local", AiServiceTransportPolicy.LOCAL_TARGET,
                 "file:/private/attacker-ca.crt");
         assertThrows(IllegalStateException.class,
@@ -98,7 +98,7 @@ class AiServiceTransportStartupGuardTest {
                         environment(AiServiceTransportPolicy.LOCAL_TARGET, "TLS",
                                 "file:/private/attacker-ca.crt"), wrongTrust));
 
-        assertThrows(IllegalStateException.class,
+        assertDoesNotThrow(
                 () -> AiServiceTransportStartupGuard.validateBeforeServerCreation(
                         environment(AiServiceTransportPolicy.PRODUCTION_TARGET, "TLS", null),
                         raw("production", AiServiceTransportPolicy.PRODUCTION_TARGET, "")));

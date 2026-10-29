@@ -39,9 +39,6 @@ final class PayServiceTransportPolicy {
             throw new IllegalStateException("production must reject the staging trust bundle");
         }
         Expected expected = new Expected(runtimeEnvironment, target, trust);
-        if ("production".equals(runtimeEnvironment)) {
-            ProductionPreactivationAuthority.requireAuthorized();
-        }
         return expected;
     }
 

@@ -23,10 +23,6 @@ public class ExternalGrpcAuthValidator {
             throw new IllegalStateException("External gRPC authentication configuration is required");
         }
 
-        if (StringUtils.hasLength(external.getUserserviceInternalGrpcToken())) {
-            throw new IllegalStateException(
-                    "Legacy APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN must be absent or empty");
-        }
         if (!external.isGrpcAuthRequired()) {
             return;
         }

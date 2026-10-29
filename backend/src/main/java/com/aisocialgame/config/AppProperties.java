@@ -298,9 +298,7 @@ public class AppProperties {
 
     public static class External {
         private boolean grpcAuthRequired = true;
-        private String userserviceInternalGrpcToken = "";
         private UserServiceJwt userserviceJwt = new UserServiceJwt();
-        private String payserviceLegacyStaticToken = "";
         private PayServiceJwt payserviceJwt = new PayServiceJwt();
         private String aiserviceHmacCaller = "";
         private String aiserviceHmacSecret = "";
@@ -313,28 +311,12 @@ public class AppProperties {
             this.grpcAuthRequired = grpcAuthRequired;
         }
 
-        public String getUserserviceInternalGrpcToken() {
-            return userserviceInternalGrpcToken;
-        }
-
-        public void setUserserviceInternalGrpcToken(String userserviceInternalGrpcToken) {
-            this.userserviceInternalGrpcToken = userserviceInternalGrpcToken;
-        }
-
         public UserServiceJwt getUserserviceJwt() {
             return userserviceJwt;
         }
 
         public void setUserserviceJwt(UserServiceJwt userserviceJwt) {
             this.userserviceJwt = userserviceJwt;
-        }
-
-        public String getPayserviceLegacyStaticToken() {
-            return payserviceLegacyStaticToken;
-        }
-
-        public void setPayserviceLegacyStaticToken(String payserviceLegacyStaticToken) {
-            this.payserviceLegacyStaticToken = payserviceLegacyStaticToken;
         }
 
         public PayServiceJwt getPayserviceJwt() {

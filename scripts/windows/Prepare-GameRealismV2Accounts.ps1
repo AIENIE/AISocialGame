@@ -71,9 +71,6 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
         if ($Values.Contains($Name) -and $null -ne $Values[$Name]) { return [string]$Values[$Name] }
         return ''
     }
-    if ((Read-Value 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN').Length -gt 0) {
-        throw 'Legacy UserService internal tokens are not accepted.'
-    }
     if ((Read-Value 'APP_EXTERNAL_GRPC_AUTH_REQUIRED') -eq 'false') { throw 'Real account preparation requires external gRPC authentication.' }
     $expected = [ordered]@{
         APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID = 'aisocialgame'
@@ -130,7 +127,7 @@ $canonical = [ordered]@{
     GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust; USER_GRPC_NEGOTIATION_TYPE = 'TLS'
     BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'; AI_GRPC_NEGOTIATION_TYPE = 'TLS'
     BILLING_GRPC_PLAINTEXT_ENABLED = 'false'; APP_SECURITY_ALLOW_PLAINTEXT_GRPC = 'false'
-    APP_EXTERNAL_GRPC_AUTH_REQUIRED = 'true'; APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN = ''
+    APP_EXTERNAL_GRPC_AUTH_REQUIRED = 'true'
     SSO_USER_SERVICE_BASE_URL = 'https://localuserservice.testhut.top'
     SSO_CALLBACK_URL = 'https://localsocialgame.testhut.top/sso/callback'
     APP_GAME_SCHEDULER_ENABLED = 'false'; APP_DEMO_SEED_ENABLED = 'false'

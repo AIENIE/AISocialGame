@@ -16,18 +16,15 @@ def configuration(root, envfile):
         raise ConfigError('missing regular application.yml')
     values = parse_env(envfile.read_text(encoding='utf-8'))
     if 'GRPC_SHARED_SECRET' in values:
-        from grpc_shared import validate_secret, obsolete
+        from grpc_shared import validate_secret
         validate_secret(values['GRPC_SHARED_SECRET'])
-        if any(obsolete(key) for key in values):
-            raise ConfigError('obsolete public gRPC credential remains')
     if any(not sensitive(key) for key in values):
         raise ConfigError('env.txt may contain only sensitive keys')
     values.update(read(root, '', application))
     mapping=json.loads((root/'scripts/config-pair/mapping.json').read_text(encoding='utf-8'))['bindings']
     if 'GRPC_SHARED_SECRET' in mapping:
-        from grpc_shared import validate_secret, obsolete
+        from grpc_shared import validate_secret
         validate_secret(values.get('GRPC_SHARED_SECRET'))
-        if any(obsolete(key) for key in values):raise ConfigError('obsolete public gRPC credential remains')
     doc=yaml.safe_load(application.read_text(encoding='utf-8'))
     def resolve(value, seen=()):
         if not isinstance(value,str):return value

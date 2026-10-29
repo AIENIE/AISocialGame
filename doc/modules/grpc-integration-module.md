@@ -51,7 +51,7 @@
 
 启动期由 `ExternalGrpcAuthValidator` 进行 fail-fast 校验。UserService caller 固定为
 `aisocialgame`，audience 固定为 `aienie-userservice-grpc`，scope 精确限制为会话读取、目录读取、
-封禁读取和封禁写入；旧 `APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN` 非空、扩权、弱 secret、错误
+封禁读取和封禁写入；扩权、弱 secret、错误
 identity/audience 或 TTL 越界均拒绝启动。
 
 ### pay-service JWT 时效要求

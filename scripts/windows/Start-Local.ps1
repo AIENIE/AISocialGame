@@ -4,7 +4,6 @@ param(
     [ValidateRange(30, 600)][int]$StartupTimeoutSeconds = 240,
     [ValidateSet('All','Backend','Frontend')][string]$Component = 'All',
     [switch]$EnableBackendDebug,
-    [switch]$IsolatedAcceptance,
     [ValidatePattern("^[a-z0-9-]{1,40}$")][string]$InstanceName = "default",
     [ValidateRange(1024,65535)][int]$BackendPort = 11031,
     [ValidateRange(1024,65535)][int]$FrontendPort = 11030,
@@ -41,8 +40,7 @@ if ($PSVersionTable.PSEdition -ne 'Core' -or $PSVersionTable.PSVersion.Major -lt
     exit $LASTEXITCODE
 }
 
-if (($IsolatedAcceptance -or $BackendPort -ne 11031 -or $FrontendPort -ne 11030) -and $InstanceName -eq 'default') { throw 'Isolated acceptance and custom ports require a named instance.' }
-if ($IsolatedAcceptance -and ($BackendPort -ne 12031 -or $FrontendPort -ne 12030)) { throw 'Admin emergency acceptance only permits ports 12031 and 12030.' }
+if (($BackendPort -ne 11031 -or $FrontendPort -ne 11030) -and $InstanceName -eq 'default') { throw 'Custom ports require a named instance.' }
 if ($BackendPort -eq $FrontendPort) { throw 'Backend and frontend ports must differ.' }
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 
@@ -154,7 +152,6 @@ function Start-Component {
     if ($Spec.Name -eq 'Backend') {
         $argumentList += @('-EnvironmentFile', (Convert-LaunchArgument -Value $EnvironmentFile), '-BackendPort', [string]$BackendPort)
         if ($EnableBackendDebug) { $argumentList += '-EnableBackendDebug' }
-        if ($IsolatedAcceptance) { $argumentList += '-IsolatedAcceptance' }
     }
     if ($Spec.Name -eq 'Frontend') { $argumentList += @('-FrontendPort', [string]$FrontendPort, '-BackendPort', [string]$BackendPort) }
     $launcher = (Get-Process -Id $PID).Path

@@ -2,7 +2,6 @@
 param(
     [string]$EnvironmentFile = (Join-Path $(Join-Path $(if ($env:AIENIE_RUNTIME_ROOT) { $env:AIENIE_RUNTIME_ROOT } else { Join-Path $PSScriptRoot '../../../../aienie-runtime' }) 'private/app-secrets') 'aisocialgame.env'),
     [ValidateRange(1024,65535)][int]$BackendPort = 11031,
-    [switch]$IsolatedAcceptance,
     [switch]$EnableBackendDebug
 )
 
@@ -73,10 +72,6 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
         return ''
     }
 
-    $legacy = Read-Value 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN'
-    if ($legacy.Length -gt 0) {
-        throw 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN is legacy and must be absent or empty.'
-    }
     if ((Read-Value 'APP_EXTERNAL_GRPC_AUTH_REQUIRED') -eq 'false') { return }
 
     $expected = [ordered]@{
@@ -125,9 +120,7 @@ foreach ($key in $yamlValues.Keys) { $privateValues[$key] = $yamlValues[$key] }
 . (Join-Path $PSScriptRoot 'LocalGrpcTrust.ps1')
 $localGrpcTrust = Get-LocalGrpcTrustUri
 . (Join-Path $PSScriptRoot 'SharedMySqlTarget.ps1')
-$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile -IsolatedAcceptance:$IsolatedAcceptance
-. (Join-Path $PSScriptRoot 'AdminEmergencyAcceptance.ps1')
-Assert-AdminEmergencyAcceptance -Values $privateValues -YamlValues $yamlValues -SharedTarget $sharedTarget -BackendPort $BackendPort -IsolatedAcceptance:$IsolatedAcceptance
+$sharedTarget = Resolve-SharedMySqlTarget $EnvironmentFile
 $inheritedValues = @{}
 foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) { $inheritedValues[[string]$entry.Key] = [string]$entry.Value }
 Assert-LocalOnlyEnvironment $inheritedValues
@@ -140,7 +133,7 @@ if (Test-PortListening $BackendPort) {
 
 foreach ($name in @('JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS', 'MAVEN_OPTS', 'SPRING_APPLICATION_JSON',
         'SPRING_DATASOURCE_HIKARI_CONNECTION_TEST_QUERY',
-        'APP_EXTERNAL_GRPC_AUTH_REQUIRED', 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN',
+        'APP_EXTERNAL_GRPC_AUTH_REQUIRED',
         'APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID', 'APP_EXTERNAL_USERSERVICE_JWT_ISSUER',
         'GRPC_SHARED_SECRET', 'APP_EXTERNAL_USERSERVICE_JWT_AUDIENCE',
         'APP_EXTERNAL_USERSERVICE_JWT_TTL_SECONDS', 'APP_EXTERNAL_USERSERVICE_JWT_SCOPES')) {

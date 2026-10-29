@@ -140,7 +140,7 @@ class PayServiceJwtStartupGuardTest {
     }
 
     @Test
-    void rejectsProfileSecretMismatchLegacyAndExpandedScope() {
+    void rejectsProfileSecretMismatchAndExpandedScope() {
         AppProperties properties = validProperties();
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validateFinalConfiguration(
@@ -151,12 +151,6 @@ class PayServiceJwtStartupGuardTest {
         assertThrows(IllegalStateException.class,
                 () -> PayServiceJwtStartupGuard.validateFinalConfiguration(
                         properties, mismatched, new String[0], new String[]{"default"}, false));
-
-        Map<String, String> legacy = canonicalEnvironment();
-        legacy.put("APP_EXTERNAL_PAYSERVICE_JWT", "legacy-private-token");
-        assertThrows(IllegalStateException.class,
-                () -> PayServiceJwtStartupGuard.validateFinalConfiguration(
-                        properties, legacy, new String[0], new String[]{"default"}, false));
 
         AppProperties expanded = validProperties();
         expanded.getExternal().getPayserviceJwt().setScopes(

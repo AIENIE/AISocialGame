@@ -33,8 +33,7 @@ UAC 或提权。文件保存凭据与 caller-auth 值；本地端口、身份、
 值，随后强制本地 profile、`AIENIE_RUNTIME_PLANE=windows-local`、
 `APP_PROJECT_KEY=aisocialgame` 与回环端口 11031/11030；同时剥离
 `JAVA_TOOL_OPTIONS`、`MAVEN_OPTS`、`SPRING_APPLICATION_JSON`、`SPRING_CONFIG_*`
-等进程注入变量，并在启动前执行 UserService caller JWT 契约校验（拒绝旧
-`APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN` 非空值）。后端由
+等进程注入变量，并在启动前执行 UserService caller JWT 契约校验。后端由
 `mvn spring-boot:run` 启动，前端由 `pnpm exec vite` 启动；前端依赖缺失时自动
 执行 `pnpm install --frozen-lockfile`。健康验证为
 `http://127.0.0.1:11031/actuator/health` 返回 HTTP 200 且顶层 `status=UP`。
