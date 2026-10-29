@@ -247,28 +247,6 @@ service UserBanService {
 
 // ==================== Auth (Internal, for BFF/main-service) ====================
 
-message RegisterUserRequest {
-  string request_id = 1;
-  string username = 2;
-  string email = 3;
-  string password = 4;
-  string display_name = 5;
-  string avatar_url = 6;
-  // For audit / rate-limiting (optional)
-  string ip_address = 7;
-  string user_agent = 8;
-}
-
-message RegisterUserResponse {
-  bool success = 1;
-  string error_message = 2;
-  UserBasic user = 3;
-  // JWT access token (shared-secret) for FireflyChat compatibility.
-  string access_token = 4;
-  // Current session id (for single-session enforcement).
-  string session_id = 5;
-}
-
 message LoginUserRequest {
   string request_id = 1;
   string username = 2;
@@ -287,19 +265,6 @@ message LoginUserResponse {
   int64 expires_in_seconds = 6;
 }
 
-message ResetPasswordRequest {
-  string request_id = 1;
-  string email = 2;
-  string new_password = 3;
-  string ip_address = 4;
-  string user_agent = 5;
-}
-
-message ResetPasswordResponse {
-  bool success = 1;
-  string error_message = 2;
-}
-
 message ValidateSessionRequest {
   int64 user_id = 1;
   string session_id = 2;
@@ -311,10 +276,8 @@ message ValidateSessionResponse {
 }
 
 service UserAuthService {
-  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc RegisterUserByPhone(RegisterUserByPhoneRequest) returns (RegisterUserByPhoneResponse);
   rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
-  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
   rpc ResetPasswordByPhone(ResetPasswordByPhoneRequest) returns (ResetPasswordByPhoneResponse);
   rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
 }
