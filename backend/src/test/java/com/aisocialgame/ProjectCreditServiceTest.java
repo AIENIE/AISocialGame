@@ -229,8 +229,9 @@ class ProjectCreditServiceTest {
         verify(billingGrpcClient, never()).convertPublicToProject(anyString(), anyString(), anyLong(), anyLong());
     }
 
-    @Test
-    void exchangeShouldPersistFailedWhenRemoteConvertFails() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void exchangeDistinguishesRefusalsFromUnknownResultsAndNeverResendsTheRequest(boolean rejected) {
         CreditAccount account = new CreditAccount();
         account.setUserId(1001L);
         account.setProjectKey("aisocialgame");
@@ -250,17 +251,23 @@ class ProjectCreditServiceTest {
             return txn;
         });
         when(billingGrpcClient.convertPublicToProject("req-fail", "aisocialgame", 1001L, 30L))
-                .thenThrow(new ApiException(HttpStatus.BAD_GATEWAY, "pay-service timeout"));
+                .thenThrow(new ApiException(rejected ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY, "pay-service response unavailable"));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () ->
                 projectCreditService.exchangePublicToProject(1001L, 30L, "req-fail")
         );
 
-        Assertions.assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatus());
+        String code = rejected ? "CREDIT_EXCHANGE_REJECTED" : "CREDIT_EXCHANGE_RESULT_UNKNOWN";
+        Assertions.assertEquals(rejected ? HttpStatus.BAD_REQUEST : HttpStatus.SERVICE_UNAVAILABLE, ex.getStatus());
+        Assertions.assertEquals(code, ex.getCode());
         Assertions.assertNotNull(saved.get());
-        Assertions.assertEquals("FAILED", saved.get().getStatus());
-        Assertions.assertTrue(saved.get().isRetriable());
-        Assertions.assertEquals("pay-service timeout", saved.get().getFailReason());
+        Assertions.assertEquals(rejected ? "REJECTED" : "UNKNOWN", saved.get().getStatus());
+        Assertions.assertFalse(saved.get().isRetriable());
+        Assertions.assertEquals("pay-service response unavailable", saved.get().getFailReason());
+        Assertions.assertEquals(12L, account.getPermanentBalance());
+        Assertions.assertEquals(code, Assertions.assertThrows(ApiException.class,
+                () -> projectCreditService.exchangePublicToProject(1001L, 30L, "req-fail")).getCode());
+        verify(billingGrpcClient, org.mockito.Mockito.times(1)).convertPublicToProject("req-fail", "aisocialgame", 1001L, 30L);
     }
 
     @Test

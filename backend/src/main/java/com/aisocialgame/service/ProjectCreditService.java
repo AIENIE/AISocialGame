@@ -55,7 +55,7 @@ public class ProjectCreditService {
 
     private static final String EXCHANGE_PENDING = "PENDING";
     private static final String EXCHANGE_SUCCESS = "SUCCESS";
-    private static final String EXCHANGE_FAILED = "FAILED";
+    private static final String EXCHANGE_REJECTED = "REJECTED";
 
     private final CreditAccountRepository creditAccountRepository;
     private final CreditLedgerEntryRepository creditLedgerEntryRepository;
@@ -368,7 +368,9 @@ public class ProjectCreditService {
                 if (EXCHANGE_PENDING.equals(txn.getStatus())) {
                     throw new ApiException(HttpStatus.CONFLICT, "请求处理中，请勿重复提交");
                 }
-                throw new ApiException(HttpStatus.BAD_REQUEST, "该 requestId 已失败，请使用新的 requestId 重试");
+                if (EXCHANGE_REJECTED.equals(txn.getStatus())) throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "该兑换请求已被拒绝，请检查兑换信息", "CREDIT_EXCHANGE_REJECTED", Map.of("exchangeRequestId", normalizedRequestId));
+                throw exchangeUnknown(normalizedRequestId);
             }
 
             LocalDateTime start = LocalDate.now(ZoneOffset.UTC).atStartOfDay();
@@ -389,7 +391,7 @@ public class ProjectCreditService {
             txn.setPublicTokens(tokens);
             txn.setProjectTokens(tokens);
             txn.setStatus(EXCHANGE_PENDING);
-            txn.setRetriable(true);
+            txn.setRetriable(false);
             txn.setPublicBefore(publicBefore);
             txn.setPublicAfter(publicBefore);
             txn.setProjectPermanentBefore(projectPermanentBefore);
@@ -406,8 +408,13 @@ public class ProjectCreditService {
         try {
             converted = billingGrpcClient.convertPublicToProject(normalizedRequestId, projectKey, userId, tokens);
         } catch (Exception ex) {
-            markExchangeFailed(normalizedRequestId, ex);
-            throw ex;
+            boolean rejected = ex instanceof ApiException api && api.getStatus().is4xxClientError();
+            markExchangeOutcome(normalizedRequestId, ex, rejected);
+            if (rejected) {
+                var api = (ApiException) ex;
+                throw new ApiException(api.getStatus(), api.getMessage(), "CREDIT_EXCHANGE_REJECTED", Map.of("exchangeRequestId", normalizedRequestId));
+            }
+            throw exchangeUnknown(normalizedRequestId);
         }
 
         long publicAfterConvert = converted.publicPermanentTokens();
@@ -445,13 +452,18 @@ public class ProjectCreditService {
         });
     }
 
-    private void markExchangeFailed(String requestId, Exception ex) {
+    private void markExchangeOutcome(String requestId, Exception ex, boolean rejected) {
         transactionTemplate.executeWithoutResult(status -> creditExchangeTransactionRepository.findByRequestId(requestId).ifPresent(txn -> {
-            txn.setStatus(EXCHANGE_FAILED);
-            txn.setRetriable(true);
+            txn.setStatus(rejected ? EXCHANGE_REJECTED : "UNKNOWN");
+            txn.setRetriable(false);
             txn.setFailReason(truncate(ex.getMessage(), 255));
             creditExchangeTransactionRepository.save(txn);
         }));
+    }
+
+    private static ApiException exchangeUnknown(String requestId) {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "兑换结果暂无法确认，请保留原请求编号核对",
+                "CREDIT_EXCHANGE_RESULT_UNKNOWN", Map.of("exchangeRequestId", requestId));
     }
 
     public PagedResult<ExchangeHistorySnapshot> listExchangeHistory(long userId, int page, int size) {
