@@ -1,6 +1,6 @@
 import i18n from "./config";
 
-/** Stable business codes take precedence; message matching supports older servers only. */
+/** Stable business codes take precedence; message matching handles current business errors that have no code. */
 const RAW_PATTERN_KEYS: Array<[RegExp, string]> = [
   [/房间已满|人满/, "errors.roomFull"],
   [/未通过安全|安全检查|违规/, "errors.contentBlocked"],

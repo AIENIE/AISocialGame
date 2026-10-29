@@ -2,7 +2,6 @@ import { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Persona } from "@/types";
 
@@ -10,14 +9,6 @@ const builtin = new Set(["ai1", "ai2", "ai3", "ai4"]);
 export function personaText(persona: Persona, field: string, fallback: string, t: TFunction) {
   return builtin.has(persona.id) && (persona.presetVersion || 1) === 1
     ? t(`persona.${persona.id}.${field}`, { defaultValue: fallback }) : fallback;
-}
-
-export function PersonaBadge({ personaId, personas = [] }: { personaId?: string; personas?: Persona[] }) {
-  const { t } = useTranslation();
-  const persona = personas.find(p => p.id === personaId);
-  const name = persona ? personaText(persona, "name", persona.name, t)
-    : personaId && builtin.has(personaId) ? t(`persona.${personaId}.name`) : t("persona.default");
-  return <Badge data-testid="persona-badge" variant="outline" className="mt-1 whitespace-normal text-center text-[10px]">{t("persona.badge", { name })}</Badge>;
 }
 
 export interface PersonaPickerProps {

@@ -88,9 +88,7 @@ describe("翻译与回退", () => {
   });
 
   it("插值翻译可用", () => {
-    expect(i18n.t("index.online", { count: 3, lng: "zh-CN" })).toBe("3 在线");
-    expect(i18n.t("lobby.playerCount", { count: 4, max: 9, lng: "en" })).toBe(
-      "4/9 players",
-    );
+    expect(i18n.t("wallet.exchangeSuccess", { count: 3, lng: "zh-CN" })).toBe("兑换成功，到账 3 专属积分");
+    expect(i18n.t("wallet.publicTokens", { before: 9, after: 6, lng: "en" })).toBe("Tokens: 9 → 6");
   });
 });

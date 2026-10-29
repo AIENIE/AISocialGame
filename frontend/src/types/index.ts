@@ -531,60 +531,6 @@ export interface PlayerStats {
   score: number;
 }
 
-export interface FriendItem {
-  id: string;
-  displayName: string;
-  avatar?: string;
-  online: boolean;
-  currentGameId?: string;
-  currentRoomId?: string;
-}
-
-export interface FriendRequestItem {
-  id: string;
-  fromId: string;
-  fromName: string;
-  fromAvatar?: string;
-  createdAt: string;
-}
-
-export interface AchievementDefinition {
-  code: string;
-  name: string;
-  description: string;
-  rarity: "COMMON" | "RARE" | "EPIC";
-  rewardCoins: number;
-  gameId?: string;
-  target: number;
-}
-
-export interface PlayerAchievement {
-  code: string;
-  unlocked: boolean;
-  progress: number;
-  unlockedAt?: string;
-}
-
-export interface ReplayEvent {
-  phase?: string;
-  seq?: number;
-  id: string;
-  timestamp: string;
-  type: string;
-  message: string;
-}
-
-export interface ReplayArchive {
-  id: string;
-  gameId: string;
-  roomId: string;
-  roomName: string;
-  result: string;
-  perspective: "GOD" | "PLAYER";
-  createdAt: string;
-  events: ReplayEvent[];
-}
-
 export type ReplayViewMode = "PUBLIC" | "PLAYER" | "GOD";
 
 export interface ReplayArchiveView {

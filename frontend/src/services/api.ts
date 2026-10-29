@@ -107,14 +107,6 @@ export const authApi = {
 };
 
 export const aiApi = {
-  async listModels(): Promise<AiModel[]> {
-    const res = await api.get("/ai/models");
-    return res.data;
-  },
-  async chat(messages: AiMessage[], model?: string): Promise<AiChatResponse> {
-    const res = await api.post("/ai/chat", { messages, model }, { timeout: 60_000 });
-    return res.data;
-  },
   async chatStream(
     messages: AiMessage[],
     model: string | undefined,
@@ -316,10 +308,6 @@ export const serverReplayApi = {
   },
   async my(params: { gameId?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<PagedResponse<ReplayArchiveView>> {
     const res = await api.get("/replays/my", { params });
-    return res.data;
-  },
-  async detail(archiveId: string): Promise<ReplayArchiveView> {
-    const res = await api.get(`/replays/${archiveId}`);
     return res.data;
   },
   async events(archiveId: string, viewMode: ReplayViewMode = "PUBLIC", viewerPlayerId?: string): Promise<ReplayDetail> {
@@ -537,10 +525,6 @@ export const adminApi = {
     const res = await adminApiClient.get("/admin/safety/events", { params });
     return res.data;
   },
-  async safetyEventDetail(id: number): Promise<AiSafetyEvent> {
-    const res = await adminApiClient.get(`/admin/safety/events/${id}`);
-    return res.data;
-  },
   async ackSafetyEvent(id: number): Promise<AiSafetyEvent> {
     const res = await adminApiClient.post(`/admin/safety/events/${id}/ack`);
     return res.data;
@@ -569,9 +553,6 @@ export const labApi = {
   list: async (page = 0): Promise<LabPage<LabExperiment>> => (await api.get("/lab/experiments", { params: { page, size: 20 } })).data,
   detail: async (id: string): Promise<LabExperiment> => (await api.get("/lab/experiments/"+id)).data,
   matches: async (id: string, page = 0): Promise<LabPage<LabMatch>> => (await api.get("/lab/experiments/"+id+"/matches", { params: { page, size: 20 } })).data,
-  enroll: async (id: string): Promise<void> => { await api.post("/lab/experiments/"+id+"/enrollment"); },
-  confirm: async (id: string): Promise<void> => { await api.post("/lab/experiments/"+id+"/enrollment/confirm"); },
-  withdraw: async (id: string): Promise<void> => { await api.delete("/lab/experiments/"+id+"/enrollment"); },
 };
 export const adminLabApi = {
   createTrainingRun: async (id:string,request:import("@/types/labTraining").CreateLabTrainingRun):Promise<import("@/types/labTraining").LabTrainingRun> => (await adminApiClient.post(`/admin/lab/experiments/${encodeURIComponent(id)}/training-runs`,request)).data,
