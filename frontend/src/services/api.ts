@@ -18,11 +18,8 @@ import {
   AiSafetyEvent,
   AiSafetySummary,
   AiChatResponse,
-  AiEmbeddingsResponse,
   AiMessage,
   AiModel,
-  AiOcrParams,
-  AiOcrResponse,
   AuthResponse,
   CheckinResponse,
   CheckinStatusResponse,
@@ -182,14 +179,7 @@ export const aiApi = {
       }
     }
   },
-  async embeddings(input: string[], model?: string, normalize = true): Promise<AiEmbeddingsResponse> {
-    const res = await api.post("/ai/embeddings", { input, model, normalize }, { timeout: 60_000 });
-    return res.data;
-  },
-  async ocr(params: AiOcrParams): Promise<AiOcrResponse> {
-    const res = await api.post("/ai/ocr", params, { timeout: 60_000 });
-    return res.data;
-  },
+
 };
 
 export const walletApi = {
@@ -289,18 +279,6 @@ export const gameplayApi = {
   },
   async start(gameId: string, roomId: string): Promise<GameState> {
     const res = await api.post(`/games/${gameId}/rooms/${roomId}/start`, {});
-    return res.data;
-  },
-  async speak(gameId: string, roomId: string, content: string): Promise<GameState> {
-    const res = await api.post(`/games/${gameId}/rooms/${roomId}/speak`, { content });
-    return res.data;
-  },
-  async vote(gameId: string, roomId: string, targetPlayerId: string, abstain = false): Promise<GameState> {
-    const res = await api.post(`/games/${gameId}/rooms/${roomId}/vote`, { targetPlayerId, abstain });
-    return res.data;
-  },
-  async nightAction(gameId: string, roomId: string, payload: { action: string; targetPlayerId?: string; useHeal?: boolean }): Promise<GameState> {
-    const res = await api.post(`/games/${gameId}/rooms/${roomId}/night-action`, payload);
     return res.data;
   },
   async action(gameId: string, roomId: string, action: PlayerAction): Promise<GameState> {

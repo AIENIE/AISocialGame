@@ -8,7 +8,7 @@
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
 | 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/shared/*` |
-| 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
+| 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/v2/V2GameService.java` |
 | GameEngine 插件化模块 | 管理玩法 engine 注册、统一 action 和现有玩法插件化入口 | `backend/src/main/java/com/aisocialgame/engine/*.java`、`frontend/src/hooks/useGameEngine.ts`、`doc/modules/game-engine-module.md` |
 | 海龟汤玩法模块 | 管理海龟汤题库、规则主持、AI 玩家追问、汤底判定和回放归档 | `backend/src/main/java/com/aisocialgame/engine/TurtleSoupGameEngine.java`、`frontend/src/pages/games/TurtleSoupRoom.tsx`、`doc/modules/turtle-soup-module.md` |
 | AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与规则兜底 | `backend/src/main/java/com/aisocialgame/service/ai/*.java`、`backend/src/main/resources/prompt.yml`、`doc/modules/ai-decision-module.md` |

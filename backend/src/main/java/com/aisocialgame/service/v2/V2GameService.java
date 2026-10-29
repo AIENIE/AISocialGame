@@ -12,7 +12,6 @@ import com.aisocialgame.service.ai.v2.*;
 import com.aisocialgame.service.safety.*;
 import com.aisocialgame.websocket.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.*;
@@ -48,7 +47,6 @@ public class V2GameService {
     private final PlayerConnectionService connections;
     private final AiSafetyService safety;
     private final AiDecisionTraceRepository traces;
-    private final boolean enabled;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.config.AppProperties appProperties;
     @org.springframework.beans.factory.annotation.Autowired
@@ -57,16 +55,13 @@ public class V2GameService {
     public V2GameService(List<GameRuleSet> rules, RoomRepository rooms, GameStateRepository states, AiTurnJobRepository jobs,
                          org.springframework.transaction.PlatformTransactionManager manager, ObservationFactory observations,
                          AiMemoryServiceV2 memories, GameEventRecorder recorder, ReplayArchiveService archives, StatsService stats,
-                         GamePushService push, PlayerConnectionService connections, AiSafetyService safety, AiDecisionTraceRepository traces,
-                         @Value("${app.game.v2-enabled:true}") boolean enabled) {
+                         GamePushService push, PlayerConnectionService connections, AiSafetyService safety, AiDecisionTraceRepository traces) {
         rules.forEach(r -> { if (ruleSets.put(r.gameId(), r) != null) throw new IllegalStateException("Duplicate v2 game " + r.gameId()); });
         this.rooms = rooms; this.states = states; this.jobs = jobs; this.transaction = new TransactionTemplate(manager);
         this.observations = observations; this.memories = memories; this.recorder = recorder; this.archives = archives; this.stats = stats;
-        this.push = push; this.connections = connections; this.safety = safety; this.traces = traces; this.enabled = enabled;
+        this.push = push; this.connections = connections; this.safety = safety; this.traces = traces;
     }
-    public boolean newGamesEnabled() { return enabled; }
-    public boolean hasState(String roomId) { return states.existsById(roomId); }
-    public boolean isV2(String roomId) { return states.findRoutingSnapshotByRoomId(roomId).map(s -> RuleSupport.number(s.getData().get("ruleVersion"), 1) == 2).orElse(false); }
+
     public GameRuleSet rules(String gameId) { return Optional.ofNullable(ruleSets.get(gameId)).orElseThrow(() -> RuleSupport.bad("玩法规则尚未就绪")); }
 
     /** Read the current persisted opportunity before remote work, without retaining a transaction. */

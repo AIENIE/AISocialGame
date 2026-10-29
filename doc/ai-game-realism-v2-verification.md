@@ -95,4 +95,4 @@
 - `live-2.json`、`live-2-metrics-final.json`：一局通过、一局中断及量化结果。
 - `final-acceptance-summary.json`、`gateway-resource-exhausted-diagnostic.json`、`caller-cleanup.json`：总用量、限定请求只读诊断及停用读回证据。
 
-复现入口：`Prepare-GameRealismV2Accounts.ps1` 建立正常应用会话；`Test-GameRealismV2Live.ps1` 读取已完成的私密会话文件运行六局；`Test-GameRealismV2Comparison.ps1` 读取私密运行配置并复用原累计账本；`Measure-GameRealismV2.ps1` 对已产生的六局证据做只读量化。具体契约与限制见 [实现说明](ai-game-realism-v2.md)。
+复现入口：`Prepare-GameRealismV2Accounts.ps1` 建立正常应用会话；`Test-GameRealismV2Live.ps1` 读取已完成的私密会话文件运行六局；`Measure-GameRealismV2.ps1` 对已产生的六局证据做只读量化。具体契约与限制见 [实现说明](ai-game-realism-v2.md)。

@@ -31,7 +31,6 @@ class PluginClosureTest {
     @Autowired AiTurnJobRepository jobs;
     @Autowired V2GameService runtime;
     @Autowired AiTurnCoordinator coordinator;
-    @Autowired GamePlayService facade;
     @Autowired ReplayArchiveService replays;
     @MockitoBean AiGrpcClient rpc;
 
@@ -41,13 +40,13 @@ class PluginClosureTest {
         Room room=new Room(id,"test_fourth","test plugin",RoomStatus.WAITING,1,false,null,"text",new LinkedHashMap<>());
         room.setSeats(List.of(new RoomSeat(0,"bot","bot",true,"ai2","",true,true))); room.setHostUserId("bot");rooms.saveAndFlush(room);
         User host=new User();host.setId("bot");
-        facade.start("test_fourth",id,host);
+        runtime.start("test_fourth",id,host);
         var job=jobs.findAll().stream().filter(j->j.getRoomId().equals(id)).findFirst().orElseThrow();
         var claimed=coordinator.claim(job.getId());assertNotNull(claimed);
         var observation=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().convertValue(job.getObservation(),VisibleObservation.class);
         assertEquals("ai2",observation.persona().get("id"));assertFalse(observation.privateFacts().containsKey("otherSecret"));
         runtime.complete(job.getId(),AiTurnDecision.fallback(runtime.rules("test_fourth").fallback(observation)));
-        var result=facade.state("test_fourth",id,host);assertEquals("SETTLEMENT",result.getPhase());
+        var result=runtime.state("test_fourth",id,host);assertEquals("SETTLEMENT",result.getPhase());
         assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
         assertFalse(replays.authorizedEvents(String.valueOf(result.getExtra().get("archiveId")),"PUBLIC",null,"logged-spectator").getEvents().isEmpty());
         org.mockito.Mockito.verifyNoInteractions(rpc);

@@ -83,11 +83,10 @@
 
 - Mock 自动化：
   - `cd backend`
-  - `mvn test -Dtest=AiDecisionServiceTest,GamePlayServiceUndercoverTest,GamePlayServiceWerewolfTest`
+  - `mvn test -Dtest=AiTurnGeneratorTest,V2GameServiceIntegrationTest`
 - 真实 ai-service 联调：
   - `cd backend`
   - `set -a && source ../env.local && set +a`
-  - `REAL_AI_INTEGRATION=1 mvn test -Dtest=AiDecisionRealIntegrationTest`
 - 验收重点：
   - AI 发言/投票/夜晚行动后生成 `ai_decision_traces`。
   - 日志 metadata 只有安全摘要，不包含隐藏词语、隐藏身份或完整 Prompt。

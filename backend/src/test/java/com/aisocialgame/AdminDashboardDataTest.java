@@ -21,8 +21,7 @@ class AdminDashboardDataTest {
         var service = new AdminOpsService(mock(UserGrpcClient.class), mock(BillingGrpcClient.class),
                 mock(BalanceService.class), mock(ProjectCreditService.class), proxy, mock(UserRepository.class),
                 mock(RoomRepository.class), mock(CommunityPostRepository.class), mock(GameStateRepository.class),
-                new AppProperties(), mock(AiDecisionTraceService.class), mock(AiPersonaMemoryRepository.class),
-                mock(AiReflectionService.class), safety);
+                new AppProperties(), mock(AiDecisionTraceService.class), mock(AiPersonaMemoryRepository.class), safety);
         when(proxy.listModelsForSystem()).thenReturn(List.of());
         assertEquals(0, service.dashboardSummary().getAiModels());
         when(proxy.listModelsForSystem()).thenThrow(new IllegalStateException("remote failure"));

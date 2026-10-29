@@ -33,7 +33,7 @@ M2 将对局过程从 `GameState.logs` 的文本日志扩展为服务端结构�
 
 1. 开局时 `GameEventRecorder` 在 `GameState.data.archiveId` 写入本局归档 ID，并记录 `GAME_START`。
 2. 身份/词语分配写入 `PRIVATE` 和 `GOD` 事件，公开视角不可见。
-3. 玩家或 AI 发言、投票、夜晚行动时，`GamePlayService` 在保留文本日志的同时追加结构化事件。
+3. 玩家或 AI 发言、投票、夜晚行动时，`V2GameService` 在保留文本日志的同时追加结构化事件。
 4. AI 行为的公开事件只包含安全摘要；详细信念、记忆和原始输出仍由 `ai_decision_traces` 管理。
 5. 结算时记录 `GAME_END`，并由 `ReplayArchiveService` 生成 `game_archives`。
 6. 前端 `/replays` 与 `/replay/:archiveId` 优先读取服务端回放；服务端不可用时保留本地降级存档。
@@ -47,7 +47,7 @@ M2 将对局过程从 `GameState.logs` 的文本日志扩展为服务端结构�
 
 ```bash
 cd backend
-mvn test -Dtest=ReplayArchiveServiceTest,GamePlayServiceUndercoverTest,GamePlayServiceWerewolfTest
+mvn test -Dtest=ReplayArchiveServiceTest,V2GameServiceUndercoverTest,V2GameServiceWerewolfTest
 ```
 
 真实浏览器验收：

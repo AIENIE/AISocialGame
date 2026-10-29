@@ -1,78 +1,17 @@
-# GameEngine 插件化模块
+# 游戏规则模块
 
-## 当前版本（2026-09-22）
+游戏统一由 `GameRuleSet`、`V2GameService` 与 `AiTurnCoordinator` 执行。Spring 注册规则实现，重复玩法 ID 在初始化时拒绝。
 
-当前新局由 V2GameService 和 GameRuleSet 执行。各规则通过 definition() 提供人数、配置、阶段/角色与版本，GameConfiguration 通用校验及 validateStart() 规则校验；GameMetadataV2 和 RoomService 读取同源定义。observationRules() 白名单投影公共配置，confirmedFacts()/privateConfirmed()/isPlayerClaim() 定义本玩法来源；公共层只组装通用分类。第四测试插件验证全链路扩展。GameRuntimeSupport 仅承担旧规则兼容，旧 API 保留。
+| 玩法 | 规则 | 定义与题库 |
+|---|---|---|
+| 谁是卧底 | `UndercoverRuleSet` | `UndercoverDefinition`、`UndercoverWordCatalog` |
+| 狼人杀 | `WerewolfRuleSet` | `WerewolfDefinition` |
+| 海龟汤 | `TurtleSoupRuleSet` | `TurtleSoupDefinition`、`TurtleSoupCaseCatalog` |
 
-当前测试、限制及数据迁移见 [M1～M5 收尾报告](ai-quality-loop-module.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
+规则的 `definition()` 是人数、配置、阶段、角色及规则版本的来源。`GameMetadataV2` 与 `GameService` 提供目录和在线人数，`RoomService` 使用同源定义校验配置。
 
-### 狼人杀调度与连续对局（2026-10-25）
+`GamePlayController` 将开局、状态与统一动作交给 `V2GameService`。规则只执行本地状态转换；编排层负责事务、事件、归档与结算，AI 工作由持久任务独立执行。
 
-- 房间入座与补 AI 的座位通知在事务提交后发送，保证收到通知后刷新能读到新名单；回滚时不发布座位变化。
-- 同模型 AI 串行执行。`GameState.data.werewolfAiClock` 保存当前行动的排队和执行截止：排队最多 60 秒，取得执行机会后最多 50 秒，单次上游请求最多 45 秒。等待队列不消耗 AI 执行窗口。
-- 投票的真人截止单独保存在 `werewolf.humanVoteEndsAt`。真人到期只处理尚未投票的真人；AI 各自完成或机会结束后统一开票。`extra.actionEndsAt` 仅向需要操作的本人返回截止，包含死亡后的猎人开枪；`waitingForAi` / `pendingAiCount` 说明等待进度。
-- 质询的新增提问窗口为 60 秒、最多两组。已发布的问题单独保留完整 20 秒回答时间，不被提问总截止截短；回答完成或超时后，若总窗口已到期则进入投票，不追加提问机会。AI 仍使用上述独立执行窗口。
-- 页面按狼人杀本人行动截止停用输入、选人和提交，并明确显示到期状态。同一局、轮次及提问机会仅因真人优先时段结束而刷新时保留草稿，提交仍使用最新阶段凭据；新局或真正的新行动机会清空旧输入。
-- AI 失败按玩法跳过、弃票或放弃技能，记录 `AI_ACTION_FAILED`，不生成固定发言或随机目标。夜间、死亡技能和开票前的失败保持私有，避免泄露身份或未公布选票。
-- 任务的实例标识与行动标识共同校验；过期任务解除调度占用，迟到结果不得提交到下一行动或下一局。已发送请求的恢复沿用原请求身份，在原执行窗口内查询结果。
-- 验收积分停止线复用房间私有 JSON，按房间集合汇总权威实扣。达到停止线保留局面并禁止新调用，在途结果仍可结算；状态返回 `validationBudgetPaused` 和 `pauseReason`。登记及查询见 [Admin AI 接口](../api/AdminAiController.md)。
-- 同房间再次开局创建新的身份、随机种子及局内状态，上一局独立归档。药量、查验、守护和投票不从上一局继承。
-- 狼人杀模型输入版本 4 将 `self.seatNumber` 和 `players[].seatNumber` 显示为与页面一致的 1 起编号；存档及内部观察仍为 0 起索引。玩家 ID、目标 ID 和历史原文不改写。投票期间只公开待完成 AI 的匿名计数变化，选票及行动者在开票前继续隐藏。
+`ObservationFactory` 根据规则提供的可见事实与配置投影构造模型观察。规则实现负责合法动作、阶段推进、私有视角及失败后的机会推进。
 
-
-## 模块作用
-
-M3 将玩法规则从 `GamePlayService` 中拆出为可注册的 `GameEngine`。当前目标是让新增玩法先拥有稳定扩展点，同时保持狼人杀、谁是卧底的现有 API、状态结构、回放和 AI 质检行为不回退。
-
-## 核心结构
-
-| 组件 | 作用 |
-|---|---|
-| `GameEngine` | 每个玩法的统一接口，负责状态查询、开局、发言、投票、夜晚行动和统一 action 分发 |
-| `GameEngineRegistry` | Spring 启动时注册所有 engine，按 `gameId` 查找，拒绝重复玩法 ID |
-| `UndercoverGameEngine` | 谁是卧底 engine，声明阶段、角色和开局校验，并委托运行时规则 |
-| `WerewolfGameEngine` | 狼人杀 engine，声明夜晚/白天阶段、角色和开局校验，并委托运行时规则 |
-| `GameRuntimeSupport` | 当前迁移阶段的规则运行支撑层，保留原有流程、事件记录、AI 决策、结算和视图过滤逻辑 |
-| `PlayerAction` | 统一动作请求体，用于 `/action` 兼容发言、投票和夜晚行动 |
-| `GameIds` / `GamePhases` / `PlayerConnectionStatuses` | 集中维护玩法 ID、阶段名和连接状态，减少跨 engine/runtime 的字符串漂移 |
-
-## 当前边界
-
-- `GamePlayService` 现在只做玩法查找、开局校验和兼容方法转发。
-- 旧接口 `/speak`、`/vote`、`/night-action` 继续保留。
-- 新接口 `/action` 已可提交：
-  - `SPEAK`：`content`
-  - `VOTE`：`targetPlayerId`、`abstain`
-  - `NIGHT_ACTION`：`nightAction`、`targetPlayerId`、`useHeal`
-- `GameState.data` 的既有键名保持不变，避免破坏前端页面、回放和历史测试。
-- AI 决策仍复用 `AiDecisionService`，后续可继续把 prompt/adapter 做成 engine 元数据。
-- 控制器认证由 `@CurrentUser` 参数解析器完成，`GamePlayController` 只接收已认证用户并转发到 `GamePlayService`。
-
-## 前端适配
-
-- `frontend/src/hooks/useGameEngine.ts` 统一封装状态查询、开局和 `PlayerAction` 提交。
-- `frontend/src/pages/games/registry.tsx` 作为玩法组件注册表，`Lobby` 不再在组件内部硬编码玩法页面映射。
-- `frontend/src/pages/games/shared/useRoomRuntime.ts` 统一封装房间状态、入座、WebSocket、AI 补位、阶段动画、结算归档和错误处理。
-- 现有 `UndercoverRoom` 与 `WerewolfRoom` 仅保留玩法专属信息卡和动作面板，动作提交已走统一 `/action`。
-
-## 新玩法接入
-
-新增玩法时，至少需要：
-
-1. 新增一个 `GameEngine` 实现并注册为 Spring Bean。
-2. 在 engine 中声明阶段、角色、开局校验和动作处理。
-3. 在前端玩法组件注册表加入房间页面。
-4. 在 API/模块文档中记录新增动作与视图字段。
-
-## 后续优化
-
-- 将 `GameRuntimeSupport` 中的具体规则继续下沉到各 engine 内部。
-- 将 `RoomService` 的人数规则从硬编码完全切换到 engine metadata。
-- 为 AI Adapter、Prompt 模板、合法性校验和兜底策略提供每玩法声明。
-- 让服务端玩法元数据逐步成为前端创建房间配置的单一来源。
-
-## v1.0 可维护性边界
-
-- 后端新增游戏常量类，engine 和 runtime 入口不再直接重复关键 phase/gameId 字符串。
-- 前端房间页公共能力已下沉到 `frontend/src/pages/games/shared/`，新增玩法应优先复用 `useRoomRuntime`、`GameRoomFrame`、`PlayerGrid`、`GameLogPanel` 和 `AiSeatControl`。
-- 统一 action DTO 增加基础校验，非法动作类型会在控制器层返回 400。
+`PluginClosureTest` 使用第四个测试规则验证目录、开局、观察、动作、结算和回放，无需修改中央玩法分支。当前接口见 [GamePlayController](../api/GamePlayController.md)。

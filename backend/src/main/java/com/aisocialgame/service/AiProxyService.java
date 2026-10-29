@@ -2,24 +2,19 @@ package com.aisocialgame.service;
 
 import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.dto.AiChatRequest;
-import com.aisocialgame.dto.AiEmbeddingsRequest;
-import com.aisocialgame.dto.AiOcrRequest;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.integration.grpc.client.AiGrpcClient;
 import com.aisocialgame.integration.grpc.dto.AiChatResult;
-import com.aisocialgame.integration.grpc.dto.AiEmbeddingsResult;
 import com.aisocialgame.integration.grpc.dto.AiModelOptionDto;
-import com.aisocialgame.integration.grpc.dto.AiOcrResult;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.safety.AiSafetyContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * Chat uses the durable request/actual-settlement path. Unsupported paid capabilities remain closed.
+ * Chat uses the durable request and actual-settlement path.
  */
 @Service
 public class AiProxyService {
@@ -70,25 +65,10 @@ public class AiProxyService {
         }
     }
 
-    public AiEmbeddingsResult embeddings(AiEmbeddingsRequest request, User user) {
-        requireExternalUserId(user);
-        throw budgetUnavailable();
-    }
-
-    public AiOcrResult ocrParse(AiOcrRequest request, User user) {
-        requireExternalUserId(user);
-        throw budgetUnavailable();
-    }
-
     /** Synchronous admission keeps SSE's HTTP error code stable before headers commit. */
     public void requireChargedCallReady(User user) {
         requireExternalUserId(user);
         aiGrpcClient.requireChatReady();
-    }
-
-    private ApiException budgetUnavailable() {
-        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                "AI 预算能力暂不可用，请稍后再试", "BUDGET_UNAVAILABLE", Map.of());
     }
 
     private long requireExternalUserId(User user) {

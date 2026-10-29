@@ -112,11 +112,11 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - 已有玩法：狼人杀、谁是卧底、海龟汤。
 - 房间与实时能力：创建房间、入座、AI 补位、WebSocket 状态推送、连接状态展示、断线托管。
-- AI 决策能力：`AiDecisionService` 已支持基于局面上下文生成发言、投票与狼人杀夜晚行动，并有规则兜底。
+- AI 决策能力：`AiTurnGenerator` 已支持基于局面上下文生成发言、投票与狼人杀夜晚行动，并记录实际失败。
 - 社交留存雏形：快速匹配、好友、成就、回放、观战、新手引导已有前端入口或本地降级。
 - 外部能力：已接入 user-service、pay-service、ai-service，具备 SSO、积分、AI Chat/OCR/Embeddings 代理等基础。
 
-当前版本采用 `GameRuleSet` / `V2GameService` / `AiTurnGenerator`，旧 `GameRuntimeSupport` 仅保留历史兼容路径。局内结构化记忆、来源分类、承诺状态、四款完整预设与任务诊断已交付；本轮补齐回合反思、独立难度、回放权限、调用治理、统一元数据与随机题目。
+当前版本采用 `GameRuleSet` / `V2GameService` / `AiTurnGenerator`，局内结构化记忆、来源分类、承诺状态、四款完整预设与任务诊断已交付；本轮补齐回合反思、独立难度、回放权限、调用治理、统一元数据与随机题目。
 
 当前未完成的是：共享环境与迁移执行条件核实、实时预算授权，以及最终冻结版本的真实语义、多人格连续表现和六局验收。本机原生 MySQL 8.0.45 隔离验证与 Node 22.23.2 环境统一已完成，见[环境门禁报告](modules/ai-quality-loop-module.md)。原历史通过记录不能代替当前真实验收。
 
@@ -206,7 +206,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 ### 依赖
 
-- 现有 `AiDecisionService`、`GameLogEntry` 结构化字段、`Persona` 扩展字段。
+- 现有 `AiTurnGenerator`、`GameLogEntry` 结构化字段、`Persona` 扩展字段。
 - M2 的结构化事件流完成后，可进一步提升 M1 的评测与复盘质量。
 
 ## 6. M2：结构化事件与回放/质检底座
@@ -244,7 +244,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 ### 目标
 
-将当前集中式游戏流程拆成可注册的 GameEngine，让新增游戏不再依赖在 `GamePlayService` 中堆叠大量 `gameId` 分支。
+将当前集中式游戏流程拆成可注册的 GameEngine，让新增游戏不再依赖在 `V2GameService` 中堆叠大量 `gameId` 分支。
 
 ### 交付项
 
@@ -254,7 +254,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
   - 玩法元数据：阶段、角色、最小/最大人数、配置项、前端渲染提示。
 - 定义 AI Adapter：
   - 每个游戏声明 AI 可执行动作、可见上下文、Prompt 模板、合法性校验和兜底策略。
-  - `AiDecisionService` 从具体游戏分支转向读取游戏 Adapter。
+  - `AiTurnGenerator` 从具体游戏分支转向读取游戏 Adapter。
 - 迁移现有玩法：
   - 先迁移谁是卧底，再迁移狼人杀。
   - 保持现有 API 路径兼容，避免前端大规模同步改动。
@@ -265,7 +265,7 @@ AISocialGame 的目标是做一个真人玩家与 AI 共同参与的社交游戏
 
 - 谁是卧底/狼人杀迁移后，原有单元测试和真实对局验收不回退。
 - 新增一个玩法时，只需要新增引擎、AI Adapter、玩法配置和必要页面，不需要改主流程分支。
-- `GamePlayService` 主要负责鉴权、房间解析、持久化、推送，不再承载具体玩法规则。
+- `V2GameService` 主要负责鉴权、房间解析、持久化、推送，不再承载具体玩法规则。
 
 ### 依赖
 

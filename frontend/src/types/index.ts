@@ -131,29 +131,8 @@ export interface AiChatResponse {
   completionTokens: number;
 }
 
-export interface AiEmbeddingsResponse {
-  modelKey: string;
-  dimensions: number;
-  embeddings: number[][];
-  promptTokens: number;
-}
 
-export interface AiOcrParams {
-  imageUrl?: string;
-  imageBase64?: string;
-  documentUrl?: string;
-  model?: string;
-  pages?: string;
-  outputType?: "TEXT" | "MARKDOWN" | "JSON";
-}
 
-export interface AiOcrResponse {
-  requestId: string;
-  modelKey: string;
-  outputType: string;
-  content: string;
-  rawJson?: string;
-}
 
 export interface AiModel {
   id: number;

@@ -1,12 +1,9 @@
 package com.aisocialgame.controller;
 
 import com.aisocialgame.dto.GameStateResponse;
-import com.aisocialgame.dto.NightActionRequest;
 import com.aisocialgame.dto.PlayerAction;
-import com.aisocialgame.dto.SpeakRequest;
-import com.aisocialgame.dto.VoteRequest;
 import com.aisocialgame.model.User;
-import com.aisocialgame.service.GamePlayService;
+import com.aisocialgame.service.v2.V2GameService;
 import com.aisocialgame.web.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +12,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/games/{gameId}/rooms/{roomId}")
 public class GamePlayController {
-    private final GamePlayService gamePlayService;
+    private final V2GameService gamePlayService;
     private final com.aisocialgame.service.GameLogQueryService logs;
 
-    public GamePlayController(GamePlayService gamePlayService, com.aisocialgame.service.GameLogQueryService logs) {
+    public GamePlayController(V2GameService gamePlayService, com.aisocialgame.service.GameLogQueryService logs) {
         this.gamePlayService = gamePlayService;
         this.logs = logs;
     }
@@ -46,35 +43,11 @@ public class GamePlayController {
         return ResponseEntity.ok(gamePlayService.start(gameId, roomId, user));
     }
 
-    @PostMapping("/speak")
-    public ResponseEntity<GameStateResponse> speak(@PathVariable String gameId,
-                                                   @PathVariable String roomId,
-                                                   @Valid @RequestBody SpeakRequest request,
-                                                   @CurrentUser User user) {
-        return ResponseEntity.ok(gamePlayService.speak(gameId, roomId, request, user));
-    }
-
-    @PostMapping("/vote")
-    public ResponseEntity<GameStateResponse> vote(@PathVariable String gameId,
-                                                  @PathVariable String roomId,
-                                                  @Valid @RequestBody VoteRequest request,
-                                                  @CurrentUser User user) {
-        return ResponseEntity.ok(gamePlayService.vote(gameId, roomId, request, user));
-    }
-
-    @PostMapping("/night-action")
-    public ResponseEntity<GameStateResponse> nightAction(@PathVariable String gameId,
-                                                         @PathVariable String roomId,
-                                                         @Valid @RequestBody NightActionRequest request,
-                                                         @CurrentUser User user) {
-        return ResponseEntity.ok(gamePlayService.nightAction(gameId, roomId, request, user));
-    }
-
     @PostMapping("/action")
     public ResponseEntity<GameStateResponse> action(@PathVariable String gameId,
                                                     @PathVariable String roomId,
                                                     @Valid @RequestBody PlayerAction action,
                                                     @CurrentUser User user) {
-        return ResponseEntity.ok(gamePlayService.action(gameId, roomId, action, user));
+        return ResponseEntity.ok(gamePlayService.action(gameId, roomId, user, action));
     }
 }

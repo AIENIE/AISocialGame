@@ -27,7 +27,6 @@ import static org.mockito.Mockito.*;
 @ActiveProfiles("test")
 class V2GameServiceIntegrationTest {
     @Autowired V2GameService runtime;
-    @Autowired GamePlayService facade;
     @Autowired RoomService roomService;
     @Autowired RoomRepository rooms;
     @Autowired GameStateRepository states;
@@ -165,7 +164,7 @@ class V2GameServiceIntegrationTest {
         GameState before = states.findById(room.getId()).orElseThrow();
         String snapshot = json.writeValueAsString(before);
         long jobCount = jobs.count();
-        for (int i = 0; i < 4; i++) facade.state("undercover", room.getId(), user(room.getHostUserId()));
+        for (int i = 0; i < 4; i++) runtime.state("undercover", room.getId(), user(room.getHostUserId()));
         assertEquals(snapshot, json.writeValueAsString(states.findById(room.getId()).orElseThrow()));
         assertEquals(jobCount, jobs.count());
         verifyNoInteractions(client);
@@ -393,7 +392,7 @@ class V2GameServiceIntegrationTest {
             List<Future<GameStateResponse>> results = new ArrayList<>();
             for (int i = 0; i < 2; i++) {
                 String actor = room.getSeats().get(i).getPlayerId();
-                results.add(pool.submit(() -> facade.action("undercover", room.getId(), RuleSupport.action("VOTE", "", target), user(actor))));
+                results.add(pool.submit(() -> runtime.action("undercover", room.getId(), user(actor), RuleSupport.action("VOTE", "", target))));
             }
             for (var result : results) assertNotNull(result.get(10, TimeUnit.SECONDS));
         } finally { pool.shutdownNow(); }
@@ -412,7 +411,7 @@ class V2GameServiceIntegrationTest {
         assertEquals(2, memory.getGamesPlayed()); assertEquals("PENDING", memory.getReviewStatus()); assertNull(memory.getApprovedSummary());
     }
 
-    @Test void osivRoutingReadDoesNotHideAnotherVotersCommittedBallot() throws Exception {
+    @Test void osivActionDoesNotHideAnotherVotersCommittedBallot() throws Exception {
         Room room = room(false); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         for (int step = 0; step < 12; step++) {
             GameState state = states.findById(room.getId()).orElseThrow();
@@ -432,12 +431,11 @@ class V2GameServiceIntegrationTest {
             TransactionSynchronizationManager.bindResource(entityManagerFactory, new org.springframework.orm.jpa.EntityManagerHolder(osiv));
             // Reproduce the facade's preliminary route check in a web request's
             // still-open persistence context, before the mutation lock is held.
-            assertTrue(runtime.isV2(room.getId()));
             assertEquals(0, osiv.unwrap(org.hibernate.Session.class).getStatistics().getEntityCount(),
-                    "The routing read must not install an entity before the action acquires its lock");
-            assertNotNull(otherRequest.submit(() -> facade.action("undercover", room.getId(),
-                    RuleSupport.action("VOTE", "", target), user(first))).get(10, TimeUnit.SECONDS));
-            var response = facade.action("undercover", room.getId(), RuleSupport.action("VOTE", "", target), user(second));
+                    "Actions must acquire their lock before loading mutable state");
+            assertNotNull(otherRequest.submit(() -> runtime.action("undercover", room.getId(), user(first),
+                    RuleSupport.action("VOTE", "", target))).get(10, TimeUnit.SECONDS));
+            var response = runtime.action("undercover", room.getId(), user(second), RuleSupport.action("VOTE", "", target));
             assertEquals(Set.of(first, second), new HashSet<>(RuleSupport.strings(response.getExtra().get("votedPlayers"))));
         } finally {
             TransactionSynchronizationManager.unbindResource(entityManagerFactory);
@@ -454,7 +452,6 @@ class V2GameServiceIntegrationTest {
         assertTrue(runtime.acceptSideChat(room.getId(), actor, "EMOJI", "👍"));
         assertTrue(runtime.acceptSideChat(room.getId(), actor, "QUICK_PHRASE", "我同意"));
     }
-
 
     @Test void restoredHumanVoteResolvesAiPromiseAtomicallyAndDuplicateRequestIsPure() throws Exception {
         Room room = room(true); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
@@ -547,9 +544,9 @@ class V2GameServiceIntegrationTest {
         GameState previous = states.findById(room.getId()).orElseThrow(); previous.setPhase("SETTLEMENT"); states.saveAndFlush(previous);
         room = rooms.findById(room.getId()).orElseThrow(); room.setStatus(RoomStatus.WAITING); room.setWaitingSince(java.time.LocalDateTime.now()); room.getSeats().removeLast(); room.syncSeatCount(); rooms.saveAndFlush(room);
         User guest = user(UUID.randomUUID().toString()); roomService.joinRoom(room.getId(), guest.getNickname(), guest, "secret");
-        var lobby = facade.state("undercover", room.getId(), guest);
+        var lobby = runtime.state("undercover", room.getId(), guest);
         assertEquals("WAITING", lobby.getPhase()); assertNull(lobby.getMyWord()); assertTrue(lobby.getLogs().isEmpty());
-        assertEquals("SETTLEMENT", facade.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
+        assertEquals("SETTLEMENT", runtime.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
     }
 
     @Test void civilianSelfDestructPreservesBallotsPersistsOnceAndDiscardsOldAiResults() {

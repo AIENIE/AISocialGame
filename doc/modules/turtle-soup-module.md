@@ -1,45 +1,9 @@
-# 海龟汤玩法模块
+# 海龟汤模块
 
-## 当前版本（2026-09-22）
+海龟汤使用 `TurtleSoupRuleSet`，题目来自 `TurtleSoupCaseCatalog`。`TurtleSoupDefinition` 提供目录、配置和角色定义，前端 `TurtleSoupRoom` 加载共用的 `RoomExperience`。
 
-当前 v2 使用异步 AI 主持和独立私密事实包；公开题目目录不会返回汤底或主持事实。random 在 initialize 时从可用题库选择一次，保存具体 caseId/版本，恢复与重试不再抽取。既有复合问题、错误前提、未知、重复、提示预算、最终答案和失败裁决反馈继续适用。真实 Closure 验收要求两种人数配置 SOLVED，主动揭底不能代替解题。实际自然语言语义与协作仍待真实验收。
+玩家通过统一动作提交讨论、向主持提问、共同解答、请求提示或揭示汤底。服务端规则决定当前合法动作和阶段；主持任务使用独立的可见观察，题目事实与玩家视角分别投影。
 
-当前测试、限制及数据迁移见 [M1～M5 收尾报告](ai-quality-loop-module.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
+AI 任务通过通用生成与持久任务链路执行。真实失败保留在任务诊断中，局面推进由规则负责。对局事件和结算使用统一归档链路，回放沿用权限和视角过滤。
 
-
-## 模块目标
-
-M5 将海龟汤作为第三个可玩玩法接入平台，验证 GameEngine 插件化架构可以支持合作式语言推理游戏。当前实现以规则闭环保证稳定可验收，AI 用于玩家追问增强和主持体验补充，AI 失败时不影响主流程。
-
-## 核心行为
-
-- 玩法 ID：`turtle_soup`。
-- 阶段：`QUESTIONING`、`SETTLEMENT`。
-- 房间支持 1-6 名玩家，AI 玩家通过现有 `RoomService.addAi` 加入。
-- 开局后玩家只看到题名、汤面、问题上限、问答历史和已确认线索。
-- 汤底只保存在服务端 `GameState.data.solution`，结算前不返回给玩家端。
-- 玩家通过统一 `/action` 提交：
-  - `ASK_QUESTION`：向 AI 主持提出是/否问题。
-  - `SUBMIT_SOLUTION`：提交最终汤底解答。
-- 开启 `aiAssist` 且房间内存在 AI 玩家时，真人提问后 AI 玩家会自动追问一个题库推荐问题；重复问题会跳过。
-
-## 规则与安全
-
-- 主持判断采用本地规则：关键线索命中返回“是”，排除项返回“否”，接近项返回“接近但不准确”，其他返回“不重要”。
-- 正确解答需要命中每道题定义的核心关键词组。
-- 仍复用 M4 safety gate 拦截危险内容、隐私和 Prompt Injection。
-- 海龟汤解答语境下允许玩家说“汤底是...”；其他玩法仍将“汤底是”等隐藏信息表达作为泄露风险处理。
-
-## 回放与结算
-
-- 事件流记录 `GAME_START`、`TURTLE_SOUP_QUESTION`、`TURTLE_SOUP_SOLUTION_SUBMITTED`、`TURTLE_SOUP_SOLVED`、`GAME_END`。
-- 结算后生成 `game_archives`，`/replays` 与 `/replay/{archiveId}` 可播放服务端回放。
-- 胜负标记：
-  - `SOLVED`：玩家提交正确汤底。
-  - `FAILED`：问题次数用完仍未解开。
-
-## 入口实现
-
-- 后端：`backend/src/main/java/com/aisocialgame/engine/TurtleSoupGameEngine.java`
-- 前端：`frontend/src/pages/games/TurtleSoupRoom.tsx`
-- 验收：`frontend/tests/acceptance-real.spec.ts`
+规则回归位于 `engine/v2/turtlesoup/TurtleSoupRuleSetTest`，完整流程由 `V2GameServiceIntegrationTest` 覆盖。接口见 [GamePlayController](../api/GamePlayController.md)。

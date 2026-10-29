@@ -20,7 +20,6 @@ import com.aisocialgame.service.AiProxyService;
 import com.aisocialgame.service.BalanceService;
 import com.aisocialgame.service.ProjectCreditService;
 import com.aisocialgame.service.ai.AiDecisionTraceService;
-import com.aisocialgame.service.ai.AiReflectionService;
 import com.aisocialgame.service.safety.AiSafetyService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -150,7 +149,6 @@ class AdminOpsServiceLoggingTest {
                 properties,
                 mock(AiDecisionTraceService.class),
                 mock(AiPersonaMemoryRepository.class),
-                mock(AiReflectionService.class),
                 mock(AiSafetyService.class)
         );
     }

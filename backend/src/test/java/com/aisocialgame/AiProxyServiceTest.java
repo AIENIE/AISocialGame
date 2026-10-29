@@ -3,15 +3,8 @@ package com.aisocialgame;
 import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.dto.AiChatRequest;
 import com.aisocialgame.dto.AiMessageRequest;
-import com.aisocialgame.dto.AiEmbeddingsRequest;
-import com.aisocialgame.dto.AiOcrRequest;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.integration.grpc.client.AiGrpcClient;
-import com.aisocialgame.integration.grpc.dto.AiChatResult;
-import com.aisocialgame.integration.grpc.dto.AiModelOptionDto;
-import com.aisocialgame.integration.grpc.dto.AiEmbeddingsResult;
-import com.aisocialgame.integration.grpc.dto.AiOcrResult;
-import com.aisocialgame.model.User;
 import com.aisocialgame.service.AiProxyService;
 import com.aisocialgame.service.ProjectCreditService;
 import com.aisocialgame.service.safety.AiSafetyContext;
@@ -21,7 +14,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,12 +21,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -62,36 +52,6 @@ class AiProxyServiceTest {
         lenient().when(aiSafetyService.safeOutput(anyString(), any(AiSafetyContext.class))).thenAnswer(invocation -> invocation.getArgument(0));
         aiProxyService = new AiProxyService(aiGrpcClient, appProperties);
         org.mockito.Mockito.lenient().doThrow(new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "budget unavailable", "BUDGET_UNAVAILABLE", java.util.Map.of())).when(aiGrpcClient).requireChatReady();
-    }
-
-    @Test
-    void embeddingsRejectsChargeBeforeAnyUpstreamCallWithoutBudget() {
-        User user = new User();
-        user.setExternalUserId(1001L);
-        user.setSessionId("session-1001");
-        AiEmbeddingsRequest request = new AiEmbeddingsRequest();
-        request.setInput(List.of("hello", "world"));
-        request.setNormalize(null);
-
-        ApiException error = assertThrows(ApiException.class, () -> aiProxyService.embeddings(request, user));
-        assertEquals("BUDGET_UNAVAILABLE", error.getCode());
-        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
-        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
-    }
-
-    @Test
-    void ocrRejectsChargeBeforeAnyUpstreamCallWithoutBudget() {
-        User user = new User();
-        user.setExternalUserId(1002L);
-        user.setSessionId("session-1002");
-        AiOcrRequest request = new AiOcrRequest();
-        request.setImageUrl("https://example.com/a.png");
-        request.setOutputType("JSON");
-
-        ApiException error = assertThrows(ApiException.class, () -> aiProxyService.ocrParse(request, user));
-        assertEquals("BUDGET_UNAVAILABLE", error.getCode());
-        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
-        verify(aiGrpcClient, never()).chatCompletions(anyString(), anyLong(), anyString(), anyString(), anyList());
     }
 
     @Test
