@@ -43,7 +43,7 @@ class LabExperimentHttpContractTest {
         assertWerewolf(read(body,LabRequests.Experiment.class));
     }
 
-    @Test void explicitLegacyBooleanSeparatesDefaultHandlingFromOverloadedConstructorSelection() throws Exception {
+    @Test void explicitBlankOptionUsesTheCurrentRequestSchema() throws Exception {
         var body=json.readValue(werewolfBody(),Map.class);body.put("hasBlank",false);
         assertWerewolf(read(json.writeValueAsString(body),LabRequests.Experiment.class));
     }
@@ -53,18 +53,6 @@ class LabExperimentHttpContractTest {
         send(absent).andExpect(status().isOk());send(json.writeValueAsString(nullable)).andExpect(status().isOk());
         var captured=ArgumentCaptor.forClass(LabRequests.Experiment.class);verify(service,times(2)).create(captured.capture(),eq("fixture-admin"));
         captured.getAllValues().forEach(this::assertWerewolf);
-    }
-
-    @Test void legacyUndercoverTrueAndTenArgumentConstructorRemainCompatible() throws Exception {
-        String body="""
-                {"name":"旧卧底请求","agentIds":["a","b","c","d"],"playerCount":4,"targetGames":2,
-                 "wordPack":"daily","hasBlank":true,"budgetPoints":1000,
-                 "coach":{"modelKey":"fixture","thinkingMode":"ENABLED","thinkingEffort":"LOW"},"initialExperienceIds":{}}
-                """;
-        var selection=new LabRequests.Selection("fixture",com.aisocialgame.service.ai.config.AiModelSelection.ThinkingMode.ENABLED,"LOW");
-        var expected=new LabRequests.Experiment("旧卧底请求",List.of("a","b","c","d"),4,2,"daily",true,1000,selection,Map.of(),null);
-        assertEquals(expected,json.readValue(body,LabRequests.Experiment.class));assertEquals(expected,read(body,LabRequests.Experiment.class));
-        send(body).andExpect(status().isOk());verify(service).create(expected,"fixture-admin");
     }
 
     @Test void requiredNumbersStillRejectAbsentNullAndOutOfRangeThroughHttp() throws Exception {

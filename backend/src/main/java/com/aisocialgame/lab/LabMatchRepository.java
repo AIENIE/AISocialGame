@@ -11,7 +11,6 @@ public interface LabMatchRepository extends JpaRepository<LabMatch, String> {
     List<LabMatch> findByExperimentIdAndStatusInOrderBySequenceNumberAsc(String experimentId, Collection<String> statuses);
     List<LabMatch> findByEvaluationIdOrderBySequenceNumberAsc(String evaluationId);
     Optional<LabMatch> findByExperimentIdAndSequenceNumber(String experimentId, int sequenceNumber);
-    Optional<LabMatch> findByRoomId(String roomId);
     long countByStatusIn(Collection<String> statuses);
     long countByExperimentIdAndEvaluationIdIsNullAndStatusIn(String experimentId, Collection<String> statuses);
     Optional<LabMatch> findFirstByExperimentIdAndReasonIsNotNullOrderBySequenceNumberDesc(String experimentId);

@@ -137,7 +137,7 @@ public class LabManualReviewService {
             require(claim.requestId().equals(run.get("requestId")),"复盘请求身份不一致");
             require(headIds(experiment).equals(map(run.get("previousHeads"))),"当前经验已变化，原回复已保留");
             if(LabGameConfig.werewolf(experiment.configuration)) {match.status="REVIEWING";match.reason=null;}
-            coach.publish(experiment,match,claim.requestId(),claim.request(),output);
+            coach.publish(experiment,match,claim.requestId(),output);
             match.status="REVIEWED";match.reason=null;match.reviewLeaseUntil=null;
             run.put("publishedHeads",headIds(experiment));run.put("status","SUCCEEDED");run.remove("leaseUntilEpochMs");
             if(LabGameConfig.werewolf(experiment.configuration)) run.put("publishedStrategyVersionId",text(experiment.configuration.get("strategyHeadId")));

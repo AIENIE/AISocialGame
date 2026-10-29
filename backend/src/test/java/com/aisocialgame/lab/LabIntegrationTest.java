@@ -124,8 +124,8 @@ class LabIntegrationTest {
     }
     private String reviewedTenPlayerExperiment() {
         var agent=service.saveAgent(null,new LabRequests.Agent("Ten player fixture",personas.findAll().getFirst().getId(),selection));
-        var participants=java.util.stream.IntStream.range(0,10).mapToObj(index->new LabRequests.Participant(agent.id,null)).toList();
-        String id=text(service.create(new LabRequests.Experiment("Ten player review",null,10,10,"daily",true,1000,selection,Map.of(),participants),"admin").get("id"));
+        var participants=java.util.stream.IntStream.range(0,10).mapToObj(index->new LabRequests.Participant(agent.id,null,null)).toList();
+        String id=text(service.create(new LabRequests.Experiment("Ten player review",10,10,"daily",true,1000,selection,participants,null,null,null,null,null,null),"admin").get("id"));
         service.control(id,"start");lab.advance(id);lab.advance(id);service.control(id,"pause");
         var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow();finish(match,true);lab.advance(id);stubCoach();coach.process(id);lab.advance(id);
         assertEquals("PAUSED",experiments.findById(id).orElseThrow().status);return id;
@@ -134,7 +134,7 @@ class LabIntegrationTest {
         var agent=service.saveAgent(null,new LabRequests.Agent("Same",personas.findAll().getFirst().getId(),selection));
         var alternate=new LabRequests.Selection("alternate-fixture",AiModelSelection.ThinkingMode.DEFAULT,null);
         var participants=java.util.stream.IntStream.range(0,4).mapToObj(index -> new LabRequests.Participant(agent.id,null,index==0?alternate:null)).toList();
-        String id=text(service.create(new LabRequests.Experiment("Models",null,4,2,"daily",false,1000,selection,Map.of(),participants),"admin").get("id"));
+        String id=text(service.create(new LabRequests.Experiment("Models",4,2,"daily",false,1000,selection,participants,null,null,null,null,null,null),"admin").get("id"));
         var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
         assertEquals("alternate-fixture",map(roster.getFirst().get("modelSelection")).get("modelKey"));
         assertEquals("fixture-model",map(roster.get(1).get("modelSelection")).get("modelKey"));
@@ -157,7 +157,7 @@ class LabIntegrationTest {
     }
 
     @Test void serialExperimentsFreezeProfilesAndRecoverWithoutDuplicateGamesOrGlobalRewards() {
-        String id=create(6,3);
+        String id=create(6);
         service.control(id,"start");
         lab.advance(id); lab.advance(id);
         var active=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE);
@@ -187,7 +187,7 @@ class LabIntegrationTest {
         assertTrue(rooms.findDiscoverable("undercover",null,java.time.LocalDateTime.now().minusHours(3),org.springframework.data.domain.PageRequest.of(0,100)).stream().noneMatch(Room::isLab));
     }
     @Test void fifoEnrollmentRequiresConfirmationAndAiFillsUnconfirmedSeats() {
-        String id=create(1,1); service.control(id,"start");
+        String id=create(1); service.control(id,"start");
         User first=user("human-first"),second=user("human-second"),third=user("human-third");
         service.enroll(id,first); service.enroll(id,second); service.enroll(id,third);
         var joinedAt=enrollments.findByExperimentIdAndUserId(id,first.getId()).orElseThrow().joinedAt;
@@ -209,16 +209,16 @@ class LabIntegrationTest {
         assertThrows(RuntimeException.class,()->service.enrollmentAction(id,first,false));
     }
     @Test void laboratoryRoomCodesRetryAnExistingHistoricalCode() {
-        String first=create(1,1); service.control(first,"start"); lab.advance(first);
+        String first=create(1); service.control(first,"start"); lab.advance(first);
         var original=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(first,LabRuntime.ACTIVE).getFirst();
         String occupied=rooms.findById(original.roomId).orElseThrow().getRoomCode();
         doReturn(occupied).doCallRealMethod().when(codes).next();
-        String second=create(1,1); service.control(second,"start"); lab.advance(second);
+        String second=create(1); service.control(second,"start"); lab.advance(second);
         var created=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(second,LabRuntime.ACTIVE).getFirst();
         assertNotEquals(occupied,rooms.findById(created.roomId).orElseThrow().getRoomCode());
     }
     @Test void unavailableFrozenModelPausesBeforeCreatingAnyFurtherGames() {
-        String id=create(2,1); service.control(id,"start");
+        String id=create(2); service.control(id,"start");
         doThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.CONFLICT,"fixture invalid model","MODEL_SELECTION_UNAVAILABLE",Map.of()))
                 .when(models).requireUsable(any(AiModelSelection.class));
         lab.advance(id);
@@ -228,7 +228,7 @@ class LabIntegrationTest {
         verifyNoInteractions(client);
     }
     @Test void oneThousandPersistedGamesPublishOnceSeriallyAcrossRecreatedSchedulers() {
-        String id=create(1000,3); service.control(id,"start"); stubCoach();
+        String id=create(1000); service.control(id,"start"); stubCoach();
         var recoveredRuntime=new LabRuntime(experiments,matches,enrollments,evaluations,rooms,states,jobs,codes,game,models,budgets);
         var recoveredCoach=new LabCoachService(experiments,matches,experiences,states,client,properties,json,transactionManager,budgets);
         var transaction=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
@@ -261,7 +261,7 @@ class LabIntegrationTest {
         assertEquals(1001,experiments.findById(id).orElseThrow().reviewCursor);
     }
     @Test void uncertainReviewResumesWithItsFrozenRequestIdentityAfterRecreation() {
-        String id=create(1,1); service.control(id,"start"); lab.advance(id); lab.advance(id);
+        String id=create(1); service.control(id,"start"); lab.advance(id); lab.advance(id);
         finish(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).getFirst(),true); lab.advance(id);
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
                 .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"fixture unknown","BUDGET_RECONCILIATION_REQUIRED",Map.of()));
@@ -277,7 +277,7 @@ class LabIntegrationTest {
         verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(request),anyInt());
     }
     @Test void reflectionFailureIsAtomicAndRequiresExplicitRetryAndRollbackCreatesANewVersion() {
-        String id=create(2,1); service.control(id,"start"); lab.advance(id); lab.advance(id);
+        String id=create(2); service.control(id,"start"); lab.advance(id); lab.advance(id);
         var match=matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).getFirst();
         finish(match); lab.advance(id);
         assertEquals(1,matches.findByExperimentIdOrderBySequenceNumberDesc(id,org.springframework.data.domain.PageRequest.of(0,20)).getTotalElements());
@@ -293,38 +293,27 @@ class LabIntegrationTest {
         service.rollback(id,version.id);
         assertEquals(2,experiences.latestSequence(id,version.participantId));
     }
-    @Test void legacyRosterAndFrozenCoachRequestKeepTheirOriginalIdentities() throws Exception {
-        String id=create(1,3); var experiment=experiments.findById(id).orElseThrow();
-        var heads=new LinkedHashMap<String,Object>();
-        var oldRoster=maps(experiment.configuration.get("roster"));
-        var oldHeads=map(experiment.configuration.get("experiences"));
-        for(var profile:oldRoster) { heads.put(text(profile.get("agentId")),oldHeads.get(LabService.participantId(profile))); profile.remove("participantId"); }
-        experiment.configuration.put("roster",oldRoster); experiment.configuration.put("experiences",heads);
-        experiment.configuration.put("initialExperiences",new LinkedHashMap<>(heads)); experiments.saveAndFlush(experiment);
+    @Test void frozenCoachRequestKeepsItsOriginalIdentityDuringRecovery() throws Exception {
+        String id=create(1); var experiment=experiments.findById(id).orElseThrow();
         service.control(id,"start"); lab.advance(id); lab.advance(id);
         var match=matches.findByExperimentIdAndSequenceNumber(id,1).orElseThrow(); finish(match,true); lab.advance(id);
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt()))
                 .thenThrow(new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"fixture unknown","BUDGET_RECONCILIATION_REQUIRED",Map.of()));
         coach.process(id); match=matches.findById(match.id).orElseThrow();
-        var frozen=map(match.snapshot.get("reviewRequest")); frozen.remove("identityField");
-        var messages=maps(frozen.get("messages"));
-        var input=map(json.readValue(text(messages.getLast().get("content")),Map.class));
-        var oldAgents=maps(input.get("agents")); oldAgents.forEach(profile -> profile.remove("participantId")); input.put("agents",oldAgents);
-        messages.getLast().put("content",json.writeValueAsString(input)); frozen.put("messages",messages); match.snapshot.put("reviewRequest",frozen);
-        matches.saveAndFlush(match); String requestId=text(match.snapshot.get("reviewRequestId"));
+        var frozen=map(match.snapshot.get("reviewRequest")); String requestId=text(match.snapshot.get("reviewRequestId"));
         stubCoach(); readyReview(match.id); coach.process(id); lab.advance(id);
         var completed=matches.findById(match.id).orElseThrow();
         assertEquals(frozen,completed.snapshot.get("reviewRequest")); assertEquals(requestId,completed.snapshot.get("reviewRequestId"));
         assertEquals("REVIEWED",completed.status);
-        assertTrue(experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).stream().allMatch(version -> version.agentId.equals(version.participantId)));
+        assertTrue(experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).stream().allMatch(version -> !version.participantId.isBlank() && !version.agentId.equals(version.participantId)));
         assertFalse(map(service.detail(id,null,true).get("configuration")).containsKey("concurrency"));
     }
     @Test void pairedEvaluationFreezesOpponentsAndNeverPublishesExperience() {
-        String id=create(1,2); service.control(id,"start"); lab.advance(id); lab.advance(id);
+        String id=create(1); service.control(id,"start"); lab.advance(id); lab.advance(id);
         finish(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).getFirst());
         lab.advance(id); stubCoach(); coach.process(id); lab.advance(id);
         var experience=experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getContent().getFirst();
-        var evaluation=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,null,1,experience.id));
+        var evaluation=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,1,experience.id,null,null,null,null));
         lab.advance(id); lab.advance(id);
         var first=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id"))).getFirst();
         finish(first); lab.advance(id); lab.advance(id);
@@ -339,7 +328,7 @@ class LabIntegrationTest {
         assertFalse(coach.process(id));
         assertEquals(4,experiences.findByExperimentIdOrderByCreatedAtDesc(id,org.springframework.data.domain.PageRequest.of(0,30)).getTotalElements());
         assertEquals(1,service.evaluationView(newEvaluation(text(evaluation.get("id")))).get("validPairs"));
-        var stopped=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,null,1,experience.id));
+        var stopped=service.evaluate(id,new LabRequests.Evaluation(experience.participantId,1,experience.id,null,null,null,null));
         lab.advance(id); service.control(id,"stop"); lab.advance(id);
         assertEquals("STOPPED",newEvaluation(text(stopped.get("id"))).status);
         assertEquals("STOPPED",experiments.findById(id).orElseThrow().status);
@@ -347,15 +336,15 @@ class LabIntegrationTest {
     @Autowired LabEvaluationRepository evaluations;
     @Test void differentExperimentsUseTheGlobalResourceLimitWithoutOverlappingTheirOwnGames() {
         var ids=new ArrayList<String>();
-        for(int index=0;index<4;index++) { String id=create(2,3); ids.add(id); service.control(id,"start"); lab.advance(id); lab.advance(id); }
+        for(int index=0;index<4;index++) { String id=create(2); ids.add(id); service.control(id,"start"); lab.advance(id); lab.advance(id); }
         assertEquals(3,matches.countByStatusIn(LabRuntime.ACTIVE));
         for(String id:ids) assertTrue(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(id,LabRuntime.ACTIVE).size()<=1);
         assertTrue(matches.findByExperimentIdAndStatusInOrderBySequenceNumberAsc(ids.getLast(),LabRuntime.ACTIVE).isEmpty());
     }
     @Test void duplicateProfilesKeepIndependentExperiencesInheritanceAndPairedEvaluationIdentities() {
         String agent=service.saveAgent(null,new LabRequests.Agent("Duplicate",personas.findAll().getFirst().getId(),selection)).id;
-        var participants=java.util.stream.IntStream.range(0,4).mapToObj(index -> new LabRequests.Participant(agent,null)).toList();
-        String id=text(service.create(new LabRequests.Experiment("Copies",null,4,2,"daily",false,1000,selection,null,participants),"admin").get("id"));
+        var participants=java.util.stream.IntStream.range(0,4).mapToObj(index -> new LabRequests.Participant(agent,null,null)).toList();
+        String id=text(service.create(new LabRequests.Experiment("Copies",4,2,"daily",false,1000,selection,participants,null,null,null,null,null,null),"admin").get("id"));
         var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
         assertEquals(4,roster.stream().map(LabService::participantId).distinct().count());
         assertEquals(List.of("Duplicate #1","Duplicate #2","Duplicate #3","Duplicate #4"),roster.stream().map(profile -> profile.get("name")).toList());
@@ -372,8 +361,8 @@ class LabIntegrationTest {
         assertEquals(4,versions.size()); assertEquals(4,versions.stream().map(version -> version.participantId).distinct().count());
         var chosen=versions.getFirst(); service.rollback(id,chosen.id);
         for(var version:versions) assertEquals(version==chosen?2:1,experiences.latestSequence(id,version.participantId));
-        var inherited=versions.stream().map(version -> new LabRequests.Participant(agent,version.id)).toList();
-        String child=text(service.create(new LabRequests.Experiment("Inherited copies",null,4,1,"daily",false,1000,selection,null,inherited),"admin").get("id"));
+        var inherited=versions.stream().map(version -> new LabRequests.Participant(agent,version.id,null)).toList();
+        String child=text(service.create(new LabRequests.Experiment("Inherited copies",4,1,"daily",false,1000,selection,inherited,null,null,null,null,null,null),"admin").get("id"));
         var childConfig=experiments.findById(child).orElseThrow().configuration;
         var childRoster=LabService.roster(childConfig);
         for(int index=0;index<4;index++) {
@@ -381,8 +370,8 @@ class LabIntegrationTest {
             assertFalse(roster.stream().anyMatch(profile -> participant.equals(LabService.participantId(profile))));
             assertEquals(versions.get(index).id,map(map(childConfig.get("experiences")).get(participant)).get("experienceId"));
         }
-        assertThrows(RuntimeException.class,()->service.evaluate(id,new LabRequests.Evaluation(null,agent,1,chosen.id)));
-        var evaluation=service.evaluate(id,new LabRequests.Evaluation(chosen.participantId,null,1,chosen.id));
+
+        var evaluation=service.evaluate(id,new LabRequests.Evaluation(chosen.participantId,1,chosen.id,null,null,null,null));
         lab.advance(id); lab.advance(id);
         var baseline=matches.findByEvaluationIdOrderBySequenceNumberAsc(text(evaluation.get("id"))).getFirst();
         finish(baseline,true); lab.advance(id); lab.advance(id);
@@ -395,7 +384,7 @@ class LabIntegrationTest {
     }
     private LabEvaluation newEvaluation(String id) { return evaluations.findById(id).orElseThrow(); }
     @Test void evaluationIncludesAbortedAttemptsInFailureRatesWithoutCountingUnpairedWins() {
-        String id=create(1,1);
+        String id=create(1);
         var evaluation=new LabEvaluation(); evaluation.experimentId=id; evaluation.agentId="fixture-agent"; evaluation.participantId="fixture-agent"; evaluation.pairs=2;
         evaluations.saveAndFlush(evaluation);
         evaluationMatch(evaluation,1,0,"BASELINE","REVIEWED",true,3,0);
@@ -416,11 +405,11 @@ class LabIntegrationTest {
         var match=new LabMatch(); match.experimentId=evaluation.experimentId; match.evaluationId=evaluation.id;
         match.sequenceNumber=sequence; match.roomId=UUID.randomUUID().toString(); match.variant=variant; match.status=status;
         match.snapshot.put("pairIndex",pair);
-        match.snapshot.put("results",List.of(Map.of("agentId",evaluation.agentId,"role","CIVILIAN","won",won,"successfulActions",succeeded,"failedActions",failed)));
+        match.snapshot.put("results",List.of(Map.of("agentId",evaluation.agentId,"participantId",evaluation.participantId,"role","CIVILIAN","won",won,"successfulActions",succeeded,"failedActions",failed)));
         matches.saveAndFlush(match);
     }
     @Test void eightConcurrentQuotesDoNotConsumeTheExperimentBudgetAndSettleOnce() throws Exception {
-        String id=create(1,1);
+        String id=create(1);
         var experiment=experiments.findById(id).orElseThrow(); experiment.status="RUNNING"; experiments.saveAndFlush(experiment);
         spent(id,8);
         long userId=Math.abs(UUID.randomUUID().getMostSignificantBits()%100_000_000)+2000;
@@ -464,7 +453,7 @@ class LabIntegrationTest {
                 .setMaxProviderAttempts(1).setExpiresAtEpochMs(System.currentTimeMillis()+60000).setPriceQuote(quote).build();
     }
     @Test void budgetPauseSurvivesReloadAndResumesTheSameTurnWithoutExpiringItsClock() {
-        String id=create(3,1); var match=runningMatch(id);
+        String id=create(3); var match=runningMatch(id);
         var state=states.findById(match.roomId).orElseThrow(); state.setPhaseEndsAt(java.time.LocalDateTime.now().plusSeconds(30)); states.saveAndFlush(state);
         String archive=text(state.getData().get("archiveId"));
         var job=turns.claim(jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst().getId());
@@ -489,7 +478,7 @@ class LabIntegrationTest {
         assertEquals(archive,text(states.findById(match.roomId).orElseThrow().getData().get("archiveId")));
     }
     @Test void runningResultIsAppliedWhilePausedAndAdminCanEndThePreservedGame() {
-        String id=create(3,1); var match=runningMatch(id);
+        String id=create(3); var match=runningMatch(id);
         var job=turns.claim(jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst().getId());
         spent(id,1001); lab.advance(id); game.complete(job.getId(),speech());
         assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
@@ -503,7 +492,7 @@ class LabIntegrationTest {
         assertTrue(archives.existsById(stopped.archiveId));
     }
     @Test void editingUsesActualDebitAsMinimumAndDoesNotAutomaticallyRestartAnyState() {
-        String id=create(3,1); spent(id,12);
+        String id=create(3); spent(id,12);
         for(String status:List.of("DRAFT","RUNNING","PAUSING","STOPPING","PAUSED","COMPLETED","STOPPED")) {
             var experiment=experiments.findById(id).orElseThrow(); experiment.status=status; experiment.configuration.remove("budgetPaused"); experiments.saveAndFlush(experiment);
             assertEquals(status,service.updateBudget(id,20).get("status"));
@@ -531,7 +520,7 @@ class LabIntegrationTest {
         return converter.read(LabRequests.Budget.class,input);
     }
     @Test void budgetPausedCoachKeepsTheOriginalRequestForResume() {
-        String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
+        String id=create(1); var match=runningMatch(id); finish(match,true); lab.advance(id);
         when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),anyString(),anyInt())).thenAnswer(invocation->{
             spent(id,1000); throw new com.aisocialgame.exception.ApiException(org.springframework.http.HttpStatus.CONFLICT,"budget",LabBudgetService.EXHAUSTED,Map.of());
         });
@@ -544,7 +533,7 @@ class LabIntegrationTest {
         verify(client,times(2)).undercoverChatCompletions(anyString(),anyLong(),anyString(),any(AiModelSelection.class),anyList(),eq(original),anyInt());
     }
     @Test void raisingBudgetBeforeCoordinatorObservesAFrozenRoomStillRequiresExplicitResume() {
-        String id=create(3,1); var match=runningMatch(id);
+        String id=create(3); var match=runningMatch(id);
         game.pauseLabBudget(match.roomId);
         assertFalse(LabBudgetService.paused(experiments.findById(id).orElseThrow()));
         var updated=service.updateBudget(id,2000);
@@ -554,7 +543,7 @@ class LabIntegrationTest {
         assertEquals("PLAYING",matches.findById(match.id).orElseThrow().status);
     }
     @Test void allWorkCompletedAtTheBudgetDoesNotRequireAnotherTopUpToFinish() {
-        String id=create(1,1); var match=runningMatch(id); finish(match,true); lab.advance(id);
+        String id=create(1); var match=runningMatch(id); finish(match,true); lab.advance(id);
         stubCoach(); assertTrue(coach.process(id)); spent(id,1000); lab.advance(id);
         assertEquals("COMPLETED",experiments.findById(id).orElseThrow().status);
         assertFalse(LabBudgetService.paused(experiments.findById(id).orElseThrow()));
@@ -563,7 +552,7 @@ class LabIntegrationTest {
         var ids=new ArrayList<String>();
         for(int i=0;i<4;i++) ids.add(service.saveAgent(null,new LabRequests.Agent("base-"+i,personas.findAll().get(i).getId(),selection)).id);
         var participants=java.util.stream.IntStream.range(0,10).mapToObj(i->new LabRequests.Participant(ids.get(i%4),null,selection)).toList();
-        String id=text(service.create(new LabRequests.Experiment("10 vote recovery",null,10,1,"daily",true,10000,selection,Map.of(),participants),"admin").get("id"));
+        String id=text(service.create(new LabRequests.Experiment("10 vote recovery",10,1,"daily",true,10000,selection,participants,null,null,null,null,null,null),"admin").get("id"));
         var match=runningMatch(id);
         for(int i=0;i<10;i++) {
             var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();
@@ -607,7 +596,7 @@ class LabIntegrationTest {
         match.snapshot.put("reviewRecovery",recovery);matches.saveAndFlush(match);
     }
     @Test void deletingProfilePreservesFrozenRosterAndAllExperienceVersions() {
-        String id=create(1,1); var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
+        String id=create(1); var roster=LabService.roster(experiments.findById(id).orElseThrow().configuration);
         String agent=text(roster.getFirst().get("agentId")); service.deleteAgent(agent);
         assertTrue(service.agents().stream().noneMatch(row -> agent.equals(row.id)));
         var match=runningMatch(id);finish(match,true);lab.advance(id);stubCoach();coach.process(id);lab.advance(id);
@@ -616,7 +605,7 @@ class LabIntegrationTest {
         assertEquals(roster,LabService.roster(experiments.findById(id).orElseThrow().configuration));
     }
     @Test void callBlockPreservesSameGameAndQueuedActionAndAllowsAdministratorResume() {
-        String id=create(1,1); var match=runningMatch(id);
+        String id=create(1); var match=runningMatch(id);
         var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();var job=turns.claim(pending.getId());
         game.defer(job.getId(),Map.of("nextAttempt",0,"transportAttempt",4),"LAB_CALL_RETRIES_EXHAUSTED");
         try(var scope=LabCallContext.open(Map.of("experimentId",id,"matchId",match.id),"TURN")) {
@@ -631,7 +620,7 @@ class LabIntegrationTest {
         game.complete(job.getId(),speech());assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
     }
     @Test void expiredWallClockDoesNotConsumePureAiLabQueueOrDiscardItsLateResult() {
-        String id=create(1,1);var match=runningMatch(id);
+        String id=create(1);var match=runningMatch(id);
         var pending=jobs.findByRoomIdAndStatusIn(match.roomId,List.of("QUEUED")).getFirst();var job=turns.claim(pending.getId());
         var state=states.findById(match.roomId).orElseThrow();String phase=state.getPhase();
         state.setPhaseEndsAt(java.time.LocalDateTime.now().minusHours(1));states.saveAndFlush(state);
@@ -655,11 +644,10 @@ class LabIntegrationTest {
         row.labExperimentId=id; row.labPurpose="TURN"; row.billedPoints=points; row.billedCost=java.math.BigDecimal.valueOf(points,2);
         reservations.saveAndFlush(row);
     }
-    private String create(int games,int concurrency) {
+    private String create(int games) {
         var ids=new ArrayList<String>();
         for(int seat=0;seat<4;seat++) ids.add(service.saveAgent(null,new LabRequests.Agent("AI "+seat,personas.findAll().get(seat).getId(),selection)).id);
-        String id=text(service.create(new LabRequests.Experiment("Lab fixture",ids,4,games,"daily",false,1000,selection,Map.of(),null),"admin").get("id"));
-        var experiment=experiments.findById(id).orElseThrow(); experiment.configuration.put("concurrency",concurrency); experiments.saveAndFlush(experiment);
+        String id=text(service.create(new LabRequests.Experiment("Lab fixture",4,games,"daily",false,1000,selection,ids.stream().map(agentId -> new LabRequests.Participant(agentId,null,null)).toList(),null,null,null,null,null,null),"admin").get("id"));
         return id;
     }
     private User user(String name) { var user=new User(); user.setId(UUID.randomUUID().toString()); user.setNickname(name); return user; }

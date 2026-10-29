@@ -100,6 +100,34 @@ class CleanupMySqlTest {
             ClosureMySqlSupport.evidence("local-history-cleanup",Map.of("passed",true,"deleted",applied.deleted(),"retainedMoneyUnknown",14,"balancesAndLotsUnchanged",true,"repeatDeleted",repeated.deleted()));
         }
     }
+    @Test void retiresOldLabOwnershipWhilePreservingCurrentExperienceReferencesAndMoneyReceipts() throws Exception {
+        try (var connection=ClosureMySqlSupport.connect("cleanup")) {
+            ClosureMySqlMigrationTest.script(connection,"sql/schema.sql");
+            insert(connection,"lab_experiments",Map.of("id","old-lab","configuration","{\"roster\":[{\"agentId\":\"agent\"}]}"));
+            insert(connection,"lab_experiments",Map.of("id","native-lab","configuration","{\"roster\":[{\"agentId\":\"agent\",\"participantId\":\"copy\",\"initialExperienceId\":\"shared\"}]}"));
+            insert(connection,"rooms",Map.of("id","old-lab-room","room_code","123456","game_id","undercover"));
+            insert(connection,"game_states",Map.of("room_id","old-lab-room","game_id","undercover","data","{\"ruleVersion\":2,\"archiveId\":\"old-lab-archive\"}"));
+            insert(connection,"game_archives",Map.of("id","old-lab-archive","room_id","old-lab-room","game_id","undercover","players_snapshot","{\"ruleVersion\":2}"));
+            insert(connection,"lab_matches",Map.of("id","old-match","experiment_id","old-lab","room_id","old-lab-room","archive_id","old-lab-archive","snapshot","{}"));
+            insert(connection,"lab_evaluations",Map.of("id","old-evaluation","experiment_id","old-lab","configuration","{}"));
+            for (String id:List.of("shared","unshared")) insert(connection,"lab_experiences",Map.of("id",id,"experiment_id","old-lab","participant_id",id,"evidence","{}"));
+            receipt(connection,"lab-money-unknown","USAGE_UNKNOWN","current-price-quote");
+            try (var statement=connection.createStatement()) { statement.executeUpdate("UPDATE ai_credit_reservations SET lab_experiment_id='old-lab',lab_match_id='old-match'"); }
+            connection.setAutoCommit(false);
+            var plan=LocalHistoryCleanup.preview(connection);connection.rollback();
+            assertEquals(List.of("old-lab"),plan.ids().get("lab_experiments"));
+            assertEquals(List.of("unshared"),plan.ids().get("lab_experiences"));
+            assertEquals(0,plan.counts().get("ai_credit_reservations"));
+            var applied=LocalHistoryCleanup.apply(connection,plan);connection.commit();
+            assertEquals(plan.protectedRows(),applied.protectedRows());
+            assertEquals(1,count(connection,"SELECT COUNT(*) FROM lab_experiments"));
+            assertEquals(1,count(connection,"SELECT COUNT(*) FROM lab_experiences WHERE id='shared'"));
+            assertEquals(1,count(connection,"SELECT COUNT(*) FROM ai_credit_reservations WHERE state='USAGE_UNKNOWN'"));
+            for (String table:List.of("rooms","game_states","game_archives","lab_matches","lab_evaluations")) assertEquals(0,count(connection,"SELECT COUNT(*) FROM "+table),table);
+            assertTrue(LocalHistoryCleanup.apply(connection,plan).alreadyApplied());connection.commit();
+            ClosureMySqlSupport.evidence("local-lab-history-cleanup",Map.of("passed",true,"deleted",applied.deleted(),"moneyUnknownRetained",true,"sharedExperienceRetained",true));
+        }
+    }
     private static long count(Connection connection,String sql) throws SQLException {
         try(var statement=connection.createStatement();var result=statement.executeQuery(sql)) { assertTrue(result.next());return result.getLong(1); }
     }

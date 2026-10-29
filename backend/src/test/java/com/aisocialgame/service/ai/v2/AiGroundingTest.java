@@ -9,7 +9,7 @@ class AiGroundingTest {
         return new VisibleObservation(game, "i", "RESPONSE", 2, "p0", "ANSWER_PLAYER", Map.of(), List.of(), Map.of(),
                 List.of(Map.of("eventId", "own", "actorId", "p0", "type", "SPEAK", "round", 1, "message", "闻起来很香。"),
                         Map.of("eventId", "other", "actorId", "p1", "type", "ASK_PLAYER", "round", 2, "message", "有什么用途？")),
-                Map.of(), List.of(), Map.of(), Map.of("commitments", List.of("我会再看一轮")), List.of());
+                Map.of(), List.of(), Map.of(), Map.of("formatVersion",4,"commitments", List.of(Map.of("id","commitment","status","ACTIVE","text","我会再看一轮"))), List.of());
     }
     @Test void exactQuoteMustMatchOwnStatementEvenWhenEvidenceIdExists() {
         assertTrue(AiGrounding.check(observation("undercover"), Map.of("speech", "我刚才说过“闻起来很香”。", "evidenceEventIds", List.of("own"))).isEmpty());

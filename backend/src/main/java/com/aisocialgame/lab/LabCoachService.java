@@ -117,7 +117,7 @@ public class LabCoachService {
                 }
                 try {
                     String input=json.writeValueAsString(Map.of("agents",profiles,"events",publicEvents,"results",match.snapshot.get("results")));
-                    match.snapshot.put("reviewRequest",Map.of("roomId",match.roomId,"identityField","participantId","selection",match.snapshot.get("coach"),
+                    match.snapshot.put("reviewRequest",Map.of("roomId",match.roomId,"selection",match.snapshot.get("coach"),
                             "messages",List.of(Map.of("role","system","content",SYSTEM),Map.of("role","user","content",input))));
                     match.snapshot.put("reviewEventIds",publicEvents.stream().map(event -> text(event.get("eventId"))).toList());
                 } catch(com.fasterxml.jackson.core.JsonProcessingException failure) { throw new IllegalStateException(failure); }
@@ -145,25 +145,24 @@ public class LabCoachService {
             var match=matches.lock(claim.matchId()).orElseThrow();
             if(!"REVIEWING".equals(match.status) || !claim.requestId().equals(match.snapshot.get("reviewRequestId"))) return;
             match.reason=null;
-            publish(experiment,match,claim.requestId(),claim.request(),output);
+            publish(experiment,match,claim.requestId(),output);
             match.status="REVIEWED"; match.reason=null; match.reviewLeaseUntil=null;
             matches.save(match); experiments.save(experiment);
         });
     }
     /** Caller holds the experiment and match locks; all participants publish in that same transaction. */
-    void publish(LabExperiment experiment,LabMatch match,String requestId,Map<String,Object> request,Map<String,Object> output) {
+    void publish(LabExperiment experiment,LabMatch match,String requestId,Map<String,Object> output) {
             if(LabGameConfig.werewolf(experiment.configuration)) {
                 werewolfReview.publish(experiment,match,requestId,output); return;
             }
             var profiles=new HashMap<String,Map<String,Object>>();
             map(match.snapshot.get("players")).values().forEach(value -> { var profile=map(value); profiles.put(LabService.participantId(profile),profile); });
             var expected=profiles.keySet();
-            String identityField=text(request.getOrDefault("identityField","agentId"));
             var entries=maps(output.get("experiences"));
             var actual=new HashSet<String>();
             var eventIds=new HashSet<>(strings(match.snapshot.get("reviewEventIds")));
             for(var entry:entries) {
-                String participantId=text(entry.get(identityField)),summary=text(entry.get("summary")).strip();
+                String participantId=text(entry.get("participantId")),summary=text(entry.get("summary")).strip();
                 var evidence=strings(entry.get("evidenceEventIds"));
                 if(!expected.contains(participantId) || !actual.add(participantId) || summary.isBlank() || summary.length()>1200
                         || evidence.isEmpty() || !eventIds.containsAll(evidence)) throw invalid();
@@ -171,7 +170,7 @@ public class LabCoachService {
             if(!actual.equals(expected)) throw invalid();
             var heads=map(experiment.configuration.get("experiences"));
             for(var entry:entries) {
-                String participantId=text(entry.get(identityField));
+                String participantId=text(entry.get("participantId"));
                 var version=new LabExperience(); version.experimentId=experiment.id; version.agentId=text(profiles.get(participantId).get("agentId"));
                 version.participantId=participantId; version.sequenceNumber=experiences.latestSequence(experiment.id,participantId)+1;
                 version.summary=text(entry.get("summary")).strip(); version.previousId=text(map(heads.get(participantId)).get("experienceId"));

@@ -10,7 +10,7 @@ class ClosureSequenceRunnerTest {
         var fixtures=new MilestoneClosureScenarios();List<MilestoneClosureScenarios.Sample> samples=new ArrayList<>();
         List<Map<String,Object>> exported=new ArrayList<>();
         fixtures.sequences(s->{
-            samples.add(s);var decision=com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), s.observation()));
+            samples.add(s);var decision=com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(s.adapter(), s.observation());
             var row=new LinkedHashMap<String,Object>(s.metadata());row.put("coverage",s.coverage());row.put("observation",s.observation());row.put("decision",decision);row.put("status","GENERATED");exported.add(row);return decision;
         });
         var document=MilestoneClosureScenarios.header("offline-rule-sequences","SYNTHETIC_TEST");document.put("samples",exported);

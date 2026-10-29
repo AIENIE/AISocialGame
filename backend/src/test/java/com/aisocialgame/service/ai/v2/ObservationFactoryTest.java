@@ -138,14 +138,15 @@ class ObservationFactoryTest {
         assertEquals(own.subList(2, 10), maps(AiGrounding.context(observation).get("ownStatements")).stream().map(e -> e.get("eventId")).toList());
     }
 
-    @Test void hypothesisAndCommitmentEvidenceSurvivesWithoutPromotingHiddenEventsOrLegacyText() {
+    @Test void structuredMemoryKeepsVisibleEvidenceWithoutExposingHiddenEvents() {
         GameState state = wordState();
         event(state, "PUBLIC_TEST", "p1", null, "早期公共依据", Map.of()); String publicId = lastEventId(state);
         event(state, "PRIVATE_TEST", "p0", null, "本人的可见依据", Map.of(), "PRIVATE", List.of("p0")); String privateId = lastEventId(state);
         event(state, "PRIVATE_TEST", "p1", null, "他人的不可见依据", Map.of(), "PRIVATE", List.of("p1")); String secretId = lastEventId(state);
         state.getData().put("aiMemoriesV2", Map.of("p0", Map.of(
-                "hypotheses", List.of(Map.of("text", "尚未确认", "evidenceEventIds", List.of(publicId, secretId))),
-                "commitments", List.of("旧版承诺", Map.of("text", "待核对承诺", "eventId", privateId)))));
+                "formatVersion",4,
+                "hypotheses", List.of(Map.of("text", "尚未确认", "source","MODEL_PROPOSAL","round",1,"evidenceEventIds", List.of(publicId, secretId))),
+                "commitments", List.of(Map.of("id","commitment","status","ACTIVE","text", "待核对承诺", "sourceEventId", privateId,"evidenceEventIds",List.of(privateId))))));
         for (int i = 0; i < 60; i++) event(state, "PUBLIC_NOTICE", null, null, "事件" + i, Map.of());
         var observation = observe(state, "p0");
         assertEquals(62, observation.events().size());
@@ -153,7 +154,7 @@ class ObservationFactoryTest {
         assertTrue(observation.events().stream().anyMatch(e -> privateId.equals(e.get("eventId"))));
         assertFalse(observation.events().stream().anyMatch(e -> secretId.equals(e.get("eventId"))));
         var context = AiGrounding.context(observation);
-        assertEquals(2, maps(context.get("commitmentsToVerify")).size());
+        assertEquals(1, maps(context.get("commitmentsToVerify")).size());
         assertTrue(maps(context.get("ownStatements")).isEmpty());
         assertFalse(observation.events().toString().contains("他人的不可见依据"));
     }

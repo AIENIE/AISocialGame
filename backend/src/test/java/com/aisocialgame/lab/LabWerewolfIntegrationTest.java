@@ -34,7 +34,7 @@ class LabWerewolfIntegrationTest {
         var ids=new ArrayList<String>();
         for(int i=0;i<4;i++) ids.add(service.saveAgent(null,new LabRequests.Agent("fixture "+i,"ai"+(i+1),selection)).id);
         var participants=new ArrayList<LabRequests.Participant>();for(int i=0;i<9;i++) participants.add(new LabRequests.Participant(ids.get(i%4),null,selection));
-        return text(service.create(new LabRequests.Experiment("werewolf fixture",null,9,2,null,false,3000,selection,null,participants,
+        return text(service.create(new LabRequests.Experiment("werewolf fixture",9,2,null,false,3000,selection,participants,
                 "werewolf",Map.of(),"SHARED_STRATEGY",null,20261026L,900L),"fixture-admin").get("id"));
     }
     LabMatch next(String id,int sequence) {runtime.advance(id);runtime.advance(id);return matches.findByExperimentIdAndSequenceNumber(id,sequence).orElseThrow();}
@@ -52,7 +52,7 @@ class LabWerewolfIntegrationTest {
         String id=draft();var experiment=experiments.findById(id).orElseThrow();experiment.status="PAUSED";experiments.saveAndFlush(experiment);
         var candidate=Map.<String,Object>of("id","candidate","experimentId",id,"content",Map.of("cards",List.of()));when(strategies.strategySnapshot("candidate")).thenReturn(candidate);
         String target=LabService.participantId(maps(experiment.configuration.get("roster")).getFirst());
-        var request=new LabRequests.Evaluation(target,null,1,null,"candidate","paired-operation","WITCH",202610261L);
+        var request=new LabRequests.Evaluation(target,1,null,"candidate","paired-operation","WITCH",202610261L);
         var evaluation=service.evaluate(id,request);assertEquals(evaluation.get("id"),service.evaluate(id,request).get("id"));
         var row=evaluations.findById(text(evaluation.get("id"))).orElseThrow();row.configuration.put("singleAttempt",true);evaluations.saveAndFlush(row);
         var first=next(id,1);var state=states.findById(first.roomId).orElseThrow();state.setPhase("SETTLEMENT");states.saveAndFlush(state);

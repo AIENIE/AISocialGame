@@ -22,12 +22,13 @@ public final class LocalHistoryCleanup {
         KEYS.put("player_settlements",List.of("archive_id","player_id"));
         KEYS.put("ai_safety_controls",List.of("id"));
         KEYS.put("ai_persona_memories",List.of("id"));
+        for (String table : List.of("lab_enrollments","lab_evaluations","lab_experiences","lab_matches")) KEYS.put(table,List.of("id"));
         KEYS.put("game_states",List.of("room_id"));
-        for (String table : List.of("game_archives", "rooms", "credit_ledger_entries", "ai_credit_reservations")) KEYS.put(table,List.of("id"));
+        for (String table : List.of("game_archives", "rooms", "lab_experiments", "credit_ledger_entries", "ai_credit_reservations")) KEYS.put(table,List.of("id"));
     }
     private static final List<String> PROTECTED = List.of("credit_accounts", "credit_temp_lots", "credit_ledger_entries",
             "ai_credit_reservations", "credit_checkin_records", "credit_exchange_transactions", "credit_redemption_records",
-            "player_stats", "player_settlement_locks", "lab_experiments", "lab_matches", "lab_training_runs",
+            "player_stats", "player_settlement_locks", "lab_experiments", "lab_matches", "lab_experiences", "lab_enrollments", "lab_evaluations", "lab_training_runs",
             "lab_training_cases", "lab_training_tasks", "lab_strategy_versions", "strategy_publications", "ai_safety_events");
     public record Fingerprint(int rows, String sha256) {}
     public record Plan(String target, Map<String,List<String>> ids, Map<String,List<String>> memoryActors,
@@ -48,10 +49,21 @@ public final class LocalHistoryCleanup {
         for (String table : KEYS.keySet()) tables.put(table, rows(connection,table,lock));
         for (String table : PROTECTED) if (!tables.containsKey(table)) tables.put(table,rows(connection,table,lock));
         Set<String> oldRooms = new TreeSet<>(), oldArchives = new TreeSet<>(), oldInstances = new TreeSet<>();
+        Set<String> oldLabs = new HashSet<>(), oldLabRooms = new HashSet<>(), oldMatches = new HashSet<>();
+        for (var experiment : tables.get("lab_experiments")) {
+            JsonNode roster = JSON.readTree(experiment.get("configuration")).path("roster");
+            for (JsonNode profile : roster) if (profile.path("participantId").asText("").isBlank()) oldLabs.add(experiment.get("id"));
+        }
+        for (var match : tables.get("lab_matches")) if (oldLabs.contains(match.get("experiment_id"))) {
+            oldMatches.add(match.get("id")); oldLabRooms.add(match.get("room_id"));
+            if (match.get("archive_id") != null) oldArchives.add(match.get("archive_id"));
+        }
+        oldRooms.addAll(oldLabRooms);
+        Set<String> retainedExperiences = retainedExperiences(tables,oldLabs,oldLabRooms);
         Map<String,List<String>> memories = new TreeMap<>(); Map<String,String> stateHashes = new TreeMap<>();
         for (var state : tables.get("game_states")) {
             JsonNode data = JSON.readTree(state.get("data"));
-            if (data.path("ruleVersion").asInt(-1) != 2) {
+            if (oldLabRooms.contains(state.get("room_id")) || data.path("ruleVersion").asInt(-1) != 2) {
                 oldRooms.add(state.get("room_id"));
                 String instance = data.path("archiveId").asText(""); if (!instance.isBlank()) oldInstances.add(instance);
             } else {
@@ -62,7 +74,7 @@ public final class LocalHistoryCleanup {
             }
         }
         for (var archive : tables.get("game_archives")) {
-            if (JSON.readTree(archive.get("players_snapshot")).path("ruleVersion").asInt(-1) != 2) oldArchives.add(archive.get("id"));
+            if (oldLabRooms.contains(archive.get("room_id")) || JSON.readTree(archive.get("players_snapshot")).path("ruleVersion").asInt(-1) != 2) oldArchives.add(archive.get("id"));
             else require(!oldRooms.contains(archive.get("room_id")),"CLEANUP_NATIVE_ARCHIVE_SHARES_RETIRED_ROOM");
         }
         oldInstances.addAll(oldArchives);
@@ -71,6 +83,10 @@ public final class LocalHistoryCleanup {
         for (var row : tables.get("ai_turn_jobs")) if (oldRooms.contains(row.get("room_id")) || oldInstances.contains(row.get("instance_id"))) oldJobs.add(row.get("id"));
         for (var entry : KEYS.entrySet()) for (var row : tables.get(entry.getKey())) {
             String table = entry.getKey(); boolean remove = switch (table) {
+                case "lab_experiments" -> oldLabs.contains(row.get("id"));
+                case "lab_matches" -> oldMatches.contains(row.get("id"));
+                case "lab_evaluations", "lab_enrollments" -> oldLabs.contains(row.get("experiment_id"));
+                case "lab_experiences" -> oldLabs.contains(row.get("experiment_id")) && !retainedExperiences.contains(row.get("id"));
                 case "game_states" -> oldRooms.contains(row.get("room_id"));
                 case "rooms" -> oldRooms.contains(row.get("id"));
                 case "game_archives" -> oldArchives.contains(row.get("id"));
@@ -91,7 +107,7 @@ public final class LocalHistoryCleanup {
         Set<String> erasedIds = new HashSet<>();
         for (String table : List.of("ai_turn_jobs","local_ai_debug_turns","ai_decision_traces")) erasedIds.addAll(ids.get(table));
         erasedIds.addAll(oldRooms); erasedIds.addAll(oldInstances);
-        for (var match : tables.get("lab_matches")) require(!oldRooms.contains(match.get("room_id")) && !oldInstances.contains(match.get("archive_id")),"CLEANUP_LAB_MATCH_REFERENCES_RETIRED_GAME");
+        for (var match : tables.get("lab_matches")) if (!oldMatches.contains(match.get("id"))) require(!oldRooms.contains(match.get("room_id")) && !oldInstances.contains(match.get("archive_id")),"CLEANUP_LAB_MATCH_REFERENCES_RETIRED_GAME");
         for (String table : List.of("lab_training_cases","lab_training_tasks","lab_strategy_versions","strategy_publications"))
             for (var row : tables.get(table)) for (String value : row.values()) if (value != null && (value.startsWith("{") || value.startsWith("[")))
                 require(!references(JSON.readTree(value),erasedIds),"CLEANUP_RETAINED_LAB_DATA_REFERENCES_CANDIDATE");
@@ -113,6 +129,35 @@ public final class LocalHistoryCleanup {
             Collections.sort(serialized); protectedRows.put(table,new Fingerprint(serialized.size(),hash(JSON.writeValueAsString(serialized))));
         }
         return new Plan(TARGET,ids,memories,stateHashes,protectedRows);
+    }
+    private static Set<String> retainedExperiences(Map<String,List<Map<String,String>>> tables, Set<String> oldLabs, Set<String> oldRooms) throws Exception {
+        Map<String,Map<String,String>> old = new HashMap<>();
+        for (var row : tables.get("lab_experiences")) if (oldLabs.contains(row.get("experiment_id"))) old.put(row.get("id"),row);
+        Set<String> retained = new HashSet<>();
+        for (var table : tables.entrySet()) for (var row : table.getValue()) {
+            if (oldLabs.contains(row.get("experiment_id")) || oldRooms.contains(row.get("room_id"))
+                    || table.getKey().equals("lab_experiments") && oldLabs.contains(row.get("id"))) continue;
+            for (var field : row.entrySet()) {
+                String value=field.getValue();
+                if (old.containsKey(value)) retained.add(value);
+                else if ((table.getKey().startsWith("lab_") || table.getKey().equals("strategy_publications"))
+                        && Set.of("configuration","snapshot","evidence","assessment","data","input","checkpoint","result","content","compatibility","parameters","previous_bindings").contains(field.getKey())
+                        && value != null) experienceReferences(JSON.readTree(value),old.keySet(),retained);
+            }
+        }
+        boolean changed;
+        do {
+            changed=false;
+            for (String id : List.copyOf(retained)) {
+                String previous=old.get(id).get("previous_id");
+                if (old.containsKey(previous)) changed |= retained.add(previous);
+            }
+        } while (changed);
+        return retained;
+    }
+    private static void experienceReferences(JsonNode node, Set<String> candidates, Set<String> retained) {
+        if (node.isTextual() && candidates.contains(node.asText())) retained.add(node.asText());
+        for (JsonNode child : node) experienceReferences(child,candidates,retained);
     }
     private static boolean oldLedger(Map<String,String> row) throws Exception {
         if (Set.of("AI_RESERVE","AI_RELEASE").contains(row.get("type"))) return true;
