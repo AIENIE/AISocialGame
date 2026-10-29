@@ -162,6 +162,7 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-inprocess</artifactId>
             <version>${grpc.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
