@@ -98,10 +98,11 @@ abstract class EmergencyCodesContract {
         var login=totp.login("admin","fixture-password","test");
         assertEquals("ENROLLMENT_REQUIRED",login.state());
         var setup=totp.startEnrollment(login.challengeId(),"test");
-        var issued=totp.confirmEnrollment(login.challengeId(),otp(setup.manualKey()),"test");
+        String enrollmentCode=otp(setup.manualKey());
+        var issued=totp.confirmEnrollment(login.challengeId(),enrollmentCode,"test");
         assertEquals(10,issued.recoveryCodes().size());
         var full=totp.authenticate(issued.sessionToken());
-        assertThrows(ApiException.class, () -> totp.getRecoveryCodes(full,otp(setup.manualKey()),"test"));
+        assertThrows(ApiException.class, () -> totp.getRecoveryCodes(full,enrollmentCode,"test"));
         String fresh=AdminTotp.code(setup.manualKey(),Instant.now().getEpochSecond()/30+1);
         var get=totp.getRecoveryCodes(full,fresh,"test");
         assertEquals(0,get.generatedCount()); assertEquals(new HashSet<>(issued.recoveryCodes()),new HashSet<>(get.recoveryCodes()));

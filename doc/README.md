@@ -1,5 +1,7 @@
 # AISocialGame 文档索引
 
+- [AI 实验室](modules/ai-lab-module.md)、[实验室接口](api/LabController.md)
+
 - [活动里程碑与未完成验收](milestones.md)
 - [项目结构](structure.md)、[模块](modules/README.md)、[前端工程](../frontend/README.md)
 - [Windows 本机开发](operations/windows-native.md)、[本地验证](operations/local-development-verification.md)、[真实执行检查清单](operations/m1-m5-live-execution-checklist.md)

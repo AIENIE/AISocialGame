@@ -123,11 +123,11 @@ public class AiModelConfigService {
     private FunctionView functionView(AiFunctionCode code, AiModelCatalog catalog, AiFunctionModelConfig config) {
         var selected = config == null ? new AiModelSelection(code, catalog.syncedAt == null ? environmentModel() : "", ThinkingMode.DEFAULT, null, 0) : selection(code, config);
         String problem = catalog.syncedAt == null ? null : problem(selected, models(catalog));
-        boolean enabled = code == AiFunctionCode.UNDERCOVER && budgetEnabled && maxOutput > 0;
+        boolean enabled = (code == AiFunctionCode.UNDERCOVER || code == AiFunctionCode.WEREWOLF) && budgetEnabled && maxOutput > 0;
         return new FunctionView(code, code.label, selected.modelKey(), selected.thinkingMode(), selected.thinkingEffort(), selected.configVersion(),
                 catalog.syncedAt == null ? "NOT_SYNCED" : problem == null ? "VALID" : "INVALID",
                 catalog.syncedAt == null ? "尚未同步，沿用环境默认模型" : problem == null ? "配置有效" : problem,
-                enabled, enabled ? "预算推理已启用" : "受现有预算限制，当前未启用推理");
+                enabled, enabled ? "流式调用与实耗结算已启用" : "当前调用配置未启用预算凭据");
     }
     private AiModelSelection selection(AiFunctionCode code, AiFunctionModelConfig config) {
         return new AiModelSelection(code, config.modelKey, config.thinkingMode, config.thinkingEffort, config.version == null ? 0 : config.version);

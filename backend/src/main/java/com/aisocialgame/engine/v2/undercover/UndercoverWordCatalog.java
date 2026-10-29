@@ -66,10 +66,21 @@ public final class UndercoverWordCatalog {
     }
 
     public boolean containsForbidden(String content, String ownWord) {
-        if (ownWord == null || ownWord.isBlank() || content == null || content.isBlank()) return false;
+        return !matchedForbiddenTerms(content, ownWord).isEmpty();
+    }
+
+    public List<String> matchedForbiddenTerms(String content, String ownWord) {
+        if (ownWord == null || ownWord.isBlank() || content == null || content.isBlank()) return List.of();
         String normalized = normalize(content);
         List<String> terms = ownKnowledge(ownWord).map(WordKnowledge::forbiddenTerms).orElse(List.of(ownWord));
-        return terms.stream().map(UndercoverWordCatalog::normalize).filter(term -> !term.isBlank()).anyMatch(normalized::contains);
+        return terms.stream().filter(term -> !normalize(term).isBlank() && normalized.contains(normalize(term))).distinct().toList();
+    }
+
+    public boolean matchesAnswer(String guess, String word) {
+        String normalized = normalize(guess);
+        if (normalized.isBlank()) return false;
+        return ownKnowledge(word).map(WordKnowledge::forbiddenTerms).orElse(List.of(word)).stream()
+                .map(UndercoverWordCatalog::normalize).anyMatch(normalized::equals);
     }
 
     public static String normalize(String value) {

@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Chat uses the durable budget/escrow path. Unsupported paid capabilities remain closed.
+ * Chat uses the durable request/actual-settlement path. Unsupported paid capabilities remain closed.
  */
 @Service
 public class AiProxyService {

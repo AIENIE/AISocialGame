@@ -73,6 +73,8 @@ export interface RoomSeat {
 }
 
 export interface Room {
+  source?: "NORMAL" | "LAB";
+  labExperimentId?: string | null;
   aiDebugAvailable?: boolean;
   id: string;
   gameId: string;
@@ -459,7 +461,7 @@ export interface RoleDefinition {
 
 export interface PlayerAction {
   type: "SPEAK" | "VOTE" | "NIGHT_ACTION" | "ASK_QUESTION" | "SUBMIT_SOLUTION"
-    | "ASK_PLAYER" | "ANSWER_PLAYER" | "SKIP" | "HUNTER_SHOOT" | "DISCUSS" | "REQUEST_HINT" | "REVEAL_SOLUTION";
+    | "ASK_PLAYER" | "ANSWER_PLAYER" | "SKIP" | "HUNTER_SHOOT" | "DISCUSS" | "REQUEST_HINT" | "REVEAL_SOLUTION" | "SELF_DESTRUCT";
   content?: string;
   targetPlayerId?: string;
   abstain?: boolean;

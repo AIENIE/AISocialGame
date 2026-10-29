@@ -81,6 +81,26 @@
       "ordinal": 16,
       "kind": "upgrade",
       "file": "20261004_admin_emergency_codes.sql"
+    },
+    {
+      "ordinal": 17,
+      "kind": "upgrade",
+      "file": "20261021_ai_lab.sql"
+    },
+    {
+      "ordinal": 18,
+      "kind": "upgrade",
+      "file": "20261021_ai_lab_participants.sql"
+    },
+    {
+      "ordinal": 19,
+      "kind": "upgrade",
+      "file": "20261026_werewolf_lab_strategy.sql"
+    },
+    {
+      "ordinal": 20,
+      "kind": "upgrade",
+      "file": "20261026_werewolf_training_v2.sql"
     }
   ],
   "execution_plans": [
@@ -101,7 +121,11 @@
         13,
         14,
         15,
-        16
+        16,
+        17,
+        18,
+        19,
+        20
       ]
     },
     {
@@ -120,7 +144,11 @@
         13,
         14,
         15,
-        16
+        16,
+        17,
+        18,
+        19,
+        20
       ]
     }
   ],

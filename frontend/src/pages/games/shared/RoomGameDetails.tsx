@@ -3,6 +3,7 @@ import type { GameState, Room } from "@/types";
 import { useRoomText } from "./roomText";
 import { roleName } from "./roomIdentity";
 import { werewolfBoardRoles } from "./werewolfSetup";
+import { WerewolfRulesHelp, WerewolfTurnHelp } from "./WerewolfHelp";
 
 export function RoomRules({ state, room }: { state: GameState; room: Room }) {
   const { t, i18n } = useTranslation();
@@ -13,7 +14,7 @@ export function RoomRules({ state, room }: { state: GameState; room: Room }) {
     {state.gameId === "undercover" ? <><p>{copy("undercoverRules")}</p>{(rules.hasBlank || state.extra?.hasBlank) && <p>{copy("blankRules")}</p>}{rules.hostMode === "AUTHOR" && <p>{copy("authorRules")}</p>}</> : state.gameId === "turtle_soup" ? <p>{copy("soupRules")}</p> : <>
       <div className="flex flex-wrap gap-2">{Object.entries(counts).map(([role, count]) => <span key={role} className="rounded-md bg-muted px-2 py-1">{String(count)} × {roleName(role, i18n.language)}</span>)}</div>
       <p>{t("game.werewolf.rulesPreviewNote")}</p>
-      <p>{t(`create.option.winCondition.${rules.winCondition || "side"}`)} · {t(`create.option.witchRule.${rules.witchRule || "first_night"}`)} · {t(`create.option.hasLastWords.${rules.hasLastWords || "first_night"}`)}</p>
+      <WerewolfRulesHelp rules={rules} />
     </>}
   </div>;
 }
@@ -47,6 +48,7 @@ export function PrivateActionContext({ state, full = false }: { state: GameState
 export function GameContext({ state }: { state: GameState }) {
   const copy = useRoomText();
   const extra = state.extra || {};
+  if (state.gameId === "werewolf") return <WerewolfTurnHelp state={state} />;
   if (state.gameId === "turtle_soup" && extra.surface) return <div className="room-game-context">
     <details><summary><span className="font-medium">{copy("surface")} · {String(extra.caseTitle || "")}</span><span className="text-xs text-muted-foreground">{copy("budget", { n: extra.questionCount || 0, max: extra.maxQuestions || 0 })} · {copy("hintBudget", { n: extra.hintCount || 0, max: extra.maxHints ?? 2 })}</span></summary>
       <p className="max-h-40 overflow-auto whitespace-pre-wrap py-2 text-sm leading-6">{String(extra.surface)}</p></details>

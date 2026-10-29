@@ -122,6 +122,10 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
     (error: unknown, fallbackKey: string) => {
       const raw = getApiErrorMessage(error, "");
       const code = getApiErrorCode(error);
+      if (code === "OWN_WORD_FORBIDDEN" || code === "FORBIDDEN_WORD_ELIMINATED") {
+        invalidateRuntime();
+        return;
+      }
       if (code === "ROOM_EXPIRED") window.dispatchEvent(new CustomEvent("room-expired", { detail: roomId }));
       const recoverable = code ? isRecoverableGameError(code) : allRecoverableMessages.some((item) => raw.includes(item));
       const message = localizeErrorMessage(raw, fallbackKey, code);
@@ -132,7 +136,7 @@ export function useRoomRuntime({ defaultGameId, recoverableMessages = [] }: UseR
       }
       invalidateRoom();
     },
-    [allRecoverableMessages, invalidateRoom, roomId]
+    [allRecoverableMessages, invalidateRoom, invalidateRuntime, roomId]
   );
 
   const addAiMutation = useMutation({

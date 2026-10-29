@@ -23,11 +23,28 @@ beforeEach(() => {
   for (const fn of [state.navigate,state.policy,state.login,state.startEnrollment,state.confirmEnrollment,state.verifyTotp,state.verifyRecovery,state.startRebind,state.confirmRebind,state.logout]) fn.mockReset();
   state.policy.mockResolvedValue({ env: "local", authMode: "totp" }); state.logout.mockResolvedValue(undefined);
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); window.history.replaceState(null,"","/"); });
 async function render() { await act(async () => root.render(<AdminLogin />)); }
 async function submit() { await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))); }
 async function cyclePage() { await act(async () => { window.dispatchEvent(new Event("pagehide")); window.dispatchEvent(new Event("pageshow")); }); }
 async function click(text: string) { await act(async () => Array.from(container.querySelectorAll("button")).find(button => button.textContent === text)?.click()); }
+it("returns to the requested management page after normal login",async()=>{
+  window.history.replaceState(null,"","/admin/login?returnTo="+encodeURIComponent("/admin/lab/experiment?view=history#round"));
+  state.login.mockResolvedValue({state:"AUTHENTICATED",sessionScope:"FULL"});await render();await submit();
+  expect(state.navigate).toHaveBeenCalledWith("/admin/lab/experiment?view=history#round");
+});
+it("resumes the original page when another tab has already restored a full administrator session",async()=>{
+  window.history.replaceState(null,"","/admin/login?returnTo="+encodeURIComponent("/admin/lab/experiment/matches/match"));
+  state.admin={username:"B",displayName:"Admin B",sessionScope:"FULL",authMode:"password",expiresAt:"session-B"};
+  await render();expect(state.navigate).toHaveBeenCalledWith("/admin/lab/experiment/matches/match",{replace:true});
+});
+it("keeps the original destination while navigation and authentication updates overlap",async()=>{
+  const destination="/admin/lab/experiment/matches/match";
+  window.history.replaceState(null,"","/admin/login?returnTo="+encodeURIComponent(destination));await render();
+  window.history.replaceState(null,"",destination);
+  state.admin={username:"B",displayName:"Admin B",sessionScope:"FULL",authMode:"password",expiresAt:"session-B"};
+  await render();expect(state.navigate).toHaveBeenCalledWith(destination,{replace:true});expect(state.navigate).not.toHaveBeenCalledWith("/admin",{replace:true});
+});
 it("rejects a late enrollment seed and allows a new enrollment after pageshow", async () => {
   await render();
   state.login.mockResolvedValue({ state: "ENROLLMENT_REQUIRED", challengeId: "challenge" });

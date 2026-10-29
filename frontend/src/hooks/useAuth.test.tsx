@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "./useAuth";
-import { safeReturnTo, consumeReturnTo, LOCAL_RETURN_TO_KEY } from "./authStorage";
+import { safeReturnTo, safeAdminReturnTo, consumeReturnTo, LOCAL_RETURN_TO_KEY } from "./authStorage";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 const api = vi.hoisted(() => ({ me: vi.fn(), logout: vi.fn(), callback: vi.fn(), expired: () => {}, token: vi.fn() }));
 vi.mock("@/services/api", () => ({ authApi: { me: api.me, logout: api.logout, ssoCallback: api.callback }, setAuthToken: api.token,
@@ -25,3 +25,14 @@ it("clears expired sessions and ignores an earlier request that finishes late", 
 it("keeps the authenticated session if logout fails, and clears it only after success", async () => { sessionStorage.setItem("aisocialgame_token", "valid"); api.me.mockResolvedValue({ id: "A", nickname: "Alice" }); await render(); api.logout.mockRejectedValue(new Error("network")); await act(async () => { await auth.logout(); }); expect(auth.user?.id).toBe("A"); api.logout.mockResolvedValue(undefined); await act(async () => { await auth.logout(); }); expect(auth.user).toBeNull(); expect(element.textContent).not.toContain("PRIVATE_DATA"); });
 it.each(["https://outside.invalid", "//outside.invalid", "/\\outside.invalid", "/sso/callback", "/admin", "/%2f%2foutside.invalid", "/%61dmin", "/unknown", "/room/werewolf"])("rejects unsafe or flow return paths: %s", path => { expect(safeReturnTo(path)).toBe("/"); });
 it("consumes the original local path including query and hash once", () => { sessionStorage.setItem(LOCAL_RETURN_TO_KEY, "/profile?tab=wallet#balance"); expect(consumeReturnTo()).toBe("/profile?tab=wallet#balance"); expect(consumeReturnTo()).toBe("/"); });
+it.each(["/lab","/lab/experiment?view=history#round"])("preserves the laboratory login destination %s",path=>{expect(safeReturnTo(path)).toBe(path);});
+it.each(["/admin/lab/experiment?view=history#round","/admin/lab/experiment/matches/match","/admin/replays/archive"])("preserves management destinations without sending them through player SSO: %s",path=>{expect(safeAdminReturnTo(path)).toBe(path);expect(safeReturnTo(path)).toBe("/");});
+it.each(["/lab/experiment","/admin/login","//outside.invalid/admin","/%2f%2foutside.invalid/admin","/admin/%0aevil"])("rejects non-management return destinations: %s",path=>{expect(safeAdminReturnTo(path)).toBe("/admin");});
+it("does not let an earlier logout clear a newly authenticated account",async()=>{
+  sessionStorage.setItem("aisocialgame_token","A");api.me.mockResolvedValue({id:"A"});await render();
+  let complete!:()=>void;api.logout.mockImplementation(()=>new Promise<void>(resolve=>{complete=resolve;}));
+  let pending!:Promise<void>;act(()=>{pending=auth.logout();});
+  api.callback.mockResolvedValue({token:"B",user:{id:"B"}});api.me.mockResolvedValue({id:"B"});
+  await act(async()=>{await auth.ssoCallback({code:"fixture",redirect:"https://fixture.invalid/callback"});});
+  await act(async()=>{complete();await pending;});expect(auth.user?.id).toBe("B");expect(sessionStorage.getItem("aisocialgame_token")).toBe("B");
+});

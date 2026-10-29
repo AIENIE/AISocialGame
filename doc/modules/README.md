@@ -1,5 +1,7 @@
 # 模块文档索引
 
+[AI 实验室模块](ai-lab-module.md)提供持久化批量自博弈、真人局间参战、独立策略经验与成对评测，复用现有 V2 谁是卧底和计费链路。
+
 用户端与管理端共享 `frontend/` React 工程；`frontend/src/main.tsx` 只按路径选择
 `UserApp.tsx` 或 Admin `App.tsx`，下表中的管理模块不代表独立前端服务。
 

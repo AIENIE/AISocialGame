@@ -12,10 +12,10 @@ const players = ["me", "p2", "p3"].map((id, index) => ({ playerId: id, displayNa
 const state = (legalActions: LegalAction[], phaseToken = "one", phase = "VOTING"): GameState => ({ roomId: "room", gameId: "undercover", phase, round: 1, myPlayerId: "me", players, logs: [], extra: { ruleVersion: 2, legalActions, phaseToken } });
 let root: Root, container: HTMLDivElement;
 beforeEach(() => { language = "zh-CN"; (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
-afterEach(() => { act(() => root.unmount()); container.remove(); vi.clearAllMocks(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.clearAllMocks(); });
 function Harness({ value, send, connected = true }: { value: GameState; send: (action: PlayerAction) => Promise<unknown>; connected?: boolean }) {
   const control = useRoomActionController(value, send);
-  return <><RoomPlayers players={players} targets={control.selected?.targets} selected={control.target} onSelect={control.selectTarget} pending={control.busy} />
+  return <><RoomPlayers players={players} targets={control.selected?.targets} selected={control.target} onSelect={control.selectTarget} pending={control.busy || control.actionExpired} />
     <RoomActionDock state={value} control={control} connected={connected} waitingText="等待" onChoosePlayer={vi.fn()} /></>;
 }
 const click = (selector: string) => act(() => container.querySelector<HTMLButtonElement>(selector)!.click());
@@ -23,6 +23,106 @@ const fill = (text: string) => act(() => {
   const textarea = container.querySelector("textarea")!;
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
+it.each(["public", "private"])("closes a Werewolf action at its %s deadline and restores the next opportunity", async source => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  const send = vi.fn().mockResolvedValue(undefined);
+  const actions: LegalAction[] = [{ type: "ASK_PLAYER", label: "提问", targets: ["p2", "p3"], maxLength: 60 }, { type: "SKIP", label: "跳过", targets: [], maxLength: 0 }];
+  const deadline = new Date(Date.now() + 5000).toISOString();
+  const value: GameState = { ...state(actions, "ask", "DAY_INTERACTION"), gameId: "werewolf", phaseEndsAt: source === "public" ? deadline : new Date(Date.now() - 1000).toISOString(),
+    extra: { ...state(actions).extra, phaseToken: "ask", ...(source === "private" ? { actionEndsAt: deadline } : {}) } };
+  act(() => root.render(<Harness value={value} send={send} />));
+  click('[data-player-id="p2"]'); fill("你依据哪条公开发言？");
+  act(() => vi.advanceTimersByTime(4999));
+  const submit = () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!;
+  expect(submit().disabled).toBe(false);
+  expect(container.querySelector("textarea")!.disabled).toBe(false);
+  // A click racing the expiry timer must still be rejected before invoking the API.
+  vi.setSystemTime(new Date(deadline));
+  await act(async () => submit().click());
+  expect(send).not.toHaveBeenCalled();
+  act(() => vi.advanceTimersByTime(1));
+  expect(submit().disabled).toBe(true);
+  expect(container.querySelector("textarea")!.disabled).toBe(true);
+  expect(container.querySelector<HTMLButtonElement>('[data-testid="room-choose-target"]')!.disabled).toBe(true);
+  expect(container.querySelector<HTMLButtonElement>('[data-testid="v2-action-skip"]')!.disabled).toBe(true);
+  expect(container.querySelector('[data-player-id="p3"]')!.getAttribute("aria-disabled")).toBe("true");
+  click('[data-player-id="p3"]');
+  expect(container.querySelector('[data-player-id="p2"]')!.getAttribute("aria-pressed")).toBe("true");
+  expect(container.textContent).toContain("本次行动时间已到，等待局面更新");
+  const nextDeadline = new Date(Date.now() + 20000).toISOString();
+  act(() => root.render(<Harness value={{ ...value, phaseEndsAt: nextDeadline, extra: { ...value.extra, phaseToken: "next", actionEndsAt: nextDeadline } }} send={send} />));
+  expect(container.textContent).not.toContain("本次行动时间已到");
+  expect(container.querySelector("textarea")!.disabled).toBe(false);
+  click('[data-player-id="p3"]'); fill("请继续说明你的依据。");
+  await act(async () => submit().click());
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "ASK_PLAYER", targetPlayerId: "p3", content: "请继续说明你的依据。" });
+});
+
+it("does not apply the Werewolf deadline guard to another game's legal action", async () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const value = { ...state([{ type: "SPEAK", label: "描述", targets: [], maxLength: 90 }], "speech", "DESCRIPTION"), phaseEndsAt: new Date(Date.now() - 1000).toISOString() };
+  act(() => root.render(<Harness value={value} send={send} />)); fill("当前仍允许的描述");
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SPEAK", content: "当前仍允许的描述" });
+});
+
+it.each(["priority", "new-round", "new-game", "new-targets", "new-pair", "no-archive"])("preserves only the same Werewolf question opportunity across %s changes", change => {
+  const actions: LegalAction[] = [{ type: "ASK_PLAYER", label: "提问", targets: ["p2", "p3"], maxLength: 60 }];
+  const value: GameState = { ...state(actions, "priority", "DAY_INTERACTION"), gameId: "werewolf", extra: { ...state(actions).extra,
+    phaseToken: "priority", archiveId: change === "no-archive" ? undefined : "archive-1", interaction: { humanPriority: true, questionTarget: "", completedPairs: 0 } } };
+  act(() => root.render(<Harness value={value} send={vi.fn()} />));
+  click('[data-player-id="p2"]'); fill("我还在核对这条发言。");
+  const next = { ...value, round: change === "new-round" ? 2 : 1, extra: { ...value.extra, phaseToken: "shared",
+    archiveId: change === "new-game" ? "archive-2" : value.extra?.archiveId,
+    legalActions: change === "new-targets" ? [{ ...actions[0], targets: ["p3"] }] : actions,
+    interaction: { humanPriority: false, questionTarget: "", completedPairs: change === "new-pair" ? 1 : 0 } } };
+  act(() => root.render(<Harness value={next} send={vi.fn()} />));
+  expect(container.querySelector("textarea")!.value).toBe(change === "priority" ? "我还在核对这条发言。" : "");
+  expect(container.querySelector('[data-player-id="p2"]')!.getAttribute("aria-pressed")).toBe(change === "priority" ? "true" : change === "new-targets" ? null : "false");
+});
+
+it("clears a prior rejection while keeping the question draft when the shared window opens", async () => {
+  const send = vi.fn().mockRejectedValue(new Error("行动窗口已结束"));
+  const actions: LegalAction[] = [{ type: "ASK_PLAYER", label: "提问", targets: ["p2", "p3"], maxLength: 60 }];
+  const value: GameState = { ...state(actions, "priority", "DAY_INTERACTION"), gameId: "werewolf", extra: { ...state(actions).extra,
+    phaseToken: "priority", archiveId: "archive-1", interaction: { humanPriority: true, questionTarget: "", completedPairs: 0 } } };
+  act(() => root.render(<Harness value={value} send={send} />));
+  click('[data-player-id="p2"]'); fill("你依据哪条公开发言？");
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe("行动窗口已结束");
+  act(() => root.render(<Harness value={{ ...value, extra: { ...value.extra, phaseToken: "shared",
+    interaction: { humanPriority: false, questionTarget: "", completedPairs: 0 } } }} send={send} />));
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  expect(container.querySelector("textarea")!.value).toBe("你依据哪条公开发言？");
+  expect(container.querySelector('[data-player-id="p2"]')!.getAttribute("aria-pressed")).toBe("true");
+});
+it("shows a preserved budget pause and offers no action submission",()=>{
+  const send=vi.fn();const value=state([{type:"SPEAK",label:"描述",targets:[],maxLength:90}],"one","DESCRIPTION");
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,labBudgetPaused:true}}} send={send}/>));
+  expect(container.textContent).toContain("当前局面和计时已保留");
+  expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
+  expect(send).not.toHaveBeenCalled();
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,labCallPaused:true}}} send={send}/>));
+  expect(container.textContent).toContain("实验调用已暂停");
+  expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,validationBudgetPaused:true}}} send={send}/>));
+  expect(container.textContent).toContain("积分停止线");
+  expect(container.querySelector("textarea")).toBeNull();expect(container.querySelector('[data-testid="v2-action-submit"]')).toBeNull();
+});
+
+it("keeps a forbidden-word draft and shows private correction feedback until elimination",async()=>{
+  const actions:LegalAction[]=[{type:"SPEAK",label:"描述",targets:[],maxLength:90}];
+  const send=vi.fn().mockRejectedValue(new Error("correct"));
+  const value=state(actions,"one","DESCRIPTION");
+  act(()=>root.render(<Harness value={value} send={send}/>));fill("我的原文");
+  await act(async()=>container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,wordFeedback:{forbiddenTerms:["咖啡"],remainingCorrections:2,eliminated:false}}}} send={send}/>));
+  expect(container.querySelector("textarea")!.value).toBe("我的原文");
+  expect(container.textContent).toContain("咖啡");expect(container.textContent).toContain("还可修正 2 次");
+  act(()=>root.render(<Harness value={{...value,extra:{...value.extra,legalActions:[],wordFeedback:{forbiddenTerms:["咖啡"],remainingCorrections:0,eliminated:true}}}} send={send}/>));
+  expect(container.textContent).toContain("已判定出局");
 });
 
 it("selects only server-authorized players and confirms a ballot once", async () => {
@@ -89,4 +189,36 @@ it.each([
   fill("下雨时我会用到它。");
   await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.click());
   expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SPEAK", content: "下雨时我会用到它。" });
+});
+
+it.each(["zh-CN", "zh-TW", "en"])("confirms a self-destruct guess, preserves drafts on cancel and sends only once in %s", async locale => {
+  language = locale;
+  let resolve!: () => void;
+  const send = vi.fn(() => new Promise<void>(done => { resolve = done; }));
+  const actions: LegalAction[] = [{ type: "SPEAK", label: "描述", targets: [], maxLength: 90 }, { type: "SELF_DESTRUCT", label: "自爆猜词", targets: [], maxLength: 20 }];
+  act(() => root.render(<Harness value={state(actions, "description", "DESCRIPTION")} send={send} />));
+  const modes = container.querySelectorAll<HTMLButtonElement>('.room-action-modes button');
+  expect(modes[0].getAttribute("aria-pressed")).toBe("true");
+  act(() => modes[1].click());
+  fill("长".repeat(21)); expect(container.querySelector<HTMLButtonElement>('[data-testid="v2-action-submit"]')!.disabled).toBe(true);
+  fill("自行车"); click('[data-testid="v2-action-submit"]'); expect(send).not.toHaveBeenCalled();
+  const dialog = () => document.querySelector('[role="alertdialog"]')!;
+  expect(dialog().textContent).toContain("自行车");
+  act(() => dialog().querySelector<HTMLButtonElement>('button')!.click());
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull(); expect(container.querySelector("textarea")!.value).toBe("自行车");
+  click('[data-testid="v2-action-submit"]');
+  const confirm = dialog().querySelectorAll<HTMLButtonElement>('button')[1];
+  act(() => { confirm.click(); confirm.click(); });
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SELF_DESTRUCT", content: "自行车" });
+  await act(async () => resolve());
+});
+
+it("closes an unsubmitted self-destruct confirmation when the opportunity changes", () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const actions: LegalAction[] = [{ type: "SELF_DESTRUCT", label: "自爆猜词", targets: [], maxLength: 20 }];
+  act(() => root.render(<Harness value={state(actions)} send={send} />));
+  fill("单车"); click('[data-testid="v2-action-submit"]');
+  expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+  act(() => root.render(<Harness value={state([], "after-elimination")} send={send} />));
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull(); expect(send).not.toHaveBeenCalled();
 });

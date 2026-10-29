@@ -25,6 +25,11 @@ public final class RuleSupport {
         state.getData().put("promptVersion", com.aisocialgame.service.ai.v2.AiTurnGenerator.promptVersion(room.getGameId()));
         state.getData().put("archiveId", "archive-" + UUID.randomUUID());
         state.getData().put("randomSeed", UUID.randomUUID().getMostSignificantBits());
+        if (room.isLab()) {
+            state.getData().put("randomSeed", room.getPrivateConfig().get("labSeed"));
+            state.getData().put("lab", new LinkedHashMap<>(map(room.getPrivateConfig().get("lab"))));
+            state.getData().put("labPlayers", new LinkedHashMap<>(map(room.getPrivateConfig().get("labPlayers"))));
+        }
         state.getData().put("rules", new LinkedHashMap<>(room.getConfig()));
         state.getData().put("events", new ArrayList<>());
         // New V2 instances write each event to game_events in the same transaction.

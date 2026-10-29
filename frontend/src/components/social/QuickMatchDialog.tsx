@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { gameApi } from "@/services/api";
-import { quickMatchApi } from "@/services/v2Social";
-import { localizeErrorMessage } from "@/i18n/errors";
+import { useQuickMatch } from "@/hooks/useQuickMatch";
 import { gameName } from "@/i18n/gameTexts";
 import { Game } from "@/types";
 import { DataState } from "@/components/DataState";
@@ -22,13 +20,12 @@ interface QuickMatchDialogProps {
 
 export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatchDialogProps) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { user, redirectToSsoLogin } = useAuth();
   const gamesQuery = useQuery<Game[]>({ queryKey: ["games"], queryFn: gameApi.list });
   const games = gamesQuery.error ? [] : gamesQuery.data || [];
   const activeGames = games.filter((g) => String(g.status).toLowerCase() === "active" && ["undercover", "werewolf", "turtle_soup"].includes(g.id));
   const [gameId, setGameId] = useState<string>("");
-  const [matching, setMatching] = useState(false);
+  const { matching, start: startMatch } = useQuickMatch();
 
   const start = async () => {
     if (!gameId) {
@@ -39,21 +36,11 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
       await redirectToSsoLogin();
       return;
     }
-    setMatching(true);
-    try {
-      const result = await quickMatchApi.start(gameId, displayName);
-      toast.success(result.autoStarted ? t("quickMatch.successAuto") : t("quickMatch.successRoom"));
-      onOpenChange(false);
-      navigate(`/room/${gameId}/${result.roomId}`);
-    } catch (error: any) {
-      toast.error(localizeErrorMessage(error?.response?.data?.message, "index.quickMatchFailed"));
-    } finally {
-      setMatching(false);
-    }
+    await startMatch(gameId, displayName, () => onOpenChange(false));
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!matching) onOpenChange(value); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("quickMatch.title")}</DialogTitle>
@@ -61,7 +48,7 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
         </DialogHeader>
         {(gamesQuery.isPending || gamesQuery.error || !activeGames.length) && <DataState loading={gamesQuery.isPending} error={gamesQuery.error} empty onRetry={() => void gamesQuery.refetch()} />}
         <div className="space-y-2">
-          <Select value={gameId} onValueChange={setGameId}>
+          <Select value={gameId} onValueChange={setGameId} disabled={matching}>
             <SelectTrigger>
               <SelectValue placeholder={t("quickMatch.selectGame")} />
             </SelectTrigger>
@@ -75,7 +62,7 @@ export const QuickMatchDialog = ({ open, onOpenChange, displayName }: QuickMatch
           </Select>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" disabled={matching} onClick={() => onOpenChange(false)}>
             {t("quickMatch.cancel")}
           </Button>
           <Button onClick={start} disabled={matching || !gameId || gamesQuery.isPending || !!gamesQuery.error || !activeGames.some(game => game.id === gameId)}>

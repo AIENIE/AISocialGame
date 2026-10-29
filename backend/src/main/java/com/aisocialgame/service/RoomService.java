@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -165,6 +167,7 @@ public class RoomService {
             }
         }
 
+        if (room.isLab()) throw new ApiException(HttpStatus.CONFLICT, "请通过 AI 实验室报名参战", "LAB_ENROLLMENT_REQUIRED", Map.of());
         if (room.getSeats().size() >= room.getMaxPlayers()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "房间已满", "ROOM_FULL", Map.of());
         }
@@ -176,7 +179,7 @@ public class RoomService {
         room.getSeats().add(seat);
         room.syncSeatCount();
         roomRepository.save(room);
-        gamePushService.pushSeatChange(roomId, new SeatEvent("JOIN", seat));
+        publishSeatChangeAfterCommit(roomId, new SeatEvent("JOIN", seat));
         return new JoinRoomResult(room, seat);
     }
 
@@ -203,8 +206,21 @@ public class RoomService {
         room.getSeats().add(seat);
         room.syncSeatCount();
         roomRepository.save(room);
-        gamePushService.pushSeatChange(roomId, new SeatEvent("AI_ADDED", seat));
+        publishSeatChangeAfterCommit(roomId, new SeatEvent("AI_ADDED", seat));
         return room;
+    }
+
+    private void publishSeatChangeAfterCommit(String roomId, SeatEvent event) {
+        // Both seat mutations run inside RoomLifecycle's transaction. Readers
+        // reacting to this notification must be able to see the committed seat.
+        Runnable publish = () -> gamePushService.pushSeatChange(roomId, event);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { publish.run(); }
+            });
+        } else {
+            publish.run();
+        }
     }
 
     private String encodePrivateRoomPassword(String password) {

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Coins, Gamepad2, Home, PlayCircle, Shield, Trophy, User, Zap } from "lucide-react";
+import { BookOpen, Coins, Home, PlayCircle, Shield, Trophy, User, Zap } from "lucide-react";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,15 +16,15 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const { user, loading, logout, displayName, redirectToSsoLogin } = useAuth();
   const [quickMatchOpen, setQuickMatchOpen] = useState(false);
-  const privateNav = [{ path: "/community", label: "nav.community" }, { path: "/ai-chat", label: "nav.aiChat" }, { path: "/rankings", label: "nav.rankings" }, { path: "/replays", label: "nav.replays" }];
+  const privateNav = [{ path: "/lab", label: "nav.lab" }, { path: "/community", label: "nav.community" }, { path: "/ai-chat", label: "nav.aiChat" }, { path: "/rankings", label: "nav.rankings" }, { path: "/replays", label: "nav.replays" }];
   const nav = [{ path: "/", label: "nav.home" }, ...(user ? privateNav : []), { path: "/guide", label: "nav.guide" }];
   const active = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)) ? "text-primary" : "text-muted-foreground";
   if (user && /^\/room\/(undercover|werewolf|turtle_soup)\//.test(location.pathname)) return <main className="room-route"><Outlet /></main>;
-  return <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+  return <div className="min-h-screen bg-background flex flex-col pb-[calc(4rem+1px+env(safe-area-inset-bottom))] md:pb-0">
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 md:h-16 items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg"><Gamepad2 className="h-5 w-5 text-primary" /><span>Nexus<span className="text-primary">Play</span></span></Link>
+          <Link to="/" className="inline-flex shrink-0 items-center"><BrandLogo /></Link>
           <nav className="hidden md:flex items-center gap-5 text-sm font-medium">{nav.map(item => <Link key={item.path} to={item.path} className={active(item.path)}>{t(item.label)}</Link>)}</nav>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
@@ -46,7 +47,7 @@ const MainLayout = () => {
       </div>
     </header>
     <main className="page-enter flex-1 container py-4 md:py-6 px-4"><Outlet /></main>
-    <nav className="md:hidden fixed bottom-0 inset-x-0 border-t bg-background z-50 pb-safe">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 border-t bg-background z-50 pb-[env(safe-area-inset-bottom)]">
       <div className={`grid ${user ? "grid-cols-5" : "grid-cols-2"} h-16`}>
         <Link to="/" className={`flex flex-col items-center justify-center gap-1 ${active("/")}`}><Home className="h-5 w-5" /><span className="text-xs">{t("mobile.home")}</span></Link>
         {user && <><Link to="/rankings" className={`flex flex-col items-center justify-center gap-1 ${active("/rankings")}`}><Trophy className="h-5 w-5" /><span className="text-xs">{t("mobile.rankings")}</span></Link>

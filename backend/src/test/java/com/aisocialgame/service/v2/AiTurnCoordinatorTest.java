@@ -66,6 +66,39 @@ class AiTurnCoordinatorTest {
         assertEquals(1,((java.util.concurrent.Semaphore)ReflectionTestUtils.getField(coordinator,"slots")).availablePermits());
     }
 
+    @Test void tenLabVotesOnOneModelDispatchSeriallyWithoutUsingQueueTimeoutAsActionTime() {
+        ExecutorService original=(ExecutorService)ReflectionTestUtils.getField(coordinator,"undercoverExecutor");original.shutdownNow();
+        ReflectionTestUtils.setField(coordinator,"undercoverExecutor",executor);
+        var queued=new java.util.ArrayList<AiTurnJob>();
+        for(int i=0;i<10;i++) {
+            var vote=job("lab-vote-"+i);vote.setObservation(Map.of("gameId","undercover","memory",Map.of("lab",Map.of("experimentId","one","modelSelection",Map.of("modelKey","deepseek-flash")))));
+            queued.add(vote);doAnswer(call->{queued.remove(vote);return vote;}).when(coordinator).claim(vote.getId());
+        }
+        when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED")).thenAnswer(call->new java.util.ArrayList<>(queued));
+        for(int i=0;i<10;i++) {
+            coordinator.dispatchPulse();assertEquals(1,accepted.size());coordinator.dispatchPulse();assertEquals(1,accepted.size());
+            accepted.removeFirst().run();
+        }
+        assertTrue(queued.isEmpty());verify(coordinator,times(10)).run(any());
+    }
+    @Test void labRestartQueriesOriginalJobInsteadOfFailingItsExpiredClock() {
+        var abandoned=mock(AiTurnJobRepository.RecoveryCandidate.class);
+        when(abandoned.getId()).thenReturn("restart");when(abandoned.getDiagnostics()).thenReturn(Map.of("laboratory",true));
+        when(jobs.findRecoveryCandidates(eq("RUNNING"),any())).thenReturn(List.of(abandoned));
+        coordinator.recoveryPulse();verify(runtime).recoverLabJob("restart");verify(runtime,never()).fail(anyString(),anyString(),anyMap());
+    }
+    @Test void firstClockAfterRestartRecoversOriginalRequestsBeforeReadingExpiredRoomDeadlines() {
+        var abandoned=mock(AiTurnJobRepository.RecoveryCandidate.class);
+        when(abandoned.getId()).thenReturn("old-training");
+        when(abandoned.getDiagnostics()).thenReturn(Map.of("laboratory",true,"executionDeadlineEpochMs",1));
+        when(jobs.findRunningRecoveryCandidatesInRoom("training-room")).thenReturn(List.of(abandoned));
+        when(states.findActiveRoomIdsAfter(anyString(),any(Pageable.class))).thenReturn(List.of("training-room"));
+        coordinator.clockPulse();
+        verify(runtime,timeout(1000)).tick("training-room");
+        var order=inOrder(runtime);
+        order.verify(runtime).recoverLabJob("old-training");order.verify(runtime).tick("training-room");
+        verify(runtime,never()).fail(anyString(),anyString(),anyMap());
+    }
     @Test void claimExceptionReturnsPermitAndTheNextPulseCanDispatchWithoutRestart() {
         AiTurnJob job = job("retry-after-claim-failure");
         when(jobs.findByStatusOrderByCreatedAtAsc("QUEUED")).thenReturn(List.of(job));

@@ -7,6 +7,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     test.use({ viewport });
     for (const game of ["undercover", "werewolf", "turtle_soup"]) test(`${game}: preparation, live controls, settlement and restart`, async ({ page }, info) => {
       const fixture = await roomFixture(page, game);
+      await expect(page.locator(".room-header")).toContainText("seekerhut");
       await expect(page.locator(".room-roster [data-player-id]")).toHaveCount(fixture.room.maxPlayers);
       await expect(page.locator(".room-chat-composer input")).toBeVisible();
       await contained(page); await page.screenshot({ path: info.outputPath("preparation.png") });

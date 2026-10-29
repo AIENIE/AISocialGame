@@ -15,6 +15,8 @@ import AiAdmin from "./pages/admin/AiAdmin";
 import ModelConfigAdmin from "./pages/admin/ModelConfigAdmin";
 import SafetyAdmin from "./pages/admin/SafetyAdmin";
 import IntegrationAdmin from "./pages/admin/IntegrationAdmin";
+import LabAdmin from "./pages/admin/LabAdmin";
+import { AdminLabObservation, AdminReplayPage } from "./pages/admin/LabObservation";
 
 /**
  * Admin 入口（默认导出）：维持原有简中流程，
@@ -39,6 +41,10 @@ const App = () => (
                 <Route path="/admin/billing" element={<BillingAdmin />} />
                 <Route path="/admin/ai" element={<AiAdmin />} />
                 <Route path="/admin/models" element={<ModelConfigAdmin />} />
+                <Route path="/admin/lab" element={<LabAdmin />} />
+                <Route path="/admin/lab/:id" element={<LabAdmin />} />
+                <Route path="/admin/lab/:id/matches/:matchId" element={<AdminLabObservation />} />
+                <Route path="/admin/replays/:archiveId" element={<AdminReplayPage />} />
                 <Route path="/admin/security" element={<AdminSecurity />} />
                 <Route path="/admin/safety" element={<SafetyAdmin />} />
                 <Route path="/admin/integration" element={<IntegrationAdmin />} />

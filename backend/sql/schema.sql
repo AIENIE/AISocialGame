@@ -561,3 +561,227 @@ CREATE TABLE IF NOT EXISTS admin_emergency_upgrade (
  version_id INT PRIMARY KEY,
  completed_at DATETIME(6) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_credit_reservations (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  identity_hash VARCHAR(64) NOT NULL,
+  request_hash VARCHAR(64) NOT NULL,
+  request_id VARCHAR(128) NOT NULL,
+  project_key VARCHAR(64) NOT NULL,
+  user_id BIGINT NOT NULL,
+  budget_id VARCHAR(36) NOT NULL,
+  state VARCHAR(32) NOT NULL,
+  reserved_temp BIGINT NOT NULL,
+  reserved_permanent BIGINT NOT NULL,
+  temp_portions_json TEXT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  result_base64 LONGTEXT NULL,
+  billing_quote_base64 LONGTEXT NULL,
+  UNIQUE KEY uk_ai_credit_identity (identity_hash),
+  KEY idx_ai_credit_reconcile (state, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_agents (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  name VARCHAR(64) NOT NULL, persona_id VARCHAR(64) NOT NULL, model_selection LONGTEXT NOT NULL,
+  created_at DATETIME(6) NOT NULL, version BIGINT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_experiments (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, name VARCHAR(128) NOT NULL,
+  status VARCHAR(32) NOT NULL, reason VARCHAR(128) NULL, budget_points BIGINT NOT NULL,
+  next_sequence INT NOT NULL, review_cursor INT NOT NULL, configuration LONGTEXT NOT NULL,
+  created_by VARCHAR(128) NOT NULL, created_at DATETIME(6) NOT NULL, version BIGINT NULL,
+  KEY idx_lab_experiments_status (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_experiences (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
+  agent_id VARCHAR(36) NOT NULL, sequence_number INT NOT NULL, summary VARCHAR(1200) NOT NULL,
+  previous_id VARCHAR(36) NULL, evidence LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
+  UNIQUE KEY uk_lab_experience_version (experiment_id, agent_id, sequence_number),
+  KEY idx_lab_experiences_page (experiment_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_matches (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
+  sequence_number INT NOT NULL, room_id VARCHAR(36) NOT NULL, archive_id VARCHAR(96) NULL,
+  evaluation_id VARCHAR(36) NULL, variant VARCHAR(16) NULL, status VARCHAR(32) NOT NULL,
+  reason VARCHAR(128) NULL, random_seed BIGINT NOT NULL, starts_at_epoch_ms BIGINT NOT NULL,
+  review_lease_until BIGINT NULL, snapshot LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
+  finished_at DATETIME(6) NULL, version BIGINT NULL,
+  UNIQUE KEY uk_lab_match_sequence (experiment_id, sequence_number),
+  UNIQUE KEY uk_lab_match_room (room_id), KEY idx_lab_matches_active (status, experiment_id),
+  KEY idx_lab_matches_evaluation (evaluation_id, sequence_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_enrollments (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
+  user_id VARCHAR(36) NOT NULL, display_name VARCHAR(64) NOT NULL, avatar VARCHAR(512) NULL,
+  status VARCHAR(24) NOT NULL, match_id VARCHAR(36) NULL, confirm_until BIGINT NULL,
+  joined_at DATETIME(6) NOT NULL, version BIGINT NULL,
+  UNIQUE KEY uk_lab_enrollment_user (experiment_id, user_id),
+  KEY idx_lab_enrollment_queue (experiment_id, status, joined_at), KEY idx_lab_enrollment_match (match_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_evaluations (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
+  agent_id VARCHAR(36) NOT NULL, pairs INT NOT NULL, next_game INT NOT NULL, random_seed BIGINT NOT NULL,
+  status VARCHAR(24) NOT NULL, configuration LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
+  version BIGINT NULL, KEY idx_lab_evaluations_experiment (experiment_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='rooms' AND column_name='source')=0,
+  'ALTER TABLE rooms ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT ''NORMAL''', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='game_archives' AND column_name='source')=0,
+  'ALTER TABLE game_archives ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT ''NORMAL''', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_experiment_id')=0,
+  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_experiment_id VARCHAR(36) NULL', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_match_id')=0,
+  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_match_id VARCHAR(36) NULL', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_purpose')=0,
+  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_purpose VARCHAR(24) NULL', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='billed_points')=0,
+  'ALTER TABLE ai_credit_reservations ADD COLUMN billed_points BIGINT NULL', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='billed_cost')=0,
+  'ALTER TABLE ai_credit_reservations ADD COLUMN billed_cost DECIMAL(24,6) NULL', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='rooms' AND index_name='idx_rooms_source_status')=0,
+  'ALTER TABLE rooms ADD INDEX idx_rooms_source_status (source,status)', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='game_archives' AND index_name='idx_archives_source')=0,
+  'ALTER TABLE game_archives ADD INDEX idx_archives_source (source,finished_at)', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND index_name='idx_lab_credit_experiment')=0,
+  'ALTER TABLE ai_credit_reservations ADD INDEX idx_lab_credit_experiment (lab_experiment_id,state)', 'SELECT 1');
+PREPARE lab_statement FROM @lab_ddl;
+EXECUTE lab_statement;
+DEALLOCATE PREPARE lab_statement;
+
+SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND column_name='participant_id')=0,
+  'ALTER TABLE lab_experiences ADD COLUMN participant_id VARCHAR(36) NULL', 'SELECT 1');
+PREPARE lab_participant_statement FROM @lab_participant_ddl;
+EXECUTE lab_participant_statement;
+DEALLOCATE PREPARE lab_participant_statement;
+
+SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lab_evaluations' AND column_name='participant_id')=0,
+  'ALTER TABLE lab_evaluations ADD COLUMN participant_id VARCHAR(36) NULL', 'SELECT 1');
+PREPARE lab_participant_statement FROM @lab_participant_ddl;
+EXECUTE lab_participant_statement;
+DEALLOCATE PREPARE lab_participant_statement;
+
+UPDATE lab_experiences SET participant_id=agent_id WHERE participant_id IS NULL;
+UPDATE lab_evaluations SET participant_id=agent_id WHERE participant_id IS NULL;
+ALTER TABLE lab_experiences MODIFY COLUMN participant_id VARCHAR(36) NOT NULL;
+ALTER TABLE lab_evaluations MODIFY COLUMN participant_id VARCHAR(36) NOT NULL;
+
+SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND index_name='uk_lab_participant_version')=0,
+  'ALTER TABLE lab_experiences ADD UNIQUE INDEX uk_lab_participant_version (experiment_id,participant_id,sequence_number)', 'SELECT 1');
+PREPARE lab_participant_statement FROM @lab_participant_ddl;
+EXECUTE lab_participant_statement;
+DEALLOCATE PREPARE lab_participant_statement;
+
+SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND index_name='uk_lab_experience_version')>0,
+  'ALTER TABLE lab_experiences DROP INDEX uk_lab_experience_version', 'SELECT 1');
+PREPARE lab_participant_statement FROM @lab_participant_ddl;
+EXECUTE lab_participant_statement;
+DEALLOCATE PREPARE lab_participant_statement;
+
+-- Shared werewolf strategies and immutable administrator publication receipts.
+-- Additive only. Existing participant experiences and approved text are unchanged.
+CREATE TABLE IF NOT EXISTS lab_strategy_versions (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  experiment_id VARCHAR(36) NOT NULL, sequence_number INT NOT NULL,
+  previous_id VARCHAR(36) NULL, game_id VARCHAR(64) NOT NULL, request_id VARCHAR(128) NOT NULL,
+  content LONGTEXT NOT NULL, compatibility LONGTEXT NOT NULL, evidence LONGTEXT NOT NULL,
+  content_hash VARCHAR(64) NOT NULL, created_at DATETIME(6) NOT NULL,
+  UNIQUE KEY uk_lab_strategy_sequence (experiment_id, sequence_number),
+  UNIQUE KEY uk_lab_strategy_request (request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS strategy_publications (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  operation_id VARCHAR(36) NOT NULL, request_hash VARCHAR(64) NOT NULL,
+  action VARCHAR(16) NOT NULL, game_id VARCHAR(64) NOT NULL,
+  strategy_version_id VARCHAR(36) NULL, mode VARCHAR(16) NOT NULL, created_by VARCHAR(128) NOT NULL,
+  parameters LONGTEXT NOT NULL, previous_bindings LONGTEXT NOT NULL, result LONGTEXT NOT NULL,
+  created_at DATETIME(6) NOT NULL,
+  UNIQUE KEY uk_strategy_publication_operation (operation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @strategy_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_persona_memories' AND column_name='strategy_publication_id')=0,
+  'ALTER TABLE ai_persona_memories ADD COLUMN strategy_publication_id VARCHAR(36) NULL', 'SELECT 1');
+PREPARE strategy_statement FROM @strategy_ddl;
+EXECUTE strategy_statement;
+DEALLOCATE PREPARE strategy_statement;
+
+-- Postconditions: both tables exist; the persona pointer is nullable VARCHAR(36).
+-- No backfill, deletion, model call, or publication is performed by this migration.
+
+-- Resumable, evidence-bound werewolf lessons. Additive only; no games, calls or strategies are created.
+CREATE TABLE IF NOT EXISTS lab_training_runs (
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
+  experiment_id VARCHAR(36) NOT NULL, operation_id VARCHAR(64) NOT NULL,
+  request_hash VARCHAR(64) NOT NULL, goal VARCHAR(32) NOT NULL,
+  status VARCHAR(24) NOT NULL, stage VARCHAR(24) NOT NULL, reason VARCHAR(128) NULL,
+  candidate_strategy_version_id VARCHAR(36) NULL,
+  configuration LONGTEXT NOT NULL, assessment LONGTEXT NOT NULL,
+  created_at DATETIME(6) NOT NULL, updated_at_epoch_ms BIGINT NOT NULL, version BIGINT NULL,
+  UNIQUE KEY uk_lab_training_operation (experiment_id, operation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_training_cases (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, run_id VARCHAR(36) NOT NULL,
+  purpose VARCHAR(24) NOT NULL, source_type VARCHAR(48) NOT NULL, source_group VARCHAR(200) NOT NULL,
+  persona_id VARCHAR(64) NOT NULL, participant_id VARCHAR(36) NOT NULL, ordinal INT NOT NULL,
+  content_hash VARCHAR(64) NOT NULL, data LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
+  KEY idx_lab_training_case_run (run_id, purpose, ordinal)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lab_training_tasks (
+  id VARCHAR(36) NOT NULL PRIMARY KEY, run_id VARCHAR(36) NOT NULL, case_id VARCHAR(36) NULL,
+  task_key VARCHAR(128) NOT NULL, kind VARCHAR(24) NOT NULL, variant VARCHAR(24) NULL,
+  status VARCHAR(24) NOT NULL, ordinal INT NOT NULL, reason VARCHAR(128) NULL,
+  request_id VARCHAR(128) NULL, attempt INT NOT NULL, paid_retries INT NOT NULL,
+  started_at_epoch_ms BIGINT NULL, updated_at_epoch_ms BIGINT NOT NULL,
+  not_before_epoch_ms BIGINT NOT NULL, lease_until_epoch_ms BIGINT NOT NULL,
+  input LONGTEXT NOT NULL, checkpoint LONGTEXT NOT NULL, result LONGTEXT NOT NULL, version BIGINT NULL,
+  UNIQUE KEY uk_lab_training_task_identity (run_id, task_key),
+  KEY idx_lab_training_task_run (run_id, ordinal)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Postconditions: three new tables with immutable case content, operation/task identities and query indexes.
+-- Existing experiment, participant, wallet and published-strategy records are unchanged.

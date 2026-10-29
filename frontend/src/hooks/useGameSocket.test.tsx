@@ -67,6 +67,16 @@ it("uses current callbacks without reconnecting and buffers split STOMP frames",
   expect(updated).toHaveBeenCalledWith({ type: "STATE_SYNC" });
   expect(FakeSocket.instances).toHaveLength(1);
 });
+it("disconnects the previous account and ignores its private messages after identity changes",()=>{
+  options={...options,onPrivate:vi.fn(),onChat:vi.fn()};act(()=>root.render(<Probe/>));
+  const previous=FakeSocket.instances[0];act(()=>{previous.connect();previous.sync();});
+  const privateMessage=vi.fn(),chatMessage=vi.fn();options={...options,playerId:"B",token:"token-B",onPrivate:privateMessage,onChat:chatMessage};
+  act(()=>root.render(<Probe/>));expect(previous.readyState).toBe(3);
+  act(()=>{previous.receive('MESSAGE\ndestination:/user/queue/private\n\n{"type":"OLD_SECRET"}\0');previous.receive('MESSAGE\ndestination:/topic/room/room/chat\n\n{"id":"old-chat"}\0');});
+  expect(privateMessage).not.toHaveBeenCalled();expect(chatMessage).not.toHaveBeenCalled();
+  const current=FakeSocket.instances[1];act(()=>{current.connect();current.sync();});expect(current.sent[0]).toContain("Bearer token-B");
+  options={...options,playerId:null,token:null};act(()=>root.render(<Probe/>));expect(current.readyState).toBe(3);
+});
 
 it("sends real heartbeats, accepts inbound heartbeat activity and reconnects on silence", () => {
   act(() => root.render(<Probe />)); const first = FakeSocket.instances[0]; act(() => { first.connect(); first.sync(); });

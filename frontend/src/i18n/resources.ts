@@ -20,8 +20,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       ...personaResources["zh-CN"],
       ...dataTexts["zh-CN"],
       ...roomTexts["zh-CN"],
+      "nav.lab": "AI 实验室",
+      "lab.managedGame": "本房间由 AI 实验室统一调度",
       "errors.localStorageUnavailable": "无法保存到本机，请检查浏览器存储权限或可用空间。",
-      "app.title": "NexusPlay - 在线社交推理游戏平台",
+      "app.title": "seekerhut - 在线社交推理游戏平台",
       "i18n.selectLanguage": "选择语言",
 
       "nav.home": "游戏大厅",
@@ -530,7 +532,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tab.rules": "规则百科",
       "guide.tab.practice": "练习模式",
       "guide.tutorialTitle": "首局引导流程",
-      "guide.tutorialSteps.0": "点击头像可查看玩家状态，轮到你时可在操作区提交发言。",
+      "guide.tutorialSteps.0": "玩家栏显示座位和状态；需要选择目标时，点击可选头像，再确认提交。轮到你发言时使用下方操作区。",
       "guide.tutorialSteps.1": "进入投票阶段后，先选择目标，再确认投票。",
       "guide.tutorialSteps.2": "夜晚阶段仅特定角色可操作，其余玩家等待天亮。",
       "guide.tutorialSteps.3": "结算阶段会展示胜负与关键事件，可在回放中心复盘。",
@@ -584,6 +586,9 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
 
       // ---- 真实快速匹配房间名 ----
       "v2.quickMatch.roomName": "[快速匹配] {{name}} #{{seq}}",
+      "quickMatch.noPersonas": "目前没有可补位的 AI 角色，请邀请朋友入座。",
+      "quickMatch.waitForHost": "已加入房间，等待房主开始。",
+      "quickMatch.roomKept": "房间已保留，但自动开局未完成：{{reason}}。请在当前房间继续准备。",
     },
   },
   "zh-TW": {
@@ -591,8 +596,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       ...personaResources["zh-TW"],
       ...dataTexts["zh-TW"],
       ...roomTexts["zh-TW"],
+      "nav.lab": "AI 實驗室",
+      "lab.managedGame": "本房間由 AI 實驗室統一排程",
       "errors.localStorageUnavailable": "無法儲存到本機，請檢查瀏覽器儲存權限或可用空間。",
-      "app.title": "NexusPlay - 線上社交推理遊戲平台",
+      "app.title": "seekerhut - 線上社交推理遊戲平台",
       "i18n.selectLanguage": "選擇語言",
 
       "nav.home": "遊戲大廳",
@@ -1082,7 +1089,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tab.rules": "規則百科",
       "guide.tab.practice": "練習模式",
       "guide.tutorialTitle": "首局引導流程",
-      "guide.tutorialSteps.0": "點擊頭像可查看玩家狀態，輪到你時可在操作區提交發言。",
+      "guide.tutorialSteps.0": "玩家欄顯示座位和狀態；需要選擇目標時，點擊可選頭像，再確認提交。輪到你發言時使用下方操作區。",
       "guide.tutorialSteps.1": "進入投票階段後，先選擇目標，再確認投票。",
       "guide.tutorialSteps.2": "夜晚階段僅特定角色可操作，其餘玩家等待天亮。",
       "guide.tutorialSteps.3": "結算階段會展示勝負與關鍵事件，可在回放中心復盤。",
@@ -1132,6 +1139,9 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "error.boundary.retry": "刷新頁面",
 
       "v2.quickMatch.roomName": "[快速匹配] {{name}} #{{seq}}",
+      "quickMatch.noPersonas": "目前沒有可補位的 AI 角色，請邀請朋友入座。",
+      "quickMatch.waitForHost": "已加入房間，等待房主開始。",
+      "quickMatch.roomKept": "房間已保留，但自動開局未完成：{{reason}}。請在目前房間繼續準備。",
     },
   },
   en: {
@@ -1139,8 +1149,10 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       ...personaResources["en"],
       ...dataTexts.en,
       ...roomTexts.en,
+      "nav.lab": "AI Laboratory",
+      "lab.managedGame": "This table is managed by the AI Laboratory",
       "errors.localStorageUnavailable": "Could not save locally. Check browser storage permissions or available space.",
-      "app.title": "NexusPlay - Online Social Deduction Games",
+      "app.title": "seekerhut - Online Social Deduction Games",
       "i18n.selectLanguage": "Select language",
 
       "nav.home": "Game Lobby",
@@ -1631,7 +1643,7 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "guide.tab.rules": "Rules",
       "guide.tab.practice": "Practice",
       "guide.tutorialTitle": "First Match Walkthrough",
-      "guide.tutorialSteps.0": "Click a player avatar to see their status; submit your speech in the actions area when it's your turn.",
+      "guide.tutorialSteps.0": "The player list shows seats and status. When an action needs a target, select an available avatar and confirm. Use the action area when it is your turn to speak.",
       "guide.tutorialSteps.1": "When voting starts, pick a target first, then confirm your vote.",
       "guide.tutorialSteps.2": "Only specific roles act at night; everyone else waits for dawn.",
       "guide.tutorialSteps.3": "Settlement shows the outcome and key events. Review the game in the replay center.",
@@ -1681,6 +1693,9 @@ export const resources: Record<Locale, { translation: Record<string, string> }> 
       "error.boundary.retry": "Refresh",
 
       "v2.quickMatch.roomName": "[Quick Match] {{name}} #{{seq}}",
+      "quickMatch.noPersonas": "No AI characters are available. Invite friends to fill the seats.",
+      "quickMatch.waitForHost": "You joined the room. Waiting for the host to start.",
+      "quickMatch.roomKept": "Your room is saved, but automatic startup did not finish: {{reason}}. Continue preparing in this room.",
     },
   },
 };

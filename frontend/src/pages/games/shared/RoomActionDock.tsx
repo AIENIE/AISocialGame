@@ -14,8 +14,12 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
   state: GameState; control: Controller; connected: boolean; waitingText: string; onChoosePlayer: () => void; context?: ReactNode;
 }) {
   const copy = useRoomText();
+  if(state.extra?.validationBudgetPaused===true) return <section className="room-action-dock" data-testid="v2-action-panel" role="status"><p>{copy("validationPaused")}</p></section>;
+  if(state.extra?.labCallPaused===true) return <section className="room-action-dock" data-testid="v2-action-panel" role="status"><p>{copy("callPaused")}</p></section>;
+  if(state.extra?.labBudgetPaused===true) return <section className="room-action-dock" data-testid="v2-action-panel" role="status"><p>{copy("budgetPaused")}</p></section>;
+  const feedback = state.extra?.wordFeedback as {forbiddenTerms:string[];remainingCorrections:number;eliminated:boolean} | undefined;
   const { selected, primary, key, draft, target, prepared, abstain, busy, capabilities, submitted } = control;
-  const disabled = busy || !connected;
+  const disabled = busy || !connected || control.actionExpired;
   const player = state.players.find(p => p.playerId === target);
   const extraDescription = state.gameId === "undercover" && state.phase === "TIE_DEFENSE";
   const label = selected?.type === "SPEAK" && extraDescription ? copy("extraDescription") : selected ? actionLabel(selected, copy) : "";
@@ -23,13 +27,19 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
   const buttonText = selected?.type === "SPEAK" ? copy(extraDescription ? "sendExtraDescription" : "send") : target === "__abstain__" ? copy("abstain") : targetName ? copy("confirmTarget", { action: label, name: targetName }) : label;
   const send = () => {
     if (disabled || !prepared) return;
-    if (selected?.type === "SUBMIT_SOLUTION" && state.phase === "FINAL_ANSWER") control.setConfirmation(prepared);
+    if (selected?.type === "SELF_DESTRUCT" || selected?.type === "SUBMIT_SOLUTION" && state.phase === "FINAL_ANSWER") control.setConfirmation(prepared);
     else void control.submit(prepared);
   };
   return <section className={`room-action-dock ${capabilities.length ? "room-action-active" : ""}`} data-testid="v2-action-panel" aria-label={copy("yourTurn")} aria-busy={busy}>
     {control.changed && <p className="room-turn-notice" role="status">{copy("phaseChanged")}</p>}
     {!connected && <p className="text-sm text-amber-700 dark:text-amber-300" role="status">{copy("reconnect")}</p>}
+    {control.actionExpired && <p className="text-sm text-muted-foreground" role="status">{copy("actionExpired")}</p>}
     {submitted && <p className="flex items-center gap-1 text-sm text-emerald-700 dark:text-emerald-300" role="status"><Check className="h-4 w-4" />{copy("submitted")}</p>}
+    {control.submissionError && <p className="text-sm text-amber-800 dark:text-amber-200" role="alert">{control.submissionError}</p>}
+    {feedback && <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950" role="alert">
+      <p>{copy("forbiddenWords", { words: feedback.forbiddenTerms.join("、") })}</p>
+      <p>{copy(feedback.eliminated ? "forbiddenEliminated" : "forbiddenCorrections", { n: feedback.remainingCorrections })}</p>
+    </div>}
     {!capabilities.length && !submitted && <p className="py-2 text-sm text-muted-foreground" role="status">{waitingText}</p>}
     {context}
     {primary.length > 1 && <div className="room-action-modes" role="group" aria-label={copy("yourTurn")}>
@@ -41,11 +51,12 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
         {abstain && <Button type="button" size="sm" variant={target === "__abstain__" ? "secondary" : "ghost"} aria-pressed={target === "__abstain__"} disabled={disabled} onClick={() => control.selectTarget("__abstain__")}>{copy("abstain")}</Button>}
       </div>}
       {selected.maxLength > 0 && <Textarea data-testid="v2-action-text" aria-label={label} value={draft} rows={2} className="room-composer" disabled={disabled}
-        placeholder={copy(extraDescription && selected.type === "SPEAK" ? "extraDescriptionHint" : needsText(selected) ? "draft" : "note")} aria-invalid={Array.from(draft.trim()).length > selected.maxLength}
+        placeholder={copy(selected.type === "SELF_DESTRUCT" ? "selfDestructHint" : extraDescription && selected.type === "SPEAK" ? "extraDescriptionHint" : needsText(selected) ? "draft" : "note")} aria-invalid={Array.from(draft.trim()).length > selected.maxLength}
         onChange={event => control.setDraft(event.target.value)} />}
       <div className="room-compose-footer">
         <div className="min-w-0 text-xs text-muted-foreground">
           {state.gameId === "turtle_soup" && <span>{copy(selected.type === "DISCUSS" ? "freeDiscuss" : state.phase === "FINAL_ANSWER" ? "finalWarning" : "cost")}</span>}
+          {selected.type === "SELF_DESTRUCT" && <span>{copy("selfDestructWarning")}</span>}
           {selected.maxLength > 0 && <span className={`ml-2 tabular-nums ${Array.from(draft.trim()).length > selected.maxLength ? "text-destructive" : ""}`}>{Array.from(draft.trim()).length}/{selected.maxLength}</span>}
         </div>
         <Button type="submit" data-testid="v2-action-submit" disabled={disabled || !prepared} className="room-submit">
@@ -63,8 +74,8 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
         }}>{action.type === "SKIP" && ["VOTING", "DAY_VOTE", "RUNOFF"].includes(state.phase) ? copy("abstain") : action.type === "SKIP" && extraDescription ? copy("skipExtraDescription") : actionLabel(action, copy)}{action.type === "REQUEST_HINT" && <span className="ml-1 text-xs text-muted-foreground">· {copy("hintCost")}</span>}</Button>)}
     </div>}
     <AlertDialog open={!!control.confirmation} onOpenChange={open => { if (!open) control.setConfirmation(null); }}>
-      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{copy(control.confirmation?.type === "REVEAL_SOLUTION" ? "reveal" : "solution")}</AlertDialogTitle>
-        <AlertDialogDescription>{copy(control.confirmation?.type === "REVEAL_SOLUTION" ? "revealWarning" : "finalWarning")}</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{copy(control.confirmation?.type === "SELF_DESTRUCT" ? "selfDestruct" : control.confirmation?.type === "REVEAL_SOLUTION" ? "reveal" : "solution")}</AlertDialogTitle>
+        <AlertDialogDescription>{copy(control.confirmation?.type === "SELF_DESTRUCT" ? "selfDestructWarning" : control.confirmation?.type === "REVEAL_SOLUTION" ? "revealWarning" : "finalWarning")}</AlertDialogDescription></AlertDialogHeader>
         {control.confirmation?.content && <p className="whitespace-pre-wrap break-words text-sm">{control.confirmation.content}</p>}
         <AlertDialogFooter><AlertDialogCancel>{copy("cancel")}</AlertDialogCancel><AlertDialogAction disabled={disabled} onClick={event => { event.preventDefault(); if (!disabled) void control.submit(control.confirmation); }}>{copy("confirm")}</AlertDialogAction></AlertDialogFooter>
       </AlertDialogContent>

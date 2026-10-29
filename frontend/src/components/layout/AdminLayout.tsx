@@ -1,6 +1,7 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { safeAdminReturnTo } from "@/hooks/authStorage";
 
 const navItems = [
   { path: "/admin", label: "仪表盘" },
@@ -8,6 +9,7 @@ const navItems = [
   { path: "/admin/billing", label: "积分查询" },
   { path: "/admin/ai", label: "AI 质检" },
   { path: "/admin/models", label: "模型配置" },
+  { path: "/admin/lab", label: "AI 实验室" },
   { path: "/admin/security", label: "认证安全" },
   { path: "/admin/safety", label: "安全运营" },
   { path: "/admin/integration", label: "服务联通" },
@@ -19,10 +21,10 @@ const AdminLayout = () => {
 
   if (loading) return <p role="status" className="p-6">正在确认管理权限…</p>;
 
-  if (error) return <div role="alert" className="p-6">管理会话校验失败。<Button onClick={() => void retry()}>重试</Button></div>;
+  if (error && !admin) return <div role="alert" className="p-6">管理会话校验失败。<Button onClick={() => void retry()}>重试</Button></div>;
 
   if (!loading && !admin) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to={`/admin/login?returnTo=${encodeURIComponent(safeAdminReturnTo(location.pathname+location.search+location.hash))}`} replace />;
   }
 
   if (!loading && admin?.sessionScope === "RECOVERY_REBIND_ONLY") return <Navigate to="/admin/login" replace />;
@@ -30,6 +32,7 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="mx-auto max-w-7xl p-4 md:p-6">
+        {error&&<div role="alert" className="mb-4 rounded border border-amber-300 p-3">管理会话暂时无法确认，当前页面已保留。<Button variant="ghost" onClick={()=>void retry()}>重试</Button></div>}
         <div className="mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-xl font-semibold">AISocialGame 管理台</h1>
@@ -56,7 +59,7 @@ const AdminLayout = () => {
             </nav>
           </aside>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section key={`${admin.username}:${admin.sessionScope}:${admin.expiresAt}`} className="rounded-xl bg-white p-4 shadow-sm">
             <Outlet />
           </section>
         </div>

@@ -59,6 +59,7 @@ public class ReplayArchiveService {
         GameArchive archive = new GameArchive();
         archive.setId(archiveId);
         archive.setRoomId(state.getRoomId());
+        archive.setSource(room.getSource());
         archive.setGameId(state.getGameId());
         archive.setRoomName(room.getName());
         archive.setWinner((String) state.getData().get("winner"));

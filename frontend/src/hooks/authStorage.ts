@@ -13,7 +13,17 @@ export function safeReturnTo(value: string | null | undefined): string {
   const url = new URL(value, window.location.origin);
   if (url.origin !== window.location.origin || /^\/(sso|admin)(\/|$)/.test(new URL(decoded, window.location.origin).pathname)) return "/";
   const path = new URL(decoded, window.location.origin).pathname;
-  if (!/^\/(?:$|guide\/?$|profile\/?$|community\/?$|ai-chat\/?$|rankings\/?$|achievements\/?$|replays\/?$|(?:game|create|replay)\/[^/]+\/?$|(?:room|spectate)\/[^/]+\/[^/]+\/?$)/.test(path)) return "/";
+  if (!/^\/(?:$|guide\/?$|profile\/?$|community\/?$|ai-chat\/?$|rankings\/?$|achievements\/?$|replays\/?$|lab(?:\/[^/]+)?\/?$|(?:game|create|replay)\/[^/]+\/?$|(?:room|spectate)\/[^/]+\/[^/]+\/?$)/.test(path)) return "/";
   return `${url.pathname}${url.search}${url.hash}`;
 }
 export function consumeReturnTo() { const path = safeReturnTo(readStorage(LOCAL_RETURN_TO_KEY)); writeStorage(LOCAL_RETURN_TO_KEY, null); return path; }
+export function safeAdminReturnTo(value: string | null | undefined): string {
+  if(!value || !value.startsWith("/") || value.startsWith("//") || hasUnsafeCharacters(value)) return "/admin";
+  let decoded: string;
+  try { decoded=decodeURIComponent(value); } catch { return "/admin"; }
+  if(decoded.startsWith("//") || hasUnsafeCharacters(decoded)) return "/admin";
+  const url=new URL(value,window.location.origin);
+  const path=new URL(decoded,window.location.origin).pathname;
+  if(url.origin!==window.location.origin || !/^\/admin(?:\/?$|\/(?:users|billing|ai|models|security|safety|integration)\/?$|\/lab(?:\/[^/]+(?:\/matches\/[^/]+)?)?\/?$|\/replays\/[^/]+\/?$)/.test(path)) return "/admin";
+  return `${url.pathname}${url.search}${url.hash}`;
+}

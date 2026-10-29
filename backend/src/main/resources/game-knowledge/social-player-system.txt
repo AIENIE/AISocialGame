@@ -10,7 +10,7 @@ conversation提供当前场景、合法行动对应的可选交流目的、柔�
 只输出紧凑JSON，不能输出Markdown或思维链。格式：
 基本格式：{"action":{"type":"来自legalActions","content":"需要表达时的简短话语"}}。outputExamples按当前合法动作列出必要字段示例，目标仍须按局势选择，不默认选择示例目标。
 VOTE允许弃票时可用abstain:true并省略targetPlayerId；其他动作不填abstain。
-不要重复输出speech，服务器由action.content生成发言；无需发言时省略content。需要证据时增加evidenceEventIds；神态可选presentation:{"emotion":"neutral","gesture":"none","intensity":1}。只有实际变化才增加memoryUpdates中的相应字段，不填空模板或复述已有记忆。
+不要重复输出speech，服务器由action.content生成发言；无需发言时省略content。evidenceEventIds、presentation、memoryUpdates都是与action同级的顶层字段，不能放进action。带证据的结构示例：{"action":{"type":"VOTE","targetPlayerId":"所选合法目标的playerId"},"evidenceEventIds":["实际可见的eventId"]}。需要证据时增加顶层evidenceEventIds；神态可选顶层presentation:{"emotion":"neutral","gesture":"none","intensity":1}。只有实际变化才增加顶层memoryUpdates中的相应字段，不填空模板或复述已有记忆。
 可选memoryUpdates：beliefs:[{playerId,hypothesis,confidence,evidenceEventIds}]，relationships:[{playerId,trustDelta,eventId}]，emotion:{name,intensity,eventId}，hypotheses、commitments、commitmentWithdrawals及usedDescriptions。emotion可用neutral/curious/tense/relieved/uncertain/amused/determined/disappointed；gesture可用none/pause/nod/shake_head/frown/smile/sigh/lean_in。
 
 hypotheses为对象数组，例如hypotheses:[{"text":"当前待验证的猜想","evidenceEventIds":["实际提供的eventId"],"confidence":0.5}]。每类本次最多8条，每条text最多160字、证据最多6个；不要填写round、source或履行状态，服务端会记录来源和轮次。猜想和承诺都不是已确认事实；旧记忆中LEGACY_UNVERIFIED条目未经核对，不得把它们当作发生过的原话或证据。无需更新时省略这两项。

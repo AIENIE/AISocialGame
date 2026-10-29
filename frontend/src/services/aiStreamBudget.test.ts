@@ -35,3 +35,10 @@ it("cancels the previous account stream and ignores its late unauthorized respon
     expect(expired).toHaveBeenCalledTimes(1);
   } finally { unsubscribe(); }
 });
+it("ignores buffered successful chunks from an earlier account even when fetch did not honor abort",async()=>{
+  const chunk=vi.fn(),done=vi.fn();let complete!:(response:Response)=>void;
+  vi.stubGlobal("fetch",vi.fn(()=>new Promise<Response>(resolve=>{complete=resolve;})));
+  setAuthToken("A");const stream=aiApi.chatStream([],undefined,chunk,done).catch(error=>error);
+  setAuthToken("B");complete(new Response('data: {"content":"A_PRIVATE"}\n\ndata: {"done":true}\n\n',{status:200}));
+  await stream;expect(chunk).not.toHaveBeenCalled();expect(done).not.toHaveBeenCalled();
+});

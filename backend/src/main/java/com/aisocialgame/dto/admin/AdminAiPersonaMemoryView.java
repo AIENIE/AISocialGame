@@ -16,6 +16,7 @@ public class AdminAiPersonaMemoryView {
     private final int gamesPlayed;
     private final String approvedSummary;
     private final String reviewStatus;
+    private final String strategyPublicationId;
     private final LocalDateTime updatedAt;
 
     public AdminAiPersonaMemoryView(AiPersonaMemory memory) {
@@ -30,6 +31,7 @@ public class AdminAiPersonaMemoryView {
         this.gamesPlayed = memory.getGamesPlayed();
         this.approvedSummary = memory.getApprovedSummary();
         this.reviewStatus = memory.getReviewStatus();
+        this.strategyPublicationId = memory.getStrategyPublicationId();
         this.updatedAt = memory.getUpdatedAt();
     }
 
@@ -44,5 +46,6 @@ public class AdminAiPersonaMemoryView {
     public int getGamesPlayed() { return gamesPlayed; }
     public String getApprovedSummary() { return approvedSummary; }
     public String getReviewStatus() { return reviewStatus; }
+    public String getStrategyPublicationId() { return strategyPublicationId; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

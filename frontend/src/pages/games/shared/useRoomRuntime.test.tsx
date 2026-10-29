@@ -6,6 +6,8 @@ import { personaApi, roomApi } from "@/services/api";
 import type { Room } from "@/types";
 import { useRoomRuntime } from "./useRoomRuntime";
 import { PersonaPicker } from "./PersonaPicker";
+import { HttpApiError } from "@/services/apiError";
+import { toast } from "sonner";
 
 vi.mock("react-router-dom", () => ({ useParams: () => ({ roomId: "room" }) }));
 vi.mock("react-i18next", async importOriginal => ({ ...await importOriginal<typeof import("react-i18next")>(), useTranslation: () => ({ t: (key: string) => key }) }));
@@ -13,7 +15,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "host" }, displayName: "真人", loading: false }) }));
 vi.mock("@/hooks/useGameSocket", () => ({ useGameSocket: () => ({}) }));
 vi.mock("@/hooks/useGameEngine", () => ({ useGameEngine: () => ({ stateQuery: { refetch: vi.fn() }, startMutation: {}, actionMutation: {} }) }));
-vi.mock("@/services/api", () => ({ personaApi: { list: vi.fn() }, roomApi: { detail: vi.fn(), addAi: vi.fn(), join: vi.fn() }, getApiErrorMessage: () => "failed" }));
+vi.mock("@/services/api", async () => ({ ...await import("@/services/apiError"), personaApi: { list: vi.fn() }, roomApi: { detail: vi.fn(), addAi: vi.fn(), join: vi.fn() } }));
 let container: HTMLDivElement, root: Root, client: QueryClient;
 let runtime: ReturnType<typeof useRoomRuntime>;
 const room = { id: "room", gameId: "undercover", status: "WAITING", maxPlayers: 2, hostUserId: "host",
@@ -32,6 +34,15 @@ beforeEach(() => {
   container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); container.remove(); });
+
+it.each(["OWN_WORD_FORBIDDEN", "FORBIDDEN_WORD_ELIMINATED"])("refreshes private rule feedback without a misleading failure toast for %s", code => {
+  const invalidate = vi.spyOn(client, "invalidateQueries");
+  act(() => root.render(<QueryClientProvider client={client}><Harness game="undercover" /></QueryClientProvider>));
+  act(() => runtime.handleActionError(new HttpApiError(400, code, "命中本人禁词：卫衣"), "game.submitSpeakFailed"));
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["game-state", "room"] });
+  expect(toast.error).not.toHaveBeenCalled();
+  expect(toast.info).not.toHaveBeenCalled();
+});
 
 it.each(["undercover", "werewolf", "turtle_soup"])("sends only the selected persona ID for %s and respects pending/full responses", async game => {
   let finish!: (room: Room) => void;

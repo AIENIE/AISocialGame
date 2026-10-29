@@ -15,6 +15,10 @@ import java.util.Map;
 @Entity
 @Table(name = "game_archives")
 public class GameArchive {
+    @Column(nullable=false,length=16)
+    private String source = "NORMAL";
+    public String getSource() { return source; }
+    public void setSource(String value) { source = value; }
     @Id
     @Column(length = 96)
     private String id;

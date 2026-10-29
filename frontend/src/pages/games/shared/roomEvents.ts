@@ -44,6 +44,12 @@ export function revealedBallot(state: GameState, logs: GameLogEntry[]) {
 /** Old events retain their original text; only structured skip reasons are translated. */
 export function systemEventMessage(log: GameLogEntry, language: string): string {
   const { reason, action, actorName } = log.metadata || {};
+  if (log.type === "SELF_DESTRUCT" && typeof actorName === "string" && typeof log.metadata?.content === "string" && typeof log.metadata?.success === "boolean") {
+    const { content, success } = log.metadata;
+    if (language.startsWith("en")) return `${actorName} self-destructed, guessing “${content}”. ${success ? "Correct: Undercover wins." : "Attempt failed: the player is eliminated."}`;
+    if (language === "zh-TW" || language === "zh-HK") return `${actorName}自爆，猜平民詞為「${content}」。${success ? "自爆成功，臥底陣營獲勝。" : "自爆失敗，本人出局。"}`;
+    return `${actorName}自爆，猜平民词为“${content}”。${success ? "自爆成功，卧底阵营获胜。" : "自爆失败，本人出局。"}`;
+  }
   const reasons: Record<string, [string, string, string]> = {
     REQUEST_FAILED: ["请求失败", "請求失敗", "request failed"],
     TIMEOUT: ["超时", "逾時", "timed out"],

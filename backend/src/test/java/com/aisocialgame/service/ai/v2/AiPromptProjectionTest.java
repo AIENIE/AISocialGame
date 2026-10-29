@@ -4,12 +4,22 @@ import com.aisocialgame.engine.v2.turtlesoup.*;
 import com.aisocialgame.engine.v2.undercover.*;
 import com.aisocialgame.engine.v2.werewolf.*;
 import com.aisocialgame.engine.v2.RuleSupport;
+import com.aisocialgame.engine.v2.TurnRequest;
+import com.aisocialgame.model.GamePlayerState;
 import com.aisocialgame.model.PersonaPresets;
+import com.aisocialgame.model.Room;
+import com.aisocialgame.model.RoomSeat;
+import com.aisocialgame.model.RoomStatus;
+import com.aisocialgame.repository.PersonaRepository;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import java.nio.file.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class AiPromptProjectionTest {
     final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
@@ -30,7 +40,7 @@ class AiPromptProjectionTest {
                     events, base.privateFacts(), base.legalActions(), json.convertValue(persona, Map.class), base.memory(), base.knowledge());
             String before = json.writeValueAsString(o);
             Map<String, Object> projected = AiPromptProjection.project(scenario.adapter(), o);
-            JsonNode root = json.valueToTree(projected), restored = resolve(root.path("observation"), root, 0), original = json.valueToTree(o);
+            JsonNode root = json.valueToTree(projected), restored = resolve(root.path("observation"), root, 0), original = expectedModelObservation(o);
             for (String field : List.of("events", "privateFacts", "legalActions", "persona", "players", "self", "knowledge")) assertEquals(original.path(field), restored.path(field), scenario.id() + "/" + field);
             original.path("memory").fields().forEachRemaining(e -> assertEquals(e.getValue(), restored.path("memory").get(e.getKey())));
             assertEquals(before, json.writeValueAsString(o), "projection is detached and pure");
@@ -43,6 +53,50 @@ class AiPromptProjectionTest {
         }
         Files.createDirectories(Path.of("target"));
         json.writerWithDefaultPrettyPrinter().writeValue(Path.of("target/m1-r4-input-comparison.json").toFile(), Map.of("source", "offline; no model calls; UTF-8 user payload bytes only", "samples", samples));
+    }
+
+    @Test void actualWerewolfBoardsUseUiSeatNumbersWithoutChangingTargetsEvidenceOrInternalIndices() throws Exception {
+        var rules = new WerewolfRuleSet();
+        var memories = mock(AiMemoryServiceV2.class);
+        when(memories.snapshot(any(), anyString())).thenReturn(Map.of());
+        var factory = new ObservationFactory(mock(PersonaRepository.class), memories);
+        for (int count : List.of(6, 9, 12)) {
+            var room = new Room("seat-map-" + count, "werewolf", "座号回归", RoomStatus.WAITING, count, false, null, "text",
+                    new LinkedHashMap<>(Map.of("playerCount", count, "template", "standard")));
+            for (int seat = 0; seat < count; seat++) room.getSeats().add(new RoomSeat(seat, "opaque-player-" + seat,
+                    "玩家" + (seat + 1), true, null, "", true, seat == 0));
+            var state = rules.initialize(room, LocalDateTime.of(2026, 10, 25, 12, 0));
+            state.setPhase("DAY_VOTE");
+            RuleSupport.event(state, "SPEAK", "opaque-player-1", "opaque-player-" + (count - 1),
+                    "我会核对1号的说法，再决定投票。", Map.of("content", "我会核对1号的说法，再决定投票。"));
+            var internalSeats = java.util.stream.IntStream.range(0, count).boxed().toList();
+            for (int actorSeat : List.of(0, 1, count - 1)) {
+                String actorId = "opaque-player-" + actorSeat;
+                var observation = factory.build(state, rules, new TurnRequest(actorId, "VOTE", "seat-map-" + actorId));
+                String original = json.writeValueAsString(observation);
+                assertEquals(actorSeat, observation.self().get("seatNumber"));
+                assertEquals(internalSeats, observation.players().stream().map(p -> p.get("seatNumber")).toList());
+                assertFalse(observation.legalActions().isEmpty());
+
+                JsonNode projected = json.valueToTree(AiPromptProjection.project(rules, observation));
+                JsonNode restored = resolve(projected.path("observation"), projected, 0);
+                assertEquals(5, projected.path("inputFormatVersion").asInt());
+                assertEquals(5, AiPromptProjection.version("werewolf"));
+                assertFalse(projected.path("seatNumbering").asText().isBlank());
+                assertEquals(actorSeat + 1, restored.path("self").path("seatNumber").asInt());
+                for (int seat = 0; seat < count; seat++) {
+                    assertEquals(seat + 1, restored.path("players").get(seat).path("seatNumber").asInt());
+                    assertEquals("opaque-player-" + seat, restored.path("players").get(seat).path("playerId").asText());
+                }
+                JsonNode expected = expectedModelObservation(observation);
+                for (String field : List.of("self", "players", "events", "privateFacts", "legalActions", "knowledge", "persona"))
+                    assertEquals(expected.path(field), restored.path(field), count + "/" + actorId + "/" + field);
+                assertEquals(json.valueToTree(AiInformationSources.project(rules, observation)),
+                        resolve(projected.path("informationSources"), projected, 0));
+                assertEquals(original, json.writeValueAsString(observation), "frozen observations retain internal indices and original quotes");
+                assertEquals(internalSeats, state.getPlayers().stream().map(GamePlayerState::getSeatNumber).toList());
+            }
+        }
     }
 
     @Test void hostTruthIsUnchangedAndNoPlayerExamplesOrMemoryAreIntroduced() {
@@ -170,6 +224,30 @@ class AiPromptProjectionTest {
             assertEquals(1,decision.diagnostics().get("calls"));
         }
         assertEquals(8,checked);
+    }
+
+    @Test void selfDestructHistoryContainsThePublicGuessAndResultWithoutTheHiddenCorrectAnswer() {
+        var adapter = new UndercoverRuleSet(words);
+        var o = new VisibleObservation("undercover", "i", "VOTING", 2, "p0", "VOTE", Map.of(), List.of(), Map.of(),
+                List.of(Map.of("eventId", "boom", "type", "SELF_DESTRUCT", "round", 2, "actorId", "p1", "phase", "VOTING",
+                        "data", Map.of("content", "猜测原文", "success", false, "civilianWord", "HIDDEN_ANSWER"))),
+                Map.of("word", "咖啡"), List.of(com.aisocialgame.engine.v2.LegalAction.text("SELF_DESTRUCT", "自爆猜词", 20)), Map.of(), Map.of(), List.of());
+        var payload = AiPromptProjection.project(adapter, o);
+        assertEquals(List.of(Map.of("eventId", "boom", "type", "SELF_DESTRUCT", "round", 2, "actorId", "p1", "content", "猜测原文", "success", false)), payload.get("events"));
+        assertFalse(payload.toString().contains("HIDDEN_ANSWER"));
+        assertEquals(List.of(Map.of("type", "SELF_DESTRUCT", "maxLength", 20)), payload.get("legalActions"));
+        assertEquals(Map.of("content", "猜测原文", "success", false), adapter.confirmedFacts(o.events().getFirst()));
+    }
+
+    private JsonNode expectedModelObservation(VisibleObservation observation) {
+        ObjectNode expected = json.valueToTree(observation);
+        if ("werewolf".equals(observation.gameId())) {
+            List<JsonNode> players = new ArrayList<>();
+            players.add(expected.path("self")); expected.path("players").forEach(players::add);
+            for (JsonNode player : players) if (player.path("seatNumber").isIntegralNumber())
+                ((ObjectNode) player).put("seatNumber", player.path("seatNumber").asInt() + 1);
+        }
+        return expected;
     }
 
     private JsonNode resolve(JsonNode node, JsonNode root, int depth) {

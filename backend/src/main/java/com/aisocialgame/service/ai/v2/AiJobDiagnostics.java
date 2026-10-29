@@ -9,8 +9,8 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 public final class AiJobDiagnostics {
     private AiJobDiagnostics() {}
     private static final Set<String> GENERATION_KEYS = Set.of("latencyMs", "calls", "promptTokens", "completionTokens", "usageComplete", "responsesObserved",
-            "qualityFlags", "modelKey", "promptVersion", "repaired", "initialBudgetMs", "inputFormatVersion", "inputSectionBytes", "repairRemainingMs", "fallbackMs", "submissionFailedMs");
-    private static final Set<String> ATTEMPT_KEYS = Set.of("attempt", "flags", "failureStage", "inputPreparationMs", "inputBytes", "requestTimeoutMs", "requestRemainingMs",
+            "qualityFlags", "modelKey", "promptVersion", "repaired", "initialBudgetMs", "inputFormatVersion", "inputSectionBytes", "repairRemainingMs", "fallbackMs", "submissionFailedMs", "failureStage", "failureCode");
+    private static final Set<String> ATTEMPT_KEYS = Set.of("attempt", "transportAttempt", "remoteState", "flags", "failureStage", "inputPreparationMs", "inputBytes", "requestTimeoutMs", "requestRemainingMs",
             "rpcMs", "parseMs", "validationMs", "promptTokens", "completionTokens", "outputBytes", "requestId", "budgetId", "settlementState", "finishReason", "reasoningTokens");
 
     public static Map<String, Object> generation(Map<String, Object> source) {
@@ -28,6 +28,7 @@ public final class AiJobDiagnostics {
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("formatVersion", 1); d.put("createdEpochMs", now.toEpochMilli()); d.put("clockSource", "UTC_EPOCH");
         d.put("runtimeZone", zone.getId()); d.put("promptVersion", AiTurnGenerator.promptVersion(gameId));
+        d.put("gameId", gameId);
         d.put("inputFormatVersion", AiPromptProjection.version(gameId));
         d.putAll(AiBuildIdentity.current());
         job.setDiagnostics(d);

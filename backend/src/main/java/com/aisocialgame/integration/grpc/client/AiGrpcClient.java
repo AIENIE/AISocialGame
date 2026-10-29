@@ -50,6 +50,8 @@ public class AiGrpcClient {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.aisocialgame.service.ai.v2.AiCallBudgetService callBudget;
+    @Autowired(required = false)
+    private com.aisocialgame.service.ai.v2.AiValidationBudgetService validationBudgets;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.service.safety.AiCallAdmission admission;
 
@@ -97,6 +99,18 @@ public class AiGrpcClient {
         return chat(projectKey, userId, sessionId, selection, messages, requestId, deadlineSeconds);
     }
 
+    /** Result/usage recovery does not run model admission, prepare a request, or invoke inference. */
+    public AiChatResult recoverChatCompletions(String projectKey,long userId,String requestId) {
+        AppProperties.requireCanonicalProjectKey(projectKey);
+        if (boundedClient == null) requireBoundedBudget();
+        var response=boundedClient.recoverOriginal(projectKey,userId,requestId);
+        var request=ChatCompletionsRequest.newBuilder().setProjectKey(projectKey).setUserId(userId).setRequestId(requestId).build();
+        var metadata=boundedClient.metadata(request);
+        return new AiChatResult(response.getContent(),response.getModelKey(),response.getPromptTokens(),response.getCompletionTokens(),
+                response.hasFinishReason()?response.getFinishReason():null,response.hasReasoningTokens()?response.getReasoningTokens():null,
+                (String)metadata.get("budgetId"),(String)metadata.get("settlementState"));
+    }
+
     private AiChatResult chat(String projectKey, long userId, String sessionId, AiModelSelection selection,
             List<AiChatMessageDto> messages, String requestId, int deadlineSeconds) {
         AppProperties.requireCanonicalProjectKey(projectKey);
@@ -106,6 +120,8 @@ public class AiGrpcClient {
         var registered = new java.util.concurrent.atomic.AtomicBoolean();
         Runnable beforeSend = () -> {
             if (selection.functionCode() != null) modelConfigs.requireUsable(selection);
+            if (validationBudgets != null)
+                validationBudgets.requireCallAllowed(com.aisocialgame.service.safety.AiCallScope.context(userId, model).getRoomId());
             if (admission != null) { admission.begin(requestId,com.aisocialgame.service.safety.AiCallScope.context(userId,model)); registered.set(true); }
         };
         if (isolatedTransportFixture) beforeSend.run();
@@ -133,9 +149,17 @@ public class AiGrpcClient {
                 }
             }
             if (isolatedTransportFixture && callBudget != null) callBudget.consume();
+            boolean coach=com.aisocialgame.lab.LabCallContext.current()!=null
+                    && java.util.Set.of("REVIEW","MANUAL_REVIEW","TRAINING_COACH","TRAINING_JUDGE").contains(com.aisocialgame.lab.LabCallContext.current().purpose());
+            if (coach) builder.setStreamTimeouts(fireflychat.ai.v1.ChatStreamTimeouts.newBuilder()
+                    .setFirstTextMs(com.aisocialgame.lab.LabCoachLimits.FIRST_TEXT_MS)
+                    .setIdleMs(com.aisocialgame.lab.LabCoachLimits.IDLE_MS)
+                    .setTotalMs(com.aisocialgame.lab.LabCoachLimits.TOTAL_SECONDS * 1000));
             var stub = aiStub.withDeadlineAfter(deadlineSeconds > 0 ? deadlineSeconds : 45, java.util.concurrent.TimeUnit.SECONDS);
             var response = isolatedTransportFixture ? stub.chatCompletions(builder.build())
-                    : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
+                    : coach
+                        ? boundedClient.chat(builder.build(),deadlineSeconds,com.aisocialgame.lab.LabCoachLimits.MAX_OUTPUT_TOKENS,beforeSend)
+                        : boundedClient.chat(builder.build(), deadlineSeconds, beforeSend);
             if (debugRecorder != null && builder.getIncludeDebug()) debugRecorder.response(requestId, response);
             if (registered.get()) admission.finish(requestId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());
             answered=true;
@@ -149,6 +173,19 @@ public class AiGrpcClient {
         } finally {
             if (registered.get() && !answered) admission.finish(requestId,"NO_RESPONSE",null,null);
         }
+    }
+
+    public java.util.Map<String,Object> preflight(String projectKey,long userId,AiModelSelection selection,int outputLimit) {
+        requireChatReady(); modelConfigs.requireUsable(selection);
+        var request=ChatCompletionsRequest.newBuilder().setRequestId("lab-preflight:"+UUID.randomUUID())
+                .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey)).setUserId(userId).setModel(selection.modelKey())
+                .addMessages(ChatMessage.newBuilder().setRole("user").setContent("Validate this model selection and output budget; do not execute inference."));
+        selection.apply(request);
+        try {
+            var quote=boundedClient.preflight(request.build(),outputLimit).getPriceQuote();
+            return java.util.Map.of("modelSelection",selection.toMap(),"maxOutputTokens",outputLimit,"currency",quote.getCurrency(),
+                    "priceVersionId",quote.getPriceVersionId(),"maxCreditPoints",quote.getMaxCreditPoints());
+        } catch(StatusRuntimeException failure) { throw toApiException(failure); }
     }
 
     public AiEmbeddingsResult embeddings(String projectKey,

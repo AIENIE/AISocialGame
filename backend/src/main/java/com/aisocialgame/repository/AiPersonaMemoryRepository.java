@@ -19,5 +19,10 @@ public interface AiPersonaMemoryRepository extends JpaRepository<AiPersonaMemory
                              @org.springframework.data.repository.query.Param("gameId") String gameId);
     Optional<AiPersonaMemory> findByPersonaIdAndGameIdAndRoleKey(String personaId, String gameId, String roleKey);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select m from AiPersonaMemory m where m.personaId=:personaId and m.gameId=:gameId and m.roleKey='GENERAL_V2'")
+    Optional<AiPersonaMemory> lockStrategyBinding(@org.springframework.data.repository.query.Param("personaId") String personaId,
+                                                @org.springframework.data.repository.query.Param("gameId") String gameId);
+
     List<AiPersonaMemory> findByPersonaIdOrderByUpdatedAtDesc(String personaId);
 }

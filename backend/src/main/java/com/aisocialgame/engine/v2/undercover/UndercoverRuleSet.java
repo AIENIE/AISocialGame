@@ -42,6 +42,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
                 case "VOTE_REVEAL" -> com.aisocialgame.service.ai.v2.AiInformationSources.copy(d, result, "votes", "tally");
                 case "ELIMINATED" -> { result.put("eliminatedPlayerId", text(e.get("actorId"))); com.aisocialgame.service.ai.v2.AiInformationSources.copy(d, result, "role"); }
                 case "WORD_ASSIGNED" -> com.aisocialgame.service.ai.v2.AiInformationSources.copy(d, result, "word", "blank");
+                case "SELF_DESTRUCT" -> com.aisocialgame.service.ai.v2.AiInformationSources.copy(d, result, "content", "success");
                 default -> { }
             }
         return result;
@@ -52,6 +53,10 @@ public final class UndercoverRuleSet implements GameRuleSet {
         return result;
     }
     @Override public String gameId() { return "undercover"; }
+
+    @Override public CommitmentRules.Receipt commitmentAction(GameState state, String actorId, PlayerAction action) {
+        return "SELF_DESTRUCT".equalsIgnoreCase(action.getType()) ? null : GameRuleSet.super.commitmentAction(state, actorId, action);
+    }
 
     @Override public ValidationResult validateStart(Room room) {
         int count = room.getSeats().size();
@@ -143,6 +148,11 @@ public final class UndercoverRuleSet implements GameRuleSet {
             require(Objects.equals(state.getCurrentSeat(), actor.getSeatNumber()), "当前不需要你发言", "NOT_YOUR_TURN");
         }
         LegalAction capability = legalActions(state, actorId).stream().filter(a -> a.type().equals(type)).findFirst().orElseThrow(() -> bad("当前不能执行这个动作"));
+        if ("SELF_DESTRUCT".equals(type)) {
+            clearWordFeedback(state, actorId);
+            selfDestruct(state, actor, requireContent(action, capability.maxLength()), now);
+            return;
+        }
         if (VOTING_PHASES.contains(state.getPhase())) {
             boolean abstain = "SKIP".equals(type) || action.isAbstain();
             if (!abstain) require(capability.targets().contains(action.getTargetPlayerId()), "只能投给其他合法候选玩家");
@@ -151,13 +161,34 @@ public final class UndercoverRuleSet implements GameRuleSet {
             return;
         }
         if ("SKIP".equals(type)) {
+            clearWordFeedback(state, actorId);
             event(state, "SKIP", actorId, null, actor.getDisplayName() + "选择跳过。", Map.of());
             completeCurrentSpeech(state, now);
             return;
         }
         String content = requireContent(action, capability.maxLength());
-        // Exact and obfuscated answer names are rejected for everyone, including the blank.
-        require(!revealsAnswer(state, content), "描述中不能直接包含本局词语或别名");
+        var forbidden = forbiddenTerms(state, actorId, action);
+        if (!forbidden.isEmpty()) {
+            String opportunity = turn(state, actorId, "SPEAK").key();
+            var previous = wordFeedback(state, actorId);
+            int count = opportunity.equals(previous.get("turnKey")) ? number(previous.get("violationCount"), 0) + 1 : 1;
+            var feedback = new LinkedHashMap<String,Object>();
+            feedback.put("code", count >= 3 ? "FORBIDDEN_WORD_ELIMINATED" : "OWN_WORD_FORBIDDEN");
+            feedback.put("turnKey", opportunity); feedback.put("forbiddenTerms", forbidden);
+            if (action.getRequestId()!=null) feedback.put("actionRequestId",action.getRequestId());
+            feedback.put("violationCount", count); feedback.put("remainingCorrections", Math.max(0, 3-count));
+            feedback.put("eliminated", count >= 3);
+            var corrections = map(state.getData().get("wordCorrections")); corrections.put(actorId, feedback);
+            state.getData().put("wordCorrections", corrections);
+            event(state, "WORD_CORRECTION", actorId, null, "发言包含本人的禁词，请修改。", feedback, "PRIVATE", List.of(actorId));
+            if (count >= 3) {
+                event(state, "FORBIDDEN_WORD_ELIMINATED", actorId, null, actor.getDisplayName()+"连续三次触发本人禁词，判定出局。", Map.of("reason","FORBIDDEN_WORD_ELIMINATED","violationCount",3));
+                eliminatePlayer(state, actor);
+                if (!finishIfWon(state)) completeCurrentSpeech(state, now);
+            }
+            return;
+        }
+        clearWordFeedback(state, actorId);
         Map<String, Object> data = new LinkedHashMap<>(); data.put("content", content);
         event(state, type, actorId, null, actor.getDisplayName() + "：" + content, data);
         completeCurrentSpeech(state, now);
@@ -214,17 +245,47 @@ public final class UndercoverRuleSet implements GameRuleSet {
         GamePlayerState actor = state.getPlayers().stream().filter(p -> p.getPlayerId().equals(actorId)).findFirst().orElse(null);
         if (actor == null || !actor.isAlive() || "SETTLEMENT".equals(state.getPhase())) return List.of();
         List<String> others = alive(state).stream().filter(p -> !p.getPlayerId().equals(actorId)).map(GamePlayerState::getPlayerId).toList();
+        List<LegalAction> actions;
         if (VOTING_PHASES.contains(state.getPhase())) {
             if (votes(state).containsKey(actorId)) return List.of();
             List<String> targets = "RUNOFF".equals(state.getPhase()) ? others.stream().filter(strings(state.getData().get("runoffCandidates"))::contains).toList() : others;
-            return List.of(LegalAction.target("VOTE", "提交投票", targets, 0), LegalAction.simple("SKIP", "弃票"));
+            actions = List.of(LegalAction.target("VOTE", "提交投票", targets, 0), LegalAction.simple("SKIP", "弃票"));
+        } else {
+            if (!Objects.equals(state.getCurrentSeat(), actor.getSeatNumber())) return List.of();
+            actions = switch (state.getPhase()) {
+                case "DESCRIPTION" -> List.of(LegalAction.text("SPEAK", "描述你的词语", 90));
+                case "TIE_DEFENSE" -> List.of(LegalAction.text("SPEAK", "补充描述你的词语", 60), LegalAction.simple("SKIP", "跳过补充描述"));
+                default -> List.of();
+            };
         }
-        if (!Objects.equals(state.getCurrentSeat(), actor.getSeatNumber())) return List.of();
-        return switch (state.getPhase()) {
-            case "DESCRIPTION" -> List.of(LegalAction.text("SPEAK", "描述你的词语", 90));
-            case "TIE_DEFENSE" -> List.of(LegalAction.text("SPEAK", "补充描述你的词语", 60), LegalAction.simple("SKIP", "跳过补充描述"));
-            default -> List.of();
-        };
+        if (actions.isEmpty() || "BLANK".equals(actor.getRole())) return actions;
+        List<LegalAction> result = new ArrayList<>(actions);
+        result.add(LegalAction.text("SELF_DESTRUCT", "自爆猜词", 20));
+        return result;
+    }
+
+    private void selfDestruct(GameState state, GamePlayerState actor, String guess, LocalDateTime now) {
+        require(!UndercoverWordCatalog.normalize(guess).isBlank(), "请填写一个猜测词");
+        boolean success = "UNDERCOVER".equals(actor.getRole()) && catalog.matchesAnswer(guess, text(state.getData().get("civilianWord")));
+        event(state, "SELF_DESTRUCT", actor.getPlayerId(), null,
+                actor.getDisplayName() + "自爆，猜平民词为“" + guess + "”。" + (success ? "自爆成功，卧底阵营获胜。" : "自爆失败，本人出局。"),
+                Map.of("content", guess, "actorName", actor.getDisplayName(), "success", success));
+        if (success) {
+            finish(state, "UNDERCOVER", state.getPlayers().stream().filter(p -> "UNDERCOVER".equals(p.getRole())).map(GamePlayerState::getPlayerId).toList());
+            return;
+        }
+        eliminatePlayer(state, actor);
+        if (finishIfWon(state)) return;
+        if (VOTING_PHASES.contains(state.getPhase())) {
+            // Keep submitted ballots and the clock, but replace observations that still include the eliminated player.
+            state.getData().put("phaseSerial", number(state.getData().get("phaseSerial"), 0) + 1);
+            if (votes(state).size() == alive(state).size()) resolveVote(state, now);
+        } else {
+            String previousPhase = state.getPhase();
+            LocalDateTime deadline = state.getPhaseEndsAt();
+            completeCurrentSpeech(state, now);
+            if (previousPhase.equals(state.getPhase())) state.setPhaseEndsAt(deadline);
+        }
     }
 
     @Override public List<TurnRequest> pendingTurns(GameState state) {
@@ -243,7 +304,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         data.put("descriptionOrder", strings(state.getData().get("descriptionOrder")));
         data.put("questioners", List.of());
         data.put("challengedPlayers", List.of());
-        data.put("runoffCandidates", strings(state.getData().get("runoffCandidates")));
+        data.put("runoffCandidates", strings(state.getData().get("runoffCandidates")).stream().filter(id -> player(state, id).isAlive()).toList());
         data.put("activeQuestion", Map.of());
         data.put("votedPlayers", new ArrayList<>(votes(state).keySet()));
         data.put("lastVoteResult", map(state.getData().get("lastVoteResult")));
@@ -264,6 +325,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
         Map<String, Object> data = new LinkedHashMap<>();
         boolean blank = "BLANK".equals(actor.getRole());
         data.put("blank", blank); data.put("word", text(actor.getWord()));
+        var feedback = wordFeedback(state, actorId);
+        if (!feedback.isEmpty()) data.put("wordFeedback", feedback);
         if (!blank) data.put("wordKnowledge", map(map(state.getData().get("wordKnowledgeByPlayer")).get(actorId)));
         if (votes(state).containsKey(actorId)) data.put("myVote", votes(state).get(actorId));
         return data;
@@ -281,17 +344,18 @@ public final class UndercoverRuleSet implements GameRuleSet {
                     ? AiConversationContext.guide("此动作是弃票，不是让出发言。", "ABSTAIN")
                     : AiConversationContext.guide("本次不发言；不附带一段补充。", "YIELD");
             case "SPEAK" -> "DESCRIPTION".equals(o.phase())
-                    ? AiConversationContext.guide("通常15～40字，集中一个描述角度；必须完成本轮描述。", "DESCRIBE")
+                    ? AiConversationContext.guide("简洁描述，自行把握透露多少细节。", "DESCRIBE")
                     : AiConversationContext.guide("补充一个尚未用过的词语特征，最多60字；不询问其他玩家，不作身份辩解。", "DESCRIBE");
+            case "SELF_DESTRUCT" -> AiConversationContext.guide("自爆并猜平民词，只填写一个答案；失败本人出局。", "GUESS");
             default -> AiConversationContext.guide("按合法行动参与。", "CHOOSE_FOR_SITUATION");
         }, Set.of(), Set.of());
     }
 
     @Override public String instruction(VisibleObservation observation) {
         return switch (observation.phase()) {
-            case "DESCRIPTION" -> "描述自己的词语，一般15～40字，换一个尚未用过的特征或场景。";
-            case "TIE_DEFENSE" -> "最高票并列：补充一个新的词语特征或场景，最多60字；无法补充可SKIP。";
-            case "VOTING", "RUNOFF" -> "根据整局公开线索选择合法目标，不能只凭发言字数判人；证据不足可弃票。投票内容留空，不公开解释。";
+            case "DESCRIPTION" -> "根据局势选择合法动作；描述时通常先概括，自行把握细节，不重复旧描述。";
+            case "TIE_DEFENSE" -> "最高票并列：选择合法动作；描述时补充新线索，最多60字，无法补充可SKIP。";
+            case "VOTING", "RUNOFF" -> "根据整局公开线索自主选择合法动作，不能只凭发言字数判人。投票或弃票的content留空，不公开解释。";
             default -> "只执行当前合法动作。";
         };
     }
@@ -303,10 +367,11 @@ public final class UndercoverRuleSet implements GameRuleSet {
     @Override public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {
         List<String> errors = new ArrayList<>();
         String word = text(observation.privateFacts().getOrDefault("word", observation.self().get("word")));
-        if (catalog.containsForbidden(decision.speech(), word)
-                || catalog.containsForbidden(decision.action() == null ? "" : decision.action().getContent(), word)
+        boolean selfDestruct = decision.action() != null && "SELF_DESTRUCT".equals(decision.action().getType());
+        if (!selfDestruct && (catalog.containsForbidden(decision.speech(), word)
+                || catalog.containsForbidden(decision.action() == null ? "" : decision.action().getContent(), word))
                 || catalog.containsForbidden(decision.presentation().toString(), word)) errors.add("SECRET_WORD_LEAK");
-        if (VOTING_PHASES.contains(observation.phase()) && !decision.speech().isBlank()) errors.add("VOTE_MUST_REMAIN_PRIVATE");
+        if (!selfDestruct && VOTING_PHASES.contains(observation.phase()) && !decision.speech().isBlank()) errors.add("VOTE_MUST_REMAIN_PRIVATE");
         if (decision.action() != null && "SPEAK".equals(decision.action().getType()) && decision.speech().isBlank()) errors.add("EMPTY_GAME_SPEECH");
         return errors;
     }
@@ -317,6 +382,7 @@ public final class UndercoverRuleSet implements GameRuleSet {
         state.getData().put("descriptionOrder", order); state.getData().put("descriptionIndex", 0);
         state.getData().put("speakers", new ArrayList<>()); state.getData().put("votes", new LinkedHashMap<>());
         state.getData().put("runoffCandidates", List.of());
+        state.getData().put("roundHadElimination", false);
         phase(state, "DESCRIPTION", player(state, order.getFirst()).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 90), now);
         event(state, "ROUND_START", null, null, "进入第" + state.getRoundNumber() + "轮描述。", Map.of("descriptionOrder", order));
     }
@@ -326,14 +392,19 @@ public final class UndercoverRuleSet implements GameRuleSet {
             case "DESCRIPTION" -> {
                 List<String> order = strings(state.getData().get("descriptionOrder"));
                 int index = number(state.getData().get("descriptionIndex"), 0);
-                List<String> speakers = new ArrayList<>(strings(state.getData().get("speakers"))); speakers.add(order.get(index));
-                state.getData().put("speakers", speakers); state.getData().put("descriptionIndex", ++index);
+                List<String> speakers = new ArrayList<>(strings(state.getData().get("speakers")));
+                if (player(state, order.get(index)).isAlive()) speakers.add(order.get(index));
+                index++;
+                while (index < order.size() && !player(state, order.get(index)).isAlive()) index++;
+                state.getData().put("speakers", speakers); state.getData().put("descriptionIndex", index);
                 if (index < order.size()) phase(state, "DESCRIPTION", player(state, order.get(index)).getSeatNumber(), number(map(state.getData().get("rules")).get("speakTime"), 90), now);
                 else beginVote(state, false, now);
             }
             case "TIE_DEFENSE" -> {
                 List<String> candidates = strings(state.getData().get("runoffCandidates"));
-                int index = number(state.getData().get("defenseIndex"), 0) + 1; state.getData().put("defenseIndex", index);
+                int index = number(state.getData().get("defenseIndex"), 0) + 1;
+                while (index < candidates.size() && !player(state, candidates.get(index)).isAlive()) index++;
+                state.getData().put("defenseIndex", index);
                 if (index < candidates.size()) phase(state, "TIE_DEFENSE", player(state, candidates.get(index)).getSeatNumber(), 60, now);
                 else beginVote(state, true, now);
             }
@@ -356,7 +427,8 @@ public final class UndercoverRuleSet implements GameRuleSet {
 
     private void resolveVote(GameState state, LocalDateTime now) {
         Map<String, Object> ballots = votes(state);
-        Map<String, Long> tally = ballots.values().stream().map(Object::toString).filter(v -> !"abstain".equals(v)).collect(Collectors.groupingBy(v -> v, LinkedHashMap::new, Collectors.counting()));
+        Set<String> targets = alive(state).stream().map(GamePlayerState::getPlayerId).collect(Collectors.toSet());
+        Map<String, Long> tally = ballots.values().stream().map(Object::toString).filter(targets::contains).collect(Collectors.groupingBy(v -> v, LinkedHashMap::new, Collectors.counting()));
         state.getData().put("lastVoteResult", Map.of("round", state.getRoundNumber(), "phase", state.getPhase(), "votes", new LinkedHashMap<>(ballots), "tally", tally));
         event(state, "VOTE_REVEAL", null, null, "本次投票已全部揭晓。", Map.of("votes", ballots, "tally", tally));
         if (tally.isEmpty()) { noElimination(state, now); return; }
@@ -369,17 +441,22 @@ public final class UndercoverRuleSet implements GameRuleSet {
             event(state, "TIE", null, null, "最高票并列，候选人各补充一次词语描述后复投。", Map.of("candidates", leaders));
             return;
         }
-        GamePlayerState eliminated = player(state, leaders.getFirst()); eliminated.setAlive(false);
-        state.getData().put("noEliminationRounds", 0);
-        event(state, "ELIMINATED", eliminated.getPlayerId(), null, eliminated.getDisplayName() + "出局，身份为" + roleLabel(eliminated.getRole()) + "。", Map.of("role", eliminated.getRole()));
+        eliminatePlayer(state, player(state, leaders.getFirst()));
         if (!finishIfWon(state)) nextRound(state, now);
     }
 
     private void noElimination(GameState state, LocalDateTime now) {
-        int count = number(state.getData().get("noEliminationRounds"), 0) + 1;
+        int count = flag(state.getData().get("roundHadElimination")) ? 0 : number(state.getData().get("noEliminationRounds"), 0) + 1;
         state.getData().put("noEliminationRounds", count);
-        event(state, "NO_ELIMINATION", null, null, "本轮无人出局。", Map.of("consecutiveRounds", count));
+        event(state, "NO_ELIMINATION", null, null, "本次投票无人出局。", Map.of("consecutiveRounds", count));
         if (count >= 3) finish(state, "DRAW", List.of()); else nextRound(state, now);
+    }
+
+    private void eliminatePlayer(GameState state, GamePlayerState actor) {
+        actor.setAlive(false);
+        state.getData().put("noEliminationRounds", 0);
+        state.getData().put("roundHadElimination", true);
+        event(state, "ELIMINATED", actor.getPlayerId(), null, actor.getDisplayName() + "出局，身份为" + roleLabel(actor.getRole()) + "。", Map.of("role", actor.getRole()));
     }
 
     private void nextRound(GameState state, LocalDateTime now) {
@@ -401,9 +478,20 @@ public final class UndercoverRuleSet implements GameRuleSet {
         return true;
     }
 
-    private boolean revealsAnswer(GameState state, String content) {
-        return catalog.containsForbidden(content, text(state.getData().get("civilianWord")))
-                || catalog.containsForbidden(content, text(state.getData().get("undercoverWord")));
+    public List<String> forbiddenTerms(GameState state, String actorId, PlayerAction action) {
+        var actor = player(state, actorId);
+        return action != null && "SPEAK".equalsIgnoreCase(action.getType()) && !"BLANK".equals(actor.getRole())
+                ? catalog.matchedForbiddenTerms(action.getContent(), actor.getWord()) : List.of();
+    }
+
+    public Map<String,Object> wordFeedback(GameState state, String actorId) {
+        var feedback = map(map(state.getData().get("wordCorrections")).get(actorId));
+        return flag(feedback.get("eliminated")) || turn(state, actorId, "SPEAK").key().equals(feedback.get("turnKey")) ? feedback : Map.of();
+    }
+
+    private void clearWordFeedback(GameState state, String actorId) {
+        var corrections = map(state.getData().get("wordCorrections"));
+        corrections.remove(actorId); state.getData().put("wordCorrections", corrections);
     }
 
     private Map<String, Object> votes(GameState state) { return map(state.getData().get("votes")); }

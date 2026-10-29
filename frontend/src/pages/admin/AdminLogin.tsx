@@ -10,11 +10,13 @@ import { adminApi, getApiErrorMessage } from "@/services/api";
 import { AdminAuthPolicy, AdminEnrollmentStart } from "@/types";
 import RecoveryCodeList from "@/components/admin/RecoveryCodeList";
 import { toast } from "sonner";
+import { safeAdminReturnTo } from "@/hooks/authStorage";
 
 type Stage = "PASSWORD" | "TOTP" | "ENROLL" | "RECOVERY" | "REBIND" | "CODES";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const [returnTo]=useState(()=>safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
   const auth = useAdminAuth();
   const { startRebind } = auth;
   const [policy, setPolicy] = useState<AdminAuthPolicy | null>(null);
@@ -32,6 +34,10 @@ const AdminLogin = () => {
     setPassword(""); setCode(""); setChallengeId(""); setEnrollment(null); setRecoveryCodes([]);
     setStage("PASSWORD"); setPasswordRecovery(false); setLoading(false);
   });
+
+  useEffect(()=>{
+    if(!auth.loading && auth.admin?.sessionScope==="FULL" && stage==="PASSWORD") navigate(returnTo,{replace:true});
+  },[auth.loading,auth.admin?.sessionScope,stage,navigate,returnTo]);
 
   useEffect(() => {
     const request = begin();
@@ -68,7 +74,7 @@ const AdminLogin = () => {
     const result = passwordRecovery ? await adminApi.recoveryChallenge(username, password) : await auth.login(username, password, () => current(request));
     if (!current(request)) return;
     setPassword("");
-    if (result.state === "AUTHENTICATED") { navigate("/admin"); return; }
+    if (result.state === "AUTHENTICATED") { navigate(returnTo); return; }
     if (!result.challengeId) throw new Error("登录 challenge 缺失");
     setChallengeId(result.challengeId); setCode("");
     if (result.state === "ENROLLMENT_REQUIRED") {
@@ -80,7 +86,7 @@ const AdminLogin = () => {
 
   const submitTotp = () => run(async request => {
     const result = await auth.verifyTotp(challengeId, code, () => current(request));
-    if (current(request) && result.state === "AUTHENTICATED") navigate("/admin");
+    if (current(request) && result.state === "AUTHENTICATED") navigate(returnTo);
   });
 
   const submitEnrollment = () => run(async request => {

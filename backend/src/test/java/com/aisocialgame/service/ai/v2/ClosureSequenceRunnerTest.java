@@ -37,6 +37,7 @@ class ClosureSequenceRunnerTest {
                 var selected=com.aisocialgame.service.ai.v2.ScriptedAiActions.action(s.adapter(), o);String speech=selected.getContent();Map<String,Object> updates=new LinkedHashMap<>();
                 String target=o.players().stream().map(p->text(p.get("playerId"))).filter(id->!id.equals(o.actorId())).findFirst().orElseThrow();
                 if("INITIAL".equals(step)&&!"turtle_soup".equals(o.gameId())){
+                    assertEquals("SPEAK", selected.getType(), "The scripted promise must be publicly spoken before its ballot opportunity.");
                     speech=("undercover".equals(o.gameId())?"我本轮复投投给":"我本轮投给")+target;selected.setContent(speech);
                     updates.put("commitments",List.of(Map.of("text",speech,"sourceQuote",speech,"action",Map.of("kind","VOTE","targetPlayerId",target,"ballot","undercover".equals(o.gameId())?"RUNOFF":"NORMAL"),"roundOffset",0)));
                 }

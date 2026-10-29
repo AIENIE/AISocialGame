@@ -9,13 +9,10 @@ import { ArrowLeft, Users, Plus } from "lucide-react";
 import { DataState } from "@/components/DataState";
 import { useQuery } from "@tanstack/react-query";
 import { gameApi, roomApi } from "@/services/api";
-import { localizeErrorMessage } from "@/i18n/errors";
-import { getApiErrorMessage } from "@/services/apiError";
 import { gameName } from "@/i18n/gameTexts";
 import { Game, Room } from "@/types";
-import { quickMatchApi } from "@/services/v2Social";
+import { useQuickMatch } from "@/hooks/useQuickMatch";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 
 const RoomList = () => {
   const { t } = useTranslation();
@@ -23,6 +20,7 @@ const RoomList = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { displayName, user, redirectToSsoLogin } = useAuth();
+  const quickMatch = useQuickMatch();
   const gameQuery = useQuery<Game | undefined>({
     queryKey: ["game", gameId],
     queryFn: () => gameId ? gameApi.detail(gameId) : Promise.resolve(undefined as any),
@@ -73,13 +71,7 @@ const RoomList = () => {
       await redirectToSsoLogin();
       return;
     }
-    try {
-      const result = await quickMatchApi.start(gameId, displayName);
-      navigate(`/room/${gameId}/${result.roomId}`);
-    } catch (error: any) {
-      const raw = getApiErrorMessage(error, t("index.quickMatchFailed"));
-      toast.error(localizeErrorMessage(raw, "index.quickMatchFailed"));
-    }
+    await quickMatch.start(gameId, displayName);
   };
 
   return (
@@ -97,8 +89,8 @@ const RoomList = () => {
           <Button onClick={() => navigate(`/create/${gameId}`)} className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200/50">
             <Plus className="mr-2 h-4 w-4" /> {t("roomList.create")}
           </Button>
-          <Button variant="outline" onClick={quickStart}>
-            {t("index.oneClickStart")}
+          <Button variant="outline" disabled={quickMatch.matching} onClick={quickStart}>
+            {t(quickMatch.matching ? "quickMatch.matching" : "index.oneClickStart")}
           </Button>
         </div>
       </div>

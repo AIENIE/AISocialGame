@@ -337,6 +337,8 @@ public class AdminOpsService {
     public void reviewPersonaMemory(Long id, String status, String summary, String actor) {
         try {
             var memory = aiPersonaMemoryRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "记忆不存在"));
+            if(memory.getStrategyPublicationId()!=null && strategyPublicationActive(memory.getStrategyPublicationId()))
+                throw new ApiException(HttpStatus.CONFLICT,"此角色使用实验室策略，请先在实验室撤回发布","STRATEGY_PUBLICATION_ACTIVE",java.util.Map.of());
             if (!"GENERAL_V2".equals(memory.getRoleKey()) || !java.util.Set.of("APPROVED", "REJECTED").contains(status)) throw new ApiException(HttpStatus.BAD_REQUEST, "仅支持审核 v2 通用经验");
             String text = summary == null ? "" : summary.strip();
             if (text.length() > 1200 || ("APPROVED".equals(status) && text.isBlank())) throw new ApiException(HttpStatus.BAD_REQUEST, "通过审核需填写1–1200字通用经验");
@@ -351,6 +353,11 @@ public class AdminOpsService {
     private void auditSuccess(String actor, String action, Object targetId) {
         log.info("Admin operation actorFingerprint={} operatorUserId={} action={} targetId={} result=SUCCESS",
                 auditActorFingerprint(actor), operatorUserId, action, targetId);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired private com.aisocialgame.lab.StrategyPublicationRepository strategyPublications;
+    private boolean strategyPublicationActive(String id) {
+        return strategyPublications!=null && strategyPublications.findById(id).map(publication->"PUBLISH".equals(publication.action)).orElse(false);
     }
 
     private void auditFailure(String actor, String action, Object targetId, RuntimeException ex) {

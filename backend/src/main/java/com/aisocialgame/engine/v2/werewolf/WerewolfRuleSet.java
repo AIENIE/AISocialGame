@@ -119,8 +119,20 @@ public class WerewolfRuleSet implements GameRuleSet {
         List<String> roles = new ArrayList<>();
         roleCounts(text(rules.get("template")), state.getPlayers().size())
                 .forEach((role, count) -> roles.addAll(Collections.nCopies(count, role)));
-        Collections.shuffle(roles, new Random(seed(state)));
-        for (int i = 0; i < roles.size(); i++) state.getPlayers().get(i).setRole(roles.get(i));
+        long roleSeed = room.isLab() ? room.getPrivateConfig().get("labRoleSeed") instanceof Number n ? n.longValue()
+                : seed(state) ^ 0x6a09e667f3bcc909L : seed(state);
+        Collections.shuffle(roles, new Random(roleSeed));
+        var assigned = room.isLab() ? map(room.getPrivateConfig().get("labRoleAssignments")) : Map.<String,Object>of();
+        if (!assigned.isEmpty()) {
+            var expectedPlayers = state.getPlayers().stream().map(GamePlayerState::getPlayerId).collect(Collectors.toSet());
+            var counts = new LinkedHashMap<String,Integer>();
+            assigned.values().forEach(role -> counts.merge(text(role), 1, Integer::sum));
+            require(assigned.keySet().equals(expectedPlayers) && counts.equals(roleCounts(text(rules.get("template")), roles.size())), "实验身份分配与本局板子不一致");
+        }
+        for (int i = 0; i < roles.size(); i++) {
+            var player = state.getPlayers().get(i);
+            player.setRole(assigned.isEmpty() ? roles.get(i) : text(assigned.get(player.getPlayerId())));
+        }
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("antidoteUsed", false);
@@ -167,7 +179,10 @@ public class WerewolfRuleSet implements GameRuleSet {
         require(submitted != null, "缺少游戏动作");
         PlayerAction action = normalize(submitted);
         GamePlayerState actor = player(state, actorId);
-        require(!expired(state, now), "行动窗口已结束", "PHASE_CHANGED");
+        boolean ownAiClock = automated(actor) && WerewolfAiClock.owns(state, actorId);
+        boolean ended = ownAiClock ? WerewolfAiClock.expired(state, now)
+                : "DAY_VOTE".equals(state.getPhase()) ? !now.isBefore(voteDeadline(state)) : expired(state, now);
+        require(!ended, "行动窗口已结束", "PHASE_CHANGED");
         if ("DAY_VOTE".equals(state.getPhase())) {
             require(!map(state.getData().get("votes")).containsKey(actorId), "已完成投票", "ALREADY_ACTED");
         }
@@ -195,7 +210,39 @@ public class WerewolfRuleSet implements GameRuleSet {
 
     @Override
     public void advance(GameState state, LocalDateTime now) {
-        if ("SETTLEMENT".equals(state.getPhase()) || !expired(state, now)) return;
+        if ("SETTLEMENT".equals(state.getPhase())) return;
+        boolean training = com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state);
+        if (training && state.getData().containsKey("labCallPause")) return;
+        if ("DAY_VOTE".equals(state.getPhase())) {
+            if (!now.isBefore(voteDeadline(state))) {
+                for (var voter : eligibleVoters(state)) {
+                    if (!"DAY_VOTE".equals(state.getPhase())) return;
+                    if (!automated(voter) && !map(data(state).get("votes")).containsKey(voter.getPlayerId()))
+                        applyVote(state, voter, action(SKIP, "", null), now);
+                }
+            }
+            if (!"DAY_VOTE".equals(state.getPhase())) return;
+        }
+        var automatedTurn = WerewolfAiClock.turn(state);
+        if (automatedTurn != null && isTurnCurrent(state, automatedTurn)) {
+            if (WerewolfAiClock.expired(state, now)) {
+                if(com.aisocialgame.lab.LabRunPolicy.werewolfEvaluation(state) && WerewolfAiClock.waitingForOriginal(state)) {
+                    if(WerewolfAiClock.recoveryExpired(state,now)) state.getData().put("labCallPause","LAB_CALL_NO_PROGRESS");
+                    return;
+                }
+                if (training) {
+                    state.getData().put("labCallPause", WerewolfAiClock.running(state) ? "TIMEOUT" : "LAB_CALL_NO_PROGRESS");
+                    return;
+                }
+                onAiFailure(state, automatedTurn, now, WerewolfAiClock.running(state) ? "TIMEOUT" : "QUEUE_TIMEOUT");
+                WerewolfAiClock.clear(state);
+            }
+            return;
+        }
+        if (training && !pendingTurns(state).isEmpty()) return;
+        // A simultaneous ballot must not consume later AI seats at the human deadline.
+        if ("DAY_VOTE".equals(state.getPhase()) && !pendingTurns(state).isEmpty()) return;
+        if (!expired(state, now)) return;
         Map<String, Object> data = data(state);
         switch (state.getPhase()) {
             case "NIGHT" -> {
@@ -216,8 +263,16 @@ public class WerewolfRuleSet implements GameRuleSet {
 
     @Override
     public void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now) {
+        onAiFailure(state, turn, now, "REQUEST_FAILED");
+    }
+
+    public void onAiFailure(GameState state, TurnRequest turn, LocalDateTime now, String reason) {
         if (!isTurnCurrent(state, turn)) return;
         GamePlayerState actor = player(state, turn.actorId());
+        String message = actor.getDisplayName() + "本次AI行动未完成，已按规则跳过。";
+        boolean privateAction = Set.of("NIGHT", "DEATH_ACTION", "DAY_VOTE").contains(state.getPhase());
+        event(state, "AI_ACTION_FAILED", actor.getPlayerId(), null, message, Map.of("reason", reason),
+                privateAction ? "PRIVATE" : "PUBLIC", privateAction ? List.of(actor.getPlayerId()) : List.of());
         PlayerAction skip = action(SKIP, "", null);
         // Recovery closes this actor's opportunity, even if its deadline elapsed during the call.
         // In a simultaneous ballot it records only this player's abstention, never everyone else's.
@@ -286,6 +341,11 @@ public class WerewolfRuleSet implements GameRuleSet {
         result.put("roleCounts", map(map(state.getData().get("rules")).get("roleCounts")));
         result.put("revealedIdiots", strings(data.get("revealedIdiots")));
         result.put("lastNightDeaths", strings(data.get("lastNightDeaths")));
+        if ("DAY_VOTE".equals(state.getPhase())) {
+            long pending = eligibleVoters(state).stream().filter(p -> automated(p) && !map(data.get("votes")).containsKey(p.getPlayerId())).count();
+            result.put("waitingForAi", pending > 0);
+            result.put("pendingAiCount", pending);
+        }
         if ("DAY_INTERACTION".equals(state.getPhase())) {
             Map<String, Object> interaction = new LinkedHashMap<>();
             interaction.put("completedPairs", number(data.get("interactionPairs"), 0));
@@ -329,6 +389,10 @@ public class WerewolfRuleSet implements GameRuleSet {
             result.put("nightStep", actor.getRole());
             result.put("actionEndsAt", state.getPhaseEndsAt() == null ? "" : state.getPhaseEndsAt().toString());
         }
+        if ("DEATH_ACTION".equals(state.getPhase()) && Objects.equals(actorId, data.get("deathActor")))
+            result.put("actionEndsAt", state.getPhaseEndsAt() == null ? "" : state.getPhaseEndsAt().toString());
+        if ("DAY_VOTE".equals(state.getPhase()) && !automated(actor) && !map(data.get("votes")).containsKey(actorId))
+            result.put("actionEndsAt", voteDeadline(state).toString());
         if ("DAY_VOTE".equals(state.getPhase()) && map(data.get("votes")).containsKey(actorId)) {
             result.put("myVote", map(data.get("votes")).get(actorId));
         }
@@ -395,42 +459,7 @@ public class WerewolfRuleSet implements GameRuleSet {
 
     @Override
     public PlayerAction fallback(VisibleObservation observation) {
-        List<LegalAction> legal = observation.legalActions();
-        if (legal.isEmpty()) return action(SKIP, "", null);
-        String role = text(observation.self().get("role"));
-        if ("NIGHT".equals(observation.phase())) {
-            if (WITCH.equals(role)) {
-                String knife = text(observation.privateFacts().get("wolfTarget"));
-                LegalAction heal = legal.stream().filter(a -> "WITCH_SAVE".equals(a.nightAction()) && a.targets().contains(observation.actorId())).findFirst().orElse(null);
-                if (heal != null && observation.actorId().equals(knife)) return nightAction("WITCH_SAVE", knife, "", true);
-                return action(SKIP, "", null);
-            }
-            LegalAction option = legal.stream().filter(a -> "NIGHT_ACTION".equals(a.type()) && !a.targets().isEmpty()).findFirst().orElse(null);
-            if (option == null) return action(SKIP, "", null);
-            List<String> targets = new ArrayList<>(option.targets());
-            if (SEER.equals(role)) {
-                Set<String> checked = maps(observation.privateFacts().get("seerChecks")).stream().map(c -> text(c.get("targetPlayerId"))).collect(Collectors.toSet());
-                List<String> fresh = targets.stream().filter(id -> !checked.contains(id)).toList();
-                if (!fresh.isEmpty()) targets = fresh;
-            }
-            return nightAction(option.nightAction(), choose(observation, targets), "", false);
-        }
-        if ("DEATH_ACTION".equals(observation.phase())) return action(SKIP, "", null);
-        if ("DAY_INTERACTION".equals(observation.phase())) {
-            LegalAction answer = legal.stream().filter(a -> "ANSWER_PLAYER".equals(a.type())).findFirst().orElse(null);
-            if (answer != null) return action("ANSWER_PLAYER", "你问的这一点，我还不能确定。先保留判断，等有具体依据再回应。", answer.targets().get(0));
-            return action(SKIP, "", null);
-        }
-        if ("DAY_VOTE".equals(observation.phase())) {
-            LegalAction vote = legal.stream().filter(a -> "VOTE".equals(a.type())).findFirst().orElse(null);
-            return vote == null ? action(SKIP, "", null) : action("VOTE", "信息还不充分，这是我暂时的判断。", choose(observation, vote.targets()));
-        }
-        if ("LAST_WORDS".equals(observation.phase())) return action("SPEAK", "我先退场了。请把前面的说法和投票对照着看，别只凭谁说得笃定就下结论。", null);
-        String other = lastSpeakerName(observation);
-        String content = other.isBlank()
-                ? "我先把判断留一点余地。大家可以说说最在意哪一句发言，我们把依据对清楚再投票。"
-                : "我想接着" + other + "刚才的说法问一句：主要依据是哪一点？我现在还不想只凭语气给人定身份。";
-        return action("SPEAK", content, null);
+        return action(SKIP, "", null);
     }
 
     @Override
@@ -662,7 +691,7 @@ public class WerewolfRuleSet implements GameRuleSet {
             if (!SKIP.equals(action.getType())) {
                 event(state, "ANSWER_PLAYER", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "：" + requireContent(action, 120),
                         Map.of("questionEventId", text(data.get("questionEventId")), "statement", "PLAYER_CLAIM", "content", requireContent(action, 120)));
-            } else event(state, "ANSWER_SKIPPED", actor.getPlayerId(), text(data.get("questionActor")), actor.getDisplayName() + "暂时没有补充。", Map.of());
+            } else event(state, "ANSWER_SKIPPED", actor.getPlayerId(), text(data.get("questionActor")), "系统已按规则跳过" + actor.getDisplayName() + "的本轮回答。", Map.of());
             List<String> answered = new ArrayList<>(strings(data.get("answeredPlayers")));
             answered.add(actor.getPlayerId());
             data.put("answeredPlayers", answered);
@@ -672,7 +701,7 @@ public class WerewolfRuleSet implements GameRuleSet {
             data.put("question", "");
             data.put("questionEventId", "");
             save(state, data);
-            if (number(data.get("interactionPairs"), 0) >= 2 || !now.isBefore(interactionEnd(data))) startVoting(state, now);
+            if (number(data.get("interactionPairs"), 0) >= 2 || !com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state) && !now.isBefore(interactionEnd(data))) startVoting(state, now);
             else {
                 phase(state, "DAY_INTERACTION", null, remainingSeconds(now, interactionEnd(data)), now);
                 if (noRemainingQuestions(state)) startVoting(state, now);
@@ -702,7 +731,7 @@ public class WerewolfRuleSet implements GameRuleSet {
         data.put("questionEventId", lastEventId(state));
         data.put("humanPriorityElapsed", true);
         save(state, data);
-        phase(state, "DAY_INTERACTION", player(state, target).getSeatNumber(), Math.min(ANSWER_SECONDS, remainingSeconds(now, interactionEnd(data))), now);
+        phase(state, "DAY_INTERACTION", player(state, target).getSeatNumber(), ANSWER_SECONDS, now);
     }
 
     private void advanceInteraction(GameState state, LocalDateTime now) {
@@ -729,9 +758,15 @@ public class WerewolfRuleSet implements GameRuleSet {
         Map<String, Object> data = data(state);
         data.put("votes", new LinkedHashMap<>());
         data.put("voteNotes", new LinkedHashMap<>());
+        data.put("humanVoteEndsAt", now.plusSeconds(30).toString());
         save(state, data);
         phase(state, "DAY_VOTE", null, 30, now);
         event(state, "VOTING_STARTED", null, null, "开始投票，所有票型将在截止后同时公开。", Map.of());
+    }
+
+    private LocalDateTime voteDeadline(GameState state) {
+        String saved = text(data(state).get("humanVoteEndsAt"));
+        return saved.isBlank() ? state.getPhaseEndsAt() : LocalDateTime.parse(saved);
     }
 
     private void applyVote(GameState state, GamePlayerState actor, PlayerAction action, LocalDateTime now) {
@@ -1018,21 +1053,6 @@ public class WerewolfRuleSet implements GameRuleSet {
     private String lastEventId(GameState state) {
         List<Map<String, Object>> events = maps(state.getData().get("events"));
         return events.isEmpty() ? "" : text(events.get(events.size() - 1).get("eventId"));
-    }
-
-    private String choose(VisibleObservation observation, List<String> targets) {
-        return targets.get(Math.floorMod(Objects.hash(observation.instanceId(), observation.actorId(), observation.round(), observation.turnKind()), targets.size()));
-    }
-
-    private String lastSpeakerName(VisibleObservation observation) {
-        String last = "";
-        for (Map<String, Object> e : observation.events()) {
-            if (!"SPEECH".equals(text(e.get("type")))) continue;
-            String id = text(e.get("actorId"));
-            if (id.isBlank() || id.equals(observation.actorId())) continue;
-            last = observation.players().stream().filter(p -> id.equals(text(p.get("playerId")))).map(p -> text(p.get("displayName"))).findFirst().orElse("");
-        }
-        return last;
     }
 
     private static String roleName(String role) {

@@ -1,0 +1,37 @@
+package com.aisocialgame.lab;
+
+import com.aisocialgame.web.CurrentAdmin;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/admin/lab")
+public class AdminLabController {
+    private final LabService service;
+    private final LabCoachService coach;
+    @org.springframework.beans.factory.annotation.Autowired private LabDiagnosticsService diagnostics;
+    @org.springframework.beans.factory.annotation.Autowired private LabManualReviewService reviews;
+    @org.springframework.beans.factory.annotation.Autowired private LabScenarioService scenarios;
+    public AdminLabController(LabService service,LabCoachService coach) { this.service=service; this.coach=coach; }
+    @GetMapping("/agents") public List<LabAgent> agents(@CurrentAdmin String operator) { return service.agents(); }
+    @PostMapping("/agents") public LabAgent createAgent(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Agent request) { return service.saveAgent(null,request); }
+    @PutMapping("/agents/{id}") public LabAgent saveAgent(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Agent request) { return service.saveAgent(id,request); }
+    @DeleteMapping("/agents/{id}") public void deleteAgent(@CurrentAdmin String operator,@PathVariable String id) { service.deleteAgent(id); }
+    @GetMapping("/experiments") public Map<String,Object> list(@CurrentAdmin String operator,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return service.list(page,size); }
+    @PostMapping("/experiments") public Map<String,Object> create(@CurrentAdmin String operator,@Valid @RequestBody LabRequests.Experiment request) { return service.create(request,operator); }
+    @GetMapping("/experiments/{id}") public Map<String,Object> detail(@CurrentAdmin String operator,@PathVariable String id) { return service.detail(id,null,true); }
+    @PutMapping("/experiments/{id}/budget") public Map<String,Object> budget(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Budget request) { return service.updateBudget(id,request.budgetPoints()); }
+    @GetMapping("/experiments/{id}/matches") public Map<String,Object> matches(@CurrentAdmin String operator,@PathVariable String id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return service.matchPage(id,page,size,true); }
+    @GetMapping("/experiments/{id}/matches/{matchId}/spectate") public Map<String,Object> observe(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId) { return service.observe(id,matchId); }
+    @GetMapping("/experiments/{id}/matches/{matchId}/diagnostics") public Map<String,Object> diagnostics(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId) { return diagnostics.inspect(id,matchId); }
+    @GetMapping("/experiments/{id}/experiences") public Map<String,Object> experiences(@CurrentAdmin String operator,@PathVariable String id,@RequestParam(defaultValue="0") int page) { return service.experiencePage(id,page); }
+    @PostMapping("/experiments/{id}/control/{action}") public Map<String,Object> control(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String action) { if(Set.of("start","resume").contains(action)) service.preflight(id); return service.control(id,action); }
+    @PostMapping("/experiments/{id}/rollback/{experienceId}") public void rollback(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String experienceId) { service.rollback(id,experienceId); }
+    @PostMapping("/experiments/{id}/retry-review") public void retry(@CurrentAdmin String operator,@PathVariable String id) { coach.retry(id); }
+    @PostMapping("/experiments/{id}/matches/{matchId}/reviews") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@Valid @RequestBody LabRequests.Review request) { return reviews.create(id,matchId,request); }
+    @GetMapping("/experiments/{id}/matches/{matchId}/reviews/{operationId}") public Map<String,Object> review(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String matchId,@PathVariable String operationId) { return reviews.inspect(id,matchId,operationId); }
+    @PostMapping("/experiments/{id}/evaluations") public Map<String,Object> evaluate(@CurrentAdmin String operator,@PathVariable String id,@Valid @RequestBody LabRequests.Evaluation request) { return service.evaluate(id,request); }
+    @PostMapping("/experiments/{id}/scenario-evaluations") public Map<String,Object> scenario(@CurrentAdmin String operator,@PathVariable String id,@RequestBody LabScenarioService.Request request) { return scenarios.create(id,request); }
+    @GetMapping("/experiments/{id}/scenario-evaluations/{operationId}") public Map<String,Object> scenario(@CurrentAdmin String operator,@PathVariable String id,@PathVariable String operationId) { return scenarios.inspect(id,operationId); }
+}

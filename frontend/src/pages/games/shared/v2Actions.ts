@@ -2,9 +2,9 @@ import type { LegalAction, PlayerAction } from "@/types";
 
 const ACTION_TYPES = new Set<PlayerAction["type"]>([
   "SPEAK", "VOTE", "NIGHT_ACTION", "ASK_QUESTION", "SUBMIT_SOLUTION", "ASK_PLAYER", "ANSWER_PLAYER",
-  "SKIP", "HUNTER_SHOOT", "DISCUSS", "REQUEST_HINT", "REVEAL_SOLUTION",
+  "SKIP", "HUNTER_SHOOT", "DISCUSS", "REQUEST_HINT", "REVEAL_SOLUTION", "SELF_DESTRUCT",
 ]);
-const TEXT_ACTIONS = new Set<PlayerAction["type"]>(["SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS", "ASK_QUESTION", "SUBMIT_SOLUTION"]);
+const TEXT_ACTIONS = new Set<PlayerAction["type"]>(["SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS", "ASK_QUESTION", "SUBMIT_SOLUTION", "SELF_DESTRUCT"]);
 
 export const actionKey = (action: LegalAction) => `${action.type}:${action.nightAction || ""}`;
 export const needsText = (action: LegalAction) => TEXT_ACTIONS.has(action.type);

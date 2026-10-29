@@ -46,6 +46,9 @@ Headers：
 | players[].connectionStatus | String | 连接状态（ONLINE/DISCONNECTED/AI_TAKEOVER） |
 | myRole/myWord | String | 当前玩家私有身份信息（仅本人或结算时可见） |
 | pendingAction | Object | 狼人杀夜晚待办或海龟汤提问提示 |
+| extra.actionEndsAt | String | 本人当前操作的截止时间；包含投票及死亡后的猎人技能，无当前操作时不返回 |
+| extra.waitingForAi / pendingAiCount | Boolean / Integer | 狼人杀投票等待 AI 的状态及尚未完成数量；不包含选票内容 |
+| extra.validationBudgetPaused / pauseReason | Boolean / String | 本次验收达到实扣停止线时的暂停状态和说明；暂停期间不提供真人操作入口 |
 
 **说明**
 - 查询时会同步连接状态并处理超时自动推进（含断线托管逻辑）。

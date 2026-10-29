@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { toast } from "sonner";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
-import { adminApi, subscribeAdminAuthExpired } from "@/services/api";
+import { adminApi, advanceAdminSession, subscribeAdminAuthExpired } from "@/services/api";
 import { AdminAuthResponse, AdminEnrollmentStart, AdminLoginResult } from "@/types";
 
 interface AdminAuthContextValue {
@@ -29,37 +29,62 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const [error, setError] = useState(false);
   const queryClient = useQueryClient();
   const generation = useRef(0);
-  const retry = useCallback(async () => {
+  const adminRef=useRef<AdminAuthResponse|null>(null);
+  const authenticating=useRef(false);
+  const resetQueries=useCallback(()=>{ advanceAdminSession(); void queryClient.cancelQueries(); queryClient.clear(); },[queryClient]);
+  const applyPrincipal=useCallback((value:AdminAuthResponse|null)=>{
+    const previous=adminRef.current;
+    if(previous?.username!==value?.username || previous?.sessionScope!==value?.sessionScope || previous?.expiresAt!==value?.expiresAt) resetQueries();
+    adminRef.current=value; setAdmin(value);
+  },[resetQueries]);
+  const checkSession = useCallback(async (background=false) => {
     const request = ++generation.current;
-    setLoading(true); setError(false); setAdmin(null);
+    if(!background) advanceAdminSession();
+    if(!background) setLoading(true);
+    setError(false);
     try {
       const value = await adminApi.me();
-      if (request === generation.current) setAdmin(value);
+      if (request === generation.current) applyPrincipal(value);
     } catch (failure) {
-      if (request === generation.current && (!axios.isAxiosError(failure) || failure.response?.status !== 401)) setError(true);
+      if (request === generation.current && !axios.isCancel(failure) && (!axios.isAxiosError(failure) || failure.response?.status !== 401)) setError(true);
     } finally { if (request === generation.current) setLoading(false); }
-  }, []);
+  }, [applyPrincipal]);
+  const retry=useCallback(()=>checkSession(),[checkSession]);
   useEffect(() => {
-    const hide = () => { generation.current += 1; setLoading(false); };
+    let hidden=false;
+    const hide = () => { hidden=true; generation.current += 1; authenticating.current=false; advanceAdminSession(); setLoading(false); };
+    const show = () => { if(hidden) { hidden=false; void checkSession(true); } };
+    const focus = () => { if(!authenticating.current && !hidden) void checkSession(true); };
     window.addEventListener("pagehide", hide);
+    window.addEventListener("pageshow", show);
+    window.addEventListener("focus", focus);
     void retry();
-    return () => { generation.current += 1; window.removeEventListener("pagehide", hide); };
-  }, [retry]);
-  useEffect(() => subscribeAdminAuthExpired(() => {
-    generation.current += 1; setAdmin(null); setLoading(false); setError(false);
-    void queryClient.cancelQueries(); queryClient.clear();
-  }), [queryClient]);
+    return () => { generation.current += 1; advanceAdminSession(); window.removeEventListener("pagehide", hide); window.removeEventListener("pageshow",show); window.removeEventListener("focus",focus); };
+  }, [retry,checkSession]);
+  useEffect(() => subscribeAdminAuthExpired(source => {
+    if(source && source!=="/admin/auth/me" && source!=="/admin/auth/logout") {
+      if(!authenticating.current) void checkSession(true);
+      return;
+    }
+    generation.current += 1; authenticating.current=false; adminRef.current=null; setAdmin(null); setLoading(false); setError(false);
+    resetQueries();
+  }), [resetQueries,checkSession]);
 
   const authenticate = async (action: () => Promise<AdminLoginResult>, current: () => boolean = () => true) => {
     const request = ++generation.current;
+    authenticating.current=true; advanceAdminSession();
     const valid = () => request === generation.current && current();
-    const result = await action();
-    if (valid() && result.state === "AUTHENTICATED") {
-      const value = await adminApi.me();
-      if (valid()) { setAdmin(value); setLoading(false); }
+    try {
+      const result = await action();
+      if (valid() && result.state === "AUTHENTICATED") {
+        const value = await adminApi.me();
+        if (valid()) { applyPrincipal(value); setLoading(false); }
+      }
+      if (valid()) { setLoading(false); setError(false); }
+      return result;
+    } finally {
+      if(request===generation.current) authenticating.current=false;
     }
-    if (valid()) { setLoading(false); setError(false); }
-    return result;
   };
 
   const login = (username: string, password: string, current?: () => boolean) => authenticate(() => adminApi.login(username, password), current);
@@ -70,14 +95,16 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
   const logout = async () => {
     const request = ++generation.current;
+    authenticating.current=true; advanceAdminSession();
     window.dispatchEvent(new Event("admin-auth-reset"));
-    setLoading(false);
+    setLoading(true);
     try {
       await adminApi.logout();
       if (request === generation.current) {
-        setAdmin(null); void queryClient.cancelQueries(); queryClient.clear();
+        applyPrincipal(null); resetQueries();
       }
     } catch { if (request === generation.current) toast.error("退出失败，请重试。"); }
+    finally { if(request===generation.current) { authenticating.current=false; setLoading(false); } }
   };
 
   const value = {

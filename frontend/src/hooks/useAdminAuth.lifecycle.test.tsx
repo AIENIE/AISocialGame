@@ -6,17 +6,18 @@ import type { AdminLoginResult } from "@/types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), logout: vi.fn(), expired: () => {} }));
 vi.mock("@/services/api", () => ({
+  advanceAdminSession: vi.fn(),
   adminApi: { me: () => state.me(), login: () => state.login(), logout: () => state.logout() },
   subscribeAdminAuthExpired: (listener: () => void) => { state.expired = listener; return () => {}; },
 }));
-let root: Root, container: HTMLDivElement;
+let root: Root, container: HTMLDivElement, client: QueryClient;
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 function Probe() {
   const auth = useAdminAuth();
   return <div><span>{auth.admin?.username ?? "anonymous"}</span><span>{auth.error ? "load error" : ""}</span><button onClick={() => void auth.login("admin","fixture")}>login</button><button onClick={() => void auth.logout()}>logout</button><button onClick={() => void auth.retry()}>retry</button></div>;
 }
 async function render() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   await act(async () => root.render(<QueryClientProvider client={client}><AdminAuthProvider><Probe /></AdminAuthProvider></QueryClientProvider>));
 }
 beforeEach(() => {
@@ -41,7 +42,7 @@ it("pagehide invalidates old authenticated state while a new request after pages
   await click("login");await act(async () => { window.dispatchEvent(new Event("pagehide"));window.dispatchEvent(new Event("pageshow")); });
   state.me.mockResolvedValue({ username: "FRESH_ADMIN", sessionScope: "FULL" });
   await act(async () => old.resolve({state:"AUTHENTICATED",sessionScope:"FULL"}));
-  expect(container.textContent).not.toContain("FRESH_ADMIN");expect(state.me).toHaveBeenCalledTimes(1);
+  expect(container.textContent).not.toContain("FRESH_ADMIN");expect(state.me).toHaveBeenCalledTimes(2);
   state.login.mockResolvedValue({state:"AUTHENTICATED",sessionScope:"FULL"});await click("login");
   expect(container.textContent).toContain("FRESH_ADMIN");
 });
@@ -60,4 +61,28 @@ it("retains the current session after logout fails and clears it after successfu
   state.logout.mockRejectedValueOnce(new Error("network")); await click("logout");
   expect(container.textContent).toContain("ADMIN");
   await click("logout"); expect(container.textContent).not.toContain("ADMIN");
+});
+it("revalidates the cookie identity on focus and removes the previous administrator's cache",async()=>{
+  state.me.mockResolvedValue({username:"A",sessionScope:"FULL",expiresAt:"session-A"});await render();
+  client.setQueryData(["admin","lab"],"A_PRIVATE");
+  state.me.mockResolvedValue({username:"B",sessionScope:"FULL",expiresAt:"session-B"});
+  await act(async()=>window.dispatchEvent(new Event("focus")));
+  expect(container.textContent).toContain("B");expect(client.getQueryData(["admin","lab"])).toBeUndefined();
+});
+it("retains the administrator identity and cache after a temporary background validation failure",async()=>{
+  state.me.mockResolvedValue({username:"A",sessionScope:"FULL",expiresAt:"session-A"});await render();
+  client.setQueryData(["admin","lab"],"CURRENT");state.me.mockRejectedValue(new Error("network"));
+  await act(async()=>window.dispatchEvent(new Event("focus")));
+  expect(container.textContent).toContain("A");expect(client.getQueryData(["admin","lab"])).toBe("CURRENT");
+});
+it("does not let a focus refresh supersede an in-flight logout",async()=>{
+  state.me.mockResolvedValue({username:"A",sessionScope:"FULL",expiresAt:"session-A"});await render();
+  const pending=deferred<void>();state.logout.mockReturnValueOnce(pending.promise);await click("logout");
+  await act(async()=>window.dispatchEvent(new Event("focus")));
+  expect(state.me).toHaveBeenCalledTimes(1);
+  await act(async()=>pending.resolve());expect(container.textContent).not.toContain("A");
+});
+it("recognizes a management session restored by another tab when the anonymous tab regains focus",async()=>{
+  await render();state.me.mockResolvedValue({username:"B",sessionScope:"FULL",expiresAt:"session-B"});
+  await act(async()=>window.dispatchEvent(new Event("focus")));expect(container.textContent).toContain("B");
 });

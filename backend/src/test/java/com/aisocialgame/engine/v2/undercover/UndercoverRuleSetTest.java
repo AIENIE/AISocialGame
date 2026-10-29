@@ -325,7 +325,8 @@ class UndercoverRuleSetTest {
         GameState state = rules.initialize(room(4, Map.of()), NOW);
         GamePlayerState actor = current(state);
         int logs = state.getLogs().size();
-        assertThrows(ApiException.class, () -> rules.apply(state, actor.getPlayerId(), action("SPEAK", "我的词是" + actor.getWord(), null), NOW));
+        rules.apply(state, actor.getPlayerId(), action("SPEAK", "我的词是" + actor.getWord(), null), NOW);
+        assertEquals(2, rules.wordFeedback(state,actor.getPlayerId()).get("remainingCorrections"));
         assertEquals(logs, state.getLogs().size());
         var observation = observation(state, actor);
         var leak = AiTurnDecision.fallback(action("SPEAK", actor.getWord(), null));
@@ -334,6 +335,39 @@ class UndercoverRuleSetTest {
         observation = observation(state, actor);
         var vote = new AiTurnDecision(action("VOTE", "我会投给二号", "p1"), "我会投给二号", Map.of(), List.of(), Map.of(), false, Map.of());
         assertTrue(rules.validateDecision(observation, vote).contains("VOTE_MUST_REMAIN_PRIVATE"));
+    }
+
+    @Test void onlyOwnWordIsForbiddenAndThreeViolationsEliminateWithoutPublishingTheWord() throws Exception {
+        var state = rules.initialize(room(6, Map.of("hasBlank",true)),NOW);
+        var actor = current(state); actor.setRole("CIVILIAN"); actor.setWord("洗发水");
+        var deadline = state.getPhaseEndsAt();
+        for(int attempt=1;attempt<=3;attempt++) {
+            rules.apply(state,actor.getPlayerId(),action("SPEAK","洗 发 水",null),NOW.plusSeconds(attempt));
+            assertEquals(attempt,rules.wordFeedback(state,actor.getPlayerId()).get("violationCount"));
+            assertEquals(List.of("洗发水"),rules.wordFeedback(state,actor.getPlayerId()).get("forbiddenTerms"));
+            assertEquals(attempt<3,actor.isAlive());
+            if(attempt<3) assertEquals(deadline,state.getPhaseEndsAt());
+        }
+        assertTrue(state.getLogs().stream().noneMatch(log -> log.getMessage().contains("洗 发 水")));
+        assertTrue(rules.publicData(state).get("wordFeedback")==null);
+        var restored=new ObjectMapper().findAndRegisterModules().readValue(new ObjectMapper().findAndRegisterModules().writeValueAsString(state),GameState.class);
+        assertEquals(3,rules.wordFeedback(restored,actor.getPlayerId()).get("violationCount"));
+        var opponent=current(state); opponent.setRole("UNDERCOVER"); opponent.setWord("沐浴露");
+        rules.apply(state,opponent.getPlayerId(),action("SPEAK","对面像洗发水",null),NOW.plusSeconds(4));
+        var blank=current(state); blank.setRole("BLANK"); blank.setWord("");
+        rules.apply(state,blank.getPlayerId(),action("SPEAK","洗发水和沐浴露",null),NOW.plusSeconds(5));
+        assertTrue(blank.isAlive());
+    }
+
+    @Test void legalCorrectionClearsCountAndTimeoutDoesNotEliminate() {
+        var state=rules.initialize(room(6,Map.of()),NOW); var actor=current(state);
+        rules.apply(state,actor.getPlayerId(),action("SPEAK",actor.getWord(),null),NOW);
+        rules.apply(state,actor.getPlayerId(),action("SPEAK","这是一个常见的东西",null),NOW.plusSeconds(1));
+        assertTrue(rules.wordFeedback(state,actor.getPlayerId()).isEmpty());
+        actor=current(state);
+        rules.apply(state,actor.getPlayerId(),action("SPEAK",actor.getWord(),null),NOW.plusSeconds(2));
+        rules.advance(state,state.getPhaseEndsAt().plusSeconds(1));
+        assertTrue(actor.isAlive()); assertTrue(rules.wordFeedback(state,actor.getPlayerId()).isEmpty());
     }
 
     @Test void allAiFailuresSkipAndConcludeWithoutInventedSpeech() {

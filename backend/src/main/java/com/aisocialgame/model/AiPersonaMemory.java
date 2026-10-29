@@ -48,6 +48,8 @@ public class AiPersonaMemory {
     private String approvedSummary = "";
     @Column(length = 24)
     private String reviewStatus = "PENDING";
+    @Column(name="strategy_publication_id",length=36)
+    private String strategyPublicationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -81,6 +83,7 @@ public class AiPersonaMemory {
     public int getGamesPlayed() { return gamesPlayed; }
     public String getApprovedSummary() { return approvedSummary; }
     public String getReviewStatus() { return reviewStatus; }
+    public String getStrategyPublicationId() { return strategyPublicationId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -95,6 +98,7 @@ public class AiPersonaMemory {
     public void setGamesPlayed(int gamesPlayed) { this.gamesPlayed = gamesPlayed; }
     public void setApprovedSummary(String approvedSummary) { this.approvedSummary = approvedSummary; }
     public void setReviewStatus(String reviewStatus) { this.reviewStatus = reviewStatus; }
+    public void setStrategyPublicationId(String strategyPublicationId) { this.strategyPublicationId = strategyPublicationId; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

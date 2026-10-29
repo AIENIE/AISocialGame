@@ -8,15 +8,22 @@ import static com.aisocialgame.engine.v2.RuleSupport.*;
 /** Model-only views over detached, actor-visible observations. */
 public final class AiPromptProjection {
     public static final int VERSION = 3;
-    public static final int UNDERCOVER_VERSION = 4;
+    public static final int UNDERCOVER_VERSION = 5;
+    public static final int WEREWOLF_VERSION = 5;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private AiPromptProjection() {}
 
-    public static int version(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_VERSION : VERSION; }
+    public static int version(String gameId) {
+        return "undercover".equals(gameId) ? UNDERCOVER_VERSION : "werewolf".equals(gameId) ? WEREWOLF_VERSION : VERSION;
+    }
 
     public static Map<String, Object> project(GameAiAdapter adapter, VisibleObservation o) {
         if ("undercover".equals(o.gameId())) return undercover(adapter, o);
         Map<String, Object> observation = JSON.convertValue(o, Map.class);
+        if ("werewolf".equals(o.gameId())) {
+            observation.put("self", displayedSeat(map(observation.get("self"))));
+            observation.put("players", maps(observation.get("players")).stream().map(AiPromptProjection::displayedSeat).toList());
+        }
         List<Map<String, Object>> sources = new ArrayList<>();
         List<Map<String, Object>> events = maps(observation.get("events"));
         Map<String, Object> classified = AiInformationSources.project(adapter, o);
@@ -54,9 +61,13 @@ public final class AiPromptProjection {
         if (!RuleSupport.HOST.equals(o.actorId())) memory.putIfAbsent("hypotheses", List.of());
         observation.put("memory", memory);
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("inputFormatVersion", VERSION);
+        payload.put("inputFormatVersion", version(o.gameId()));
+        if ("werewolf".equals(o.gameId())) payload.put("seatNumbering",
+                "self 和 players 的 seatNumber 是页面显示的座位号，从1开始；发言中的‘几号’均用此编号。playerId 是不透明身份标识，不能从其数字推断座位；所有目标仍提交合法列表中的 targetPlayerId。历史发言原文不改写，应根据当前座位表核对指代。");
         payload.put("referenceFormat", "$ref is a JSON pointer within this payload; follow references to the original data. References do not change source or visibility.");
         payload.put("instruction", adapter.instruction(o)); payload.put("observation", observation);
+        if("werewolf".equals(o.gameId())&&!map(o.memory().get("protocolCalibration")).isEmpty())
+            payload.put("protocolCalibration",Map.of("instruction","仅作协议校准，请提交required中指定的合法动作、目标与证据；这不是策略评测。","required",o.memory().get("protocolCalibration")));
         payload.put("informationSources", Map.of("events", sources, "privateKnowledge", privateInfo, "hypotheses", hypotheses, "note", classified.get("note")));
         if (!RuleSupport.HOST.equals(o.actorId())) {
             var conversation = adapter.conversation(o);
@@ -72,6 +83,7 @@ public final class AiPromptProjection {
                 if (a.maxLength() > 0) action.put("content", "本次简短话语");
                 if (!a.targets().isEmpty()) action.put("targetPlayerId", a.targets().getFirst());
                 if (a.nightAction() != null) action.put("nightAction", a.nightAction());
+                if ("WITCH_SAVE".equals(a.nightAction())) action.put("useHeal", true);
                 Map<String, Object> example = new LinkedHashMap<>(); example.put("action", action);
                 // A directed reply needs the current question reference at the decision root, not inside PlayerAction.
                 if ("ANSWER_PLAYER".equals(a.type()) && !conversation.replyTo().isEmpty())
@@ -82,11 +94,19 @@ public final class AiPromptProjection {
         return payload;
     }
 
+    private static Map<String, Object> displayedSeat(Map<String, Object> player) {
+        var visible = new LinkedHashMap<>(player);
+        if (player.get("seatNumber") instanceof Number n && n.intValue() >= 0)
+            visible.put("seatNumber", n.intValue() + 1);
+        return visible;
+    }
+
     private static Map<String, Object> undercover(GameAiAdapter adapter, VisibleObservation o) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("inputFormatVersion", UNDERCOVER_VERSION);
         payload.put("instruction", adapter.instruction(o));
         payload.put("phase", o.phase()); payload.put("round", o.round());
+        if (o.privateFacts().containsKey("wordFeedback")) payload.put("forbiddenFeedback",o.privateFacts().get("wordFeedback"));
         Map<String, Object> self = new LinkedHashMap<>(); self.put("playerId", o.actorId());
         if (flag(o.privateFacts().get("blank")) || "BLANK".equals(o.self().get("role"))) self.put("blank", true);
         else {
@@ -109,6 +129,12 @@ public final class AiPromptProjection {
         if (difficulty.isBlank()) difficulty = text(AiRoundReflection.difficulty(number(o.rules().get("aiDifficulty"),
                 number(o.persona().get("difficultyLevel"), 2))).get("guide"));
         persona.put("difficulty", difficulty); payload.put("persona", persona);
+        Map<String,Object> lab = map(o.memory().get("lab"));
+        if (!lab.isEmpty()) {
+            payload.put("labExperience", Map.of("version", text(lab.get("experienceId")),
+                    "summary", text(lab.get("experience")),
+                    "usage", "这是历史策略经验，不是本局事实；本局判断仅依据本人词语和当前可见事件。"));
+        }
         payload.put("events", o.events().stream().map(AiPromptProjection::undercoverEvent).filter(e -> !e.isEmpty()).toList());
         payload.put("legalActions", o.legalActions().stream().map(a -> {
             Map<String, Object> action = new LinkedHashMap<>(); action.put("type", a.type());
@@ -124,7 +150,7 @@ public final class AiPromptProjection {
         Map<String, Object> data = map(event.get("data"));
         boolean speech = AiSpeechEvents.isSpeech(event);
         boolean skipped = Set.of("SKIP", "TIMEOUT").contains(type);
-        if (!speech && !skipped && !Set.of("VOTE_REVEAL", "TIE", "ELIMINATED", "NO_ELIMINATION").contains(type)) return Map.of();
+        if (!speech && !skipped && !Set.of("VOTE_REVEAL", "TIE", "ELIMINATED", "NO_ELIMINATION", "SELF_DESTRUCT").contains(type)) return Map.of();
         if (skipped && ("VOTE".equals(data.get("action")) || Set.of("VOTING", "RUNOFF").contains(text(event.get("phase"))))) return Map.of();
         Map<String, Object> result = fields(event, "eventId", "type", "round", "actorId");
         if (Set.of("TIE_DEFENSE", "RUNOFF").contains(text(event.get("phase")))) result.put("phase", event.get("phase"));
@@ -133,6 +159,7 @@ public final class AiPromptProjection {
             case "VOTE_REVEAL" -> result.putAll(fields(data, "votes"));
             case "TIE" -> result.putAll(fields(data, "candidates"));
             case "ELIMINATED" -> result.putAll(fields(data, "role"));
+            case "SELF_DESTRUCT" -> result.putAll(fields(data, "content", "success"));
             case "NO_ELIMINATION" -> result.putAll(fields(data, "consecutiveRounds"));
             default -> { }
         }

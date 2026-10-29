@@ -67,12 +67,13 @@ public class LocalAiDebugRecorder {
 
     public void response(String requestId, ChatCompletionsResponse response, Boolean budgetUsageAuthoritative) {
         if (!enabled()) return;
-        int split = requestId.lastIndexOf(':');
+        String actionId=requestId.contains(":transport:")?requestId.substring(0,requestId.indexOf(":transport:")):requestId;
+        int split = actionId.lastIndexOf(':');
         if (split < 1) return;
         int attempt;
-        try { attempt = Integer.parseInt(requestId.substring(split + 1)); } catch (NumberFormatException invalid) { return; }
+        try { attempt = Integer.parseInt(actionId.substring(split + 1)); } catch (NumberFormatException invalid) { return; }
         int index = attempt;
-        write(requestId.substring(0, split), () -> null, row -> {
+        write(actionId.substring(0, split), () -> null, row -> {
             var sample = attempt(row, index);
             sample.put("requestId", requestId); sample.put("state", "RESPONSE");
             sample.put("receivedAt", System.currentTimeMillis()); sample.put("rawOutput", response.getContent());

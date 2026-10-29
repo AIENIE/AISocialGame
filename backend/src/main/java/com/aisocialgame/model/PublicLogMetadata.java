@@ -18,6 +18,10 @@ public final class PublicLogMetadata {
             copyString(data, result, "actorName", "actorName");
         }
         copyString(data, result, "content", "content");
+        if ("SELF_DESTRUCT".equals(type)) {
+            copyString(data, result, "actorName", "actorName");
+            if (data.get("success") instanceof Boolean success) result.put("success", success);
+        }
         if ("TURTLE_SOUP_QUESTION".equals(type)) copyString(data, result, "answer", "content");
         if ("TURTLE_SOUP_HINT".equals(type)) copyString(data, result, "hint", "content");
         if ("TURTLE_SOUP_START".equals(type)) copyString(data, result, "surface", "content");

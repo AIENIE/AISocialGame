@@ -22,6 +22,19 @@
 
 配置用于新的 AI 任务；已开始任务的 `diagnostics.modelSelection` 固定模型、思考设置和配置版本，修正及预算恢复沿用同一快照。目录能力失效会在后续发送前拒绝，已发生调用继续按原预算流程对账。结构增量为 `20261019_ai_model_config.sql`，登记于迁移序列 13；当前全量结构同步维护，冻结基线不变。
 
+## 普通房间验收积分停止线
+
+| 方法与路径 | 用途及返回 |
+| --- | --- |
+| `PUT /validation-runs/{runId}/rooms/{roomId}` | 请求 `{ "budgetPoints": 1000 }`；将普通房间登记到本次验收，并统一更新该验收所有房间的停止线。重复登记幂等；房间不能改属另一个验收。 |
+| `GET /validation-runs/{runId}` | 返回 `runId`、`budgetPoints`、`roomIds`、`spentPoints`、`pendingCallCount`、`exhausted`。未知验收返回 404。 |
+
+`runId` 为 1–96 位字母、数字、连字符或下划线。预算须为正整数，不得低于保存时累计实扣。登记写入房间现有私有 JSON，不新建资金账户或积分冻结；同房连续多局及登记到相同验收的复测房间共同使用预算。应在新建验收房间开局前登记；统计覆盖这些房间的全部已结算调用，不能用历史房间另起验收清零。
+
+实扣按调用记录的请求 ID 关联权威结算记录，仅累计 `SETTLED.billedPoints`。`PENDING` / `USAGE_UNKNOWN` / 历史 `HELD` 仅计入待确认调用数，不估算费用、不认定免费。每次新发送前检查实扣；达到停止线返回 `409 / AI_VALIDATION_BUDGET_EXHAUSTED`，包含验收标识、预算、实扣及待确认数。已经发送的原请求仍允许恢复并结算，因此最终实扣可超过停止线；费用只按原请求结算一次。
+
+原 `/api/games/ai-validation-budget` 仍表示配置的**调用次数上限**，与本接口的积分停止线独立。管理员鉴权、来源校验及操作确认沿用现有机制。
+
 ## GET /models
 - 用途：管理端查看 AI 模型列表。
 - 请求头：HttpOnly 管理员会话 cookie (required)
