@@ -2,10 +2,7 @@
 set -euo pipefail
 
 AIENIE_CI_MAVEN_MODULES=(backend)
-AIENIE_CI_NPM_MODULES=()
 AIENIE_CI_PNPM_MODULES=(frontend)
-AIENIE_CI_STATIC_NODE_MODULES=()
-AIENIE_CI_MAVEN_EXTRA_ARTIFACTS=()
 source "$(cd "$(dirname "$0")" && pwd -P)/aienie-ci-phase.sh"
 aienie_ci_prepare_phase "$@"
 [[ "$AIENIE_CI_PHASE" == "resolve" ]] && exit 0
@@ -27,4 +24,4 @@ case "${AIENIE_RELEASE_ENVIRONMENT:-staging}" in
   production) bash "$repo_root/scripts/ci/assemble-aisocialgame-production-runtime.sh" "$repo_root" "$output_dir" ;;
   *) echo 'AIENIE_RELEASE_ENVIRONMENT must be staging or production' >&2; exit 2 ;;
 esac
-aienie_ci_finalize_build_inputs
+aienie_ci_restore_manifest

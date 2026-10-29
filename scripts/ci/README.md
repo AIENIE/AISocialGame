@@ -17,9 +17,7 @@ AIENIE_DEPENDENCY_MANIFEST=<resolve-output-dir>/repository-dependency-manifest.j
 scripts/ci/build-release.sh <resolve-output-dir>
 ```
 
-该阶段只解析并缓存依赖，生成 schema 为
-`aienie-repository-dependency-manifest-v1` 的清单。清单绑定源码提交、目标架构、模块、工具链、
-依赖输入文件 SHA-256 和缓存清单摘要。缺锁文件、空缓存、错误架构或重复输出均会失败关闭。
+该阶段缓存 Maven/pnpm 依赖，并执行原有依赖漏洞扫描、阈值和豁免范围检查（S05）。输出 `aienie-repository-dependency-manifest-v1` 格式的交接记录，供中央构建流程归档；记录源码标签、模块、工具版本和依赖摘要。
 
 ## Build
 
@@ -36,12 +34,9 @@ AIENIE_DEPENDENCY_MANIFEST=<payload-dir>/repository-dependency-manifest.json \
 scripts/ci/build-release.sh <payload-dir>
 ```
 
-平台必须先移除缓存整树和清单的全部写位；payload 目录初始只能含固定名称、只读的仓库清单。
-Build 在执行仓库 L2 编译/测试前重新验证清单、工具链、锁文件、缓存摘要和只读模式，并把缓存
-复制到会在退出时清理的工作目录；Maven 使用 `-o`，npm/pnpm 使用各自的离线模式。最终再次
-核对原始缓存与清单未变化，清单保留在 payload 根供平台复核并由平台在封包前移除，工作缓存不
-进入产物。任何缺失输入、写权限或联网降级都会直接失败。运行时配置、秘密、证书和 Config
-Center 文件都不是这两个阶段的输入，也不得进入产物。
+Build 复制 Resolve 的依赖缓存到临时工作目录，使用 Maven/pnpm 离线模式执行编译、类型检查、lint 和单元测试，再交给统一封包工具。S09 已退役仓库内源码、工具版本、锁文件和缓存摘要的一致性复核、输入只读状态检查及构建后的重复复核；原有漏洞扫描结果检查继续保留。交接记录在封包时暂存，完成后放回输出目录，工作缓存不会进入产物。
+
+S10 已退役预生产 Compose/OCI 的打包前复核及其专用角色清单。中央构建目录仍定义后端、前端镜像角色；Compose 中现行的 TLS、鉴权、端口、容器权限和资源配置继续使用。
 
 ## Production bundle
 
