@@ -26,7 +26,7 @@ const UsageRecordList = ({ title, records, page, hasMore, loading, onPrev, onNex
           <div key={`${item.requestId}-${item.createdAt}`} className="rounded-lg border p-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="font-medium">{item.modelKey || t("wallet.unknownModel")}</div>
-              <div className="text-red-600">-{t("wallet.creditAmount", { count: item.billedTokens })}</div>
+              <div className="text-red-600">-{t("wallet.creditAmount", { count: item.billedPoints })}</div>
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               prompt {item.promptTokens} / completion {item.completionTokens}

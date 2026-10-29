@@ -12,7 +12,7 @@ public interface AiCreditReservationRepository extends JpaRepository<AiCreditRes
     }
     @Query("""
         select coalesce(sum(case when r.state='SETTLED' then r.billedPoints else 0 end),0) as spentPoints,
-          coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN','HELD') then 1 else 0 end),0) as pendingCallCount
+          coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN') then 1 else 0 end),0) as pendingCallCount
         from AiCreditReservation r
         where r.projectKey='aisocialgame' and r.requestId in :requestIds
         """)
@@ -24,7 +24,7 @@ public interface AiCreditReservationRepository extends JpaRepository<AiCreditRes
     }
     @Query("""
         select coalesce(sum(r.billedPoints),0) as spentPoints,
-          coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN','HELD') then 1 else 0 end),0) as pendingCalls,
+          coalesce(sum(case when r.state in ('PENDING','USAGE_UNKNOWN') then 1 else 0 end),0) as pendingCalls,
           count(r) as totalCalls, coalesce(sum(r.billedCost),0) as actualCost
         from AiCreditReservation r where r.labExperimentId=:experimentId
         """)
@@ -36,5 +36,4 @@ public interface AiCreditReservationRepository extends JpaRepository<AiCreditRes
     @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select r from AiCreditReservation r where r.id=:id")
     Optional<AiCreditReservation> lock(@Param("id") String id);
     List<AiCreditReservation> findByStateInOrderByUpdatedAtAsc(List<String> states,Pageable page);
-    List<AiCreditReservation> findByStateOrderByUpdatedAtAsc(String state,Pageable page);
 }

@@ -40,7 +40,7 @@ class WalletServiceTest {
     @Test
     void checkinShouldCallProjectCreditService() {
         User user = mockUser(1001L);
-        when(balanceService.getUserBalance(1001L)).thenReturn(new BalanceSnapshot(8, 0, 0, null));
+        when(balanceService.getDisplayBalance(1001L)).thenReturn(new BalanceSnapshot(8, 0, 0, null));
         when(projectCreditService.checkin(anyLong(), anyLong()))
                 .thenReturn(new CheckinResult(true, 100, false, "", BalanceSnapshot.empty()));
 
@@ -76,6 +76,14 @@ class WalletServiceTest {
     void walletDisplayUsesStrictBalanceRead() {
         when(balanceService.getDisplayBalance(1001L)).thenThrow(new IllegalStateException("unavailable"));
         Assertions.assertThrows(IllegalStateException.class, () -> walletService.getBalance(mockUser(1001L)));
+    }
+
+    @Test
+    void failedBalanceReadDoesNotReturnZeroOrPerformWalletMutation() {
+        when(balanceService.getDisplayBalance(1001L)).thenThrow(new IllegalStateException("unavailable"));
+        Assertions.assertThrows(IllegalStateException.class, () -> walletService.checkin(mockUser(1001L)));
+        Assertions.assertThrows(IllegalStateException.class, () -> walletService.redeemCode(mockUser(1001L), "code"));
+        org.mockito.Mockito.verifyNoInteractions(projectCreditService);
     }
 
 }

@@ -3,8 +3,6 @@ package com.aisocialgame.service.credit;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.credit.*;
 import com.aisocialgame.repository.credit.*;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fireflychat.ai.v1.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,16 +20,15 @@ public class AiCallSettlementService {
     private final CreditAccountRepository accounts;
     private final TemporaryCreditService temporary;
     private final CreditLedgerService ledger;
-    private final ObjectMapper json;
     private final TransactionTemplate tx;
 
     public AiCallSettlementService(AiCreditReservationRepository reservations,CreditAccountRepository accounts,
-            TemporaryCreditService temporary,CreditLedgerService ledger,ObjectMapper json,PlatformTransactionManager manager) {
-        this.reservations=reservations; this.accounts=accounts; this.temporary=temporary; this.ledger=ledger; this.json=json;
+            TemporaryCreditService temporary,CreditLedgerService ledger,PlatformTransactionManager manager) {
+        this.reservations=reservations; this.accounts=accounts; this.temporary=temporary; this.ledger=ledger;
         tx=new TransactionTemplate(manager); tx.setPropagationBehavior(3);
     }
     public static boolean pending(String state) {
-        return Set.of("PENDING", "USAGE_UNKNOWN", "HELD").contains(state);
+        return Set.of("PENDING", "USAGE_UNKNOWN").contains(state);
     }
     /** Registers a durable call identity without transferring any credits. */
     public Claim register(ChatCompletionsRequest request,PrepareCallBudgetResponse budget) {
@@ -52,51 +49,23 @@ public class AiCallSettlementService {
             }
             if(budget.getExpiresAtEpochMs()<=System.currentTimeMillis()) throw unavailable();
             Instant now=Instant.now();
-            if (budget.hasPriceQuote()) validatedPoints(budget.getPriceQuote());
+            if (!budget.hasPriceQuote()) throw unavailable();
+            validatedPoints(budget.getPriceQuote());
             long available = Math.addExact(temporary.balance(account,now),account.getPermanentBalance());
             if (available <= 0) throw new ApiException(HttpStatus.BAD_REQUEST,
                     "专属积分余额不足，请先充值或兑换", "AI_CREDIT_INSUFFICIENT", Map.of("availablePoints",available));
             AiCreditReservation row=new AiCreditReservation(); row.id=UUID.randomUUID().toString();
             row.identityHash=identity; row.requestHash=digest; row.requestId=request.getRequestId();
             row.projectKey=request.getProjectKey(); row.userId=request.getUserId(); row.budgetId=budget.getBudgetId();
-            row.state="PENDING"; row.reservedTemp=0; row.reservedPermanent=0;
+            row.state="PENDING";
             if (labBudgets != null) labBudgets.bind(row);
-            row.tempPortionsJson="[]"; row.updatedAt=System.currentTimeMillis();
-            if (budget.hasPriceQuote()) row.billingQuoteBase64=Base64.getEncoder().encodeToString(budget.getPriceQuote().toByteArray());
+            row.updatedAt=System.currentTimeMillis();
+            row.billingQuoteBase64=Base64.getEncoder().encodeToString(budget.getPriceQuote().toByteArray());
             reservations.saveAndFlush(row);
             return new Claim(row,true);
         });
     }
-    /** Release legacy monetary holds once, retaining the original identity and pricing basis. */
-    public void releaseLegacyHold(String id) {
-        tx.executeWithoutResult(transaction -> {
-            var row=reservations.lock(id).orElseThrow();
-            if (!"HELD".equals(row.state)) return;
-            var account=accounts.findForUpdate(row.userId,row.projectKey).orElseThrow();
-            Instant now=Instant.now();
-            long expired=0, allocation=0;
-            for (var portion:decode(row.tempPortionsJson)) {
-                if (portion.amount()<0) throw unavailable();
-                allocation=Math.addExact(allocation,portion.amount());
-                if (portion.expiresAt()!=null && !portion.expiresAt().isAfter(now)) expired=Math.addExact(expired,portion.amount());
-                else temporary.refund(account,portion.amount(),portion.expiresAt(),now);
-            }
-            if (allocation!=row.reservedTemp || row.reservedPermanent<0) throw unavailable();
-            account.setPermanentBalance(Math.addExact(account.getPermanentBalance(),row.reservedPermanent));
-            accounts.saveAndFlush(account);
-            ledger.insertLedgerEntry("ai-release:"+row.id,row.userId,"AI_RELEASE",row.reservedTemp,row.reservedPermanent,0,0,
-                    "AI_BUDGET",Map.of("budgetId",row.budgetId,"reason","POSTPAID_MIGRATION"),null,account,
-                    new com.aisocialgame.integration.grpc.dto.BalanceSnapshot(0,
-                            Math.addExact(temporary.balance(account,now),expired),account.getPermanentBalance(),null));
-            if (expired>0) ledger.insertLedgerEntry("ai-expire:"+row.id,row.userId,"EXPIRE",-expired,0,0,0,
-                    "AI_BUDGET",Map.of("budgetId",row.budgetId),null,account);
-            row.reservedTemp=0; row.reservedPermanent=0; row.state="USAGE_UNKNOWN";
-            row.updatedAt=System.currentTimeMillis(); reservations.saveAndFlush(row);
-        });
-    }
     public void reconcile(String id,GetBudgetCallStatusResponse status) {
-        // Migration commits separately: unavailable usage must never keep money frozen.
-        releaseLegacyHold(id);
         tx.executeWithoutResult(transaction->{
             var row=reservations.lock(id).orElseThrow();
             if(!pending(row.state)) return;
@@ -154,7 +123,6 @@ public class AiCallSettlementService {
         catch (Exception invalid) { throw unavailable(); }
     }
     private static long billedPoints(AiCreditReservation row,GetBudgetCallStatusResponse status) {
-        if (row.billingQuoteBase64==null) return status.getTotalTokens();
         var quote=quote(row);validatedPoints(quote);
         if (!status.hasPriceQuote() || !quote.equals(status.getPriceQuote()) || !status.hasCharge()
                 || !status.getChat().hasBudgetCharge() || !status.getCharge().equals(status.getChat().getBudgetCharge())) throw unavailable();
@@ -171,14 +139,9 @@ public class AiCallSettlementService {
     private static Map<String,String> settlementMetadata(AiCreditReservation row,GetBudgetCallStatusResponse status,long billed) {
         var metadata=new HashMap<>(Map.of("budgetId",row.budgetId,"modelKey",status.getChat().getModelKey(),
                 "promptTokens",String.valueOf(status.getPromptTokens()),"completionTokens",String.valueOf(status.getCompletionTokens())));
-        if (row.billingQuoteBase64==null) metadata.put("billedTokens",String.valueOf(billed));
-        else { metadata.put("billedPoints",String.valueOf(billed)); metadata.put("currency",status.getCharge().getCurrency());
-            metadata.put("totalCost",status.getCharge().getTotalCost()); metadata.put("priceVersionId",String.valueOf(status.getCharge().getPriceVersionId())); }
+        metadata.put("billedPoints",String.valueOf(billed)); metadata.put("currency",status.getCharge().getCurrency());
+            metadata.put("totalCost",status.getCharge().getTotalCost()); metadata.put("priceVersionId",String.valueOf(status.getCharge().getPriceVersionId()));
         return metadata;
-    }
-    private List<TemporaryCreditService.Portion> decode(String value) {
-        try { return json.readValue(value,new TypeReference<List<TemporaryCreditService.Portion>>(){}); }
-        catch(Exception ex) { throw new IllegalStateException(ex); }
     }
     public static String hash(byte[] bytes) {
         try {return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));}

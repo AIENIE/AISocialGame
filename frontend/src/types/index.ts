@@ -311,7 +311,7 @@ export interface UsageRecord {
   modelKey: string;
   promptTokens: number;
   completionTokens: number;
-  billedTokens: number;
+  billedPoints: number;
   createdAt?: string;
 }
 

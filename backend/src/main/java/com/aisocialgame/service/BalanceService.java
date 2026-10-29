@@ -15,25 +15,6 @@ public class BalanceService {
         this.projectCreditService = projectCreditService;
     }
 
-    public BalanceSnapshot getUserBalance(User user) {
-        if (user == null || user.getExternalUserId() == null || user.getExternalUserId() <= 0) {
-            return BalanceSnapshot.empty();
-        }
-        return getUserBalance(user.getExternalUserId());
-    }
-
-    public BalanceSnapshot getUserBalance(long externalUserId) {
-        if (externalUserId <= 0) {
-            return BalanceSnapshot.empty();
-        }
-        long publicTokens;
-        try {
-            publicTokens = billingGrpcClient.getPublicPermanentTokens(externalUserId);
-        } catch (Exception ignored) {
-            publicTokens = 0;
-        }
-        return projectCreditService.getBalance(externalUserId, publicTokens);
-    }
     /** Read-only display snapshot: a failed dependency is never represented as a zero balance. */
     public BalanceSnapshot getDisplayBalance(User user) {
         if (user == null || user.getExternalUserId() == null) {

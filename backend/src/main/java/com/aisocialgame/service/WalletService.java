@@ -92,10 +92,6 @@ public class WalletService {
     }
 
     private long readPublicTokens(long userId) {
-        try {
-            return balanceService.getUserBalance(userId).publicPermanentTokens();
-        } catch (Exception ignored) {
-            return 0;
-        }
+        return balanceService.getDisplayBalance(userId).publicPermanentTokens();
     }
 }

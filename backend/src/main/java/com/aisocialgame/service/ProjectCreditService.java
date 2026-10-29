@@ -352,66 +352,13 @@ public class ProjectCreditService {
         return creditLedgerService.listLedgerEntriesForAdmin(userId, page, size);
     }
 
-    @Transactional
-    public BalanceSnapshot consumeProjectTokens(long userId,
-                                                long billedTokens,
-                                                String source,
-                                                Map<String, String> metadata,
-                                                String requestId) {
-        if (billedTokens <= 0) {
-            return getBalance(userId, safeGetPublicTokens(userId));
-        }
-
-        String normalizedRequestId = normalizeRequestId(requestId, "consume", userId);
-        if (creditLedgerEntryRepository.findByRequestId(normalizedRequestId).isPresent()) {
-            return getBalance(userId, safeGetPublicTokens(userId));
-        }
-
-        long publicTokens = safeGetPublicTokens(userId);
-        CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
-        expireTempIfNeeded(account, publicTokens);
-
-        long temporaryBalance = temporaryCredits == null ? account.getTempBalance() : temporaryCredits.balance(account, Instant.now());
-        long available = Math.addExact(Math.max(0, temporaryBalance), Math.max(0, account.getPermanentBalance()));
-        if (available < billedTokens) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "专属积分不足，请先充值或兑换");
-        }
-
-        long consumeTemp = Math.min(temporaryBalance, billedTokens);
-        long consumePermanent = billedTokens - consumeTemp;
-        if (temporaryCredits == null) account.setTempBalance(account.getTempBalance() - consumeTemp);
-        else temporaryCredits.take(account, consumeTemp, Instant.now());
-        account.setPermanentBalance(account.getPermanentBalance() - consumePermanent);
-        if (account.getTempBalance() == 0) {
-            account.setTempExpiresAt(null);
-        }
-        creditAccountRepository.save(account);
-
-        Map<String, String> normalizedMetadata = metadata == null ? new HashMap<>() : new HashMap<>(metadata);
-        normalizedMetadata.put("billedTokens", String.valueOf(billedTokens));
-        creditLedgerService.insertLedgerEntry(
-                normalizedRequestId,
-                userId,
-                "CONSUME",
-                -consumeTemp,
-                -consumePermanent,
-                0,
-                publicTokens,
-                StringUtils.hasText(source) ? source.trim() : "AI_CONSUME",
-                normalizedMetadata,
-                null,
-                account
-        );
-        return toBalanceSnapshot(account, publicTokens);
-    }
-
     public CreditExchangeResult exchangePublicToProject(long userId, long tokens, String requestId) {
         if (tokens <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "兑换数量必须大于 0");
         }
         String normalizedRequestId = requireRequestId(requestId);
         String projectKey = appProperties.getProjectKey();
-        long publicBefore = safeGetPublicTokens(userId);
+        long publicBefore = billingGrpcClient.getPublicPermanentTokens(userId);
 
         CreditExchangeTransaction pending = transactionTemplate.execute(status -> {
             Optional<CreditExchangeTransaction> existing = creditExchangeTransactionRepository.findByRequestId(normalizedRequestId);
@@ -453,7 +400,7 @@ public class ProjectCreditService {
         });
 
         if (pending != null && EXCHANGE_SUCCESS.equals(pending.getStatus())) {
-            long publicTokens = safeGetPublicTokens(userId);
+            long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
             return new CreditExchangeResult(normalizedRequestId, pending.getProjectTokens(), getBalance(userId, publicTokens));
         }
 
@@ -539,7 +486,7 @@ public class ProjectCreditService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "调整值不能同时为 0");
         }
         String projectKey = appProperties.getProjectKey();
-        long publicTokens = safeGetPublicTokens(userId);
+        long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
         CreditAccount account = getOrCreateAccountForUpdate(userId, projectKey);
         expireTempIfNeeded(account, publicTokens);
 
@@ -598,7 +545,7 @@ public class ProjectCreditService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "该流水已冲正");
         }
 
-        long publicTokens = safeGetPublicTokens(userId);
+        long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
         CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
         expireTempIfNeeded(account, publicTokens);
 
@@ -833,11 +780,4 @@ public class ProjectCreditService {
         return text.substring(0, maxLength);
     }
 
-    private long safeGetPublicTokens(long userId) {
-        try {
-            return billingGrpcClient.getPublicPermanentTokens(userId);
-        } catch (Exception ignored) {
-            return 0;
-        }
-    }
 }

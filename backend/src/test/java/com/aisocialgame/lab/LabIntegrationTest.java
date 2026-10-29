@@ -651,7 +651,7 @@ class LabIntegrationTest {
         var row=new com.aisocialgame.model.credit.AiCreditReservation(); row.id=UUID.randomUUID().toString();
         row.requestId="fixture-"+row.id; row.identityHash=AiCallSettlementService.hash(row.requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         row.requestHash=row.identityHash; row.projectKey="aisocialgame"; row.userId=85; row.budgetId=UUID.randomUUID().toString();
-        row.state="SETTLED"; row.reservedPermanent=points; row.tempPortionsJson="[]"; row.updatedAt=System.currentTimeMillis();
+        row.state="SETTLED"; row.updatedAt=System.currentTimeMillis();
         row.labExperimentId=id; row.labPurpose="TURN"; row.billedPoints=points; row.billedCost=java.math.BigDecimal.valueOf(points,2);
         reservations.saveAndFlush(row);
     }
