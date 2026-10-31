@@ -13,7 +13,7 @@ FROM eclipse-temurin:25.0.3_9-jre-alpine-3.23@sha256:28db6fdf60e38945e43d840c033
 WORKDIR /app
 RUN addgroup -S -g 10001 aisocial \
     && adduser -S -D -H -u 10001 -G aisocial aisocial
-COPY --chown=aisocial:aisocial --from=builder /app/target/ai-social-game-0.0.1-SNAPSHOT.jar app.jar
+COPY --chown=aisocial:aisocial --from=builder /app/target/ai-social-game-*.jar app.jar
 COPY --chown=aisocial:aisocial start-backend.sh /app/bin/start-backend.sh
 COPY --chown=aisocial:aisocial runtime-process-environment.sh /app/bin/runtime-process-environment.sh
 RUN chmod 0555 /app/bin/start-backend.sh /app/bin/runtime-process-environment.sh

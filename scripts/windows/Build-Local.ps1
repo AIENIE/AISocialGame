@@ -4,7 +4,8 @@ if($Component -in @('All','Backend')){
  $buildRoot=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
  & python.exe (Join-Path $PSScriptRoot 'support/closure_identity.py') prepare $buildRoot | Out-Null; if($LASTEXITCODE){exit $LASTEXITCODE}
  & mvn.cmd -q -f (Join-Path $PSScriptRoot '..\..\backend\pom.xml') -DskipTests package; if($LASTEXITCODE){exit $LASTEXITCODE}
- $buildJar=Get-ChildItem (Join-Path $buildRoot 'backend/target') -Filter '*.jar' | Where-Object Name -NotLike '*.original' | Select-Object -First 1
+ $buildPom=[xml](Get-Content -LiteralPath (Join-Path $buildRoot 'backend/pom.xml') -Raw)
+ $buildJar=Get-Item -LiteralPath (Join-Path $buildRoot "backend/target/$($buildPom.project.artifactId)-$($buildPom.project.version).jar")
  & python.exe (Join-Path $PSScriptRoot 'support/closure_identity.py') artifact $buildRoot --jar $buildJar.FullName | Out-Null; if($LASTEXITCODE){exit $LASTEXITCODE}; if($LASTEXITCODE){exit $LASTEXITCODE}
  }
 if($Component -in @('All','Frontend')){
