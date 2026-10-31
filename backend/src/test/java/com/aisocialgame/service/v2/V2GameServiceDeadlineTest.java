@@ -37,7 +37,7 @@ class V2GameServiceDeadlineTest {
                 mock(PlatformTransactionManager.class), mock(ObservationFactory.class), mock(AiMemoryServiceV2.class),
                 mock(GameEventRecorder.class), mock(ReplayArchiveService.class), mock(StatsService.class),
                 mock(GamePushService.class), mock(PlayerConnectionService.class), mock(AiSafetyService.class),
-                mock(AiDecisionTraceRepository.class), true);
+                mock(AiDecisionTraceRepository.class));
         job = new AiTurnJob();
         job.setId("job"); job.setRoomId("room"); job.setInstanceId("instance"); job.setStatus("RUNNING");
         job.setActorId("ai-one"); job.setKind("SPEAK"); job.setTurnKey("opportunity-one");

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, Zap, Keyboard, Lock, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Zap, Keyboard, Lock, Globe, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -23,7 +23,7 @@ import { gameApi, roomApi } from "@/services/api";
 import { localizeErrorMessage } from "@/i18n/errors";
 import { gameFieldLabel, gameName, gameOptionLabel } from "@/i18n/gameTexts";
 import { getApiErrorMessage } from "@/services/apiError";
-import { Game, GameConfigOption } from "@/types";
+import { Game } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { WEREWOLF_ROLE_LABELS, werewolfBoardRoles } from "./games/shared/werewolfSetup";
 

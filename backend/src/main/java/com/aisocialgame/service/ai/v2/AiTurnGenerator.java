@@ -304,33 +304,14 @@ public class AiTurnGenerator {
             }
         }
         if (remainingNanos(started, budgetNanos) == 0) failures = deadlineFailure(failures);
-        long fallbackStarted = nanoTime.getAsLong();
-        AiTurnDecision fallback;
-        List<String> fallbackErrors;
         stages.put("usageComplete", responses == calls); stages.put("responsesObserved", responses);
-        if (undercover || werewolf) {
-            String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT"
-                    : failures.contains("MATERIAL_TOO_LARGE") ? "MATERIAL_TOO_LARGE"
-                    : failures.contains("OUTPUT_LIMIT_REACHED") ? "OUTPUT_LIMIT_REACHED"
-                    : failures.contains("AI_CREDIT_INSUFFICIENT") ? "AI_CREDIT_INSUFFICIENT"
-                    : failures.contains("BUDGET_RECONCILIATION_REQUIRED") ? "BUDGET_RECONCILIATION_REQUIRED" : "REQUEST_FAILED";
-            throw new GenerationFailure(reason, diagnostics(new AiTurnDecision(null, "", Map.of(), List.of(), Map.of(), false, Map.of()),
-                    started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages).diagnostics());
-        }
-        try {
-            fallback = AiTurnDecision.fallback(adapter.fallback(observation));
-            fallbackErrors = validate(adapter, observation, fallback);
-        } catch (Exception ex) {
-            stages.put("fallbackMs", elapsed(fallbackStarted));
-            throw new GenerationFailure("INVALID_FALLBACK", diagnostics(AiTurnDecision.fallback(null), started, calls, promptTokens, completionTokens,
-                    modelKey, failures, lastOutput, attempts, stages).diagnostics());
-        }
-        stages.put("fallbackMs", elapsed(fallbackStarted));
-        if (!fallbackErrors.isEmpty()) {
-            throw new GenerationFailure("INVALID_FALLBACK", diagnostics(fallback, started, calls, promptTokens, completionTokens,
-                    modelKey, fallbackErrors, lastOutput, attempts, stages).diagnostics());
-        }
-        return diagnostics(fallback, started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages);
+        String reason = failures.contains("DECISION_DEADLINE_EXCEEDED") ? "TIMEOUT"
+                : failures.contains("MATERIAL_TOO_LARGE") ? "MATERIAL_TOO_LARGE"
+                : failures.contains("OUTPUT_LIMIT_REACHED") ? "OUTPUT_LIMIT_REACHED"
+                : failures.contains("AI_CREDIT_INSUFFICIENT") ? "AI_CREDIT_INSUFFICIENT"
+                : failures.contains("BUDGET_RECONCILIATION_REQUIRED") ? "BUDGET_RECONCILIATION_REQUIRED" : "REQUEST_FAILED";
+        throw new GenerationFailure(reason, diagnostics(new AiTurnDecision(null, "", Map.of(), List.of(), Map.of(), Map.of()),
+                started, calls, promptTokens, completionTokens, modelKey, failures, lastOutput, attempts, stages).diagnostics());
     }
     private static Map<String,Object> checkpoint(int attempt,int calls,int responses,int prompt,int completion,String model,
             Map<String,Object> output,List<String> failures,List<Map<String,Object>> attempts,AiModelSelection selection,
@@ -378,7 +359,7 @@ public class AiTurnGenerator {
         String speech = RuleSupport.text(output.get("speech")).strip();
         if (!output.containsKey("speech")) speech = RuleSupport.text(action.getContent()).strip();
         if (action.getContent() == null) action.setContent(speech);
-        return new AiTurnDecision(action, speech, RuleSupport.map(output.get("presentation")), RuleSupport.strings(output.get("evidenceEventIds")), RuleSupport.map(output.get("memoryUpdates")), false, Map.of());
+        return new AiTurnDecision(action, speech, RuleSupport.map(output.get("presentation")), RuleSupport.strings(output.get("evidenceEventIds")), RuleSupport.map(output.get("memoryUpdates")), Map.of());
     }
     public List<String> validate(GameAiAdapter adapter, VisibleObservation observation, AiTurnDecision decision) {
         List<String> errors = new ArrayList<>();
@@ -409,7 +390,7 @@ public class AiTurnGenerator {
         errors.addAll(memories.validate(observation, decision.memoryUpdates()));
         if (RuleSupport.HOST.equals(observation.actorId()) && (!decision.speech().isEmpty() || !presentation.isEmpty() || !decision.memoryUpdates().isEmpty())) errors.add("HOST_PRIVATE_OUTPUT");
         if (!decision.speech().isBlank() && !RuleSupport.HOST.equals(observation.actorId())) {
-            if (!decision.fallback() && Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS").contains(action.getType())) {
+            if (Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "DISCUSS").contains(action.getType())) {
                 String normalized = normalize(decision.speech());
                 boolean repeated = observation.events().stream().filter(e -> observation.actorId().equals(e.get("actorId")))
                         .map(e -> normalize(RuleSupport.text(e.get("message")))).anyMatch(s -> normalized.length() >= 10 && s.contains(normalized));
@@ -427,8 +408,8 @@ public class AiTurnGenerator {
         metrics.put("latencyMs", Math.max(0, (nanoTime.getAsLong() - started) / 1_000_000)); metrics.put("calls", calls);
         if (calls == 0 || RuleSupport.number(stages.get("responsesObserved"), 0) > 0) { metrics.put("promptTokens", input); metrics.put("completionTokens", output); } metrics.put("modelKey", model == null ? "" : model);
         metrics.put("qualityFlags", errors); metrics.put("rawOutput", raw);
-        metrics.put("attempts", attempts); metrics.put("repaired", decision.action() != null && !decision.fallback() && calls > 1);
-        return new AiTurnDecision(decision.action(), decision.speech(), decision.presentation(), decision.evidenceEventIds(), decision.memoryUpdates(), decision.fallback(), metrics);
+        metrics.put("attempts", attempts); metrics.put("repaired", decision.action() != null && calls > 1);
+        return new AiTurnDecision(decision.action(), decision.speech(), decision.presentation(), decision.evidenceEventIds(), decision.memoryUpdates(), metrics);
     }
     private static String normalize(String value) { return value.replaceAll("[\\s\\p{Punct}，。！？：；、]", ""); }
     private long remainingNanos(long started, long budgetNanos) {

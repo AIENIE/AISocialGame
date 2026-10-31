@@ -1,3 +1,4 @@
+import { getApiErrorCode } from "@/services/apiError";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ const WalletPanel = ({ initialBalance }: { initialBalance?: User["balance"] }) =
     toast.success(t("wallet.redeemSuccess", { count: result.tokensGranted })); void refresh();
   }, onError: error => fail(error, "wallet.redeemFailed") });
   const exchange = useMutation({ mutationFn: ({ amount, requestId }: { amount: number; requestId: string }) => walletApi.exchangePublicToProject(amount, requestId),
-    onSuccess: result => { toast.success(t("wallet.exchangeSuccess", { count: result.exchangedTokens })); void refresh(); }, onError: error => fail(error, "wallet.redeemFailed") });
+    onSuccess: result => { toast.success(t("wallet.exchangeSuccess", { count: result.exchangedTokens })); void refresh(); }, onError: error => getApiErrorCode(error) === "CREDIT_EXCHANGE_RESULT_UNKNOWN" ? toast.error(t("wallet.exchangeUnknown")) : fail(error, "wallet.exchangeFailed") });
   return <div className="space-y-4">
     {balance.isPending || balance.error || !balance.data ? <DataState loading={balance.isPending} error={balance.error} onRetry={() => void balance.refetch()} /> : <BalanceOverview totalTokens={balance.data.totalTokens} projectPermanentTokens={balance.data.projectPermanentTokens} projectTempTokens={balance.data.projectTempTokens} />}
     {status.isPending || status.error || !status.data ? <DataState loading={status.isPending} error={status.error} onRetry={() => void status.refetch()} /> : <CheckinCard status={status.data} checking={checkin.isPending} onCheckin={() => checkin.mutate()} />}

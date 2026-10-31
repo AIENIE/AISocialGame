@@ -102,11 +102,7 @@ class PayServiceCallerJwtProviderTest {
     }
 
     @Test
-    void rejectsLegacyExpandedTtlPlaceholderAndSecretReuseWithoutDisclosure() {
-        AppProperties legacy = validProperties();
-        legacy.getExternal().setPayserviceLegacyStaticToken("legacy-private-token");
-        assertRejected(legacy, "legacy-private-token");
-
+    void rejectsExpandedTtlPlaceholderAndSecretReuseWithoutDisclosure() {
         AppProperties expanded = validProperties();
         expanded.getExternal().getPayserviceJwt().setScopes(
                 PayServiceJwtConfigurationValidator.REQUIRED_SCOPES_VALUE + ",billing.admin");

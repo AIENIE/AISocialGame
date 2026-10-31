@@ -59,7 +59,7 @@ class UndercoverSelfDestructRealTest {
                         : Math.max(0, Duration.between(LocalDateTime.now(), state.getPhaseEndsAt()).toMillis() - 1_000);
                 AiTurnDecision decision = generator.generate(rules, observation, budget.runId() + ":" + id, remaining);
                 sample.put("action", decision.action()); sample.put("diagnostics", decision.diagnostics());
-                assertFalse(decision.fallback()); assertTrue(generator.validate(rules, observation, decision).isEmpty());
+                assertTrue(generator.validate(rules, observation, decision).isEmpty());
                 rules.apply(state, "p0", decision.action(), LocalDateTime.now());
                 sample.put("applied", true); sample.put("phaseAfter", state.getPhase());
                 sample.put("actorAlive", player(state, "p0").isAlive()); sample.put("winner", text(state.getData().get("winner")));

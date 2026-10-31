@@ -83,14 +83,13 @@ class WerewolfAiClockTest {
         assertEquals("QUEUE_TIMEOUT",map(last.get("data")).get("reason"));
     }
 
-    @Test void hunterReceivesPrivateDeadlineAndFallbackNeverInventsAnAction() {
+    @Test void hunterReceivesPrivateDeadline() {
         var state=game(9); var hunter=state.getPlayers().stream().filter(p->"HUNTER".equals(p.getRole())).findFirst().orElseThrow();
         var data=map(state.getData().get("werewolf"));data.put("deathActor",hunter.getPlayerId());state.getData().put("werewolf",data);
         hunter.setAlive(false); phase(state,"DEATH_ACTION",null,30,start);
         assertEquals(start.plusSeconds(30).toString(),rules.privateData(state,hunter.getPlayerId()).get("actionEndsAt"));
         for(var other:state.getPlayers()) if(other!=hunter) assertFalse(rules.privateData(state,other.getPlayerId()).containsKey("actionEndsAt"));
         assertFalse(rules.publicData(state).containsKey("actionEndsAt"));
-        assertEquals("SKIP",rules.fallback(null).getType());
     }
 
     private GameState training() {

@@ -55,7 +55,7 @@ AI 档案请求：`name, personaId, selection{modelKey,thinkingMode,thinkingEffo
 
 教练使用真正的上游流式：首个非空正文最多 600 秒、首事件后连续无数据最多 120 秒、整次最多 1200 秒、输出上限 32768。TTFT 从实际发送上游到首正文计算，首事件另记；心跳、响应头和 STARTED 不计入 TTFT。部分文本仅用于诊断，不能发布经验或成为游戏行动。
 
-实验请求：`name, participants:[{agentId,initialExperienceId?,selection?}], playerCount, targetGames, wordPack, hasBlank, budgetPoints, coach`。阵容数量等于 4–10 个席位，允许重复 agentId；服务端为每个副本生成稳定 participantId。selection 与教练同形，仅覆盖本次实验副本模型，省略则使用来源档案默认值，不改写档案。目标 1–10000 局，各实验固定逐局执行，内部全局资源上限保持 3 局。兼容旧 `agentIds` 和按档案指定的 `initialExperienceIds`，但不能同时提交两种阵容；旧请求的 concurrency 被忽略，当前配置及响应不再提供该字段。内置词库 daily / idiom / acg / tech。budgetPoints 必须为正整数，100 积分折合人民币 1 元。coach 使用 selection 同形结构。每个副本可显式继承相同来源档案的一个历史经验版本，省略从空经验开始。
+实验请求：`name, participants:[{agentId,initialExperienceId?,selection?}], playerCount, targetGames, wordPack, hasBlank, budgetPoints, coach`。阵容数量等于 4–10 个席位，允许重复 agentId；服务端为每个副本生成稳定 participantId。selection 与教练同形，仅覆盖本次实验副本模型，省略则使用来源档案默认值，不改写档案。目标 1–10000 局，各实验固定逐局执行，内部全局资源上限保持 3 局。阵容只接受 `participants`；评测只接受具体 `participantId`，旧格式兼容入口已退役。内置词库 daily / idiom / acg / tech。budgetPoints 必须为正整数，100 积分折合人民币 1 元。coach 使用 selection 同形结构。每个副本可显式继承相同来源档案的一个历史经验版本，省略从空经验开始。
 
 管理员详情追加 latestFailureMatchId；摘要追加 completedGames、reviewedGames、abortedGames（只统计训练局）。诊断返回 failure、tasks、calls，历史还原原因标记 inferred；原文缺失不推测。真人行动命中本人禁词返回 400 / OWN_WORD_FORBIDDEN 或 FORBIDDEN_WORD_ELIMINATED，details 提供 forbiddenTerms、violationCount、remainingCorrections、eliminated、actionRequestId；业务拒绝前已提交私密计数，原 requestId 重复提交返回相同反馈，不重复扣罚。当前玩家状态 extra.wordFeedback 同步反馈，旁观者不可见。即使错误响应正文丢失，客户端也可依据私密状态中匹配的 actionRequestId 确认拒绝，下一次显式修正使用新身份；没有回执的未知提交仍沿用原身份。
 

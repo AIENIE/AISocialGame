@@ -230,11 +230,6 @@ public class AdminAuthService {
         return result;
     }
 
-    @Transactional
-    public List<String> regenerateRecoveryCodes(AdminPrincipal principal, String code, String source) {
-        return getRecoveryCodes(principal, code, source).recoveryCodes();
-    }
-
     public AdminPrincipal authenticate(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "管理员登录已过期");

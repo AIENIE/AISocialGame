@@ -93,7 +93,7 @@ class ReplayArchiveServiceTest {
             state.setPlayers(List.of(player(n==1?"other-"+owner:owner,"name","BLANK","PRIVATE_WORD",false)));
             var archive=replayArchiveService.archiveFinishedGame(state,room);archive.setFinishedAt(LocalDateTime.of(2026,9,20+n,12,0));gameArchiveRepository.saveAndFlush(archive);
             Assertions.assertEquals(1L,archive.getAiQualitySummary().get("traceCount"));Assertions.assertEquals(n==1?1L:0L,archive.getAiQualitySummary().get("fallbackCount"));
-            Assertions.assertEquals(1L,archive.getAiQualitySummary().get("legacyUnattributed"));
+
             String json=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(replayArchiveService.detail(instance, n==1?"other-"+owner:owner));Assertions.assertFalse(json.contains("PRIVATE_WORD"));Assertions.assertFalse(json.contains("BLANK"));
         }
         var first=replayArchiveService.search("undercover",owner,null,null,0,1,owner);var second=replayArchiveService.search("undercover",owner,null,null,1,1,owner);

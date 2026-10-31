@@ -48,7 +48,7 @@ public class CreditLedgerService {
                     Map<String, String> metadata = deserializeMetadata(entry.getMetadataJson());
                     long promptTokens = parseLong(metadata.get("promptTokens"));
                     long completionTokens = parseLong(metadata.get("completionTokens"));
-                    long billedTokens = parseLong(metadata.getOrDefault("billedTokens", String.valueOf(Math.abs(entry.getTokenDeltaTemp() + entry.getTokenDeltaPermanent()))));
+                    long billedPoints = parseLong(metadata.get("billedPoints"));
                     return new UsageRecordSnapshot(
                             entry.getId(),
                             entry.getRequestId(),
@@ -56,7 +56,7 @@ public class CreditLedgerService {
                             metadata.getOrDefault("modelKey", ""),
                             promptTokens,
                             completionTokens,
-                            billedTokens,
+                            billedPoints,
                             entry.getCreatedAt()
                     );
                 })
@@ -103,15 +103,6 @@ public class CreditLedgerService {
                                   Map<String, String> metadata,
                                   Long relatedEntryId,
                                   CreditAccount account) {
-        insertLedgerEntry(requestId, userId, type, deltaTemp, deltaPermanent, deltaPublic,
-                publicBalance, source, metadata, relatedEntryId, account, null);
-    }
-
-    public void insertLedgerEntry(String requestId, long userId, String type, long deltaTemp,
-                                  long deltaPermanent, long deltaPublic, long publicBalance,
-                                  String source, Map<String, String> metadata, Long relatedEntryId,
-                                  CreditAccount account,
-                                  com.aisocialgame.integration.grpc.dto.BalanceSnapshot snapshot) {
         if (creditLedgerEntryRepository.findByRequestId(requestId).isPresent()) {
             return;
         }
@@ -126,10 +117,6 @@ public class CreditLedgerService {
         entry.setBalanceTemp(temporaryCredits == null ? account.getTempBalance()
                 : temporaryCredits.balance(account, java.time.Instant.now()));
         entry.setBalancePermanent(account.getPermanentBalance());
-        if (snapshot != null) {
-            entry.setBalanceTemp(snapshot.projectTempTokens());
-            entry.setBalancePermanent(snapshot.projectPermanentTokens());
-        }
         entry.setBalancePublic(publicBalance);
         entry.setSource(source);
         entry.setMetadataJson(serializeMetadata(metadata));
@@ -144,7 +131,7 @@ public class CreditLedgerService {
         try {
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException e) {
-            return "{}";
+            throw new IllegalStateException("Credit ledger metadata cannot be serialized", e);
         }
     }
 
@@ -154,19 +141,12 @@ public class CreditLedgerService {
         }
         try {
             return objectMapper.readValue(metadataJson, new TypeReference<Map<String, String>>() {});
-        } catch (Exception ignored) {
-            return Map.of();
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Credit ledger metadata is unreadable", error);
         }
     }
 
     private long parseLong(String value) {
-        if (!StringUtils.hasText(value)) {
-            return 0;
-        }
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
+        return Long.parseLong(value);
     }
 }

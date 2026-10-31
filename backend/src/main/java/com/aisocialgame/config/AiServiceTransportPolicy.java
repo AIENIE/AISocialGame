@@ -42,9 +42,6 @@ final class AiServiceTransportPolicy {
             throw new IllegalStateException("production must reject the staging trust bundle");
         }
         Expected expected = new Expected(runtimeEnvironment, expectedTarget, trust);
-        if ("production".equals(runtimeEnvironment)) {
-            ProductionPreactivationAuthority.requireAuthorized();
-        }
         return expected;
     }
 

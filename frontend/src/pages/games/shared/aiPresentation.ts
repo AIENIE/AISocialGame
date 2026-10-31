@@ -1,4 +1,4 @@
-import type { AiPresentation, GameLogEntry } from "@/types";
+import type { AiPresentation } from "@/types";
 
 const EMOTIONS = new Set(["neutral", "curious", "tense", "relieved", "uncertain", "amused", "determined", "disappointed"]);
 const GESTURES = new Set(["none", "pause", "nod", "shake_head", "frown", "smile", "sigh", "lean_in"]);
@@ -32,15 +32,4 @@ export function presentationText(value: unknown, language = "zh-CN"): string {
       ? { curious: "神情好奇", tense: "有些緊張", relieved: "鬆了口氣", uncertain: "有些遲疑", amused: "帶著一點笑意", determined: "神情認真", disappointed: "有些失落" }
       : { curious: "神情好奇", tense: "有些紧张", relieved: "松了口气", uncertain: "有些迟疑", amused: "带着一点笑意", determined: "神情认真", disappointed: "有些失落" };
   return presentation.emotion && presentation.emotion !== "neutral" ? emotions[presentation.emotion] : "";
-}
-
-export function latestPublicPresentations(logs: GameLogEntry[], phase?: string): Map<string, AiPresentation> {
-  const result = new Map<string, AiPresentation>();
-  for (const log of logs) {
-    if (!log.actorId || (phase && log.phase && log.phase !== phase)) continue;
-    const presentation = readPresentation(log.metadata?.presentation);
-    if (presentation) result.set(log.actorId, presentation);
-    else result.delete(log.actorId);
-  }
-  return result;
 }

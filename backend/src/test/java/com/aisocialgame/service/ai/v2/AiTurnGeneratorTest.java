@@ -47,7 +47,7 @@ class AiTurnGeneratorTest {
         when(client.undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
                 .thenReturn(new AiChatResult("invalid", "mock-only", 10, 5)).thenReturn(new AiChatResult(validSpeech(), "mock-only", 20, 8));
         try (var scope = AiCallScope.open(AiSafetyContext.source("AI_PLAYER").room("room", "undercover"))) {
-            assertFalse(generator.generate(rules, speechObservation(), "debug-job").fallback());
+            assertNotNull(generator.generate(rules, speechObservation(), "debug-job").action());
         }
         @SuppressWarnings("unchecked") ArgumentCaptor<List<AiChatMessageDto>> input = ArgumentCaptor.forClass(List.class);
         verify(debug, times(2)).begin(eq("room"), any(), eq("debug-job"), anyInt(), input.capture(), any(), anyLong());
@@ -92,7 +92,7 @@ class AiTurnGeneratorTest {
             Map<String, Object> profile = json.convertValue(persona, Map.class);
             var observation = new VisibleObservation(base.gameId(), base.instanceId(), base.phase(), base.round(), base.actorId(), base.turnKind(),
                     base.self(), base.players(), base.rules(), base.events(), base.privateFacts(), base.legalActions(), profile, base.memory(), base.knowledge());
-            assertFalse(generator.generate(rules, observation, "preset-" + persona.getId()).fallback());
+            assertNotNull(generator.generate(rules, observation, "preset-" + persona.getId()).action());
         }
         var messages = messageCaptor();
         verify(client, times(4)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), anyString(), anyInt());
@@ -119,7 +119,7 @@ class AiTurnGeneratorTest {
             nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(25)); return new AiSafetyResult("ALLOW", "LOW", "NONE", "", call.getArgument(0), null);
         });
         var result = generator.generate(rules, speechObservation(), "compact");
-        assertFalse(result.fallback()); assertEquals(result.action().getContent(), result.speech()); assertTrue(result.memoryUpdates().isEmpty());
+        assertEquals(result.action().getContent(), result.speech()); assertTrue(result.memoryUpdates().isEmpty());
         var sample = maps(result.diagnostics().get("attempts")).getFirst();
         assertEquals(1200L, sample.get("rpcMs")); assertEquals(25L, sample.get("validationMs"));
         assertEquals(1225L, result.diagnostics().get("latencyMs")); assertEquals(true, result.diagnostics().get("usageComplete"));
@@ -129,7 +129,7 @@ class AiTurnGeneratorTest {
     @Test void repairBuildsTheBaseOnlyOnceAndTransportFailureHasUnknownUsage() throws Exception {
         GameAiAdapter adapter = mock(GameAiAdapter.class, org.mockito.AdditionalAnswers.delegatesTo(rules));
         reply("not json", validSpeech());
-        assertFalse(generator.generate(adapter, speechObservation(), "reuse").fallback());
+        assertNotNull(generator.generate(adapter, speechObservation(), "reuse").action());
         verify(adapter, times(1)).instruction(any());
         verify(adapter, never()).conversation(any());
         var captured = messageCaptor();
@@ -151,7 +151,6 @@ class AiTurnGeneratorTest {
     @Test void validDecisionUsesOneCallAndDoesNotCommitMemoryDuringRemoteWork() throws Exception {
         reply(validSpeech());
         AiTurnDecision result = generator.generate(rules, speechObservation(), "job-1");
-        assertFalse(result.fallback());
         assertEquals("我常在赶早的时候想到它，香味比颜色更有印象。", result.speech());
         assertEquals(1, result.diagnostics().get("calls"));
         assertEquals(List.of("e1"), result.evidenceEventIds());
@@ -178,7 +177,6 @@ class AiTurnGeneratorTest {
                 Map.of("nextAttempt",1,"calls",1,"responses",1,"lastOutput",rejected.diagnostics().get("rawOutput"),
                         "failures",List.of("SECRET_WORD_LEAK"),"attempts",rejected.diagnostics().get("attempts"),
                         "forbiddenFeedback",Map.of("forbiddenTerms",List.of("咖啡"),"remainingCorrections",2)));
-        assertFalse(result.fallback());
         assertFalse(result.speech().contains("咖啡"));
         assertEquals(2, result.diagnostics().get("calls"));
         ArgumentCaptor<List<AiChatMessageDto>> messages = messageCaptor();
@@ -214,7 +212,7 @@ class AiTurnGeneratorTest {
         malformed.put("observationCopy", "REDUNDANT_MODEL_OUTPUT");
         reply(json.writeValueAsString(malformed), validSpeech());
         AiTurnDecision result = generator.generate(rules, speechObservation(), "memory-repair");
-        assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals(2, result.diagnostics().get("calls"));
         assertEquals(AiTurnGenerator.UNDERCOVER_PROMPT_VERSION, result.diagnostics().get("promptVersion"));
         assertEquals(AiPromptProjection.UNDERCOVER_VERSION, result.diagnostics().get("inputFormatVersion"));
         var attempts = maps(result.diagnostics().get("attempts"));
@@ -243,7 +241,7 @@ class AiTurnGeneratorTest {
                 .thenReturn(new AiChatResult(json.writeValueAsString(corrected), "mock-only", 12, 7));
 
         var result = generator.generate(adapter, observation, "vote-evidence-repair");
-        assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals(2, result.diagnostics().get("calls"));
         assertEquals("VOTE", result.action().getType()); assertEquals("p1", result.action().getTargetPlayerId());
         assertFalse(result.action().isAbstain()); assertEquals(List.of("e1"), result.evidenceEventIds());
         assertEquals("neutral", result.presentation().get("emotion")); assertTrue(result.memoryUpdates().isEmpty());
@@ -285,7 +283,6 @@ class AiTurnGeneratorTest {
                     return new AiChatResult(corrected, "mock-only", 10, 5);
                 });
         AiTurnDecision result = generator.generate(rules, speechObservation(), "shared-deadline", 50_000);
-        assertFalse(result.fallback());
         assertEquals(2, result.diagnostics().get("calls"));
         assertEquals(45_000L, result.diagnostics().get("latencyMs"));
     }
@@ -327,7 +324,6 @@ class AiTurnGeneratorTest {
                     return new AiChatResult(corrected, "mock-only", 10, 5);
                 });
         AiTurnDecision result = generator.generate(rules, speechObservation(), "capped-window", Long.MAX_VALUE);
-        assertFalse(result.fallback());
         assertEquals(88_000L, result.diagnostics().get("latencyMs"));
     }
 
@@ -359,7 +355,7 @@ class AiTurnGeneratorTest {
         GameAiAdapter broken = new GameAiAdapter() {
             @Override public String gameId() { return "undercover"; }
             @Override public String instruction(VisibleObservation observation) { return "test"; }
-            @Override public PlayerAction fallback(VisibleObservation observation) { return action("NIGHT_ACTION", "", "p1"); }
+
         };
         assertThrows(IllegalStateException.class, () -> generator.generate(broken, speechObservation(), "job-broken"));
         verify(client, times(4)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), eq(89));
@@ -369,13 +365,13 @@ class AiTurnGeneratorTest {
         when(safety.review(eq("需要拦截的测试内容"), any(AiSafetyContext.class))).thenReturn(new AiSafetyResult("BLOCK", "HIGH", "TEST", "test", "", null));
         reply(payload("SPEAK", "需要拦截的测试内容", null), validSpeech());
         AiTurnDecision result = generator.generate(rules, speechObservation(), "job-review");
-        assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals(2, result.diagnostics().get("calls"));
         assertNotEquals("需要拦截的测试内容", result.speech());
     }
 
     @Test void unknownEvidenceIllegalActionsAndUngroundedMemoryAreRejectedBeforeCommit() {
         PlayerAction illegal = action("VOTE", "", "p1");
-        var decision = new AiTurnDecision(illegal, "", Map.of(), List.of("god-event"), Map.of("relationships", List.of(Map.of("playerId", "p1", "eventId", "hidden-event", "trustDelta", 1))), false, Map.of());
+        var decision = new AiTurnDecision(illegal, "", Map.of(), List.of("god-event"), Map.of("relationships", List.of(Map.of("playerId", "p1", "eventId", "hidden-event", "trustDelta", 1))), Map.of());
         List<String> errors = generator.validate(rules, speechObservation(), decision);
         assertTrue(errors.contains("ILLEGAL_ACTION")); assertTrue(errors.contains("INVISIBLE_EVIDENCE")); assertTrue(errors.contains("UNGROUNDED_RELATIONSHIP"));
         verifyNoInteractions(repository);
@@ -383,7 +379,7 @@ class AiTurnGeneratorTest {
 
     @Test void speechActionMismatchAndUnboundedPresentationAreRejected() {
         var decision = new AiTurnDecision(action("SPEAK", "我补充一个使用习惯。", null), "另外一段不一致的台词。",
-                Map.of("emotion", "telepathy", "gesture", "reveal_role", "intensity", 4), List.of(), Map.of(), false, Map.of());
+                Map.of("emotion", "telepathy", "gesture", "reveal_role", "intensity", 4), List.of(), Map.of(), Map.of());
         List<String> errors = generator.validate(rules, speechObservation(), decision);
         assertTrue(errors.containsAll(List.of("SPEECH_ACTION_MISMATCH", "INVALID_EMOTION", "INVALID_GESTURE", "INVALID_INTENSITY")));
     }
@@ -394,17 +390,34 @@ class AiTurnGeneratorTest {
         GameAiAdapter adapter = new GameAiAdapter() {
             @Override public String gameId() { return "turtle_soup"; }
             @Override public String instruction(VisibleObservation observation) { return ""; }
-            @Override public PlayerAction fallback(VisibleObservation observation) { return action("HOST_VERDICT", "", null); }
+
         };
-        var decision = new AiTurnDecision(action("HOST_VERDICT", "完整汤底是秘密", null), "完整汤底是秘密", Map.of("gesture", "smile"), List.of(), Map.of(), false, Map.of());
+        var decision = new AiTurnDecision(action("HOST_VERDICT", "完整汤底是秘密", null), "完整汤底是秘密", Map.of("gesture", "smile"), List.of(), Map.of(), Map.of());
         assertTrue(generator.validate(adapter, host, decision).contains("HOST_PRIVATE_OUTPUT"));
+    }
+
+    @Test void soupExhaustedCorrectionsRaiseFailureWithoutManufacturingADecision() throws Exception {
+        var base = speechObservation();
+        var input = new VisibleObservation("turtle_soup", base.instanceId(), "QUESTIONING", 1, base.actorId(), "TURTLE_SOUP_CONTRIBUTION",
+                base.self(), base.players(), base.rules(), base.events(), Map.of(), List.of(LegalAction.text("DISCUSS", "讨论", 500)),
+                base.persona(), Map.of(), List.of());
+        GameAiAdapter adapter = new GameAiAdapter() {
+            public String gameId() { return "turtle_soup"; }
+            public String instruction(VisibleObservation observation) { return "offline failure fixture"; }
+        };
+        when(client.chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
+                .thenReturn(new AiChatResult("invalid", "mock-only", 2, 1));
+        var error = assertThrows(AiTurnGenerator.GenerationFailure.class, () -> generator.generate(adapter, input, "soup-failure"));
+        assertEquals("REQUEST_FAILED", error.getMessage());
+        assertEquals(2, error.diagnostics().get("calls"));
+        verifyNoInteractions(repository);
     }
 
     @Test void publicPresentationRejectsFractionalAndStringIntensities() {
         for (Object intensity : List.of(1.5, "1", "high", Double.NaN)) {
             String speech = "我补充一个使用习惯。";
             var decision = new AiTurnDecision(action("SPEAK", speech, null), speech,
-                    Map.of("intensity", intensity), List.of(), Map.of(), false, Map.of());
+                    Map.of("intensity", intensity), List.of(), Map.of(), Map.of());
             assertTrue(generator.validate(rules, speechObservation(), decision).contains("INVALID_INTENSITY"));
         }
     }
@@ -437,13 +450,13 @@ class AiTurnGeneratorTest {
     @Test void fencedValidJsonDoesNotSpendARepairRequest() throws Exception {
         reply("```json\n" + validSpeech() + "\n```");
         var result = generator.generate(rules, speechObservation(), "fence");
-        assertFalse(result.fallback()); assertEquals(1, result.diagnostics().get("calls"));
+        assertEquals(1, result.diagnostics().get("calls"));
     }
 
     @Test void multipleJsonObjectsCannotBypassValidation() throws Exception {
         reply(validSpeech() + "{}", validSpeech());
         var result = generator.generate(rules, speechObservation(), "trailing");
-        assertFalse(result.fallback()); assertEquals(2, result.diagnostics().get("calls"));
+        assertEquals(2, result.diagnostics().get("calls"));
         assertTrue(result.diagnostics().get("attempts").toString().contains("INVALID_JSON_FIELDS"));
     }
 
@@ -461,7 +474,7 @@ class AiTurnGeneratorTest {
                 Map.of(), base.players(), base.rules(), List.of(), Map.of("blank", true), base.legalActions(), base.persona(), Map.of(), List.of());
         reply(payload("SPEAK", "它通常放在厨房里使用。", null));
         var result = generator.generate(rules, blank, "blank");
-        assertFalse(result.fallback()); assertEquals(false, result.diagnostics().get("repaired"));
+        assertEquals(false, result.diagnostics().get("repaired"));
         assertEquals("它通常放在厨房里使用。", result.speech());
         ArgumentCaptor<List<AiChatMessageDto>> messages = messageCaptor();
         verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), messages.capture(), anyString(), anyInt());
@@ -471,7 +484,7 @@ class AiTurnGeneratorTest {
         reset(client);
         reply(payload("SPEAK", "我不是没说用途，刚才已经说过了。", null), validSpeech());
         result = generator.generate(rules, base, "history");
-        assertFalse(result.fallback()); assertTrue(result.diagnostics().get("attempts").toString().contains("UNSUPPORTED_SELF_HISTORY"));
+        assertTrue(result.diagnostics().get("attempts").toString().contains("UNSUPPORTED_SELF_HISTORY"));
         var historyMessages = messageCaptor();
         verify(client, times(2)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), historyMessages.capture(), anyString(), anyInt());
         var initial = json.readTree(historyMessages.getAllValues().getFirst().getLast().content());
@@ -490,7 +503,7 @@ class AiTurnGeneratorTest {
                 base.privateFacts(), base.legalActions(), base.persona(), Map.of("usedDescriptions", List.of("香气浓郁")), List.of());
         reply(payload("SPEAK", "我想到的一个特点是香气浓郁。", null), payload("SPEAK", "忙碌的时候，它经常用于提神。", null));
         var result = generator.generate(rules, withHistory, "repeat");
-        assertFalse(result.fallback()); assertTrue(result.diagnostics().get("attempts").toString().contains("REPEATED_SPEECH"));
+        assertTrue(result.diagnostics().get("attempts").toString().contains("REPEATED_SPEECH"));
     }
 
     @Test void eachGameRepairsInventedOwnQuotationOnceWithoutRejectingANewBluff() throws Exception {
@@ -505,7 +518,7 @@ class AiTurnGeneratorTest {
             Map<String, Object> bad = map(json.readValue(payload(type, "我上一轮说过“我是预言家”。", null), Map.class)); bad.put("evidenceEventIds", List.of("own"));
             reply(json.writeValueAsString(bad), payload(type, "我是预言家，我现在想听听大家的意见。", null));
             var result = generator.generate(adapter, o, "quote-" + adapter.gameId());
-            assertFalse(result.fallback()); assertEquals(true, result.diagnostics().get("repaired"));
+            assertEquals(true, result.diagnostics().get("repaired"));
             assertTrue(result.diagnostics().get("attempts").toString().contains("CONTRADICTED_SELF_QUOTE"));
             if ("undercover".equals(adapter.gameId())) verify(client, times(2)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt());
         }
@@ -517,7 +530,7 @@ class AiTurnGeneratorTest {
                 .thenThrow(retryable).thenReturn(new AiChatResult("not json", "mock-only", 2, 1))
                 .thenThrow(retryable).thenReturn(new AiChatResult(validSpeech(), "mock-only", 10, 5));
         var result = generator.generate(rules, speechObservation(), "mixed-retries");
-        assertFalse(result.fallback()); assertEquals(4, result.diagnostics().get("calls"));
+        assertEquals(4, result.diagnostics().get("calls"));
         assertEquals(12, result.diagnostics().get("promptTokens"));
         verify(client, never()).chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt());
         reset(client);
@@ -886,7 +899,7 @@ class AiTurnGeneratorTest {
                         List.of(LegalAction.text("SELF_DESTRUCT", "自爆猜词", 20)), base.persona(), base.memory(), base.knowledge());
                 reply(payload("SELF_DESTRUCT", guess, null));
                 var decision = generator.generate(rules, o, "self-destruct-" + phase + guess);
-                assertFalse(decision.fallback()); assertEquals("SELF_DESTRUCT", decision.action().getType());
+                assertEquals("SELF_DESTRUCT", decision.action().getType());
                 assertEquals(guess, decision.action().getContent()); assertEquals(1, decision.diagnostics().get("calls"));
                 verify(client, times(1)).undercoverChatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt());
                 var empty = generator.parse(Map.of("action", Map.of("type", "SELF_DESTRUCT", "content", "")));

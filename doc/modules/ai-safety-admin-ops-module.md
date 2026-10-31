@@ -2,14 +2,13 @@
 
 ## 当前版本（2026-09-22）
 
-当前治理拆为内容审核、RPC 准入和游戏推进控制。AiCallAdmission 以 ai_call_usage 数据库锁保证跨进程原子时间窗，AiCallScope 标记入口/作用域，SafetyAuditWriter 独立事务保留拒绝记录。Chat/Embeddings/OCR 共用准入，原累计预算独立。PAUSE_ROOM 冻结期限，FORCE_OBSERVE 停自动行动但允许真人，MUTE 只约束公开内容；V2GameService 提交前再次核查。控制和异常保存操作人、到期及作用域。请求阈值20/30/120/180每60秒，用量观察10万/20万/100万/150万每5分钟，未知用量为NULL。有限本地规则不是全面语义审核；没有外部 moderation 或 token 流式审核。
+当前治理拆为内容审核、RPC 准入和游戏推进控制。AiCallAdmission 以 ai_call_usage 数据库锁保证跨进程原子时间窗，AiCallScope 标记入口/作用域，SafetyAuditWriter 独立事务保留拒绝记录。当前 Chat 与游戏 AI 调用共用准入，原累计预算独立。PAUSE_ROOM 冻结期限，FORCE_OBSERVE 停自动行动但允许真人，MUTE 只约束公开内容；V2GameService 提交前再次核查。控制和异常保存操作人、到期及作用域。请求阈值20/30/120/180每60秒，用量观察10万/20万/100万/150万每5分钟，未知用量为NULL。有限本地规则不是全面语义审核；没有外部 moderation 或 token 流式审核。
 
-当前测试、限制及数据迁移见 [M1～M5 收尾报告](ai-quality-loop-module.md)。**下文为早期实现说明，涉及旧运行时的描述仅适用于历史兼容路径，不作为当前 v2 架构依据。**
 
 
 ## 模块作用
 
-M4 为玩家内容、通用 AI Chat、管理端 AI 测试和 AI 玩家自动发言提供统一安全治理层。第一版采用本地规则和项目上下文校验，不直接依赖外部 moderation 服务，但保留 provider 化扩展边界，后续可接入 OpenAI Moderation 或内部 ai-service moderation RPC。
+M4 为玩家内容、通用 AI Chat、管理端 AI 测试和 AI 玩家自动发言提供统一安全治理层。使用本地规则和项目上下文校验。
 
 模块目标是先建立工程闭环：风险内容进入公开日志、事件流、WebSocket 或社区前先过 safety gate；高风险事件自动拦截或替换并写入安全队列；管理员在 `/admin/safety` 查看、确认、关闭事件，并下发临时控制。
 
@@ -19,7 +18,7 @@ M4 为玩家内容、通用 AI Chat、管理端 AI 测试和 AI 玩家自动发�
 |---|---|---|
 | 数据模型 | `AiSafetyEvent`、`AiSafetyControl` | 保存安全事件和临时控制。 |
 | 统一服务 | `AiSafetyService` | 执行本地规则、控制命中、事件创建、状态流转和摘要统计。 |
-| 接入入口 | `RoomChatController`、`CommunityService`、`AiProxyService`、`GameRuntimeSupport` | 覆盖房间聊天、社区、AI Chat、Admin AI 测试、玩家/AI 局内发言。 |
+| 接入入口 | `RoomChatController`、`CommunityService`、`AiProxyService`、`V2GameService` | 覆盖房间聊天、社区、AI Chat、Admin AI 测试、玩家/AI 局内发言。 |
 | Admin API | `AdminSafetyController` | 提供 summary、事件查询、详情、确认、关闭、控制创建和停用。 |
 | Admin 前端 | `frontend/src/pages/admin/SafetyAdmin.tsx` | 展示安全摘要、事件列表、事件详情和临时控制。 |
 

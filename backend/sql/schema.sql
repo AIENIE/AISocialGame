@@ -1,787 +1,811 @@
--- AISocialGame 全量表结构（v2）
+-- AISocialGame current schema snapshot. Frozen historical migration sources remain in migrations.json.
+-- Structure only: no historical data, allocated sequence values or compatibility backfills.
 
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` CHAR(36) NOT NULL,
-  `external_user_id` BIGINT NULL,
-  `username` VARCHAR(64) NULL,
-  `email` VARCHAR(191) NOT NULL,
-  `password` VARCHAR(255) NOT NULL,
-  `session_id` VARCHAR(128) NULL,
-  `access_token` VARCHAR(2048) NULL,
-  `nickname` VARCHAR(64) NOT NULL,
-  `avatar` VARCHAR(255) NULL,
-  `coins` INT NOT NULL DEFAULT 0,
-  `level` INT NOT NULL DEFAULT 1,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
+CREATE TABLE IF NOT EXISTS `admin_auth_audit` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `event_type` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `session_hash` char(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `result` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reason_code` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_users_email` (`email`),
-  UNIQUE KEY `uk_users_username` (`username`),
-  UNIQUE KEY `uk_users_external_user_id` (`external_user_id`)
+  KEY `idx_admin_auth_audit_subject` (`subject_id`,`created_at`),
+  KEY `idx_admin_auth_audit_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_auth_challenges` (
+  `challenge_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purpose` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `session_hash` char(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password_authenticated_at` datetime(6) DEFAULT NULL,
+  `encrypted_secret` text COLLATE utf8mb4_unicode_ci,
+  `nonce` varbinary(32) DEFAULT NULL,
+  `key_version` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `expires_at` datetime(6) NOT NULL,
+  `attempt_count` int NOT NULL DEFAULT '0',
+  `consumed_at` datetime(6) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`challenge_hash`),
+  KEY `idx_admin_auth_challenge_subject` (`subject_id`,`purpose`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_auth_subject_locks` (
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_emergency_challenge_versions` (
+  `challenge_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `credential_version` bigint NOT NULL,
+  PRIMARY KEY (`challenge_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_emergency_codes` (
+  `record_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ciphertext` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nonce` varbinary(32) NOT NULL,
+  `key_version` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `used_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`record_id`),
+  KEY `idx_admin_emergency_subject` (`subject_id`,`used_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_emergency_upgrade` (
+  `version_id` int NOT NULL,
+  `completed_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`version_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_operation_challenges` (
+  `challenge_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `session_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expires_at` datetime(6) NOT NULL,
+  `attempt_count` int NOT NULL DEFAULT '0',
+  `consumed_at` datetime(6) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`challenge_hash`),
+  KEY `idx_admin_operation_challenge_session` (`session_hash`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_operation_proofs` (
+  `proof_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `session_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expires_at` datetime(6) NOT NULL,
+  `consumed_at` datetime(6) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`proof_hash`),
+  KEY `idx_admin_operation_proof_session` (`session_hash`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_recovery_codes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `used_at` datetime(6) DEFAULT NULL,
+  `replaced_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_recovery_subject` (`subject_id`,`used_at`,`replaced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_sessions` (
+  `session_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `environment` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `auth_mode` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `assurance` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_authenticated_at` datetime(6) DEFAULT NULL,
+  `totp_authenticated_at` datetime(6) DEFAULT NULL,
+  `credential_version` bigint NOT NULL,
+  `password_credential_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `issued_at` datetime(6) NOT NULL,
+  `expires_at` datetime(6) NOT NULL,
+  `idle_expires_at` datetime(6) NOT NULL,
+  `last_seen_at` datetime(6) NOT NULL,
+  `revoked_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`session_hash`),
+  KEY `idx_admin_sessions_subject` (`subject_id`,`revoked_at`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admin_totp_credentials` (
+  `subject_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `encrypted_secret` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nonce` varbinary(32) NOT NULL,
+  `key_version` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `algorithm` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `digits` int NOT NULL,
+  `period_seconds` int NOT NULL,
+  `last_accepted_timestep` bigint DEFAULT NULL,
+  `credential_version` bigint NOT NULL DEFAULT '1',
+  `enabled_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_call_budgets` (
+  `id` varchar(96) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `consumed` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_call_usage` (
+  `id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `room_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `persona_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `model_key` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `started_epoch_ms` bigint NOT NULL,
+  `completed_epoch_ms` bigint DEFAULT NULL,
+  `outcome` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `admitted` tinyint(1) NOT NULL DEFAULT '0',
+  `prompt_tokens` bigint DEFAULT NULL,
+  `completion_tokens` bigint DEFAULT NULL,
+  `anomaly` tinyint(1) NOT NULL DEFAULT '0',
+  `anomaly_scopes` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_call_usage_time` (`started_epoch_ms`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_credit_reservations` (
+  `id` varchar(36) NOT NULL,
+  `identity_hash` varchar(64) NOT NULL,
+  `request_hash` varchar(64) NOT NULL,
+  `request_id` varchar(128) NOT NULL,
+  `project_key` varchar(64) NOT NULL,
+  `user_id` bigint NOT NULL,
+  `budget_id` varchar(36) NOT NULL,
+  `state` varchar(32) NOT NULL,
+  `updated_at` bigint NOT NULL,
+  `result_base64` longtext,
+  `billing_quote_base64` longtext,
+  `lab_experiment_id` varchar(36) DEFAULT NULL,
+  `lab_match_id` varchar(36) DEFAULT NULL,
+  `lab_purpose` varchar(24) DEFAULT NULL,
+  `billed_points` bigint DEFAULT NULL,
+  `billed_cost` decimal(24,6) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_credit_identity` (`identity_hash`),
+  KEY `idx_ai_credit_reconcile` (`state`,`updated_at`),
+  KEY `idx_lab_credit_experiment` (`lab_experiment_id`,`state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `action` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `actor_player_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `belief_snapshot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `completion_tokens` bigint NOT NULL,
+  `confidence` double DEFAULT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `fallback` bit(1) NOT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `input_summary` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `latency_ms` bigint NOT NULL,
+  `memory_snapshot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `model_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `night_action` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `output_summary` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `persona_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phase` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `prompt_tokens` bigint NOT NULL,
+  `quality` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `raw_output` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `reason` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `role_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `instance_id` varchar(96) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `round_number` int NOT NULL,
+  `target_player_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `valid_decision` bit(1) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_trace_instance` (`instance_id`,`fallback`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_function_model_configs` (
+  `function_code` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `model_key` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `thinking_mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `thinking_effort` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `version` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`function_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_model_catalog` (
+  `id` bigint NOT NULL,
+  `models_json` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `synced_at` datetime(6) DEFAULT NULL,
+  `version` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) DEFAULT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `games_played` int NOT NULL,
+  `memory_summary` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `mistake_notes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `persona_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `speech_patterns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `strategy_notes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `approved_summary` longtext COLLATE utf8mb4_unicode_ci,
+  `review_status` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT 'PENDING',
+  `strategy_publication_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_persona_memory_scope` (`persona_id`,`game_id`,`role_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_safety_controls` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `action` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `active` bit(1) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `created_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `expires_at` datetime(6) DEFAULT NULL,
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `scope` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_safety_events` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `acknowledged_at` datetime(6) DEFAULT NULL,
+  `acknowledged_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `action` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `close_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `closed_at` datetime(6) DEFAULT NULL,
+  `closed_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `content_summary` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `model_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `persona_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `player_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sanitized_content` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `severity` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `trace_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `user_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_turn_jobs` (
+  `id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `room_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `instance_id` varchar(96) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `actor_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `kind` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `turn_key` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'QUEUED',
+  `observation` longtext COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `version` bigint DEFAULT NULL,
+  `diagnostics` longtext COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_turn_job_status` (`status`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `archive_participants` (
+  `archive_id` varchar(96) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `player_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`archive_id`,`player_id`),
+  KEY `idx_archive_participant_player` (`player_id`,`archive_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `community_likes` (
+  `post_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`post_id`,`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `community_posts` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `author_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `author_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `comments` int NOT NULL,
+  `content` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `likes` int NOT NULL,
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `updated_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_accounts` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) DEFAULT NULL,
+  `permanent_balance` bigint NOT NULL,
+  `project_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `temp_balance` bigint NOT NULL,
+  `temp_expires_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `user_id` bigint NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_credit_account_user_project` (`user_id`,`project_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_checkin_records` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `checkin_date` date NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `project_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `request_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tokens_granted` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_credit_checkin_user_project_date` (`user_id`,`project_key`,`checkin_date`),
+  UNIQUE KEY `uk_credit_checkin_request_id` (`request_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_exchange_transactions` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) DEFAULT NULL,
+  `fail_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `project_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `project_permanent_after` bigint NOT NULL,
+  `project_permanent_before` bigint NOT NULL,
+  `project_tokens` bigint NOT NULL,
+  `public_after` bigint NOT NULL,
+  `public_before` bigint NOT NULL,
+  `public_tokens` bigint NOT NULL,
+  `request_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `retriable` bit(1) NOT NULL,
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UKf49am2nrchynw75eyncag5lnc` (`request_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_ledger_entries` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `balance_permanent` bigint NOT NULL,
+  `balance_public` bigint NOT NULL,
+  `balance_temp` bigint NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `metadata_json` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `project_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `related_entry_id` bigint DEFAULT NULL,
+  `request_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `token_delta_permanent` bigint NOT NULL,
+  `token_delta_public` bigint NOT NULL,
+  `token_delta_temp` bigint NOT NULL,
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UKn1w1779sy2gq1f3mxxg87g6da` (`request_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_redeem_codes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `active` bit(1) NOT NULL,
+  `code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `credit_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `max_redemptions` int DEFAULT NULL,
+  `redeemed_count` int NOT NULL,
+  `tokens` bigint NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `valid_from` datetime(6) DEFAULT NULL,
+  `valid_until` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK9yvcuqq1ngw90cr66jmhqkasw` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_redemption_records` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `credit_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `error_message` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `project_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `redeemed_at` datetime(6) DEFAULT NULL,
+  `request_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `success` bit(1) NOT NULL,
+  `tokens_granted` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `credit_temp_lots` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `project_key` varchar(64) NOT NULL,
+  `remaining` bigint NOT NULL,
+  `expires_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_temp_lot_owner` (`user_id`,`project_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `game_archives` (
+  `id` varchar(96) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ai_quality_summary` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime(6) DEFAULT NULL,
+  `duration_seconds` bigint NOT NULL,
+  `event_count` bigint NOT NULL,
+  `finished_at` datetime(6) DEFAULT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `player_count` int NOT NULL,
+  `players_snapshot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `room_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `started_at` datetime(6) DEFAULT NULL,
+  `summary` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `total_rounds` int NOT NULL,
+  `winner` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `public_replay` tinyint(1) DEFAULT NULL,
+  `host_user_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NORMAL',
+  PRIMARY KEY (`id`),
+  KEY `idx_archives_source` (`source`,`finished_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `game_events` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `actor_player_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `archive_id` varchar(96) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `event_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `occurred_at` datetime(6) DEFAULT NULL,
+  `phase` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `round_number` int NOT NULL,
+  `seq` int NOT NULL,
+  `public_seq` bigint DEFAULT NULL,
+  `target_player_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `visibility` enum('GOD','PRIVATE','PUBLIC') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `visible_to_player_ids` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_game_events_archive_public_seq` (`archive_id`,`public_seq`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `game_states` (
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `current_seat` int DEFAULT NULL,
+  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `logs` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `phase` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phase_ends_at` datetime(6) DEFAULT NULL,
+  `players` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `round_number` int NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `version` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_agents` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `persona_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `model_selection` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_enrollments` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `avatar` varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `match_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `confirm_until` bigint DEFAULT NULL,
+  `joined_at` datetime(6) NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_enrollment_user` (`experiment_id`,`user_id`),
+  KEY `idx_lab_enrollment_queue` (`experiment_id`,`status`,`joined_at`),
+  KEY `idx_lab_enrollment_match` (`match_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_evaluations` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `agent_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pairs` int NOT NULL,
+  `next_game` int NOT NULL,
+  `random_seed` bigint NOT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `configuration` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `version` bigint DEFAULT NULL,
+  `participant_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_lab_evaluations_experiment` (`experiment_id`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_experiences` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `agent_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sequence_number` int NOT NULL,
+  `summary` varchar(1200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `previous_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `evidence` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `participant_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_participant_version` (`experiment_id`,`participant_id`,`sequence_number`),
+  KEY `idx_lab_experiences_page` (`experiment_id`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_experiments` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reason` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `budget_points` bigint NOT NULL,
+  `next_sequence` int NOT NULL,
+  `review_cursor` int NOT NULL,
+  `configuration` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_by` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_lab_experiments_status` (`status`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_matches` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sequence_number` int NOT NULL,
+  `room_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `archive_id` varchar(96) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `evaluation_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `variant` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reason` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `random_seed` bigint NOT NULL,
+  `starts_at_epoch_ms` bigint NOT NULL,
+  `review_lease_until` bigint DEFAULT NULL,
+  `snapshot` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `finished_at` datetime(6) DEFAULT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_match_sequence` (`experiment_id`,`sequence_number`),
+  UNIQUE KEY `uk_lab_match_room` (`room_id`),
+  KEY `idx_lab_matches_active` (`status`,`experiment_id`),
+  KEY `idx_lab_matches_evaluation` (`evaluation_id`,`sequence_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_strategy_versions` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sequence_number` int NOT NULL,
+  `previous_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `game_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `request_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `compatibility` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `evidence` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_strategy_sequence` (`experiment_id`,`sequence_number`),
+  UNIQUE KEY `uk_lab_strategy_request` (`request_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_training_cases` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `run_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purpose` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source_type` varchar(48) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source_group` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `persona_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `participant_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ordinal` int NOT NULL,
+  `content_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `data` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_lab_training_case_run` (`run_id`,`purpose`,`ordinal`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_training_runs` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `experiment_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `operation_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `request_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `goal` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `stage` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reason` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `candidate_strategy_version_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `configuration` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `assessment` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at_epoch_ms` bigint NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_training_operation` (`experiment_id`,`operation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lab_training_tasks` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `run_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `case_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `task_key` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `kind` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `variant` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ordinal` int NOT NULL,
+  `reason` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `request_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `attempt` int NOT NULL,
+  `paid_retries` int NOT NULL,
+  `started_at_epoch_ms` bigint DEFAULT NULL,
+  `updated_at_epoch_ms` bigint NOT NULL,
+  `not_before_epoch_ms` bigint NOT NULL,
+  `lease_until_epoch_ms` bigint NOT NULL,
+  `input` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `checkpoint` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `result` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lab_training_task_identity` (`run_id`,`task_key`),
+  KEY `idx_lab_training_task_run` (`run_id`,`ordinal`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `local_ai_debug_turns` (
+  `id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `room_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `game_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `instance_id` varchar(96) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `actor_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `actor_name` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `seat_number` int DEFAULT NULL,
+  `role_key` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phase` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `round_number` int NOT NULL,
+  `kind` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `terminal_reason` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `model_key` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `prompt_tokens` bigint DEFAULT NULL,
+  `completion_tokens` bigint DEFAULT NULL,
+  `cache_read_tokens` bigint DEFAULT NULL,
+  `cache_write_tokens` bigint DEFAULT NULL,
+  `reasoning_tokens` bigint DEFAULT NULL,
+  `usage_authoritative` tinyint(1) DEFAULT NULL,
+  `usage_complete` tinyint(1) NOT NULL DEFAULT '0',
+  `attempt_count` int NOT NULL DEFAULT '0',
+  `response_count` int NOT NULL DEFAULT '0',
+  `latency_ms` bigint DEFAULT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `version` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_local_ai_debug_instance` (`room_id`,`instance_id`,`created_at`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `player_settlement_locks` (
+  `player_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `player_settlements` (
+  `archive_id` varchar(96) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `player_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `game_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `won` tinyint(1) NOT NULL,
+  `score_delta` int NOT NULL,
+  `coin_delta` int NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`archive_id`,`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `player_stats` (
+  `id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `display_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `game_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `games_played` int NOT NULL,
+  `player_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `score` int NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `wins` int NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rooms` (
-  `id` CHAR(36) NOT NULL,
-  `room_code` VARCHAR(6) NOT NULL,
-  `waiting_since` DATETIME NULL,
-  `expired_at` DATETIME NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `name` VARCHAR(128) NOT NULL,
-  `status` VARCHAR(32) NOT NULL,
-  `max_players` INT NOT NULL,
-  `is_private` TINYINT(1) NOT NULL DEFAULT 0,
-  `password` VARCHAR(255) NULL,
-  `comm_mode` VARCHAR(64) NULL,
-  `config` LONGTEXT NULL,
-  `host_user_id` VARCHAR(36) NULL,
-  `private_config` LONGTEXT NULL,
-  `seats` LONGTEXT NULL,
-  `seat_count` INT NOT NULL DEFAULT 0,
-  `version` BIGINT NULL,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `comm_mode` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `config` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime(6) DEFAULT NULL,
+  `game_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_private` bit(1) NOT NULL,
+  `max_players` int NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `seats` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `seat_count` int NOT NULL,
+  `version` bigint DEFAULT NULL,
+  `host_user_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `private_config` longtext COLLATE utf8mb4_unicode_ci,
+  `room_code` varchar(6) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `waiting_since` datetime DEFAULT NULL,
+  `expired_at` datetime DEFAULT NULL,
+  `source` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NORMAL',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_rooms_code` (`room_code`),
   KEY `idx_rooms_discovery` (`game_id`,`is_private`,`status`,`created_at`),
   KEY `idx_rooms_expiration` (`status`,`waiting_since`),
-  KEY `idx_rooms_game` (`game_id`),
-  KEY `idx_rooms_status` (`status`),
-  KEY `idx_rooms_game_status_created` (`game_id`, `status`, `created_at`)
+  KEY `idx_rooms_source_status` (`source`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `game_states` (
-  `room_id` VARCHAR(64) NOT NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `phase` VARCHAR(64) NOT NULL,
-  `round_number` INT NOT NULL DEFAULT 1,
-  `current_seat` INT NULL,
-  `players` LONGTEXT NULL,
-  `logs` LONGTEXT NULL,
-  `data` LONGTEXT NULL,
-  `version` BIGINT NOT NULL DEFAULT 0,
-  `phase_ends_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`room_id`),
-  KEY `idx_state_game` (`game_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `community_posts` (
-  `id` CHAR(36) NOT NULL,
-  `author_name` VARCHAR(64) NOT NULL,
-  `author_id` VARCHAR(36) NULL,
-  `avatar` VARCHAR(255) NULL,
-  `content` VARCHAR(1024) NOT NULL,
-  `tags` LONGTEXT NULL,
-  `likes` INT NOT NULL DEFAULT 0,
-  `comments` INT NOT NULL DEFAULT 0,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
+CREATE TABLE IF NOT EXISTS `strategy_publications` (
+  `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `operation_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `request_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `game_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `strategy_version_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_by` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `parameters` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `previous_bindings` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `result` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_posts_author` (`author_id`)
+  UNIQUE KEY `uk_strategy_publication_operation` (`operation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `player_stats` (
-  `id` VARCHAR(100) NOT NULL,
-  `player_id` VARCHAR(36) NOT NULL,
-  `game_id` VARCHAR(32) NOT NULL,
-  `display_name` VARCHAR(64) NOT NULL,
-  `avatar` VARCHAR(255) NULL,
-  `games_played` INT NOT NULL DEFAULT 0,
-  `wins` INT NOT NULL DEFAULT 0,
-  `score` INT NOT NULL DEFAULT 0,
-  `updated_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `access_token` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `coins` int NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `email` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `external_user_id` bigint DEFAULT NULL,
+  `level` int NOT NULL,
+  `nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `session_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `username` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_stats_player` (`player_id`),
-  KEY `idx_stats_game` (`game_id`)
+  UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`),
+  UNIQUE KEY `UKj96ni9p7id4xvtxvb2jveryq3` (`external_user_id`),
+  UNIQUE KEY `UKr43af9ap4edm43mmtq01oddj6` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ai_persona_memories` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `persona_id` VARCHAR(64) NOT NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `role_key` VARCHAR(64) NOT NULL,
-  `memory_summary` LONGTEXT NULL,
-  `strategy_notes` LONGTEXT NULL,
-  `mistake_notes` LONGTEXT NULL,
-  `speech_patterns` LONGTEXT NULL,
-  `games_played` INT NOT NULL DEFAULT 0,
-  `approved_summary` LONGTEXT NULL,
-  `review_status` VARCHAR(24) NULL DEFAULT 'PENDING',
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ai_persona_memory_scope` (`persona_id`, `game_id`, `role_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ai_decision_traces` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `room_id` VARCHAR(64) NULL,
-  `instance_id` VARCHAR(96) NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `phase` VARCHAR(64) NULL,
-  `round_number` INT NOT NULL DEFAULT 1,
-  `action` VARCHAR(64) NOT NULL,
-  `actor_player_id` VARCHAR(64) NULL,
-  `persona_id` VARCHAR(64) NULL,
-  `role_key` VARCHAR(64) NULL,
-  `model_key` VARCHAR(128) NULL,
-  `prompt_tokens` BIGINT NOT NULL DEFAULT 0,
-  `completion_tokens` BIGINT NOT NULL DEFAULT 0,
-  `latency_ms` BIGINT NOT NULL DEFAULT 0,
-  `fallback` TINYINT(1) NOT NULL DEFAULT 0,
-  `valid_decision` TINYINT(1) NOT NULL DEFAULT 1,
-  `confidence` DOUBLE NULL,
-  `target_player_id` VARCHAR(64) NULL,
-  `night_action` VARCHAR(64) NULL,
-  `reason` VARCHAR(512) NULL,
-  `output_summary` VARCHAR(512) NULL,
-  `input_summary` VARCHAR(1024) NULL,
-  `belief_snapshot` LONGTEXT NULL,
-  `memory_snapshot` LONGTEXT NULL,
-  `quality` LONGTEXT NULL,
-  `raw_output` LONGTEXT NULL,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_ai_trace_room_id` (`room_id`, `id`),
-  KEY `idx_ai_trace_instance` (`instance_id`, `fallback`, `id`),
-  KEY `idx_ai_trace_game_action` (`game_id`, `action`, `id`),
-  KEY `idx_ai_trace_persona` (`persona_id`, `id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ai_safety_events` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `source` VARCHAR(64) NOT NULL,
-  `action` VARCHAR(32) NOT NULL,
-  `severity` VARCHAR(32) NOT NULL,
-  `category` VARCHAR(64) NOT NULL,
-  `status` VARCHAR(32) NOT NULL,
-  `room_id` VARCHAR(64) NULL,
-  `game_id` VARCHAR(64) NULL,
-  `user_id` VARCHAR(64) NULL,
-  `player_id` VARCHAR(64) NULL,
-  `persona_id` VARCHAR(64) NULL,
-  `model_key` VARCHAR(128) NULL,
-  `trace_id` VARCHAR(64) NULL,
-  `content_summary` VARCHAR(512) NULL,
-  `sanitized_content` VARCHAR(512) NULL,
-  `reason` VARCHAR(255) NULL,
-  `metadata` LONGTEXT NULL,
-  `acknowledged_by` VARCHAR(64) NULL,
-  `acknowledged_at` DATETIME NULL,
-  `closed_by` VARCHAR(64) NULL,
-  `closed_at` DATETIME NULL,
-  `close_reason` VARCHAR(255) NULL,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_ai_safety_event_status_severity_id` (`status`, `severity`, `id`),
-  KEY `idx_ai_safety_event_source_created` (`source`, `created_at`),
-  KEY `idx_ai_safety_event_room` (`room_id`, `id`),
-  KEY `idx_ai_safety_event_user` (`user_id`, `id`),
-  KEY `idx_ai_safety_event_persona` (`persona_id`, `id`),
-  KEY `idx_ai_safety_event_model` (`model_key`, `id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ai_safety_controls` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `scope` VARCHAR(32) NOT NULL,
-  `target_key` VARCHAR(128) NOT NULL,
-  `action` VARCHAR(32) NOT NULL,
-  `reason` VARCHAR(255) NULL,
-  `created_by` VARCHAR(64) NULL,
-  `active` TINYINT(1) NOT NULL DEFAULT 1,
-  `expires_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_ai_safety_control_active_scope` (`active`, `scope`, `target_key`),
-  KEY `idx_ai_safety_control_expires` (`expires_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `game_events` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `archive_id` VARCHAR(96) NOT NULL,
-  `room_id` VARCHAR(64) NOT NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `seq` INT NOT NULL,
-  `public_seq` BIGINT NULL,
-  `event_type` VARCHAR(64) NOT NULL,
-  `phase` VARCHAR(64) NULL,
-  `round_number` INT NOT NULL DEFAULT 1,
-  `actor_player_id` VARCHAR(64) NULL,
-  `target_player_id` VARCHAR(64) NULL,
-  `visibility` VARCHAR(32) NOT NULL,
-  `visible_to_player_ids` LONGTEXT NULL,
-  `data` LONGTEXT NULL,
-  `occurred_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_game_events_archive_seq` (`archive_id`, `seq`),
-  UNIQUE KEY `uk_game_events_archive_public_seq` (`archive_id`, `public_seq`),
-  KEY `idx_game_events_room` (`room_id`, `id`),
-  KEY `idx_game_events_game` (`game_id`, `id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `game_archives` (
-  `id` VARCHAR(96) NOT NULL,
-  `room_id` VARCHAR(64) NOT NULL,
-  `game_id` VARCHAR(64) NOT NULL,
-  `room_name` VARCHAR(128) NOT NULL,
-  `winner` VARCHAR(64) NULL,
-  `player_count` INT NOT NULL DEFAULT 0,
-  `total_rounds` INT NOT NULL DEFAULT 0,
-  `duration_seconds` BIGINT NOT NULL DEFAULT 0,
-  `event_count` BIGINT NOT NULL DEFAULT 0,
-  `players_snapshot` LONGTEXT NULL,
-  `ai_quality_summary` LONGTEXT NULL,
-  `summary` VARCHAR(512) NULL,
-  `started_at` DATETIME NULL,
-  `finished_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_game_archives_game_finished` (`game_id`, `finished_at`),
-  KEY `idx_game_archives_room` (`room_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_accounts` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `user_id` BIGINT NOT NULL,
-  `project_key` VARCHAR(64) NOT NULL,
-  `temp_balance` BIGINT NOT NULL DEFAULT 0,
-  `temp_expires_at` DATETIME NULL,
-  `permanent_balance` BIGINT NOT NULL DEFAULT 0,
-  `version` BIGINT NULL,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_credit_account_user_project` (`user_id`, `project_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_ledger_entries` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `request_id` VARCHAR(128) NOT NULL,
-  `user_id` BIGINT NOT NULL,
-  `project_key` VARCHAR(64) NOT NULL,
-  `type` VARCHAR(32) NOT NULL,
-  `token_delta_temp` BIGINT NOT NULL DEFAULT 0,
-  `token_delta_permanent` BIGINT NOT NULL DEFAULT 0,
-  `token_delta_public` BIGINT NOT NULL DEFAULT 0,
-  `balance_temp` BIGINT NOT NULL DEFAULT 0,
-  `balance_permanent` BIGINT NOT NULL DEFAULT 0,
-  `balance_public` BIGINT NOT NULL DEFAULT 0,
-  `source` VARCHAR(64) NULL,
-  `metadata_json` LONGTEXT NULL,
-  `related_entry_id` BIGINT NULL,
-  `created_at` DATETIME NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_credit_ledger_request_id` (`request_id`),
-  KEY `idx_credit_ledger_user_project_id` (`user_id`, `project_key`, `id`),
-  KEY `idx_credit_ledger_related` (`related_entry_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_checkin_records` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `request_id` VARCHAR(128) NOT NULL,
-  `user_id` BIGINT NOT NULL,
-  `project_key` VARCHAR(64) NOT NULL,
-  `checkin_date` DATE NOT NULL,
-  `tokens_granted` BIGINT NOT NULL DEFAULT 0,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_credit_checkin_request_id` (`request_id`),
-  UNIQUE KEY `uk_credit_checkin_user_project_date` (`user_id`, `project_key`, `checkin_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_redeem_codes` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `code` VARCHAR(64) NOT NULL,
-  `credit_type` VARCHAR(32) NOT NULL,
-  `tokens` BIGINT NOT NULL,
-  `active` TINYINT(1) NOT NULL DEFAULT 1,
-  `valid_from` DATETIME NULL,
-  `valid_until` DATETIME NULL,
-  `max_redemptions` INT NULL,
-  `redeemed_count` INT NOT NULL DEFAULT 0,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_credit_redeem_code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_redemption_records` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `request_id` VARCHAR(128) NOT NULL,
-  `user_id` BIGINT NOT NULL,
-  `project_key` VARCHAR(64) NOT NULL,
-  `code` VARCHAR(64) NOT NULL,
-  `tokens_granted` BIGINT NOT NULL DEFAULT 0,
-  `credit_type` VARCHAR(32) NOT NULL,
-  `success` TINYINT(1) NOT NULL DEFAULT 0,
-  `error_message` VARCHAR(255) NULL,
-  `redeemed_at` DATETIME NULL,
-  `created_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_credit_redeem_user_project_id` (`user_id`, `project_key`, `id`),
-  KEY `idx_credit_redeem_user_project_code_success` (`user_id`, `project_key`, `code`, `success`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `credit_exchange_transactions` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `request_id` VARCHAR(128) NOT NULL,
-  `user_id` BIGINT NOT NULL,
-  `project_key` VARCHAR(64) NOT NULL,
-  `public_tokens` BIGINT NOT NULL,
-  `project_tokens` BIGINT NOT NULL,
-  `public_before` BIGINT NOT NULL DEFAULT 0,
-  `public_after` BIGINT NOT NULL DEFAULT 0,
-  `project_permanent_before` BIGINT NOT NULL DEFAULT 0,
-  `project_permanent_after` BIGINT NOT NULL DEFAULT 0,
-  `status` VARCHAR(16) NOT NULL,
-  `fail_reason` VARCHAR(255) NULL,
-  `retriable` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` DATETIME NULL,
-  `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_credit_exchange_request_id` (`request_id`),
-  KEY `idx_credit_exchange_user_project_status_created` (`user_id`, `project_key`, `status`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- Administrator password-first TOTP, restricted recovery and one-use operation proof state.
-CREATE TABLE IF NOT EXISTS admin_totp_credentials (
-  subject_id VARCHAR(128) NOT NULL,
-  encrypted_secret TEXT NOT NULL,
-  nonce VARBINARY(32) NOT NULL,
-  key_version VARCHAR(64) NOT NULL,
-  algorithm VARCHAR(32) NOT NULL,
-  digits INT NOT NULL,
-  period_seconds INT NOT NULL,
-  last_accepted_timestep BIGINT NULL,
-  credential_version BIGINT NOT NULL DEFAULT 1,
-  enabled_at DATETIME(6) NOT NULL,
-  PRIMARY KEY (subject_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_auth_challenges (
-  challenge_hash CHAR(64) NOT NULL,
-  subject_id VARCHAR(128) NOT NULL,
-  purpose VARCHAR(32) NOT NULL,
-  session_hash CHAR(64) NULL,
-  password_authenticated_at DATETIME(6) NULL,
-  encrypted_secret TEXT NULL,
-  nonce VARBINARY(32) NULL,
-  key_version VARCHAR(64) NULL,
-  expires_at DATETIME(6) NOT NULL,
-  attempt_count INT NOT NULL DEFAULT 0,
-  consumed_at DATETIME(6) NULL,
-  created_at DATETIME(6) NOT NULL,
-  PRIMARY KEY (challenge_hash),
-  KEY idx_admin_auth_challenge_subject (subject_id, purpose, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_recovery_codes (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  subject_id VARCHAR(128) NOT NULL,
-  code_hash VARCHAR(255) NOT NULL,
-  created_at DATETIME(6) NOT NULL,
-  used_at DATETIME(6) NULL,
-  replaced_at DATETIME(6) NULL,
-  PRIMARY KEY (id),
-  KEY idx_admin_recovery_subject (subject_id, used_at, replaced_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_sessions (
-  session_hash CHAR(64) NOT NULL,
-  subject_id VARCHAR(128) NOT NULL,
-  scope VARCHAR(32) NOT NULL,
-  environment VARCHAR(32) NOT NULL,
-  auth_mode VARCHAR(32) NOT NULL,
-  assurance VARCHAR(32) NOT NULL,
-  password_authenticated_at DATETIME(6) NULL,
-  totp_authenticated_at DATETIME(6) NULL,
-  credential_version BIGINT NOT NULL,
-  password_credential_hash CHAR(64) NOT NULL,
-  issued_at DATETIME(6) NOT NULL,
-  expires_at DATETIME(6) NOT NULL,
-  idle_expires_at DATETIME(6) NOT NULL,
-  last_seen_at DATETIME(6) NOT NULL,
-  revoked_at DATETIME(6) NULL,
-  PRIMARY KEY (session_hash),
-  KEY idx_admin_sessions_subject (subject_id, revoked_at, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_operation_challenges (
-  challenge_hash CHAR(64) NOT NULL,
-  subject_id VARCHAR(128) NOT NULL,
-  session_hash CHAR(64) NOT NULL,
-  action_key VARCHAR(255) NOT NULL,
-  target_id VARCHAR(255) NOT NULL,
-  expires_at DATETIME(6) NOT NULL,
-  attempt_count INT NOT NULL DEFAULT 0,
-  consumed_at DATETIME(6) NULL,
-  created_at DATETIME(6) NOT NULL,
-  PRIMARY KEY (challenge_hash),
-  KEY idx_admin_operation_challenge_session (session_hash, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_operation_proofs (
-  proof_hash CHAR(64) NOT NULL,
-  subject_id VARCHAR(128) NOT NULL,
-  session_hash CHAR(64) NOT NULL,
-  action_key VARCHAR(255) NOT NULL,
-  target_id VARCHAR(255) NOT NULL,
-  expires_at DATETIME(6) NOT NULL,
-  consumed_at DATETIME(6) NULL,
-  created_at DATETIME(6) NOT NULL,
-  PRIMARY KEY (proof_hash),
-  KEY idx_admin_operation_proof_session (session_hash, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_auth_audit (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  event_type VARCHAR(64) NOT NULL,
-  subject_id VARCHAR(128) NULL,
-  session_hash CHAR(64) NULL,
-  source VARCHAR(128) NULL,
-  result VARCHAR(32) NOT NULL,
-  reason_code VARCHAR(128) NULL,
-  created_at DATETIME(6) NOT NULL,
-  PRIMARY KEY (id),
-  KEY idx_admin_auth_audit_subject (subject_id, created_at),
-  KEY idx_admin_auth_audit_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE IF NOT EXISTS `ai_turn_jobs` (
-  `id` VARCHAR(64) NOT NULL,
-  `room_id` VARCHAR(64) NOT NULL,
-  `instance_id` VARCHAR(96) NOT NULL,
-  `actor_id` VARCHAR(64) NOT NULL,
-  `kind` VARCHAR(40) NOT NULL,
-  `turn_key` VARCHAR(256) NOT NULL,
-  `status` VARCHAR(24) NOT NULL DEFAULT 'QUEUED',
-  `observation` LONGTEXT NULL,
-  `diagnostics` LONGTEXT NULL,
-  `created_at` DATETIME NULL,
-  `started_at` DATETIME NULL,
-  `completed_at` DATETIME NULL,
-  `version` BIGINT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_ai_turn_job_status` (`status`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ai_call_budgets` (
-  `id` VARCHAR(96) NOT NULL,
-  `consumed` INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Additive, repeatable. Run after 20260919_ai_turn_diagnostics.sql. No history rewrite.
-CREATE TABLE IF NOT EXISTS ai_call_usage (
- id VARCHAR(128) NOT NULL PRIMARY KEY,
- source VARCHAR(64), user_id VARCHAR(64), room_id VARCHAR(64), persona_id VARCHAR(64), model_key VARCHAR(128),
- started_epoch_ms BIGINT NOT NULL, completed_epoch_ms BIGINT NULL,
- outcome VARCHAR(32), admitted BOOLEAN NOT NULL DEFAULT FALSE,
- prompt_tokens BIGINT NULL, completion_tokens BIGINT NULL, anomaly BOOLEAN NOT NULL DEFAULT FALSE, anomaly_scopes VARCHAR(128) NULL,
- INDEX idx_call_usage_time (started_epoch_ms)
-);
-
-CREATE TABLE IF NOT EXISTS ai_model_catalog (
-  id BIGINT NOT NULL PRIMARY KEY,
-  models_json LONGTEXT NOT NULL,
-  synced_at DATETIME(6) NULL,
-  version BIGINT NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO ai_model_catalog (id, models_json, version)
-SELECT 1, '[]', 0 WHERE NOT EXISTS (SELECT 1 FROM ai_model_catalog WHERE id = 1);
-
-CREATE TABLE IF NOT EXISTS ai_function_model_configs (
-  function_code VARCHAR(40) NOT NULL PRIMARY KEY,
-  model_key VARCHAR(128) NULL,
-  thinking_mode VARCHAR(16) NOT NULL,
-  thinking_effort VARCHAR(16) NULL,
-  updated_at DATETIME(6) NOT NULL,
-  version BIGINT NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Local-only diagnostic payloads. Additive and repeatable; existing history is untouched.
-CREATE TABLE IF NOT EXISTS local_ai_debug_turns (
-  id VARCHAR(64) NOT NULL PRIMARY KEY,
-  room_id VARCHAR(64) NOT NULL,
-  game_id VARCHAR(64) NOT NULL,
-  instance_id VARCHAR(96) NOT NULL,
-  actor_id VARCHAR(64) NOT NULL,
-  actor_name VARCHAR(128) NULL,
-  seat_number INT NULL,
-  role_key VARCHAR(64) NULL,
-  phase VARCHAR(64) NULL,
-  round_number INT NOT NULL,
-  kind VARCHAR(40) NULL,
-  status VARCHAR(24) NULL,
-  terminal_reason VARCHAR(128) NULL,
-  model_key VARCHAR(128) NULL,
-  prompt_tokens BIGINT NULL,
-  completion_tokens BIGINT NULL,
-  cache_read_tokens BIGINT NULL,
-  cache_write_tokens BIGINT NULL,
-  reasoning_tokens BIGINT NULL,
-  usage_authoritative BOOLEAN NULL,
-  usage_complete BOOLEAN NOT NULL DEFAULT FALSE,
-  attempt_count INT NOT NULL DEFAULT 0,
-  response_count INT NOT NULL DEFAULT 0,
-  latency_ms BIGINT NULL,
-  created_at DATETIME(6) NULL,
-  updated_at DATETIME(6) NULL,
-  payload LONGTEXT NOT NULL,
-  version BIGINT NULL,
-  KEY idx_local_ai_debug_instance (room_id, instance_id, created_at, id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_auth_subject_locks (
- subject_id VARCHAR(128) PRIMARY KEY
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_emergency_codes (
- record_id CHAR(36) PRIMARY KEY,
- subject_id VARCHAR(128) NOT NULL,
- code_hash VARCHAR(255) NOT NULL,
- ciphertext TEXT NOT NULL,
- nonce VARBINARY(32) NOT NULL,
- key_version VARCHAR(64) NOT NULL,
- created_at DATETIME(6) NOT NULL,
- used_at DATETIME(6) NULL,
- KEY idx_admin_emergency_subject(subject_id,used_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_emergency_challenge_versions (
- challenge_hash CHAR(64) PRIMARY KEY,
- credential_version BIGINT NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS admin_emergency_upgrade (
- version_id INT PRIMARY KEY,
- completed_at DATETIME(6) NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS ai_credit_reservations (
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  identity_hash VARCHAR(64) NOT NULL,
-  request_hash VARCHAR(64) NOT NULL,
-  request_id VARCHAR(128) NOT NULL,
-  project_key VARCHAR(64) NOT NULL,
-  user_id BIGINT NOT NULL,
-  budget_id VARCHAR(36) NOT NULL,
-  state VARCHAR(32) NOT NULL,
-  reserved_temp BIGINT NOT NULL,
-  reserved_permanent BIGINT NOT NULL,
-  temp_portions_json TEXT NOT NULL,
-  updated_at BIGINT NOT NULL,
-  result_base64 LONGTEXT NULL,
-  billing_quote_base64 LONGTEXT NULL,
-  UNIQUE KEY uk_ai_credit_identity (identity_hash),
-  KEY idx_ai_credit_reconcile (state, updated_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_agents (
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL, persona_id VARCHAR(64) NOT NULL, model_selection LONGTEXT NOT NULL,
-  created_at DATETIME(6) NOT NULL, version BIGINT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_experiments (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, name VARCHAR(128) NOT NULL,
-  status VARCHAR(32) NOT NULL, reason VARCHAR(128) NULL, budget_points BIGINT NOT NULL,
-  next_sequence INT NOT NULL, review_cursor INT NOT NULL, configuration LONGTEXT NOT NULL,
-  created_by VARCHAR(128) NOT NULL, created_at DATETIME(6) NOT NULL, version BIGINT NULL,
-  KEY idx_lab_experiments_status (status, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_experiences (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
-  agent_id VARCHAR(36) NOT NULL, sequence_number INT NOT NULL, summary VARCHAR(1200) NOT NULL,
-  previous_id VARCHAR(36) NULL, evidence LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
-  UNIQUE KEY uk_lab_experience_version (experiment_id, agent_id, sequence_number),
-  KEY idx_lab_experiences_page (experiment_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_matches (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
-  sequence_number INT NOT NULL, room_id VARCHAR(36) NOT NULL, archive_id VARCHAR(96) NULL,
-  evaluation_id VARCHAR(36) NULL, variant VARCHAR(16) NULL, status VARCHAR(32) NOT NULL,
-  reason VARCHAR(128) NULL, random_seed BIGINT NOT NULL, starts_at_epoch_ms BIGINT NOT NULL,
-  review_lease_until BIGINT NULL, snapshot LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
-  finished_at DATETIME(6) NULL, version BIGINT NULL,
-  UNIQUE KEY uk_lab_match_sequence (experiment_id, sequence_number),
-  UNIQUE KEY uk_lab_match_room (room_id), KEY idx_lab_matches_active (status, experiment_id),
-  KEY idx_lab_matches_evaluation (evaluation_id, sequence_number)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_enrollments (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
-  user_id VARCHAR(36) NOT NULL, display_name VARCHAR(64) NOT NULL, avatar VARCHAR(512) NULL,
-  status VARCHAR(24) NOT NULL, match_id VARCHAR(36) NULL, confirm_until BIGINT NULL,
-  joined_at DATETIME(6) NOT NULL, version BIGINT NULL,
-  UNIQUE KEY uk_lab_enrollment_user (experiment_id, user_id),
-  KEY idx_lab_enrollment_queue (experiment_id, status, joined_at), KEY idx_lab_enrollment_match (match_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_evaluations (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL,
-  agent_id VARCHAR(36) NOT NULL, pairs INT NOT NULL, next_game INT NOT NULL, random_seed BIGINT NOT NULL,
-  status VARCHAR(24) NOT NULL, configuration LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
-  version BIGINT NULL, KEY idx_lab_evaluations_experiment (experiment_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='rooms' AND column_name='source')=0,
-  'ALTER TABLE rooms ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT ''NORMAL''', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='game_archives' AND column_name='source')=0,
-  'ALTER TABLE game_archives ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT ''NORMAL''', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_experiment_id')=0,
-  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_experiment_id VARCHAR(36) NULL', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_match_id')=0,
-  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_match_id VARCHAR(36) NULL', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='lab_purpose')=0,
-  'ALTER TABLE ai_credit_reservations ADD COLUMN lab_purpose VARCHAR(24) NULL', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='billed_points')=0,
-  'ALTER TABLE ai_credit_reservations ADD COLUMN billed_points BIGINT NULL', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND column_name='billed_cost')=0,
-  'ALTER TABLE ai_credit_reservations ADD COLUMN billed_cost DECIMAL(24,6) NULL', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='rooms' AND index_name='idx_rooms_source_status')=0,
-  'ALTER TABLE rooms ADD INDEX idx_rooms_source_status (source,status)', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='game_archives' AND index_name='idx_archives_source')=0,
-  'ALTER TABLE game_archives ADD INDEX idx_archives_source (source,finished_at)', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='ai_credit_reservations' AND index_name='idx_lab_credit_experiment')=0,
-  'ALTER TABLE ai_credit_reservations ADD INDEX idx_lab_credit_experiment (lab_experiment_id,state)', 'SELECT 1');
-PREPARE lab_statement FROM @lab_ddl;
-EXECUTE lab_statement;
-DEALLOCATE PREPARE lab_statement;
-
-SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND column_name='participant_id')=0,
-  'ALTER TABLE lab_experiences ADD COLUMN participant_id VARCHAR(36) NULL', 'SELECT 1');
-PREPARE lab_participant_statement FROM @lab_participant_ddl;
-EXECUTE lab_participant_statement;
-DEALLOCATE PREPARE lab_participant_statement;
-
-SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lab_evaluations' AND column_name='participant_id')=0,
-  'ALTER TABLE lab_evaluations ADD COLUMN participant_id VARCHAR(36) NULL', 'SELECT 1');
-PREPARE lab_participant_statement FROM @lab_participant_ddl;
-EXECUTE lab_participant_statement;
-DEALLOCATE PREPARE lab_participant_statement;
-
-UPDATE lab_experiences SET participant_id=agent_id WHERE participant_id IS NULL;
-UPDATE lab_evaluations SET participant_id=agent_id WHERE participant_id IS NULL;
-ALTER TABLE lab_experiences MODIFY COLUMN participant_id VARCHAR(36) NOT NULL;
-ALTER TABLE lab_evaluations MODIFY COLUMN participant_id VARCHAR(36) NOT NULL;
-
-SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND index_name='uk_lab_participant_version')=0,
-  'ALTER TABLE lab_experiences ADD UNIQUE INDEX uk_lab_participant_version (experiment_id,participant_id,sequence_number)', 'SELECT 1');
-PREPARE lab_participant_statement FROM @lab_participant_ddl;
-EXECUTE lab_participant_statement;
-DEALLOCATE PREPARE lab_participant_statement;
-
-SET @lab_participant_ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='lab_experiences' AND index_name='uk_lab_experience_version')>0,
-  'ALTER TABLE lab_experiences DROP INDEX uk_lab_experience_version', 'SELECT 1');
-PREPARE lab_participant_statement FROM @lab_participant_ddl;
-EXECUTE lab_participant_statement;
-DEALLOCATE PREPARE lab_participant_statement;
-
--- Shared werewolf strategies and immutable administrator publication receipts.
--- Additive only. Existing participant experiences and approved text are unchanged.
-CREATE TABLE IF NOT EXISTS lab_strategy_versions (
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  experiment_id VARCHAR(36) NOT NULL, sequence_number INT NOT NULL,
-  previous_id VARCHAR(36) NULL, game_id VARCHAR(64) NOT NULL, request_id VARCHAR(128) NOT NULL,
-  content LONGTEXT NOT NULL, compatibility LONGTEXT NOT NULL, evidence LONGTEXT NOT NULL,
-  content_hash VARCHAR(64) NOT NULL, created_at DATETIME(6) NOT NULL,
-  UNIQUE KEY uk_lab_strategy_sequence (experiment_id, sequence_number),
-  UNIQUE KEY uk_lab_strategy_request (request_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS strategy_publications (
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  operation_id VARCHAR(36) NOT NULL, request_hash VARCHAR(64) NOT NULL,
-  action VARCHAR(16) NOT NULL, game_id VARCHAR(64) NOT NULL,
-  strategy_version_id VARCHAR(36) NULL, mode VARCHAR(16) NOT NULL, created_by VARCHAR(128) NOT NULL,
-  parameters LONGTEXT NOT NULL, previous_bindings LONGTEXT NOT NULL, result LONGTEXT NOT NULL,
-  created_at DATETIME(6) NOT NULL,
-  UNIQUE KEY uk_strategy_publication_operation (operation_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET @strategy_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ai_persona_memories' AND column_name='strategy_publication_id')=0,
-  'ALTER TABLE ai_persona_memories ADD COLUMN strategy_publication_id VARCHAR(36) NULL', 'SELECT 1');
-PREPARE strategy_statement FROM @strategy_ddl;
-EXECUTE strategy_statement;
-DEALLOCATE PREPARE strategy_statement;
-
--- Postconditions: both tables exist; the persona pointer is nullable VARCHAR(36).
--- No backfill, deletion, model call, or publication is performed by this migration.
-
--- Resumable, evidence-bound werewolf lessons. Additive only; no games, calls or strategies are created.
-CREATE TABLE IF NOT EXISTS lab_training_runs (
-  id VARCHAR(36) NOT NULL PRIMARY KEY,
-  experiment_id VARCHAR(36) NOT NULL, operation_id VARCHAR(64) NOT NULL,
-  request_hash VARCHAR(64) NOT NULL, goal VARCHAR(32) NOT NULL,
-  status VARCHAR(24) NOT NULL, stage VARCHAR(24) NOT NULL, reason VARCHAR(128) NULL,
-  candidate_strategy_version_id VARCHAR(36) NULL,
-  configuration LONGTEXT NOT NULL, assessment LONGTEXT NOT NULL,
-  created_at DATETIME(6) NOT NULL, updated_at_epoch_ms BIGINT NOT NULL, version BIGINT NULL,
-  UNIQUE KEY uk_lab_training_operation (experiment_id, operation_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_training_cases (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, run_id VARCHAR(36) NOT NULL,
-  purpose VARCHAR(24) NOT NULL, source_type VARCHAR(48) NOT NULL, source_group VARCHAR(200) NOT NULL,
-  persona_id VARCHAR(64) NOT NULL, participant_id VARCHAR(36) NOT NULL, ordinal INT NOT NULL,
-  content_hash VARCHAR(64) NOT NULL, data LONGTEXT NOT NULL, created_at DATETIME(6) NOT NULL,
-  KEY idx_lab_training_case_run (run_id, purpose, ordinal)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lab_training_tasks (
-  id VARCHAR(36) NOT NULL PRIMARY KEY, run_id VARCHAR(36) NOT NULL, case_id VARCHAR(36) NULL,
-  task_key VARCHAR(128) NOT NULL, kind VARCHAR(24) NOT NULL, variant VARCHAR(24) NULL,
-  status VARCHAR(24) NOT NULL, ordinal INT NOT NULL, reason VARCHAR(128) NULL,
-  request_id VARCHAR(128) NULL, attempt INT NOT NULL, paid_retries INT NOT NULL,
-  started_at_epoch_ms BIGINT NULL, updated_at_epoch_ms BIGINT NOT NULL,
-  not_before_epoch_ms BIGINT NOT NULL, lease_until_epoch_ms BIGINT NOT NULL,
-  input LONGTEXT NOT NULL, checkpoint LONGTEXT NOT NULL, result LONGTEXT NOT NULL, version BIGINT NULL,
-  UNIQUE KEY uk_lab_training_task_identity (run_id, task_key),
-  KEY idx_lab_training_task_run (run_id, ordinal)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Postconditions: three new tables with immutable case content, operation/task identities and query indexes.
--- Existing experiment, participant, wallet and published-strategy records are unchanged.

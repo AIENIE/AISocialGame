@@ -1,5 +1,7 @@
 # AI 桌游拟真 v2 验收记录
 
+2026-10-29：旧兜底决策和旧实现对照入口已退役。本文保留当时的验收结果与局限，不能用于证明当前版本。
+
 最新修复与验收恢复见 [2026-09-16 记录](ai-game-realism-v2-quality-recovery.md)。以下保留 2026-09-12 的历史结论和证据，不代表新一轮的最终覆盖。
 
 执行日期：2026-09-12。范围为当前 Windows 本地工作区；未发布、提交或切换生产入口。
@@ -95,4 +97,4 @@
 - `live-2.json`、`live-2-metrics-final.json`：一局通过、一局中断及量化结果。
 - `final-acceptance-summary.json`、`gateway-resource-exhausted-diagnostic.json`、`caller-cleanup.json`：总用量、限定请求只读诊断及停用读回证据。
 
-复现入口：`Prepare-GameRealismV2Accounts.ps1` 建立正常应用会话；`Test-GameRealismV2Live.ps1` 读取已完成的私密会话文件运行六局；`Test-GameRealismV2Comparison.ps1` 读取私密运行配置并复用原累计账本；`Measure-GameRealismV2.ps1` 对已产生的六局证据做只读量化。具体契约与限制见 [实现说明](ai-game-realism-v2.md)。
+复现入口：`Prepare-GameRealismV2Accounts.ps1` 建立正常应用会话；`Test-GameRealismV2Live.ps1` 读取已完成的私密会话文件运行六局；`Measure-GameRealismV2.ps1` 对已产生的六局证据做只读量化。具体契约与限制见 [实现说明](ai-game-realism-v2.md)。

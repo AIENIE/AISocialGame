@@ -13,9 +13,6 @@ public class AiCreditReservation {
     @Column(name="user_id",nullable=false) public long userId;
     @Column(name="budget_id",nullable=false,length=36) public String budgetId;
     @Column(nullable=false,length=32) public String state;
-    @Column(name="reserved_temp",nullable=false) public long reservedTemp;
-    @Column(name="reserved_permanent",nullable=false) public long reservedPermanent;
-    @Lob @Column(name="temp_portions_json",nullable=false,columnDefinition="TEXT") public String tempPortionsJson;
     @Column(name="updated_at",nullable=false) public long updatedAt;
     @Lob @Column(name="result_base64",columnDefinition="LONGTEXT") public String resultBase64;
     @Lob @Column(name="billing_quote_base64",columnDefinition="LONGTEXT") public String billingQuoteBase64;

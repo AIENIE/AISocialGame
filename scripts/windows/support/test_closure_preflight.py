@@ -86,7 +86,7 @@ class PreflightTest(unittest.TestCase):
             root=Path(d);v=prepare(root);jar=root/"backend/target/test.jar"
             with zipfile.ZipFile(jar,"w") as z:z.writestr("BOOT-INF/classes/closure-build.json",json.dumps(v))
             artifact(root,jar)
-            m=dict(**v,evaluationSchemaVersion=2,evaluationSetVersion="closure-v2",evidenceKind="REAL_MODEL",inputFormatVersion=3,memoryFormatVersion=4,sampleCount=180,maxDiscreteCalls=360,promptVersion="social-v2.8",batchId="batch",samples=[dict(id=str(x)) for x in range(180)])
+            m=dict(**v,evaluationSchemaVersion=2,evaluationSetVersion="closure-v2",evidenceKind="REAL_MODEL",inputFormatVersion=3,memoryFormatVersion=4,sampleCount=180,maxDiscreteCalls=360,promptVersion="social-v2.11",batchId="batch",samples=[dict(id=str(x)) for x in range(180)])
             p=root/"manifest.json";p.write_text(json.dumps(m))
             (root/"backend/target/m1-m5-evaluation-manifest.json").write_text(json.dumps(m))
             self.assertEqual("batch",version(root,p,jar)["batchId"])

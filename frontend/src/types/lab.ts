@@ -84,7 +84,7 @@ export interface LabScenarioRun {
 }
 export interface LabDiagnostics {
   matchId: string; sequenceNumber: number; status: string; archiveId?: string;
-  failure?: { code:string; stage:string; actorName?:string; round?:number; phase?:string; modelKey?:string; jobId?:string; inferred?:boolean; action?:{type:string;content:string} };
+  failure?: { code:string; stage:string; actorName?:string; round?:number; phase?:string; modelKey?:string; jobId?:string; action?:{type:string;content:string} };
   tasks: { jobId:string; status:string; reason:string; actorName:string; modelKey:string; kind:string; attempts:{attempt:number;flags?:string[];failureStage?:string;settlementState?:string;requestId?:string}[] }[];
   calls: { requestId:string;state:string;billedPoints:number|null;purpose:string }[];
 }

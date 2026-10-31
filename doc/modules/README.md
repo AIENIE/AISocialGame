@@ -8,21 +8,21 @@
 | 模块 | 作用 | 入口实现位置 |
 |---|---|---|
 | 大厅与房间模块 | 管理创建房间、入座、AI 补位、座位广播与房间页入口 | `backend/src/main/java/com/aisocialgame/controller/RoomController.java`、`backend/src/main/java/com/aisocialgame/service/RoomService.java`、`frontend/src/pages/Lobby.tsx`、`frontend/src/pages/games/shared/*` |
-| 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
+| 游戏流程模块 | 管理对局状态、阶段推进、超时处理、断线托管与结算 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/v2/V2GameService.java` |
 | GameEngine 插件化模块 | 管理玩法 engine 注册、统一 action 和现有玩法插件化入口 | `backend/src/main/java/com/aisocialgame/engine/*.java`、`frontend/src/hooks/useGameEngine.ts`、`doc/modules/game-engine-module.md` |
 | 海龟汤玩法模块 | 管理海龟汤题库、规则主持、AI 玩家追问、汤底判定和回放归档 | `backend/src/main/java/com/aisocialgame/engine/TurtleSoupGameEngine.java`、`frontend/src/pages/games/TurtleSoupRoom.tsx`、`doc/modules/turtle-soup-module.md` |
-| AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与规则兜底 | `backend/src/main/java/com/aisocialgame/service/ai/*.java`、`backend/src/main/resources/prompt.yml`、`doc/modules/ai-decision-module.md` |
+| AI 决策模块 | 管理 AI 玩家上下文构造、Prompt 调用、JSON 决策解析与失败处理 | `backend/src/main/java/com/aisocialgame/service/ai/v2/*.java`、`backend/src/main/resources/prompts/`、`doc/modules/ai-decision-module.md` |
 | AI 拟人质量闭环模块 | 管理 AI 信念、局内短期记忆、Persona 跨局记忆、质量检测、决策 trace 与管理端质检 | `backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java`、`backend/src/main/java/com/aisocialgame/model/AiPersonaMemory.java`、`doc/modules/ai-quality-loop-module.md` |
 | AI 安全治理与 Admin 应急运营模块 | 管理内容审核、安全事件、临时控制、Admin 安全队列和玩家安全提示 | `backend/src/main/java/com/aisocialgame/service/safety/AiSafetyService.java`、`backend/src/main/java/com/aisocialgame/controller/admin/AdminSafetyController.java`、`frontend/src/pages/admin/SafetyAdmin.tsx`、`doc/modules/ai-safety-admin-ops-module.md` |
 | 结构化事件与服务端回放模块 | 管理服务端对局事件流、单局归档、回放查询和视角过滤 | `backend/src/main/java/com/aisocialgame/model/GameEvent.java`、`backend/src/main/java/com/aisocialgame/model/GameArchive.java`、`backend/src/main/java/com/aisocialgame/controller/ReplayController.java`、`doc/modules/replay-event-module.md` |
-| 本地开箱即用数据与验收模块 | 管理本地 demo seed、可复用 Playwright 验收和管理端 AI 质检入口 | `backend/src/main/java/com/aisocialgame/service/DemoSeedService.java`、`frontend/tests/acceptance-real.spec.ts`、`doc/modules/demo-seed-and-acceptance-module.md` |
+| 验收模块 | 离线 fixture、Playwright 验收和管理端 AI 质检 | `frontend/tests/acceptance-real.spec.ts`、`doc/modules/acceptance-module.md` |
 | 房间实时通信模块 | 管理 STOMP 鉴权、状态推送、座位推送、房间聊天与连接状态 | `backend/src/main/java/com/aisocialgame/config/WebSocketConfig.java`、`backend/src/main/java/com/aisocialgame/controller/RoomChatController.java`、`backend/src/main/java/com/aisocialgame/websocket/*.java`、`frontend/src/hooks/useGameSocket.ts` |
 | 性能与稳定性加固模块 | 管理账务事务边界、AI SSE 线程池、房间行锁、分页查询、运行时状态清理和 request id | `doc/modules/performance-stability-module.md`、`backend/src/main/java/com/aisocialgame/config/AsyncExecutionConfig.java`、`backend/src/main/java/com/aisocialgame/config/RequestIdFilter.java` |
 | v2 社交留存与导航模块 | 覆盖快速匹配、好友、成就、回放、观战、新手引导与全局导航入口 | `doc/modules/v2-social-retention-module.md`、`frontend/src/components/social/*`、`frontend/src/pages/{Achievements,Replays,ReplayPlayer,Guide,SpectatorRoom}.tsx`、`frontend/src/services/v2Social.ts` |
 | 认证与钱包模块 | 管理 SSO 登录态、本地专属积分、签到、兑换码、通用转专属兑换、AI 成功调用后本地扣减 | `backend/src/main/java/com/aisocialgame/controller/AuthController.java`、`backend/src/main/java/com/aisocialgame/controller/WalletController.java`、`backend/src/main/java/com/aisocialgame/service/ProjectCreditService.java`、`frontend/src/components/wallet/*` |
 | 管理后台模块 | 管理管理员登录、用户封禁、积分流水检查、调账/冲正/迁移、兑换码创建、联通性诊断 | `backend/src/main/java/com/aisocialgame/controller/admin/*.java`、`frontend/src/pages/admin/*` |
 | gRPC 集成模块 | 管理 user/pay/ai 静态地址、当前 proto 契约、鉴权拦截器和本地项目钱包边界 | `backend/src/main/java/com/aisocialgame/integration/*`、`doc/modules/grpc-integration-module.md` |
-| 第三方组件对齐模块 | 记录 MySQL/Redis/Qdrant 外部依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.example` |
+| 第三方组件对齐模块 | 记录 MySQL/Redis 外部依赖对接与配置策略 | `doc/modules/third-party-components.md`、`backend/src/main/resources/application.yml`、`env.example` |
 | 安全加固模块 | 记录 v1.0 审计后的登录边界、房间权限、WS/CORS、AI 接口与运行配置加固 | `doc/modules/security-hardening-module.md`、`backend/src/main/java/com/aisocialgame/config/*` |
 
 ## 后续里程碑

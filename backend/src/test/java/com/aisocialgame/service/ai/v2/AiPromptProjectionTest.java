@@ -220,7 +220,7 @@ class AiPromptProjectionTest {
                     .thenReturn(new com.aisocialgame.integration.grpc.dto.AiChatResult(json.writeValueAsString(example),"mock-only",1,1));
             var properties = new com.aisocialgame.config.AppProperties(); properties.setProjectKey("offline"); properties.getAi().setDefaultModel("mock-only"); properties.getAi().setSystemUserId(1);
             var decision = new AiTurnGenerator(client,properties,scenario.session().memory,safety).generate(adapter,o,"example-only-"+checked++);
-            assertFalse(decision.fallback(),scenario.id()+":"+decision.diagnostics());
+            assertNotNull(decision.action(),scenario.id()+":"+decision.diagnostics());
             assertEquals(1,decision.diagnostics().get("calls"));
         }
         assertEquals(8,checked);

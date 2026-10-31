@@ -10,7 +10,7 @@ class AiMemoryEntriesTest {
     }
 
     @Test void aliasesAndStringsHaveOneCanonicalShapeAndServerProvenance() {
-        var parsed = parse(List.of("旧客户端的新猜想", Map.of("hypothesis", "猜想", "content", "猜想", "eventId", "e1", "confidence", .4)));
+        var parsed = parse(List.of("模型提出的新猜想", Map.of("hypothesis", "猜想", "content", "猜想", "eventId", "e1", "confidence", .4)));
         assertTrue(parsed.errors().isEmpty());
         assertEquals(Map.of("text", "猜想", "evidenceEventIds", List.of("e1"), "confidence", .4, "round", 3, "source", "MODEL_PROPOSAL"), parsed.entries().getLast());
         assertEquals(List.of(), parsed.entries().getFirst().get("evidenceEventIds"));
@@ -44,27 +44,6 @@ class AiMemoryEntriesTest {
         assertTrue(parse(List.of(Map.of("text", "a", "confidence", 0), Map.of("text", "b", "confidence", 1))).errors().isEmpty());
     }
 
-    @Test void oldStringsRemainUnverifiedWithoutInventedEvidenceOrMetadata() {
-        String opaque = "{hypothesis=以前被截断的对象, evidenceEventIds=[";
-        var old = AiMemoryEntries.stored(List.of(opaque), true, false).getFirst();
-        assertEquals(opaque, old.get("text"));
-        assertEquals("LEGACY_UNVERIFIED", old.get("source"));
-        assertNull(old.get("round"));
-        assertEquals(List.of(), old.get("evidenceEventIds"));
-        assertFalse(old.containsKey("confidence"));
-        assertEquals(List.of(old), AiMemoryEntries.stored(List.of(old), true, true));
-    }
-
-    @Test void snapshotDoesNotTrustUnversionedProvenanceAndDoesNotMutateObjects() {
-        Map<String, Object> old = new LinkedHashMap<>(Map.of("text", "猜测", "eventId", "e1", "round", 77, "source", "MODEL_PROPOSAL"));
-        Map<String, Object> before = new LinkedHashMap<>(old);
-        var read = AiMemoryEntries.stored(List.of(old), true, false).getFirst();
-        assertEquals(before, old);
-        assertEquals("LEGACY_UNVERIFIED", read.get("source"));
-        assertNull(read.get("round"));
-        assertEquals(List.of("e1"), read.get("evidenceEventIds"));
-    }
-
     @Test void repeatedTextMergesEvidenceAndLatestValidValuesWithoutMutatingInputs() {
         var first = parse(List.of(Map.of("text", " 猜测 ", "confidence", .8, "eventId", "e1"))).entries();
         var second = AiMemoryEntries.proposals(List.of(Map.of("content", "猜测", "confidence", .2, "eventId", "e2")), true, Set.of("e2"), 4).entries();
@@ -75,6 +54,7 @@ class AiMemoryEntriesTest {
         assertEquals(4, merged.getFirst().get("round"));
         assertEquals(.8, first.getFirst().get("confidence"));
         assertEquals(merged, AiMemoryEntries.merge(merged, second));
+        assertEquals(merged, AiMemoryEntries.stored(merged));
         var withoutConfidence = AiMemoryEntries.merge(merged, parse(List.of("猜测")).entries());
         assertEquals(.2, withoutConfidence.getFirst().get("confidence"));
     }

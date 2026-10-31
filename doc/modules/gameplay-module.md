@@ -1,89 +1,13 @@
-# 游戏流程模块（狼人杀 / 谁是卧底）
+# 游戏流程模块
 
-## 谁是卧底当前 v2 规则
+`GamePlayController` 使用 `V2GameService`，规则实现位于 `engine/v2/`。状态和日志读取、开局与统一动作分别使用 `/state`、`/logs`、`/start`、`/action`。
 
-- 存活玩家依次描述词语后直接投票，无定向质疑、回应环节。
-- 有词玩家可在本人描述、补充描述或尚未提交投票时使用 `SELF_DESTRUCT` 自爆猜平民词，`content` 仅为一个答案（1-20字）。仅真实卧底猜中平民词或词库已登记别称时，卧底阵营立即获胜；完整答案按现有词库规范化规则匹配，不作包含或语义判分。白板不开放自爆。
-- 猜错或平民误爆均本人出局，公开身份并按原人数规则判胜负；未结算则继续当前阶段，保留已完成行动和原倒计时。投给已出局者的票保留原始记录但不计有效票，剩余玩家投齐后正常揭晓。自爆出局计入本轮出局，重置连续无人出局计数；局面变化使旧行动令牌和待执行 AI 观察失效。
-- 最高票并列时，仅候选人各补充一次词语描述（20秒、最多60字，可跳过），然后复投（15秒）。阶段标识仍为 `TIE_DEFENSE`，含义为补充描述，不安排身份辩解。
-- 再次平票或全员弃票则无人出局；连续三轮无人出局判平局。
-- 每次出局后依次判定：白板存活到最后两人优先独赢；卧底及白板全部出局则平民胜；存活卧底数不少于其他存活玩家数则卧底胜；无白板存活且总人数不超过三人、有卧底存活时也判卧底胜。
-- 白板存活时不启用卧底最后三人胜利条件。`1卧底＋2平民` 卧底胜，`1卧底＋1白板＋1平民` 继续。
-- 旧对局停留在 `CHALLENGE` / `RESPONSE` 时，下一次引擎推进直接进入投票；旧动作失效，历史事件保留。
+开局由房主触发，服务端验证房间状态、配置和人数，冻结规则与访问视角，再创建对局及初始事件。状态转换、持久事件、任务状态和结算在对应事务内提交。
 
-## 模块作用
+动作携带 `requestId` 和服务端返回的 `expectedPhaseToken`。请求幂等及阶段校验防止重复执行和旧行动作用于新阶段。读写权限、私密房和回放视角由服务端判定。
 
-- 提供“开局 -> 阶段推进 -> 投票/夜晚行动 -> 结算”的统一对局主流程。
-- 在 v2 中补充实时推送、断线状态同步、超时托管（AI takeover）与自动推进能力。
-- M3 后 `GamePlayService` 作为兼容编排层，具体玩法入口由 `GameEngineRegistry` 分发。
+`AiTurnCoordinator` 认领持久 AI 任务，构造观察并调用 `AiTurnGenerator`。原请求未决时保存检查点并查询原结果；已过期行动不能提交。任务失败与规则推进分别记录。
 
-## 功能点清单
+`GameEventRecorder` 持久化事件，`ReplayArchiveService` 生成归档；`StatsService` 负责结算。房间事件通过 `GamePushService` 推送，前端以当前 HTTP 状态恢复并去重实时消息。
 
-| 功能点 | 作用 | 实现位置 |
-|---|---|---|
-| 状态查询 `/state` | 返回当前阶段、回合、当前座位、日志、玩家私有身份信息、夜晚待办 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
-| GameEngine 分发 | 将具体玩法动作分发到注册 engine，减少主流程 `gameId` 分支 | `backend/src/main/java/com/aisocialgame/engine/*.java` |
-| 开局与私有身份下发 | 房主开局后完成角色/词语分配，并通过 WS 私有队列下发身份信息 | `backend/src/main/java/com/aisocialgame/service/GamePlayService.java`、`backend/src/main/java/com/aisocialgame/websocket/GamePushService.java` |
-| 发言/投票/夜晚行动 | 旧接口继续兼容，统一 `/action` 作为插件化动作入口 | `backend/src/main/java/com/aisocialgame/controller/GamePlayController.java`、`backend/src/main/java/com/aisocialgame/engine/GameEngine.java` |
-| AI 行为质检挂载 | AI 自动发言/投票/夜晚行动后写入 trace，并把安全摘要写入日志 metadata | `backend/src/main/java/com/aisocialgame/service/ai/*`、`backend/src/main/java/com/aisocialgame/model/AiDecisionTrace.java` |
-| 断线检测与托管 | 按连接活跃时间更新 `ONLINE/DISCONNECTED/AI_TAKEOVER`，超时后自动托管/弃票 | `backend/src/main/java/com/aisocialgame/websocket/PlayerConnectionService.java`、`backend/src/main/java/com/aisocialgame/service/GamePlayService.java` |
-| 前端房间实时渲染 | 取消轮询，改为 WS 事件驱动刷新；展示倒计时、阶段过渡、连接状态、聊天面板 | `frontend/src/hooks/useGameSocket.ts`、`frontend/src/pages/games/shared/*`、`frontend/src/components/game/*` |
-
-## 关键流程
-
-1. 房主调用 `/start`，后端初始化 `GameState` 并推送 `PHASE_CHANGE`。
-2. 玩家通过 `/action` 或旧 `/speak`、`/vote`、`/night-action` 交互，后端保存状态并推送 `state` 事件。
-3. 玩家连接状态由 STOMP 连接 + 活跃打点共同维护，断线后进入 `DISCONNECTED`，超时后进入 `AI_TAKEOVER`。
-4. 阶段超时或操作完备时自动推进，结算后记录统计并回写房间状态。
-5. AI 动作会同步更新 `GameState.data.aiBeliefs`、`GameState.data.aiShortMemories` 与后台 trace，不改变玩家端可见信息边界。
-
-## 当前连接与托管规则
-
-1. 断线判定阈值改为可配置：
-   - 配置项：`connection.disconnect-threshold-seconds`
-   - 默认值：`60`
-   - 目的：降低短时抖动导致的误判离线。
-
-2. 狼人杀夜晚自动补行动策略优化：
-   - 当存在在线真人夜晚角色（狼人/预言家/女巫）时，不再提前由系统自动补齐该角色夜晚动作；
-   - 仅对“无在线真人参与”的角色执行自动补动作；
-   - 目的：避免真人夜晚还在场时被系统越权代操作。
-
-3. 满房重连玩家识别修复：
-   - `RoomService.joinRoom` 调整为“先匹配已在房间玩家，再检查满房”；
-   - 目的：确保已在房玩家重连后仍能拿到 `myPlayerId/mySeatNumber`，避免出现“轮到发言但无输入框”。
-
-## M3 插件化入口
-
-- 新增 `GameEngine` 与 `GameEngineRegistry`。
-- 新增 `UndercoverGameEngine`、`WerewolfGameEngine`。
-- `GamePlayService` 保留旧服务方法签名，但通过 registry 分发到具体 engine。
-- 新增 `PlayerAction` 与 `/action`，前端房间页已通过 `useGameEngine` 使用统一动作入口。
-- 当前 `GameRuntimeSupport` 仍保留迁移阶段的规则支撑逻辑，后续可继续拆入各 engine。
-
-## v1.0 可维护性边界
-
-- `GamePlayController` 改为通过 `@CurrentUser` 接收登录用户，避免每个接口重复读取 `X-Auth-Token`。
-- 请求 DTO 增加长度、枚举与 URL 校验，明显非法输入会在进入业务服务前被拒绝。
-- 房间页共享运行时负责 room/state/personas/socket/join/addAI/settlement 归档；玩法页只保留差异化展示和动作表单。
-
-## 相关文件
-
-- `backend/src/main/java/com/aisocialgame/dto/GamePlayerView.java`：响应新增 `connectionStatus`。
-- `backend/src/main/java/com/aisocialgame/model/GamePlayerState.java`：新增连接状态与活跃时间字段。
-- `backend/src/main/java/com/aisocialgame/dto/ws/*`：WS 推送事件 DTO。
-- `frontend/src/types/index.ts`：新增 WS 事件与聊天消息类型。
-
-## 验收方式
-
-- 本模块不再依赖自动化 4 局脚本进行最终验收。
-- 隔离的浏览器验收应覆盖 4 类完整对局：
-  - 谁是卧底：1 用户 + AI
-  - 谁是卧底：3 用户 + AI
-  - 狼人杀：1 用户 + AI
-  - 狼人杀：3 用户 + AI
-- 每场证据应记录：
-  - 人类玩家发言、投票、夜晚行动与决策依据
-  - AI 角色发言与行为
-  - 系统日志与结算结果
-- 报告输出到测试运行器提供的工作树外目录，不把日期化结果、截图或账号秘密提交到仓库。
+三款规则的集成回归位于 `V2GameServiceIntegrationTest`，动作接口见 [GamePlayController](../api/GamePlayController.md)。

@@ -67,6 +67,20 @@ it("uses current callbacks without reconnecting and buffers split STOMP frames",
   expect(updated).toHaveBeenCalledWith({ type: "STATE_SYNC" });
   expect(FakeSocket.instances).toHaveLength(1);
 });
+
+it.each(["state", "seat", "chat", "private"])("malformed %s frames disconnect without invented events", (topic) => {
+  options = { ...options, onPrivate: vi.fn(), onChat: vi.fn(), onSeatChange: vi.fn() };
+  act(() => root.render(<Probe />));
+  const current = FakeSocket.instances[0];
+  act(() => { current.connect(); current.sync(); });
+  const destination = topic === "private" ? "/user/queue/private" : `/topic/room/room/${topic}`;
+  act(() => current.receive(`MESSAGE\ndestination:${destination}\n\n{broken\0`));
+  expect(current.readyState).toBe(3);
+  expect(socket.connected).toBe(false);
+  for (const callback of [options.onStateChange, options.onPrivate, options.onChat, options.onSeatChange]) {
+    expect(callback).not.toHaveBeenCalled();
+  }
+});
 it("disconnects the previous account and ignores its private messages after identity changes",()=>{
   options={...options,onPrivate:vi.fn(),onChat:vi.fn()};act(()=>root.render(<Probe/>));
   const previous=FakeSocket.instances[0];act(()=>{previous.connect();previous.sync();});

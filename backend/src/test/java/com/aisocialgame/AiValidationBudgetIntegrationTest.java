@@ -58,7 +58,7 @@ class AiValidationBudgetIntegrationTest {
         call(second, "SETTLED", 320L, true);
         call(first, "PENDING", null, true);
         call(second, "USAGE_UNKNOWN", null, true);
-        call(first, "HELD", null, true);
+        call(first, "PENDING", null, true);
         call(first, "NOT_SENT", 999L, true);
         call(first, "SETTLED", 999L, false);
         call(unrelated, "SETTLED", 9999L, true);
@@ -148,7 +148,6 @@ class AiValidationBudgetIntegrationTest {
         receipt.id = UUID.randomUUID().toString(); receipt.identityHash = request; receipt.requestHash = request;
         receipt.requestId = request; receipt.projectKey = "aisocialgame"; receipt.userId = 1;
         receipt.budgetId = UUID.randomUUID().toString(); receipt.state = state; receipt.billedPoints = billed;
-        receipt.tempPortionsJson = "[]";
         return reservations.saveAndFlush(receipt);
     }
 }

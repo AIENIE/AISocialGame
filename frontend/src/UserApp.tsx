@@ -1,8 +1,6 @@
 import { type ReactNode } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { SafeErrorBoundary } from "@/components/SafeErrorBoundary";
 import { SessionQueries } from "./components/auth/SessionQueries";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -58,8 +56,6 @@ const SessionLayout = () => {
 const UserApp = () => (
   <AuthProvider>
       <SessionQueries>
-        <TooltipProvider>
-          <Toaster />
           <Sonner />
           <I18nextProvider i18n={i18n}>
             <BrowserRouter>
@@ -93,7 +89,6 @@ const UserApp = () => (
               </Routes>
             </BrowserRouter>
           </I18nextProvider>
-        </TooltipProvider>
       </SessionQueries>
   </AuthProvider>
 );

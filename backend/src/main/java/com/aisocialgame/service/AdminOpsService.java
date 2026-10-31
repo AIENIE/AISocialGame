@@ -1,6 +1,7 @@
 package com.aisocialgame.service;
 
 import com.aisocialgame.config.AppProperties;
+import com.aisocialgame.integration.grpc.client.BillingGrpcClient;
 import com.aisocialgame.dto.AiChatRequest;
 import com.aisocialgame.dto.AiChatResponse;
 import com.aisocialgame.dto.AiMessageRequest;
@@ -11,10 +12,8 @@ import com.aisocialgame.dto.admin.AdminAiPersonaMemoryView;
 import com.aisocialgame.dto.admin.AdminDashboardSummaryResponse;
 import com.aisocialgame.dto.admin.AdminIntegrationStatusResponse;
 import com.aisocialgame.dto.admin.AdminLedgerPageResponse;
-import com.aisocialgame.dto.admin.AdminMigrateAllBalanceResponse;
 import com.aisocialgame.dto.admin.AdminUserView;
 import com.aisocialgame.exception.ApiException;
-import com.aisocialgame.integration.grpc.client.BillingGrpcClient;
 import com.aisocialgame.integration.grpc.client.UserGrpcClient;
 import com.aisocialgame.integration.grpc.dto.BalanceSnapshot;
 import com.aisocialgame.integration.grpc.dto.ExternalUserProfile;
@@ -26,7 +25,6 @@ import com.aisocialgame.repository.GameStateRepository;
 import com.aisocialgame.repository.RoomRepository;
 import com.aisocialgame.repository.UserRepository;
 import com.aisocialgame.service.ai.AiDecisionTraceService;
-import com.aisocialgame.service.ai.AiReflectionService;
 import com.aisocialgame.service.safety.AiSafetyContext;
 import com.aisocialgame.service.safety.AiSafetyService;
 import org.slf4j.Logger;
@@ -60,7 +58,6 @@ public class AdminOpsService {
     private final AppProperties appProperties;
     private final AiDecisionTraceService aiDecisionTraceService;
     private final AiPersonaMemoryRepository aiPersonaMemoryRepository;
-    private final AiReflectionService aiReflectionService;
     private final AiSafetyService aiSafetyService;
     private final long operatorUserId;
 
@@ -76,7 +73,6 @@ public class AdminOpsService {
 	                           AppProperties appProperties,
 	                           AiDecisionTraceService aiDecisionTraceService,
 	                           AiPersonaMemoryRepository aiPersonaMemoryRepository,
-	                           AiReflectionService aiReflectionService,
                                AiSafetyService aiSafetyService) {
         this.userGrpcClient = userGrpcClient;
         this.billingGrpcClient = billingGrpcClient;
@@ -90,7 +86,6 @@ public class AdminOpsService {
         this.appProperties = appProperties;
         this.aiDecisionTraceService = aiDecisionTraceService;
         this.aiPersonaMemoryRepository = aiPersonaMemoryRepository;
-        this.aiReflectionService = aiReflectionService;
         this.aiSafetyService = aiSafetyService;
         this.operatorUserId = appProperties.getAdmin().getOperatorUserId();
         if (operatorUserId <= 0) {
@@ -127,7 +122,7 @@ public class AdminOpsService {
         long probeUserId = Math.max(1, appProperties.getAi().getSystemUserId());
         List<AdminIntegrationStatusResponse.ServiceStatus> statuses = List.of(
                 probe("user-service", () -> userGrpcClient.getUserBasic(probeUserId)),
-                probe("pay-service", () -> billingGrpcClient.getBalance(appProperties.getProjectKey(), probeUserId)),
+                probe("pay-service", () -> billingGrpcClient.getPublicPermanentTokens(probeUserId)),
                 probe("ai-service", aiProxyService::listModelsForSystem)
         );
         return new AdminIntegrationStatusResponse(statuses);
@@ -191,66 +186,6 @@ public class AdminOpsService {
                                           String reason,
                                           String operator) {
         return projectCreditService.reverseByRequestId(userId, originalRequestId, reason, operator);
-    }
-
-    public BalanceSnapshot migrateUserBalance(long userId, String operator) {
-        BalanceSnapshot projectSnapshot = billingGrpcClient.getProjectBalance(appProperties.getProjectKey(), userId);
-        long publicTokens;
-        try {
-            publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
-        } catch (Exception ignored) {
-            publicTokens = 0;
-        }
-        return projectCreditService.migrateFromPayServiceSnapshot(
-                userId,
-                projectSnapshot.projectTempTokens(),
-                projectSnapshot.projectPermanentTokens(),
-                publicTokens,
-                operator
-        );
-    }
-
-    public AdminMigrateAllBalanceResponse migrateAllUsersBalance(String operator, Integer batchSize) {
-        int effectiveBatchSize = batchSize == null ? 100 : Math.min(Math.max(batchSize, 1), 500);
-        long scanned = 0;
-        long success = 0;
-        long failed = 0;
-        List<AdminMigrateAllBalanceResponse.FailureItem> failureItems = new ArrayList<>();
-
-        int page = 0;
-        while (true) {
-            var pageData = userRepository.findByExternalUserIdGreaterThan(
-                    0L,
-                    PageRequest.of(page, effectiveBatchSize, Sort.by(Sort.Direction.ASC, "externalUserId"))
-            );
-            if (pageData.isEmpty()) {
-                break;
-            }
-            for (var user : pageData.getContent()) {
-                if (user.getExternalUserId() == null || user.getExternalUserId() <= 0) {
-                    continue;
-                }
-                scanned++;
-                try {
-                    migrateUserBalance(user.getExternalUserId(), operator);
-                    success++;
-                } catch (Exception ex) {
-                    failed++;
-                    if (failureItems.size() < 100) {
-                        failureItems.add(new AdminMigrateAllBalanceResponse.FailureItem(
-                                user.getExternalUserId(),
-                                ex.getMessage() == null ? "unknown_error" : ex.getMessage()
-                        ));
-                    }
-                }
-            }
-            if (!pageData.hasNext()) {
-                break;
-            }
-            page++;
-        }
-
-        return new AdminMigrateAllBalanceResponse(scanned, success, failed, effectiveBatchSize, failureItems);
     }
 
     public CreditRedeemCode createRedeemCode(String code,
@@ -323,9 +258,16 @@ public class AdminOpsService {
                 .toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void resetPersonaMemory(Long id, String actor) {
         try {
-            aiReflectionService.resetMemory(id);
+            aiPersonaMemoryRepository.findById(id).ifPresent(memory -> {
+                if (memory.getStrategyPublicationId()!=null && strategyPublicationActive(memory.getStrategyPublicationId()))
+                    throw new ApiException(HttpStatus.CONFLICT,"此角色使用实验室策略，请先在实验室撤回发布","STRATEGY_PUBLICATION_ACTIVE",java.util.Map.of());
+                memory.setMemorySummary(""); memory.setStrategyNotes(""); memory.setMistakeNotes("");
+                memory.setSpeechPatterns(""); memory.setGamesPlayed(0); memory.setApprovedSummary("");
+                memory.setReviewStatus("PENDING"); aiPersonaMemoryRepository.save(memory);
+            });
             auditSuccess(actor, ACTION_PERSONA_MEMORY_RESET, id);
         } catch (RuntimeException ex) {
             auditFailure(actor, ACTION_PERSONA_MEMORY_RESET, id, ex);

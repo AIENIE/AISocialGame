@@ -44,12 +44,8 @@ def component(catalog, name):
     return matches[0]
 
 
-def resolve(catalog, values, matrix_hash, acceptance_database=None):
+def resolve(catalog, values, matrix_hash):
     database = "aisocialgame"
-    if acceptance_database is not None:
-        if acceptance_database != "aienie_emergency_20261004_social":
-            raise ValueError("UNAPPROVED_ACCEPTANCE_DATABASE")
-        database = acceptance_database
     result = dict(status="UNKNOWN", reason="TARGET_NOT_CONFIRMED", matrixSha256=matrix_hash,
                   environment="develop", componentId="shared-mysql", database=database)
     db = component(catalog, "shared-mysql")
@@ -95,9 +91,8 @@ def resolve(catalog, values, matrix_hash, acceptance_database=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("matrix"); parser.add_argument("environment")
-    parser.add_argument("--acceptance-database", choices=["aienie_emergency_20261004_social"])
     args = parser.parse_args()
     try:
-        print(json.dumps(resolve(matrix(args.matrix), environment(args.environment), sha(args.matrix), args.acceptance_database)))
+        print(json.dumps(resolve(matrix(args.matrix), environment(args.environment), sha(args.matrix))))
     except Exception:
         print(json.dumps(dict(status="UNKNOWN", reason="TARGET_INPUT_UNREADABLE_OR_INVALID")))

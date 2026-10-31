@@ -53,7 +53,7 @@ export function GameContext({ state }: { state: GameState }) {
     <details><summary><span className="font-medium">{copy("surface")} · {String(extra.caseTitle || "")}</span><span className="text-xs text-muted-foreground">{copy("budget", { n: extra.questionCount || 0, max: extra.maxQuestions || 0 })} · {copy("hintBudget", { n: extra.hintCount || 0, max: extra.maxHints ?? 2 })}</span></summary>
       <p className="max-h-40 overflow-auto whitespace-pre-wrap py-2 text-sm leading-6">{String(extra.surface)}</p></details>
     {extra.hostThinking && <p className="mt-1 text-xs text-muted-foreground" role="status">{copy("thinking")}</p>}
-    {state.phase === "FINAL_ANSWER" && <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{copy("finalWarning")}</p>}
+    {state.phase === "FINAL_ANSWER" && <p className="mt-1 text-xs text-amber-700">{copy("finalWarning")}</p>}
   </div>;
   const question = extra.activeQuestion?.content || extra.interaction?.question;
   if (typeof question === "string" && question) return <div className="room-game-context"><p className="text-xs text-muted-foreground">{copy("currentQuestion")}</p><p className="text-sm leading-6">{question}</p></div>;

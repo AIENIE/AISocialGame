@@ -94,15 +94,15 @@ it("applies player models in bulk, permits individual overrides, and leaves the 
   expect(request.coach.modelKey).toBe("fixture");
   expect(request.participants.every((slot:{selection:{thinkingMode:string;thinkingEffort:unknown}})=>slot.selection.thinkingMode==="DEFAULT"&&slot.selection.thinkingEffort===null)).toBe(true);
 });
-it("puts the known historical rule error and settled cost before the history, without a player route",async()=>{
+it("shows the recorded submission failure and settled cost before the history",async()=>{
   api.detail.mockResolvedValue({...experiment(),reason:"SUBMISSION_EXCEPTION",latestFailureMatchId:"match",activeMatches:[]});
-  api.diagnostics.mockResolvedValue({matchId:"match",sequenceNumber:1,status:"ABORTED",archiveId:"archive",failure:{code:"LEGACY_WORD_SCOPE_REJECTION",stage:"SUBMISSION",actorName:"Same #1",phase:"DESCRIPTION",round:1,modelKey:"fixture",inferred:true,action:{type:"SPEAK",content:"失败原文"}},tasks:[],calls:[{requestId:"original:0",state:"SETTLED",billedPoints:8,}]});
+  api.diagnostics.mockResolvedValue({matchId:"match",sequenceNumber:1,status:"ABORTED",archiveId:"archive",failure:{code:"SUBMISSION_EXCEPTION",stage:"SUBMISSION",actorName:"Same #1",phase:"DESCRIPTION",round:1,modelKey:"fixture",action:{type:"SPEAK",content:"失败原文"}},tasks:[],calls:[{requestId:"original:0",state:"SETTLED",billedPoints:8,}]});
   await render("/admin/lab/source");
   await act(async()=>{await new Promise(resolve=>setTimeout(resolve,25));});
-  expect(container.textContent).toContain("旧版禁词范围错误");
+  expect(container.textContent).toContain("动作提交失败");
   expect(container.textContent).toContain("8 积分");
   expect(container.textContent).toContain("失败原文");
-  expect(container.textContent).toContain("从下一局继续");
+  expect(button("继续实验")).toBeDefined();
   expect(container.querySelector('a[href="/admin/replays/archive"]')).not.toBeNull();
   expect(api.diagnostics).toHaveBeenCalledWith("source","match",expect.any(AbortSignal));
 });

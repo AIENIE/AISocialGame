@@ -113,9 +113,15 @@
     "APP_AI_SYSTEM_USER_ID": [
       "app.ai.system-user-id"
     ],
-    "APP_AI_BUDGET_ENABLED": ["app.ai.budget-enabled"],
-    "APP_AI_BUDGET_MAX_OUTPUT_TOKENS": ["app.ai.budget-max-output-tokens"],
-    "APP_AI_BUDGET_RECONCILE_DELAY_MS": ["app.ai.budget-reconcile-delay-ms"],
+    "APP_AI_BUDGET_ENABLED": [
+      "app.ai.budget-enabled"
+    ],
+    "APP_AI_BUDGET_MAX_OUTPUT_TOKENS": [
+      "app.ai.budget-max-output-tokens"
+    ],
+    "APP_AI_BUDGET_RECONCILE_DELAY_MS": [
+      "app.ai.budget-reconcile-delay-ms"
+    ],
     "APP_CREDIT_CHECKIN_GRANT_TOKENS": [
       "app.credit.checkin-grant-tokens"
     ],
@@ -173,9 +179,6 @@
     "APP_SECURITY_ALLOW_PLAINTEXT_GRPC": [
       "app.security.allow-plaintext-grpc"
     ],
-    "APP_DEMO_SEED_ENABLED": [
-      "app.demo-seed.enabled"
-    ],
     "BILLING_GRPC_PLAINTEXT_ENABLED": [
       "app.external.payservice-plaintext-enabled"
     ],
@@ -221,18 +224,6 @@
     "APP_EXTERNAL_AISERVICE_HMAC_CALLER": [
       "app.external.aiservice-hmac-caller"
     ],
-    "QDRANT_HOST": [
-      "qdrant.host"
-    ],
-    "QDRANT_PORT": [
-      "qdrant.http-port"
-    ],
-    "QDRANT_ENABLED": [
-      "qdrant.enabled"
-    ],
-    "QDRANT_API_KEY": [
-      "qdrant.api-key"
-    ],
     "APP_CONNECTION_DISCONNECT_THRESHOLD_SECONDS": [
       "connection.disconnect-threshold-seconds"
     ],
@@ -264,9 +255,6 @@
     ],
     "SERVER_ADDRESS": [
       "server.address"
-    ],
-    "AIENIE_ADMIN_EMERGENCY_ACCEPTANCE": [
-      "runtime.acceptance.admin-emergency-codes"
     ]
   }
 }

@@ -7,7 +7,7 @@ from closure_metrics import DIMENSIONS, GAMES, STEPS, measure, pilot
 class ClosureMetricsTest(unittest.TestCase):
     def full_case(self):
         header = dict(evaluationSchemaVersion=2,evaluationSetVersion="closure-v2",batchId="offline-test",sourceFingerprint="a"*64,buildId="b"*64,
-                      promptVersion="social-v2.8",inputFormatVersion=3,memoryFormatVersion=4,evidenceKind="SYNTHETIC_TEST")
+                      promptVersion="social-v2.11",inputFormatVersion=3,memoryFormatVersion=4,evidenceKind="SYNTHETIC_TEST")
         planned=[]; rows=[]; reviews=[]
         for game in GAMES:
             for group,count in (("SINGLE",10),("SEQUENCE",4)):
@@ -18,13 +18,13 @@ class ClosureMetricsTest(unittest.TestCase):
                                   sequenceId="" if group=="SINGLE" else game+"-continuity",stepId="" if group=="SINGLE" else STEPS[i])
                         phase = ({"undercover":("DESCRIPTION","TIE_DEFENSE","RUNOFF","DESCRIPTION"),"werewolf":("DAY_DISCUSS","DAY_INTERACTION","DAY_VOTE","DAY_DISCUSS"),"turtle_soup":("QUESTIONING",)*4}[game][i] if group=="SEQUENCE" else "DISCUSSION")
                         planned.append(meta); event=f"{game}:ai{p}:event-{i}"
-                        row=dict(meta,status="GENERATED",decision=dict(fallback=False,action=dict(type="SPEAK",content="具体回应")),observation=dict(phase=phase,round=1+i//3,events=[dict(eventId=f"{game}:ai{p}:event-{j}",message="visible") for j in range(i)]))
+                        row=dict(meta,status="GENERATED",decision=dict(action=dict(type="SPEAK",content="具体回应")),observation=dict(phase=phase,round=1+i//3,events=[dict(eventId=f"{game}:ai{p}:event-{j}",message="visible") for j in range(i)]))
                         if group=="SEQUENCE": row['coverage']=dict(status="APPLIED",origin="MODEL",stepId=STEPS[i],phase=phase,round=1+i//3,cycle=i+1,producedEventIds=[event],requiredVisibleEventIds=[] if i==0 else [f"{game}:ai{p}:event-{i-1}"],action=row['decision']['action'])
                         rows.append(row); ref=dict(sampleId=key,pointer="/decision/action/content")
                         reviews.append(dict(id=key,visibleInformation="NO_OBSERVED_VIOLATION",scores={d:4 for d in DIMENSIONS},evidence={d:[ref] for d in DIMENSIONS}))
         for i in range(12):
             meta=dict(id=f"host-{i}",group="HOST",gameId="turtle_soup",personaId="HOST",scenarioId=f"host-case-{i}",sequenceId="",stepId="")
-            planned.append(meta);rows.append(dict(meta,status="GENERATED",decision=dict(fallback=False,action=dict(type="HOST_VERDICT",content="是"))))
+            planned.append(meta);rows.append(dict(meta,status="GENERATED",decision=dict(action=dict(type="HOST_VERDICT",content="是"))))
             reviews.append(dict(id=meta['id'],visibleInformation="NO_OBSERVED_VIOLATION",hostCorrect=True,hostEvidence=[dict(sampleId=meta['id'],pointer="/decision/action/content")]))
         comparisons={g:{b:dict(verdict="PASS",assessment="测试样本中有具体行为差异",references=[dict(sampleId=f"SINGLE:{g}:0:ai{p}",pointer="/decision/action/content") for p in (1,2)]) for b in ("questioning","siding","revision","commitment")} for g in GAMES}
         scenarios=[dict(gameId=g,humanCount=h,status="passed",roomId=f"room-{g}-{h}",archiveId=f"archive-{g}-{h}",privacyViolations=[],winner="SOLVED",contractChecks=dict(successfulScriptedSolve=True)) for g in GAMES for h in (1,3)]
@@ -42,13 +42,9 @@ class ClosureMetricsTest(unittest.TestCase):
         for obj in args[:5]:obj['evidenceKind']='REAL_MODEL'
         self.assertTrue(measure(*args)['L4Passed']);self.assertFalse(measure(*args[:3])['L4Passed'])
 
-    def test_fallback_missing_types_and_status_conflicts(self):
-        for value in (None,0,1,"false",{},[]):
-            args=self.full_case();args[1]['samples'][0]['decision']['fallback']=value
-            r=measure(*args);self.assertFalse(r['algorithmPassed']);self.assertEqual(1,r['groups']['SINGLE']['fallbackUnknown'])
-            self.assertEqual(119,r['groups']['SINGLE']['completed'])
-        args=self.full_case();del args[1]['samples'][0]['decision']['fallback'];self.assertFalse(measure(*args)['algorithmPassed'])
-        args=self.full_case();args[1]['samples'][0]['status']='LOCAL_FALLBACK';self.assertFalse(measure(*args)['algorithmPassed'])
+    def test_missing_decision_and_failed_status_are_not_complete(self):
+        args=self.full_case();del args[1]['samples'][0]['decision']['action']
+        result=measure(*args);self.assertFalse(result['algorithmPassed']);self.assertEqual(119,result['groups']['SINGLE']['completed'])
         args=self.full_case();args[1]['samples'][0]['status']='NO_RESPONSE';self.assertFalse(measure(*args)['algorithmPassed'])
 
     def test_metadata_duplicate_unknown_and_missing(self):
@@ -100,7 +96,7 @@ class ClosureMetricsTest(unittest.TestCase):
     def test_pilot_uses_same_strict_checks(self):
         args=self.full_case();m,e,r=args[:3];wanted=set(m['pilotIds']);e['samples']=[x for x in e['samples'] if x['id'] in wanted];r['samples']=[x for x in r['samples'] if x['id'] in wanted];r['status']='PASS'
         self.assertTrue(pilot(m,e,r)['algorithmPassed']);self.assertFalse(pilot(m,e,r)['pilotPassed'])
-        del e['samples'][0]['decision']['fallback'];self.assertFalse(pilot(m,e,r)['algorithmPassed'])
+        del e['samples'][0]['decision']['action'];self.assertFalse(pilot(m,e,r)['algorithmPassed'])
 
     def test_actual_rule_sequence_export_matches_consumer(self):
         path=Path(__file__).resolve().parents[3]/'backend/target/closure-sequence-offline-evidence.json'
@@ -111,6 +107,6 @@ class ClosureMetricsTest(unittest.TestCase):
         result=measure(manifest,evidence,review,evidence_sha256='offline')
         self.assertEqual(48,len(evidence['samples']))
         for problem in result['problems']:
-            self.assertFalse(any(code in problem for code in ('SEQUENCE_', 'ACTION_NOT_IN_CONTINUITY','METADATA_MISMATCH','STATUS_FALLBACK_CONFLICT')),problem)
+            self.assertFalse(any(code in problem for code in ('SEQUENCE_', 'ACTION_NOT_IN_CONTINUITY','METADATA_MISMATCH','GENERATION_NOT_PROVEN')),problem)
 
 if __name__ == '__main__':unittest.main()

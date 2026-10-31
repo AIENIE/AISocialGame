@@ -68,8 +68,8 @@ AISocialGame/
 - 非本地环境会校验弱口令、MySQL TLS 和 gRPC 明文配置；预生产 MySQL 固定为 `sslMode=REQUIRED&allowPublicKeyRetrieval=false`，生产要求 `VERIFY_IDENTITY&allowPublicKeyRetrieval=false`，详见 `doc/modules/security-hardening-module.md`。
 - 发版链路（`scripts/ci/build-release.sh`）只负责依赖解析、构建、测试与运行时包组装，不登录管理员、不执行特权迁移，也不自动执行 Playwright；构建产物不含运行时配置与秘密。
 - M1 AI 拟人质量闭环新增 `ai_decision_traces` 与 `ai_persona_memories`，用于服务端质检、回放准备和 Persona 记忆沉淀。
-- 本地开箱即用数据由 `DemoSeedService` 管理，只有显式设置 `APP_DEMO_SEED_ENABLED=true` 时才会开启；真实浏览器验收脚本位于 `frontend/tests/acceptance-real.spec.ts`。
+- 应用不生成演示数据；离线 fixture 与真实验收入口见 `doc/modules/acceptance-module.md`。
 - M2 结构化事件与回放新增 `game_events` 与 `game_archives`，`GameState.logs` 继续服务房间页，服务端回放 API 位于 `ReplayController`。
-- M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`GamePlayService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。
+- M3 GameEngine 插件化新增 `backend/src/main/java/com/aisocialgame/engine/`，`V2GameService` 作为兼容编排层，前端统一动作 hook 位于 `frontend/src/hooks/useGameEngine.ts`。
 - v1.0 性能稳定性整改新增 `AsyncExecutionConfig`、`RequestIdFilter`、房间 `seatCount/version`、AI SSE 线程池和房间分页接口；详见 `doc/modules/performance-stability-module.md`。
 - v1.0 可维护性整改新增 `backend/src/main/java/com/aisocialgame/web/`、`backend/src/main/java/com/aisocialgame/service/credit/CreditLedgerService.java` 和 `frontend/src/pages/games/shared/`，用于集中鉴权参数解析、账本逻辑与房间页复用。

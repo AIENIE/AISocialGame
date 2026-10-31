@@ -50,7 +50,7 @@ class AiModelConfigServiceTest {
         assertEquals("12", environmentSelection.modelKey());
         assertNull(service.getConfiguration().syncedAt()); verifyNoInteractions(remote);
         var result = service.sync();
-        assertDoesNotThrow(() -> service.requireUsable(environmentSelection));
+        assertEquals("AI_MODEL_CONFIG_INVALID", assertThrows(ApiException.class, () -> service.requireUsable(environmentSelection)).getCode());
         assertEquals("12", environmentSelection.modelKey(), "validation must not rewrite a prepared request");
         assertEquals(4, result.functions().size()); assertEquals(1, result.catalogVersion());
         assertTrue(result.functions().stream().allMatch(f -> f.modelKey().equals("test-model") && f.thinkingMode() == ThinkingMode.DEFAULT && f.thinkingEffort() == null));

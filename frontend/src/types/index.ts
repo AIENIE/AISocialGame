@@ -131,29 +131,8 @@ export interface AiChatResponse {
   completionTokens: number;
 }
 
-export interface AiEmbeddingsResponse {
-  modelKey: string;
-  dimensions: number;
-  embeddings: number[][];
-  promptTokens: number;
-}
 
-export interface AiOcrParams {
-  imageUrl?: string;
-  imageBase64?: string;
-  documentUrl?: string;
-  model?: string;
-  pages?: string;
-  outputType?: "TEXT" | "MARKDOWN" | "JSON";
-}
 
-export interface AiOcrResponse {
-  requestId: string;
-  modelKey: string;
-  outputType: string;
-  content: string;
-  rawJson?: string;
-}
 
 export interface AiModel {
   id: number;
@@ -332,7 +311,7 @@ export interface UsageRecord {
   modelKey: string;
   promptTokens: number;
   completionTokens: number;
-  billedTokens: number;
+  billedPoints: number;
   createdAt?: string;
 }
 
@@ -550,60 +529,6 @@ export interface PlayerStats {
   gamesPlayed: number;
   wins: number;
   score: number;
-}
-
-export interface FriendItem {
-  id: string;
-  displayName: string;
-  avatar?: string;
-  online: boolean;
-  currentGameId?: string;
-  currentRoomId?: string;
-}
-
-export interface FriendRequestItem {
-  id: string;
-  fromId: string;
-  fromName: string;
-  fromAvatar?: string;
-  createdAt: string;
-}
-
-export interface AchievementDefinition {
-  code: string;
-  name: string;
-  description: string;
-  rarity: "COMMON" | "RARE" | "EPIC";
-  rewardCoins: number;
-  gameId?: string;
-  target: number;
-}
-
-export interface PlayerAchievement {
-  code: string;
-  unlocked: boolean;
-  progress: number;
-  unlockedAt?: string;
-}
-
-export interface ReplayEvent {
-  phase?: string;
-  seq?: number;
-  id: string;
-  timestamp: string;
-  type: string;
-  message: string;
-}
-
-export interface ReplayArchive {
-  id: string;
-  gameId: string;
-  roomId: string;
-  roomName: string;
-  result: string;
-  perspective: "GOD" | "PLAYER";
-  createdAt: string;
-  events: ReplayEvent[];
 }
 
 export type ReplayViewMode = "PUBLIC" | "PLAYER" | "GOD";

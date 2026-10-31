@@ -72,7 +72,7 @@ public class WerewolfLabReview {
         input.put("eventCatalog",catalog); input.put("decisions",decisions);
         input.put("outcomeTruth",Map.of("results",match.snapshot.getOrDefault("results",List.of()),"winner",match.snapshot.getOrDefault("winner","")));
         try {
-            return Map.of("roomId",match.roomId,"gameId","werewolf","identityField","sharedStrategy",
+            return Map.of("roomId",match.roomId,"gameId","werewolf",
                     "selection",match.snapshot.get("coach"),"inputVersion","werewolf-review-v1",
                     "messages",List.of(Map.of("role","system","content",SYSTEM),Map.of("role","user","content",json.writeValueAsString(input))));
         } catch(com.fasterxml.jackson.core.JsonProcessingException invalid) { throw new IllegalStateException(invalid); }

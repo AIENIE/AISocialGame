@@ -101,6 +101,11 @@
       "ordinal": 20,
       "kind": "upgrade",
       "file": "20261026_werewolf_training_v2.sql"
+    },
+    {
+      "ordinal": 21,
+      "kind": "upgrade",
+      "file": "20261029_retire_credit_holds.sql"
     }
   ],
   "execution_plans": [
@@ -125,7 +130,8 @@
         17,
         18,
         19,
-        20
+        20,
+        21
       ]
     },
     {
@@ -148,7 +154,8 @@
         17,
         18,
         19,
-        20
+        20,
+        21
       ]
     }
   ],

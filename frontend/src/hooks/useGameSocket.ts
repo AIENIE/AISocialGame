@@ -18,11 +18,12 @@ interface ParsedFrame {
   body: string;
 }
 
-const parseJson = <T,>(text: string, fallback: T): T => {
+const parseJson = (text: string): Record<string, unknown> | null => {
   try {
-    return JSON.parse(text) as T;
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
   } catch {
-    return fallback;
+    return null;
   }
 };
 
@@ -154,11 +155,13 @@ export const useGameSocket = (options: UseGameSocketOptions) => {
           }
           if (frame.command !== "MESSAGE") continue;
           const destination = frame.headers.destination || "";
-          if (destination.endsWith("/state")) callbacks.current.onStateChange?.(parseJson(frame.body, { type: "STATE_SYNC", phase: "", round: 0 }));
-          else if (destination.endsWith("/seat")) callbacks.current.onSeatChange?.(parseJson(frame.body, { type: "UNKNOWN", seat: null }));
-          else if (destination.endsWith("/chat")) callbacks.current.onChat?.(parseJson(frame.body, { id: "", roomId, senderId: "", senderName: "", type: "TEXT", content: "", timestamp: Date.now() }));
+          const payload = parseJson(frame.body);
+          if (!payload) { ws.close(); return; }
+          if (destination.endsWith("/state")) callbacks.current.onStateChange?.(payload as unknown as GameStateEvent);
+          else if (destination.endsWith("/seat")) callbacks.current.onSeatChange?.(payload as unknown as SeatEvent);
+          else if (destination.endsWith("/chat")) callbacks.current.onChat?.(payload as unknown as ChatMessage);
           else if (destination.includes("/queue/private")) {
-            const privateEvent = parseJson<PrivateEvent>(frame.body, { type: "UNKNOWN", payload: {} });
+            const privateEvent = payload as unknown as PrivateEvent;
             if (privateEvent.type === "SYNC_READY") {
               if (!synchronized && privateEvent.payload?.roomId === roomId && privateEvent.payload?.nonce === syncNonce) {
                 synchronized = true;

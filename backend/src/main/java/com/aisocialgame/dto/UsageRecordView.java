@@ -9,7 +9,7 @@ public class UsageRecordView {
     private final String modelKey;
     private final long promptTokens;
     private final long completionTokens;
-    private final long billedTokens;
+    private final long billedPoints;
     private final String createdAt;
 
     public UsageRecordView(UsageRecordSnapshot snapshot) {
@@ -17,7 +17,7 @@ public class UsageRecordView {
         this.modelKey = snapshot.modelKey();
         this.promptTokens = snapshot.promptTokens();
         this.completionTokens = snapshot.completionTokens();
-        this.billedTokens = snapshot.billedTokens();
+        this.billedPoints = snapshot.billedPoints();
         this.createdAt = snapshot.createdAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(snapshot.createdAt());
     }
 
@@ -37,8 +37,8 @@ public class UsageRecordView {
         return completionTokens;
     }
 
-    public long getBilledTokens() {
-        return billedTokens;
+    public long getBilledPoints() {
+        return billedPoints;
     }
 
     public String getCreatedAt() {

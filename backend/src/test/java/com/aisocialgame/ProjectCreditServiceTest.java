@@ -229,8 +229,9 @@ class ProjectCreditServiceTest {
         verify(billingGrpcClient, never()).convertPublicToProject(anyString(), anyString(), anyLong(), anyLong());
     }
 
-    @Test
-    void exchangeShouldPersistFailedWhenRemoteConvertFails() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void exchangeDistinguishesRefusalsFromUnknownResultsAndNeverResendsTheRequest(boolean rejected) {
         CreditAccount account = new CreditAccount();
         account.setUserId(1001L);
         account.setProjectKey("aisocialgame");
@@ -250,17 +251,23 @@ class ProjectCreditServiceTest {
             return txn;
         });
         when(billingGrpcClient.convertPublicToProject("req-fail", "aisocialgame", 1001L, 30L))
-                .thenThrow(new ApiException(HttpStatus.BAD_GATEWAY, "pay-service timeout"));
+                .thenThrow(new ApiException(rejected ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY, "pay-service response unavailable"));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () ->
                 projectCreditService.exchangePublicToProject(1001L, 30L, "req-fail")
         );
 
-        Assertions.assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatus());
+        String code = rejected ? "CREDIT_EXCHANGE_REJECTED" : "CREDIT_EXCHANGE_RESULT_UNKNOWN";
+        Assertions.assertEquals(rejected ? HttpStatus.BAD_REQUEST : HttpStatus.SERVICE_UNAVAILABLE, ex.getStatus());
+        Assertions.assertEquals(code, ex.getCode());
         Assertions.assertNotNull(saved.get());
-        Assertions.assertEquals("FAILED", saved.get().getStatus());
-        Assertions.assertTrue(saved.get().isRetriable());
-        Assertions.assertEquals("pay-service timeout", saved.get().getFailReason());
+        Assertions.assertEquals(rejected ? "REJECTED" : "UNKNOWN", saved.get().getStatus());
+        Assertions.assertFalse(saved.get().isRetriable());
+        Assertions.assertEquals("pay-service response unavailable", saved.get().getFailReason());
+        Assertions.assertEquals(12L, account.getPermanentBalance());
+        Assertions.assertEquals(code, Assertions.assertThrows(ApiException.class,
+                () -> projectCreditService.exchangePublicToProject(1001L, 30L, "req-fail")).getCode());
+        verify(billingGrpcClient, org.mockito.Mockito.times(1)).convertPublicToProject("req-fail", "aisocialgame", 1001L, 30L);
     }
 
     @Test
@@ -279,48 +286,4 @@ class ProjectCreditServiceTest {
         Assertions.assertEquals("该流水已冲正", ex.getMessage());
     }
 
-    @Test
-    void consumeProjectTokensShouldDeductTempThenPermanent() {
-        CreditAccount account = new CreditAccount();
-        account.setUserId(1001L);
-        account.setProjectKey("aisocialgame");
-        account.setTempBalance(200L);
-        account.setPermanentBalance(1000L);
-        when(creditLedgerEntryRepository.findByRequestId("consume-req")).thenReturn(Optional.empty());
-        when(creditAccountRepository.findForUpdate(1001L, "aisocialgame")).thenReturn(Optional.of(account));
-        when(creditAccountRepository.save(any(CreditAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(billingGrpcClient.getPublicPermanentTokens(1001L)).thenReturn(0L);
-
-        projectCreditService.consumeProjectTokens(1001L, 250L, "AI_CHAT", Map.of("modelKey", "gemini"), "consume-req");
-
-        Assertions.assertEquals(0L, account.getTempBalance());
-        Assertions.assertEquals(950L, account.getPermanentBalance());
-
-        ArgumentCaptor<CreditLedgerEntry> captor = ArgumentCaptor.forClass(CreditLedgerEntry.class);
-        verify(creditLedgerEntryRepository).save(captor.capture());
-        Assertions.assertEquals("CONSUME", captor.getValue().getType());
-        Assertions.assertEquals(-200L, captor.getValue().getTokenDeltaTemp());
-        Assertions.assertEquals(-50L, captor.getValue().getTokenDeltaPermanent());
-        Assertions.assertEquals("AI_CHAT", captor.getValue().getSource());
-    }
-
-    @Test
-    void consumeProjectTokensShouldRejectWhenBalanceNotEnough() {
-        CreditAccount account = new CreditAccount();
-        account.setUserId(1001L);
-        account.setProjectKey("aisocialgame");
-        account.setTempBalance(10L);
-        account.setPermanentBalance(20L);
-        when(creditLedgerEntryRepository.findByRequestId("consume-poor")).thenReturn(Optional.empty());
-        when(creditAccountRepository.findForUpdate(1001L, "aisocialgame")).thenReturn(Optional.of(account));
-        when(billingGrpcClient.getPublicPermanentTokens(1001L)).thenReturn(0L);
-
-        ApiException ex = Assertions.assertThrows(ApiException.class, () ->
-                projectCreditService.consumeProjectTokens(1001L, 50L, "AI_CHAT", Map.of(), "consume-poor")
-        );
-
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        Assertions.assertEquals("专属积分不足，请先充值或兑换", ex.getMessage());
-        verify(creditLedgerEntryRepository, never()).save(any());
-    }
 }

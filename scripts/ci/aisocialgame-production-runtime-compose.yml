@@ -1,6 +1,6 @@
 services:
   backend:
-    image: "${AISOCIALGAME_BACKEND_IMAGE:?signed ReleaseManifest v4 must inject the immutable backend image digest}"
+    image: "${AISOCIALGAME_BACKEND_IMAGE:?AISOCIALGAME_BACKEND_IMAGE is required}"
     user: "${AIENIE_RUNTIME_UID:?AIENIE_RUNTIME_UID is required}:${AIENIE_RUNTIME_GID:?AIENIE_RUNTIME_GID is required}"
     read_only: true
     security_opt: [no-new-privileges:true]
@@ -16,21 +16,11 @@ services:
     ports: ["127.0.0.1:11031:20030"]
     volumes:
       - {type: bind, source: ./backend/start-production-backend.sh, target: /app/bin/start-production-backend.sh, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./backend/production-migration-entrypoint.sh, target: /app/bin/production-migration-entrypoint.sh, read_only: true, bind: {create_host_path: false}}
       - {type: bind, source: ./backend/runtime-process-environment.sh, target: /app/bin/runtime-process-environment.sh, read_only: true, bind: {create_host_path: false}}
       - {type: bind, source: ./backend/app.jar, target: /app/app.jar, read_only: true, bind: {create_host_path: false}}
       - {type: bind, source: ./docker/production-load-env-file.sh, target: /app/bin/production-load-env-file.sh, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./release/migrations, target: /app/release/migrations, read_only: true, bind: {create_host_path: false}}
       - {type: bind, source: ./env.txt, target: /app/env.txt, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-release-manifest-v4.json, target: /run/aienie/release-authority/production-release-manifest-v4.json, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-publication-receipt.json, target: /run/aienie/release-authority/production-publication-receipt.json, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-publication-receipt.json.sig, target: /run/aienie/release-authority/production-publication-receipt.json.sig, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-publication-public-key.pem, target: /run/aienie/release-authority/production-publication-public-key.pem, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-preactivation-authority.json, target: /run/aienie/release-authority/production-preactivation-authority.json, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-preactivation-authority.json.sig, target: /run/aienie/release-authority/production-preactivation-authority.json.sig, read_only: true, bind: {create_host_path: false}}
-      - {type: bind, source: ./.aienie-platform/production-preactivation-authority-public-key.pem, target: /run/aienie/release-authority/production-preactivation-authority-public-key.pem, read_only: true, bind: {create_host_path: false}}
       - {type: bind, source: /srv/aienie-products/ai-social-game/logs, target: /app/logs, bind: {create_host_path: false}}
-      - {type: bind, source: /srv/aienie-products/ai-social-game/records, target: /app/records, bind: {create_host_path: false}}
     healthcheck:
       test: ["CMD", "/opt/java/openjdk/bin/java", "-Dloader.main=com.aisocialgame.health.StrictHttpHealthProbe", "-cp", "/app/app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher", "http://127.0.0.1:20030/actuator/health"]
       interval: 10s
@@ -39,7 +29,7 @@ services:
       start_period: 30s
     networks: [aisocialgame]
   frontend:
-    image: "${AISOCIALGAME_FRONTEND_IMAGE:?signed ReleaseManifest v4 must inject the immutable frontend image digest}"
+    image: "${AISOCIALGAME_FRONTEND_IMAGE:?AISOCIALGAME_FRONTEND_IMAGE is required}"
     read_only: true
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]

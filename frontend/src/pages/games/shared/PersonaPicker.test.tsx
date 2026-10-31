@@ -5,8 +5,7 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import { resources } from "@/i18n/resources";
 import type { Persona } from "@/types";
-import { PersonaBadge, PersonaPicker, type PersonaPickerProps } from "./PersonaPicker";
-import { AiSeatControl } from "./AiSeatControl";
+import { PersonaPicker, type PersonaPickerProps } from "./PersonaPicker";
 
 const personas: Persona[] = [1, 2, 3, 4].map(i => ({ id: `ai${i}`, name: `角色${i}`, trait: "旧描述", avatar: "", presetVersion: 1 }));
 let container: HTMLDivElement, root: Root;
@@ -76,26 +75,24 @@ describe("complete persona selection", () => {
     render(); expect(addButton().disabled).toBe(false);
   });
 
-  it("rejects a stale selected ID and derives full state from seat count", () => {
+  it("rejects a stale selected ID and prevents adding when the room is full", () => {
     render({ selectedAiId: "removed" }); expect(addButton().disabled).toBe(true);
-    act(() => root.render(<I18nextProvider i18n={i18n}><AiSeatControl personas={personas} selectedAiId="ai1" onSelectedAiIdChange={vi.fn()} onAddAi={vi.fn()} canAddAi seatCount={6} maxPlayers={6} /></I18nextProvider>));
-    expect(addButton().disabled).toBe(true); expect(container.textContent).toContain("6/6");
+    render({ full: true });
+    expect(addButton().disabled).toBe(true);
   });
 
-  it.each(["zh-CN", "zh-TW", "en"])("localizes all preset descriptions and badges in %s without replacing nicknames", async locale => {
+  it.each(["zh-CN", "zh-TW", "en"])("localizes all preset descriptions in %s without replacing nicknames", async locale => {
     await act(async () => { await i18n.changeLanguage(locale); });
-    act(() => root.render(<I18nextProvider i18n={i18n}><span>生成昵称</span><PersonaBadge personaId="ai1" /><PersonaPicker personas={personas} selectedAiId="ai1" onSelectedAiIdChange={vi.fn()} onAddAi={vi.fn()} canAddAi /></I18nextProvider>));
+    act(() => root.render(<I18nextProvider i18n={i18n}><span>生成昵称</span><PersonaPicker personas={personas} selectedAiId="ai1" onSelectedAiIdChange={vi.fn()} onAddAi={vi.fn()} canAddAi /></I18nextProvider>));
     expect(container.textContent).toContain("生成昵称");
     const name = resources[locale as keyof typeof resources].translation["persona.ai1.name"];
-    expect(container.querySelector('[data-testid="persona-badge"]')!.textContent).toContain(name);
+    expect(container.textContent).toContain(name);
     expect(container.textContent).not.toContain("persona."); expect(container.textContent).not.toContain("旧描述");
   });
 
-  it("uses server descriptions for future versions and a neutral badge for unknown old IDs", () => {
+  it("uses server descriptions for future versions", () => {
     render({ personas: [{ ...personas[0], presetVersion: 2, name: "未来名称", trait: "新策略摘要", behaviorGuide: { questioning: "未来提问方式" } }] });
     expect(container.textContent).toContain("未来提问方式"); expect(container.textContent).toContain("新策略摘要");
     expect(container.textContent).not.toContain("证据驱动");
-    act(() => root.render(<I18nextProvider i18n={i18n}><PersonaBadge personaId="removed" /></I18nextProvider>));
-    expect(container.textContent).toContain("默认托管");
   });
 });

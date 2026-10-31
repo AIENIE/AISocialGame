@@ -30,8 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BillingGrpcAuthClientInterceptorTest {
     private static final Metadata.Key<String> AUTHORIZATION_KEY =
             Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> LEGACY_INTERNAL_TOKEN_KEY =
-            Metadata.Key.of("x-internal-token", Metadata.ASCII_STRING_MARSHALLER);
 
     @Test
     void callReplacesPoisonedHeadersWithFreshCanonicalJwt() throws Exception {
@@ -42,7 +40,6 @@ class BillingGrpcAuthClientInterceptorTest {
                     ServerCall<ReqT, RespT> call, Metadata headers,
                     ServerCallHandler<ReqT, RespT> next) {
                 received.add(headers.get(AUTHORIZATION_KEY));
-                assertNull(headers.get(LEGACY_INTERNAL_TOKEN_KEY));
                 assertEquals(1, count(headers, AUTHORIZATION_KEY));
                 return Contexts.interceptCall(io.grpc.Context.current(), call, headers, next);
             }
@@ -73,7 +70,6 @@ class BillingGrpcAuthClientInterceptorTest {
                     () -> "grpc-pay-jti-" + sequence.incrementAndGet());
             Metadata poisoned = new Metadata();
             poisoned.put(AUTHORIZATION_KEY, "Bearer stale-static-token");
-            poisoned.put(LEGACY_INTERNAL_TOKEN_KEY, "legacy-internal-token");
             var stub = BillingBalanceServiceGrpc.newBlockingStub(ClientInterceptors.intercept(
                     channel,
                     new BillingGrpcAuthClientInterceptor(provider),

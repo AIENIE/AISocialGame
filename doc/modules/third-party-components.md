@@ -5,7 +5,6 @@
 
 - MySQL
 - Redis
-- Qdrant
 
 ## 对齐结果
 
@@ -16,7 +15,6 @@
 - 默认连接：
   - MySQL：`localmysql.testhut.top:23306`
   - Redis：`localredis.testhut.top:26379`
-  - Qdrant：`http://localqdrant.testhut.top:26333`
 
 ## 服务发现与域名策略
 
@@ -31,7 +29,7 @@
 
 ## 部署脚本行为
 
-- 发版链路与本地调试脚本都不部署、不初始化、不预检 MySQL/Redis/Qdrant；外部依赖不可用时由后端启动或业务调用暴露错误。
+- 发版链路与本地调试脚本都不部署、不初始化、不预检 MySQL/Redis；外部依赖不可用时由后端启动或业务调用暴露错误。
 
 ## Schema 稳定性
 

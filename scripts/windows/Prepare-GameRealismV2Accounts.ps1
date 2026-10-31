@@ -71,9 +71,6 @@ function Assert-UserServiceJwtEnvironment([System.Collections.IDictionary]$Value
         if ($Values.Contains($Name) -and $null -ne $Values[$Name]) { return [string]$Values[$Name] }
         return ''
     }
-    if ((Read-Value 'APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN').Length -gt 0) {
-        throw 'Legacy UserService internal tokens are not accepted.'
-    }
     if ((Read-Value 'APP_EXTERNAL_GRPC_AUTH_REQUIRED') -eq 'false') { throw 'Real account preparation requires external gRPC authentication.' }
     $expected = [ordered]@{
         APP_EXTERNAL_USERSERVICE_JWT_CALLER_ID = 'aisocialgame'
@@ -122,7 +119,6 @@ $canonical = [ordered]@{
     SPRING_DATASOURCE_URL = $sharedTarget.jdbcUrl
     SPRING_JPA_HIBERNATE_DDL_AUTO = 'validate'
     SPRING_DATA_REDIS_HOST = 'localredis.testhut.top'; SPRING_DATA_REDIS_PORT = '26379'; SPRING_DATA_REDIS_SSL_ENABLED = 'false'
-    QDRANT_HOST = 'http://localqdrant.testhut.top'; QDRANT_PORT = '26333'
     USER_GRPC_ADDR = 'static://localuserservice.testhut.top:22001'
     BILLING_GRPC_ADDR = 'static://localpayservice.testhut.top:22021'
     AI_GRPC_ADDR = 'static://localaiservice.testhut.top:22011'
@@ -130,10 +126,10 @@ $canonical = [ordered]@{
     GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION = $localGrpcTrust; USER_GRPC_NEGOTIATION_TYPE = 'TLS'
     BILLING_GRPC_NEGOTIATION_TYPE = 'TLS'; AI_GRPC_NEGOTIATION_TYPE = 'TLS'
     BILLING_GRPC_PLAINTEXT_ENABLED = 'false'; APP_SECURITY_ALLOW_PLAINTEXT_GRPC = 'false'
-    APP_EXTERNAL_GRPC_AUTH_REQUIRED = 'true'; APP_EXTERNAL_USERSERVICE_INTERNAL_GRPC_TOKEN = ''
+    APP_EXTERNAL_GRPC_AUTH_REQUIRED = 'true'
     SSO_USER_SERVICE_BASE_URL = 'https://localuserservice.testhut.top'
     SSO_CALLBACK_URL = 'https://localsocialgame.testhut.top/sso/callback'
-    APP_GAME_SCHEDULER_ENABLED = 'false'; APP_DEMO_SEED_ENABLED = 'false'
+    APP_GAME_SCHEDULER_ENABLED = 'false'
     AI_REALISM_LOGIN_BOOTSTRAP = '1'; AI_REALISM_ACCOUNTS_FILE = $accountsPath; AI_REALISM_TOKENS_FILE = $outputPath
 }
 $maven = (Get-Command -Name 'mvn.cmd' -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path

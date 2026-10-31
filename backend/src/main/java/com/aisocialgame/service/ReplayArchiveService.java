@@ -71,9 +71,12 @@ public class ReplayArchiveService {
         archive.setStartedAt(startedAt);
         archive.setFinishedAt(finishedAt);
         archive.setDurationSeconds(Math.max(0, Duration.between(startedAt, finishedAt).toSeconds()));
-        archive.setPlayersSnapshot(Map.of("players", playerSnapshots(state), "ruleVersion", state.getData().getOrDefault("ruleVersion", 1),
-                "rules", state.getData().getOrDefault("rules", Map.of()), "knowledgeVersion", state.getData().getOrDefault("knowledgeVersion", "legacy"), "promptVersion", state.getData().getOrDefault("promptVersion", "legacy")));
-        archive.setAiQualitySummary(aiQualitySummary(state.getRoomId(), archiveId));
+        Map<String,Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("players", playerSnapshots(state));
+        for (String key : List.of("ruleVersion", "rules", "knowledgeVersion", "promptVersion"))
+            if (state.getData().containsKey(key)) snapshot.put(key, state.getData().get(key));
+        archive.setPlayersSnapshot(snapshot);
+        archive.setAiQualitySummary(aiQualitySummary(archiveId));
         archive.setEventCount(gameEventRepository.countByArchiveId(archiveId));
         archive.setSummary("对局结束，获胜方：" + archive.getWinner());
         GameArchive saved = gameArchiveRepository.save(archive);
@@ -173,12 +176,11 @@ public class ReplayArchiveService {
         }).toList();
     }
 
-    private Map<String, Object> aiQualitySummary(String roomId, String archiveId) {
+    private Map<String, Object> aiQualitySummary(String archiveId) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("traceCount", aiDecisionTraceRepository.countByInstanceId(archiveId));
         summary.put("fallbackCount", aiDecisionTraceRepository.countByInstanceIdAndFallbackTrue(archiveId));
         summary.put("association", "INSTANCE_ID");
-        summary.put("legacyUnattributed", aiDecisionTraceRepository.countByRoomIdAndInstanceIdIsNull(roomId));
         return summary;
     }
 }

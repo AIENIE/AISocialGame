@@ -100,14 +100,7 @@ public class AiModelConfigService {
         var catalog = catalogs.findById(1L).orElseGet(AiModelCatalog::new);
         if (catalog.syncedAt == null && selection.thinkingMode() == ThinkingMode.DEFAULT && selection.thinkingEffort() == null) return;
         var available = models(catalog);
-        var checked = selection;
-        // A turn started before the first sync may contain the legacy numeric ID. Validate the same model
-        // without changing the original request bytes; persisted bindings always use stable keys.
-        if (selection.configVersion() == AiModelSelection.ENVIRONMENT_VERSION && available.stream().noneMatch(m -> selection.modelKey().equals(m.modelKey()))) {
-            var legacyModel = available.stream().filter(m -> selection.modelKey().equals(Long.toString(m.id()))).findFirst();
-            if (legacyModel.isPresent()) checked = new AiModelSelection(selection.functionCode(), legacyModel.get().modelKey(), selection.thinkingMode(), selection.thinkingEffort(), selection.configVersion());
-        }
-        String problem = problem(checked, available);
+        String problem = problem(selection, available);
         if (problem != null) throw error(HttpStatus.SERVICE_UNAVAILABLE, "AI_MODEL_CONFIG_INVALID", "模型配置待调整：" + problem);
     }
 

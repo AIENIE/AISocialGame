@@ -27,7 +27,6 @@ import static org.mockito.Mockito.*;
 @ActiveProfiles("test")
 class V2GameServiceIntegrationTest {
     @Autowired V2GameService runtime;
-    @Autowired GamePlayService facade;
     @Autowired RoomService roomService;
     @Autowired RoomRepository rooms;
     @Autowired GameStateRepository states;
@@ -61,7 +60,7 @@ class V2GameServiceIntegrationTest {
         restored.getPlayers().stream().filter(player -> player.getPlayerId().equals(actor.getPlayerId())).findFirst().orElseThrow().setAi(true);
         states.saveAndFlush(restored);runtime.tick(room.getId());
         var job=coordinator.claim(queued(room.getId()).getId());
-        runtime.complete(job.getId(),new AiTurnDecision(action,actor.getWord(),Map.of(),List.of(),Map.of(),false,Map.of()));
+        runtime.complete(job.getId(),new AiTurnDecision(action,actor.getWord(),Map.of(),List.of(),Map.of(),Map.of()));
         assertFalse(states.findById(room.getId()).orElseThrow().getPlayers().stream().filter(player -> player.getPlayerId().equals(actor.getPlayerId())).findFirst().orElseThrow().isAlive());
         assertEquals("FORBIDDEN_WORD_ELIMINATED",jobs.findById(job.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
     }
@@ -93,7 +92,7 @@ class V2GameServiceIntegrationTest {
         var pending=jobs.findById(job.getId()).orElseThrow();assertEquals("QUEUED",pending.getStatus());
         assertEquals(2,RuleSupport.map(pending.getObservation().get("generationCheckpoint")).get("nextAttempt"));
         var resumed=coordinator.claim(job.getId());assertEquals(deadline,resumed.getDiagnostics().get("executionDeadlineEpochMs"));
-        runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),false,Map.of()));
+        runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),Map.of()));
         assertEquals("SUCCEEDED",jobs.findById(job.getId()).orElseThrow().getStatus());
         assertFalse(states.findById(room.getId()).orElseThrow().getLogs().toString().contains("private fixture"));
     }
@@ -102,7 +101,7 @@ class V2GameServiceIntegrationTest {
         Room room=room(true);runtime.start("undercover",room.getId(),user(room.getHostUserId()));
         for(int i=0;i<4;i++) {
             var job=coordinator.claim(queued(room.getId()).getId());
-            runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),false,Map.of()));
+            runtime.complete(job.getId(),new AiTurnDecision(RuleSupport.action("SPEAK","测试描述",null),"测试描述",Map.of(),List.of(),Map.of(),Map.of()));
         }
         var ballots=jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED"));
         assertEquals(4,ballots.size()); assertTrue(ballots.stream().allMatch(j->"VOTE".equals(j.getKind())));
@@ -110,13 +109,13 @@ class V2GameServiceIntegrationTest {
         var running=ballots.stream().map(j->coordinator.claim(j.getId())).toList();
         try(var pool=Executors.newFixedThreadPool(4)) {
             var tasks=running.stream().map(j->pool.submit(()->runtime.complete(j.getId(),new AiTurnDecision(
-                RuleSupport.action("SKIP","",null),"",Map.of(),List.of(),Map.of(),false,Map.of())))).toList();
+                RuleSupport.action("SKIP","",null),"",Map.of(),List.of(),Map.of(),Map.of())))).toList();
             for(var task:tasks)task.get(15,TimeUnit.SECONDS);
         }
         var state=states.findById(room.getId()).orElseThrow();
         assertEquals(1,RuleSupport.maps(state.getData().get("events")).stream().filter(e->"VOTE_REVEAL".equals(e.get("type"))).count());
         assertEquals(2,state.getRoundNumber());
-        runtime.complete(running.getFirst().getId(),AiTurnDecision.fallback(RuleSupport.action("SKIP","",null)));
+        runtime.complete(running.getFirst().getId(),com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(RuleSupport.action("SKIP","",null)));
         assertEquals(2,states.findById(room.getId()).orElseThrow().getRoundNumber());
     }
 
@@ -128,7 +127,7 @@ class V2GameServiceIntegrationTest {
         try {
             runtime.tick(room.getId());state=states.findById(room.getId()).orElseThrow();assertNull(state.getPhaseEndsAt());
             int eventCount=RuleSupport.maps(state.getData().get("events")).size();runtime.tick(room.getId());assertEquals(eventCount,RuleSupport.maps(states.findById(room.getId()).orElseThrow().getData().get("events")).size());
-            runtime.complete(running.getId(),AiTurnDecision.fallback(RuleSupport.action("SPEAK","不应发布",null)));
+            runtime.complete(running.getId(),com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(RuleSupport.action("SPEAK","不应发布",null)));
             assertEquals("ADMIN_CONTROL",jobs.findById(running.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
             assertFalse(states.findById(room.getId()).orElseThrow().getLogs().toString().contains("不应发布"));
         } finally {safety.disableControl(control.getId());}
@@ -165,7 +164,7 @@ class V2GameServiceIntegrationTest {
         GameState before = states.findById(room.getId()).orElseThrow();
         String snapshot = json.writeValueAsString(before);
         long jobCount = jobs.count();
-        for (int i = 0; i < 4; i++) facade.state("undercover", room.getId(), user(room.getHostUserId()));
+        for (int i = 0; i < 4; i++) runtime.state("undercover", room.getId(), user(room.getHostUserId()));
         assertEquals(snapshot, json.writeValueAsString(states.findById(room.getId()).orElseThrow()));
         assertEquals(jobCount, jobs.count());
         verifyNoInteractions(client);
@@ -216,7 +215,7 @@ class V2GameServiceIntegrationTest {
         assertFalse(json.writeValueAsString(diagnostic).contains("我先从实际"));
         long count = events.countByArchiveId(queued.getInstanceId());
         VisibleObservation observation = json.convertValue(queued.getObservation(), VisibleObservation.class);
-        runtime.complete(queued.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
+        runtime.complete(queued.getId(), com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(runtime.rules("undercover"), observation));
         assertEquals(diagnostic, jobs.findById(queued.getId()).orElseThrow().getDiagnostics());
         assertEquals(count, events.countByArchiveId(queued.getInstanceId()));
         assertEquals(1, traces.findAll().stream().filter(t -> queued.getId().equals(t.getQuality().get("jobId"))).count());
@@ -229,7 +228,7 @@ class V2GameServiceIntegrationTest {
         String before = json.writeValueAsString(states.findById(room.getId()).orElseThrow().getData());
         var action = RuleSupport.action("SPEAK", "这次先看实际使用情境。", null);
         var decision = new AiTurnDecision(action, action.getContent(), Map.of(), List.of(),
-                Map.of("hypotheses", List.of(Map.of("text", 42))), false, Map.of("latencyMs", 123L, "rawOutput", Map.of("private", "SECRET_RAW")));
+                Map.of("hypotheses", List.of(Map.of("text", 42))), Map.of("latencyMs", 123L, "rawOutput", Map.of("private", "SECRET_RAW")));
         assertThrows(RuntimeException.class, () -> runtime.complete(job.getId(), decision));
         assertEquals(before, json.writeValueAsString(states.findById(room.getId()).orElseThrow().getData()));
         assertFalse(jobs.findById(job.getId()).orElseThrow().getDiagnostics().containsKey("terminalReason"));
@@ -253,7 +252,7 @@ class V2GameServiceIntegrationTest {
         String instance = String.valueOf(states.findById(room.getId()).orElseThrow().getData().get("archiveId"));
         assertNotEquals(old.getInstanceId(), instance);
         long count = events.countByArchiveId(instance);
-        runtime.complete(old.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
+        runtime.complete(old.getId(), com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(runtime.rules("undercover"), observation));
         assertEquals("DISCARDED", jobs.findById(old.getId()).orElseThrow().getStatus());
         assertEquals("INSTANCE_UNAVAILABLE", jobs.findById(old.getId()).orElseThrow().getDiagnostics().get("terminalReason"));
         assertEquals(count, events.countByArchiveId(instance));
@@ -264,8 +263,6 @@ class V2GameServiceIntegrationTest {
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
         VisibleObservation observation = json.convertValue(job.getObservation(), VisibleObservation.class);
         GameState state = states.findById(room.getId()).orElseThrow();
-        state.getData().put("aiMemoriesV2", Map.of(job.getActorId(), Map.of("commitments", List.of("旧承诺保持待核对"))));
-        states.saveAndFlush(state);
         String before = json.writeValueAsString(states.findById(room.getId()).orElseThrow().getData());
         long eventCount = events.countByArchiveId(job.getInstanceId());
         String target = state.getPlayers().stream().filter(p -> !p.getPlayerId().equals(job.getActorId())).findFirst().orElseThrow().getPlayerId();
@@ -274,7 +271,7 @@ class V2GameServiceIntegrationTest {
         var decision = new AiTurnDecision(action, quote, Map.of(), List.of(),
                 Map.of("hypotheses", List.of(Map.of("text", "尚待后续线索检验", "confidence", .4)),
                         "commitments", List.of(Map.of("text", quote, "sourceQuote", quote,
-                                "action", Map.of("kind", "VOTE", "targetPlayerId", target), "roundOffset", 0))), false, Map.of());
+                                "action", Map.of("kind", "VOTE", "targetPlayerId", target), "roundOffset", 0))), Map.of());
         new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             runtime.complete(job.getId(), decision);
             assertEquals("SUCCEEDED", jobs.findById(job.getId()).orElseThrow().getStatus());
@@ -290,8 +287,7 @@ class V2GameServiceIntegrationTest {
         Map<String, Object> committed = RuleSupport.map(RuleSupport.map(states.findById(room.getId()).orElseThrow().getData().get("aiMemoriesV2")).get(job.getActorId()));
         assertEquals(AiMemoryEntries.FORMAT_VERSION, committed.get("formatVersion"));
         assertEquals("MODEL_PROPOSAL", RuleSupport.maps(committed.get("hypotheses")).getFirst().get("source"));
-        assertEquals("LEGACY_UNVERIFIED", RuleSupport.maps(committed.get("commitments")).getFirst().get("source"));
-        assertEquals("UNVERIFIED", RuleSupport.maps(committed.get("commitments")).getFirst().get("status"));
+        assertEquals(1, RuleSupport.maps(committed.get("commitments")).size());
         assertEquals("ACTIVE", RuleSupport.maps(committed.get("commitments")).getLast().get("status"));
         assertNotNull(RuleSupport.maps(committed.get("commitments")).getLast().get("sourceEventId"));
         assertEquals(1, RuleSupport.maps(committed.get("recentDecisions")).size());
@@ -306,7 +302,7 @@ class V2GameServiceIntegrationTest {
         for (int i = 0; i < 4; i++) {
             AiTurnJob description = coordinator.claim(queued(room.getId()).getId());
             VisibleObservation observation = json.convertValue(description.getObservation(), VisibleObservation.class);
-            runtime.complete(description.getId(), AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation)));
+            runtime.complete(description.getId(), com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(runtime.rules("undercover"), observation));
         }
         AiTurnJob ballot = coordinator.claim(queued(room.getId()).getId());
         GameState state = states.findById(room.getId()).orElseThrow();
@@ -328,7 +324,7 @@ class V2GameServiceIntegrationTest {
         Room room = room(true); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
         VisibleObservation observation = json.convertValue(job.getObservation(), VisibleObservation.class);
-        AiTurnDecision result = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(runtime.rules("undercover"), observation));
+        AiTurnDecision result = com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(runtime.rules("undercover"), observation);
         GameState state = states.findById(room.getId()).orElseThrow();
         state.setPhaseEndsAt(java.time.LocalDateTime.now().minusSeconds(1)); states.saveAndFlush(state);
 
@@ -393,7 +389,7 @@ class V2GameServiceIntegrationTest {
             List<Future<GameStateResponse>> results = new ArrayList<>();
             for (int i = 0; i < 2; i++) {
                 String actor = room.getSeats().get(i).getPlayerId();
-                results.add(pool.submit(() -> facade.action("undercover", room.getId(), RuleSupport.action("VOTE", "", target), user(actor))));
+                results.add(pool.submit(() -> runtime.action("undercover", room.getId(), user(actor), RuleSupport.action("VOTE", "", target))));
             }
             for (var result : results) assertNotNull(result.get(10, TimeUnit.SECONDS));
         } finally { pool.shutdownNow(); }
@@ -412,7 +408,7 @@ class V2GameServiceIntegrationTest {
         assertEquals(2, memory.getGamesPlayed()); assertEquals("PENDING", memory.getReviewStatus()); assertNull(memory.getApprovedSummary());
     }
 
-    @Test void osivRoutingReadDoesNotHideAnotherVotersCommittedBallot() throws Exception {
+    @Test void osivActionDoesNotHideAnotherVotersCommittedBallot() throws Exception {
         Room room = room(false); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         for (int step = 0; step < 12; step++) {
             GameState state = states.findById(room.getId()).orElseThrow();
@@ -432,12 +428,11 @@ class V2GameServiceIntegrationTest {
             TransactionSynchronizationManager.bindResource(entityManagerFactory, new org.springframework.orm.jpa.EntityManagerHolder(osiv));
             // Reproduce the facade's preliminary route check in a web request's
             // still-open persistence context, before the mutation lock is held.
-            assertTrue(runtime.isV2(room.getId()));
             assertEquals(0, osiv.unwrap(org.hibernate.Session.class).getStatistics().getEntityCount(),
-                    "The routing read must not install an entity before the action acquires its lock");
-            assertNotNull(otherRequest.submit(() -> facade.action("undercover", room.getId(),
-                    RuleSupport.action("VOTE", "", target), user(first))).get(10, TimeUnit.SECONDS));
-            var response = facade.action("undercover", room.getId(), RuleSupport.action("VOTE", "", target), user(second));
+                    "Actions must acquire their lock before loading mutable state");
+            assertNotNull(otherRequest.submit(() -> runtime.action("undercover", room.getId(), user(first),
+                    RuleSupport.action("VOTE", "", target))).get(10, TimeUnit.SECONDS));
+            var response = runtime.action("undercover", room.getId(), user(second), RuleSupport.action("VOTE", "", target));
             assertEquals(Set.of(first, second), new HashSet<>(RuleSupport.strings(response.getExtra().get("votedPlayers"))));
         } finally {
             TransactionSynchronizationManager.unbindResource(entityManagerFactory);
@@ -455,7 +450,6 @@ class V2GameServiceIntegrationTest {
         assertTrue(runtime.acceptSideChat(room.getId(), actor, "QUICK_PHRASE", "我同意"));
     }
 
-
     @Test void restoredHumanVoteResolvesAiPromiseAtomicallyAndDuplicateRequestIsPure() throws Exception {
         Room room = room(true); runtime.start("undercover", room.getId(), user(room.getHostUserId()));
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
@@ -466,7 +460,7 @@ class V2GameServiceIntegrationTest {
         states.saveAndFlush(state);
         String quote = "我本轮投给" + RuleSupport.player(state, target).getSeatNumber() + "号";
         runtime.complete(job.getId(), new AiTurnDecision(RuleSupport.action("SPEAK", quote, null), quote, Map.of(), List.of(),
-                Map.of("commitments", List.of(Map.of("text", quote, "sourceQuote", quote, "action", Map.of("kind", "VOTE", "targetPlayerId", target)))), false, Map.of()));
+                Map.of("commitments", List.of(Map.of("text", quote, "sourceQuote", quote, "action", Map.of("kind", "VOTE", "targetPlayerId", target)))), Map.of()));
         assertEquals("ACTIVE", commitment(room.getId(), actor).get("status"));
         state = states.findById(room.getId()).orElseThrow(); state.setPhase("VOTING"); state.setCurrentSeat(null); state.setPhaseEndsAt(java.time.LocalDateTime.now().plusMinutes(1));
         state.getData().put("votes", Map.of()); states.saveAndFlush(state);
@@ -493,7 +487,7 @@ class V2GameServiceIntegrationTest {
         AiTurnJob job = coordinator.claim(queued(room.getId()).getId());
         String quote = "我本轮弃票";
         runtime.complete(job.getId(), new AiTurnDecision(RuleSupport.action("SPEAK", quote, null), quote, Map.of(), List.of(),
-                Map.of("commitments", List.of(Map.of("text", quote, "sourceQuote", quote, "action", Map.of("kind", "ABSTAIN")))), false, Map.of()));
+                Map.of("commitments", List.of(Map.of("text", quote, "sourceQuote", quote, "action", Map.of("kind", "ABSTAIN")))), Map.of()));
         assertEquals("ACTIVE", commitment(room.getId(), job.getActorId()).get("status"));
         GameState state = states.findById(room.getId()).orElseThrow(); state.setPhase("VOTING"); state.setCurrentSeat(null);
         state.getData().put("votes", Map.of()); state.setPhaseEndsAt(java.time.LocalDateTime.now().minusSeconds(1)); states.saveAndFlush(state);
@@ -547,9 +541,9 @@ class V2GameServiceIntegrationTest {
         GameState previous = states.findById(room.getId()).orElseThrow(); previous.setPhase("SETTLEMENT"); states.saveAndFlush(previous);
         room = rooms.findById(room.getId()).orElseThrow(); room.setStatus(RoomStatus.WAITING); room.setWaitingSince(java.time.LocalDateTime.now()); room.getSeats().removeLast(); room.syncSeatCount(); rooms.saveAndFlush(room);
         User guest = user(UUID.randomUUID().toString()); roomService.joinRoom(room.getId(), guest.getNickname(), guest, "secret");
-        var lobby = facade.state("undercover", room.getId(), guest);
+        var lobby = runtime.state("undercover", room.getId(), guest);
         assertEquals("WAITING", lobby.getPhase()); assertNull(lobby.getMyWord()); assertTrue(lobby.getLogs().isEmpty());
-        assertEquals("SETTLEMENT", facade.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
+        assertEquals("SETTLEMENT", runtime.state("undercover", room.getId(), user(room.getHostUserId())).getPhase());
     }
 
     @Test void civilianSelfDestructPreservesBallotsPersistsOnceAndDiscardsOldAiResults() {
@@ -573,7 +567,7 @@ class V2GameServiceIntegrationTest {
         var log = after.getLogs().stream().filter(e -> "SELF_DESTRUCT".equals(e.getType())).findFirst().orElseThrow();
         assertEquals(before.getMyWord(), log.getMetadata().get("content")); assertEquals(false, log.getMetadata().get("success"));
         assertEquals("DISCARDED", jobs.findById(old.getId()).orElseThrow().getStatus());
-        runtime.complete(old.getId(), new AiTurnDecision(RuleSupport.action("VOTE", "", actor), "", Map.of(), List.of(), Map.of(), false, Map.of()));
+        runtime.complete(old.getId(), new AiTurnDecision(RuleSupport.action("VOTE", "", actor), "", Map.of(), List.of(), Map.of(), Map.of()));
         runtime.action("undercover", room.getId(), user(actor), boom);
         GameState persisted = states.findById(room.getId()).orElseThrow();
         assertEquals(Map.of(voter, actor), RuleSupport.map(persisted.getData().get("votes")));

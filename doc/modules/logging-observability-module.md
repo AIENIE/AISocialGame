@@ -22,7 +22,7 @@ Spring Boot 的日志配置集中在 `backend/src/main/resources/application.yml
 - 管理员 challenge、数据库 session、恢复码、操作 proof 与认证审计由 `AdminAuthStore` 持久化；Redis 只承担认证限流。登录、验证、重绑和 logout 写入固定审计事件，logout 会显式撤销数据库 session；任何日志与审计均禁止记录密码、TOTP、会话 cookie、challenge、proof 原文或 Redis key。
 - ban/unban、兑换码创建和 persona memory reset 使用真实 `@CurrentAdmin` username 作为受限 actor，并统一记录配置化的 numeric `operatorUserId`、action、非敏感 targetId、结果和 errorType；禁止记录 reason、兑换码、token 或原始内容。失败日志不附带可能包含业务值的异常消息，异常仍会原样向上抛出。
 - UserService 的 ban/unban gRPC 合同要求 numeric `operatorUserId`。AISocialGame 通过 `app.admin.operator-user-id` / `APP_ADMIN_OPERATOR_USER_ID` 统一提供，默认值为 `1` 且必须为正数；该值代表跨服务审计身份，不将 username 猜测或转换为 UserService 用户 ID。若未来启用多管理员，应由统一身份目录分配稳定 numeric ID，而不是继续共享默认值。
-- AI 决策调用异常、规则兜底和 trace/persona memory 持久化异常记录 game、room、player、persona、action 等实体标识；诊断 throwable 只保留原异常类型标识和 stack trace，不保留可能含远端响应的 message、cause 或 suppressed，且禁止记录 prompt、模型原始输出或完整业务上下文。
+- AI 决策调用异常、行动失败和 trace/persona memory 持久化异常记录 game、room、player、persona、action 等实体标识；诊断 throwable 只保留原异常类型标识和 stack trace，不保留可能含远端响应的 message、cause 或 suppressed，且禁止记录 prompt、模型原始输出或完整业务上下文。
 - 全局未处理异常记录固定事件与 `errorType`，requestId 直接来自 MDC/ECS 字段；诊断 throwable 同样只保留 stack trace，不重复打印请求 ID，也不记录异常 message/cause/suppressed。
 - 业务异常字段应优先使用稳定 ID、枚举和计数，不应把认证头、Cookie、密码、兑换码或第三方原始响应写入日志。
 

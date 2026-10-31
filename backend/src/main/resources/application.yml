@@ -125,8 +125,6 @@ app:
   security:
     allow-weak-runtime-defaults: false
     allow-plaintext-grpc: false
-  demo-seed:
-    enabled: false
   external:
     payservice-plaintext-enabled: false
     grpc-auth-required: true
@@ -148,16 +146,9 @@ app:
       scopes: billing.balance.read,billing.checkin.write,billing.checkin.read,billing.ledger.read,billing.balance.convert,billing.onboarding.write,billing.redeem.write
     aiservice-hmac-caller: ''
     aiservice-hmac-secret: ${GRPC_SHARED_SECRET}
-qdrant:
-  host: ''
-  http-port: 26333
-  enabled: true
-  api-key: ${QDRANT_API_KEY:}
 connection:
   disconnect-threshold-seconds: 60
 runtime:
-  acceptance:
-    admin-emergency-codes: false
   configuration:
     ENV: ''
     AUTH_MODE: ''

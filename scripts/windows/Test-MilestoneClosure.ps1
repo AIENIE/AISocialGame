@@ -24,7 +24,7 @@ function Resolve-PrivateClosurePath([string]$Path,[bool]$Existing) {
 }
 $closureLedger=Resolve-PrivateClosurePath $BudgetFile $true
 $closureManifest=Get-Content -LiteralPath $ManifestFile -Raw | ConvertFrom-Json -AsHashtable
-if($closureManifest.evaluationSchemaVersion -ne 2 -or $closureManifest.evaluationSetVersion -cne 'closure-v2' -or $closureManifest.evidenceKind -cne 'REAL_MODEL' -or -not $closureManifest.batchId -or -not $closureManifest.buildId -or $closureManifest.sampleCount -ne 180 -or $closureManifest.maxDiscreteCalls -ne 360 -or $closureManifest.promptVersion -cne 'social-v2.8' -or $closureManifest.inputFormatVersion -ne 3 -or $closureManifest.memoryFormatVersion -ne 4 -or -not $closureManifest.sourceFingerprint){throw 'A current frozen 180-sample manifest is required.'}
+if($closureManifest.evaluationSchemaVersion -ne 2 -or $closureManifest.evaluationSetVersion -cne 'closure-v2' -or $closureManifest.evidenceKind -cne 'REAL_MODEL' -or -not $closureManifest.batchId -or -not $closureManifest.buildId -or $closureManifest.sampleCount -ne 180 -or $closureManifest.maxDiscreteCalls -ne 360 -or $closureManifest.promptVersion -cne 'social-v2.11' -or $closureManifest.inputFormatVersion -ne 3 -or $closureManifest.memoryFormatVersion -ne 4 -or -not $closureManifest.sourceFingerprint){throw 'A current frozen 180-sample manifest is required.'}
 $ledgerSummary=& python.exe (Join-Path $PSScriptRoot 'support/closure_preflight.py') --ledger-summary $closureLedger
 if($LASTEXITCODE -ne 0){throw 'Invalid cumulative journal; reconcile without resetting it.'}
 $closureConsumed=($ledgerSummary | ConvertFrom-Json).consumed
@@ -34,7 +34,7 @@ if($LASTEXITCODE -ne 0){throw 'Build and freeze the current source before collec
 $closureIdentity=$closureIdentity | ConvertFrom-Json -AsHashtable
 if($closureIdentity.sourceFingerprint -cne $closureManifest.sourceFingerprint -or $closureIdentity.buildId -cne $closureManifest.buildId){throw 'Stale manifest or build.'}
 if($Phase -eq 'Preflight') {
-    [ordered]@{realCalls=0;comparisonConsumed=$closureConsumed;historicalComparisonLimit=90;historicalRemaining=90-$closureConsumed;requiredDiscreteHeadroom=360;minimumCumulativeComparisonLimit=$closureConsumed+360;pilotMaximumRequests=24;remainingMaximumRequests=336;liveGamesAndNames='EXCLUDED_SEPARATE_PERSISTENT_BUDGET_REQUIRES_FRESH_READ';sourceFingerprint=$closureManifest.sourceFingerprint;status='LEDGER_AND_BUILD_ONLY_NOT_ENVIRONMENT_READY';environmentPreflight='Test-ClosurePreflight.ps1';readyForExecution=$false} | ConvertTo-Json
+    [ordered]@{realCalls=0;comparisonConsumed=$closureConsumed;historicalComparisonLimit=90;historicalRemaining=90-$closureConsumed;requiredDiscreteHeadroom=360;minimumCumulativeComparisonLimit=$closureConsumed+360;pilotMaximumRequests=24;remainingMaximumRequests=336;liveGames='EXCLUDED_SEPARATE_PERSISTENT_BUDGET_REQUIRES_FRESH_READ';sourceFingerprint=$closureManifest.sourceFingerprint;status='LEDGER_AND_BUILD_ONLY_NOT_ENVIRONMENT_READY';environmentPreflight='Test-ClosurePreflight.ps1';readyForExecution=$false} | ConvertTo-Json
     exit 0
 }
 $closureGrantPath=Resolve-PrivateClosurePath $ApprovalFile $true
@@ -61,7 +61,7 @@ $closureCanonical=@{
     ENV='local'; APP_ENV='local'; AIENIE_RUNTIME_PLANE='windows-local'; APP_PROJECT_KEY='aisocialgame'
     AI_GRPC_ADDR='static://localaiservice.testhut.top:22011'; AI_GRPC_NEGOTIATION_TYPE='TLS'; GRPC_CLIENT_AI_SECURITY_TRUST_CERT_COLLECTION=$localGrpcTrust
     APP_EXTERNAL_AISERVICE_HMAC_CALLER=$closureValues.APP_EXTERNAL_AISERVICE_HMAC_CALLER; GRPC_SHARED_SECRET=$closureValues.GRPC_SHARED_SECRET
-    APP_AI_DEFAULT_MODEL='deepseek-flash'; APP_AI_SYSTEM_USER_ID='85'; APP_GAME_SCHEDULER_ENABLED='false'; APP_DEMO_SEED_ENABLED='false';QDRANT_ENABLED='false'
+    APP_AI_DEFAULT_MODEL='deepseek-flash'; APP_AI_SYSTEM_USER_ID='85'; APP_GAME_SCHEDULER_ENABLED='false'
     LOGGING_FILE_NAME='';LOGGING_LEVEL_ROOT='OFF';LOGGING_LEVEL_APP='OFF'; AI_MILESTONE_CLOSURE_REAL='1'
     AI_CLOSURE_MANIFEST=(Resolve-Path -LiteralPath $ManifestFile).Path;AI_CLOSURE_PHASE=$Phase.ToUpperInvariant();AI_CLOSURE_APPROVAL=$closureGrantPath;AI_REALISM_BUDGET_FILE=$closureLedger;AI_CLOSURE_EVIDENCE=$closureOutput
 }
@@ -72,7 +72,7 @@ if($Phase -eq 'Remaining') {
 $closurePrior=@{}
 try {
     foreach($name in @([Environment]::GetEnvironmentVariables('Process').Keys)) {
-        if([string]$name -match '^(APP_|AI_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|QDRANT_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')) {
+        if([string]$name -match '^(APP_|AI_|REAL_|REALISM_|E2E_|GRPC_|SPRING_|USER_GRPC_|BILLING_GRPC_|SSO_|LOGGING_|SERVER_|ADMIN_)' -or [string]$name -in @('ENV','AUTH_MODE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')) {
             $closurePrior[$name]=[Environment]::GetEnvironmentVariable($name,'Process');[Environment]::SetEnvironmentVariable($name,$null,'Process')
         }
     }

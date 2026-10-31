@@ -11,5 +11,5 @@ public interface AiDecisionTraceRepository extends JpaRepository<AiDecisionTrace
     boolean existsByRoomIdAndActionAndPersonaId(String roomId, String action, String personaId);
     long countByInstanceId(String instanceId);
     long countByInstanceIdAndFallbackTrue(String instanceId);
-    long countByRoomIdAndInstanceIdIsNull(String roomId);
+
 }

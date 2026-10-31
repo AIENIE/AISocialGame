@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getApiErrorCode } from "@/services/apiError";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ const ExchangeCard = ({ exchanging, onExchange }: Props) => {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("");
   const [pendingRequestId, setPendingRequestId] = useState("");
+  const [unknownResult, setUnknownResult] = useState(false);
 
   const submit = async () => {
     const parsed = Number(amount);
@@ -22,9 +24,15 @@ const ExchangeCard = ({ exchanging, onExchange }: Props) => {
     const requestId = pendingRequestId || createRequestId();
     setPendingRequestId(requestId);
     try { await onExchange(parsed, requestId); }
-    catch { return; } // Keep the same request ID for a retry of an uncertain exchange.
+    catch (error) {
+      const code = getApiErrorCode(error);
+      if (code === "CREDIT_EXCHANGE_REJECTED") { setPendingRequestId(""); setUnknownResult(false); }
+      else if (code === "CREDIT_EXCHANGE_RESULT_UNKNOWN") setUnknownResult(true);
+      return;
+    }
     setAmount("");
     setPendingRequestId("");
+    setUnknownResult(false);
   };
 
   const createRequestId = () => {
@@ -40,6 +48,7 @@ const ExchangeCard = ({ exchanging, onExchange }: Props) => {
         <CardTitle className="text-lg">{t("wallet.exchangeTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {unknownResult && <p role="status" className="break-all text-sm">{t("wallet.exchangeUnknown")}<br />{t("wallet.exchangeRequest", { id: pendingRequestId })}</p>}
         <Input
           placeholder={t("wallet.exchangePlaceholder")}
           value={amount}

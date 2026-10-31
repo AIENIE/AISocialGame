@@ -4,7 +4,6 @@ import com.aisocialgame.dto.*;
 import com.aisocialgame.dto.LocalAiDebugView.*;
 import com.aisocialgame.engine.v2.RuleSupport;
 import com.aisocialgame.exception.ApiException;
-import com.aisocialgame.model.AiTurnJob;
 import com.aisocialgame.repository.*;
 import com.aisocialgame.service.RoomAccessPolicy;
 import org.springframework.data.domain.PageRequest;
@@ -22,11 +21,10 @@ public class LocalAiDebugService {
     private final RoomRepository rooms;
     private final AiTurnJobRepository jobs;
     private final LocalAiDebugTurnRepository records;
-    private final AiDecisionTraceRepository traces;
 
     public LocalAiDebugService(LocalAiDebugRecorder recorder, RoomAccessPolicy access, RoomRepository rooms,
-                               AiTurnJobRepository jobs, LocalAiDebugTurnRepository records, AiDecisionTraceRepository traces) {
-        this.recorder = recorder; this.access = access; this.rooms = rooms; this.jobs = jobs; this.records = records; this.traces = traces;
+                               AiTurnJobRepository jobs, LocalAiDebugTurnRepository records) {
+        this.recorder = recorder; this.access = access; this.rooms = rooms; this.jobs = jobs; this.records = records;
     }
 
     public boolean available(String roomId, String userId) {
@@ -43,7 +41,7 @@ public class LocalAiDebugService {
 
     public PagedResponse<Instance> instances(String gameId, String roomId, String userId, int page, int size) {
         require(gameId, roomId, userId);
-        var result = jobs.debugInstances(roomId, PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 100))));
+        var result = records.instances(roomId, PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 100))));
         return new PagedResponse<>(result.getContent().stream().map(i -> new Instance(i.getInstanceId(), i.getStartedAt(), i.getTurnCount())).toList(),
                 result.getNumber(), result.getSize(), result.getTotalElements());
     }
@@ -75,22 +73,10 @@ public class LocalAiDebugService {
 
     public Detail detail(String gameId, String roomId, String userId, String jobId) {
         require(gameId, roomId, userId);
-        AiTurnJob job = jobs.findById(jobId).filter(j -> roomId.equals(j.getRoomId())).orElseThrow(LocalAiDebugService::missing);
-        var all = turns(roomId, job.getInstanceId());
+        var stored = records.findById(jobId).filter(t -> roomId.equals(t.roomId) && gameId.equals(t.gameId)).orElseThrow(LocalAiDebugService::missing);
+        var all = turns(roomId, stored.instanceId);
         Turn turn = all.stream().filter(t -> jobId.equals(t.id())).findFirst().orElseThrow(LocalAiDebugService::missing);
-        var stored = records.findById(jobId).filter(t -> roomId.equals(t.roomId) && gameId.equals(t.gameId));
-        if (stored.isPresent()) return new Detail(turn, stored.get().payload);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("legacy", true); data.put("observationSnapshot", job.getObservation());
-        data.put("generationMetrics", job.getDiagnostics().getOrDefault("generation", Map.of()));
-        traces.findByRoomIdAndInstanceIdAndActorPlayerId(roomId, job.getInstanceId(), job.getActorId()).stream()
-                .filter(t -> jobId.equals(t.getQuality().get("jobId"))).findFirst().ifPresent(trace -> {
-                    data.put("outputSummary", trace.getOutputSummary() == null ? "" : trace.getOutputSummary());
-                    data.put("parsedOutput", trace.getRawOutput());
-                    data.put("inputSummary", trace.getInputSummary() == null ? "" : trace.getInputSummary());
-                    data.put("beliefSnapshot", trace.getBeliefSnapshot()); data.put("memorySnapshot", trace.getMemorySnapshot());
-                });
-        return new Detail(turn, data);
+        return new Detail(turn, stored.payload);
     }
 
     private List<Turn> turns(String roomId, String instanceId) {
@@ -101,8 +87,6 @@ public class LocalAiDebugService {
         for (var ref : jobs.findByRoomIdAndInstanceIdOrderByCreatedAtAscIdAsc(roomId, instanceId)) {
             var known = stored.remove(ref.getId());
             if (known != null) result.add(withStatus(known, ref.getStatus(), RuleSupport.text(ref.getDiagnostics().get("terminalReason"))));
-            else jobs.findById(ref.getId()).filter(j -> roomId.equals(j.getRoomId()) && instanceId.equals(j.getInstanceId()))
-                    .ifPresent(j -> result.add(legacy(j)));
         }
         result.addAll(stored.values());
         result.sort(Comparator.comparing(Turn::createdAt).thenComparing(Turn::id));
@@ -113,30 +97,13 @@ public class LocalAiDebugService {
         return new Turn(t.getId(), t.getActorId(), t.getActorName(), t.getSeatNumber(), t.getRoleKey(), t.getRoundNumber(), t.getPhase(),
                 t.getKind(), t.getStatus(), t.getTerminalReason(), t.getModelKey(), t.getPromptTokens(), t.getCompletionTokens(),
                 t.getCacheReadTokens(), t.getCacheWriteTokens(), t.getReasoningTokens(), t.getUsageAuthoritative(), t.getUsageComplete(),
-                t.getAttemptCount(), t.getResponseCount(), t.getLatencyMs(), t.getCreatedAt(), t.getUpdatedAt(), false);
+                t.getAttemptCount(), t.getResponseCount(), t.getLatencyMs(), t.getCreatedAt(), t.getUpdatedAt());
     }
     private static Turn withStatus(Turn t, String status, String reason) {
         return new Turn(t.id(), t.actorId(), t.actorName(), t.seatNumber(), t.roleKey(), t.round(), t.phase(), t.kind(), status, reason,
                 t.modelKey(), t.promptTokens(), t.completionTokens(), t.cacheReadTokens(), t.cacheWriteTokens(), t.reasoningTokens(),
-                t.usageAuthoritative(), t.usageComplete(), t.attemptCount(), t.responseCount(), t.latencyMs(), t.createdAt(), t.updatedAt(), t.legacy());
+                t.usageAuthoritative(), t.usageComplete(), t.attemptCount(), t.responseCount(), t.latencyMs(), t.createdAt(), t.updatedAt());
     }
-    private static Turn legacy(AiTurnJob job) {
-        var observation = job.getObservation(); var self = RuleSupport.map(observation.get("self"));
-        var generation = RuleSupport.map(job.getDiagnostics().get("generation"));
-        String name = RuleSupport.text(self.get("displayName"));
-        return new Turn(job.getId(), job.getActorId(), name.isBlank() ? job.getActorId() : name,
-                self.get("seatNumber") instanceof Number n ? n.intValue() : null, RuleSupport.text(self.get("role")),
-                RuleSupport.number(observation.get("round"), 0), RuleSupport.text(observation.get("phase")), job.getKind(), job.getStatus(),
-                RuleSupport.text(job.getDiagnostics().get("terminalReason")), RuleSupport.text(generation.get("modelKey")),
-                legacyCount(generation, "promptTokens"), legacyCount(generation, "completionTokens"), null, null, null, null,
-                Boolean.TRUE.equals(generation.get("usageComplete")) && legacyCount(generation, "promptTokens") != null && legacyCount(generation, "completionTokens") != null, RuleSupport.number(generation.get("calls"), 0),
-                RuleSupport.number(generation.get("responsesObserved"), 0), count(generation, "latencyMs"), job.getCreatedAt(),
-                job.getCompletedAt() == null ? job.getCreatedAt() : job.getCompletedAt(), true);
-    }
-    private static Long legacyCount(Map<String, Object> source, String field) {
-        Long value = count(source, field); return value == null || value == 0 ? null : value;
-    }
-    private static Long count(Map<String, Object> source, String field) { return source.get(field) instanceof Number n ? n.longValue() : null; }
     static Usage usage(List<Turn> turns) {
         boolean complete = !turns.isEmpty() && turns.stream().allMatch(Turn::usageComplete);
         Boolean authoritative = turns.isEmpty() || turns.stream().anyMatch(t -> t.usageAuthoritative() == null) ? null

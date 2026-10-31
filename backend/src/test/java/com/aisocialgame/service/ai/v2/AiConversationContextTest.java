@@ -65,7 +65,7 @@ class AiConversationContextTest {
         GameAiAdapter plugin = new GameAiAdapter() {
             public String gameId() { return "test-plugin"; }
             public String instruction(VisibleObservation o) { return ""; }
-            public com.aisocialgame.dto.PlayerAction fallback(VisibleObservation o) { return action("SKIP", null, null); }
+
         };
         var q = event("secret", "ASK_PLAYER", "asker", "self", 2, "DAY_INTERACTION", Map.of());
         var actions = List.of(LegalAction.target("ANSWER_PLAYER", "reply", List.of("asker"), 120));

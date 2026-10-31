@@ -3,7 +3,7 @@ package com.aisocialgame.model.credit;
 import jakarta.persistence.*;
 import java.time.Instant;
 
-/** Returned escrow keeps its original expiry independently of subsequent grants. */
+/** Temporary credit batches retain their own expiry when current calls consume them. */
 @Entity
 @Table(name = "credit_temp_lots", indexes = @Index(name="idx_temp_lot_owner", columnList="user_id,project_key"))
 public class CreditTempLot {

@@ -3,11 +3,7 @@ package com.aisocialgame.controller;
 import com.aisocialgame.dto.AiChatRequest;
 import com.aisocialgame.dto.AiChatResponse;
 import com.aisocialgame.dto.AiChatStreamEvent;
-import com.aisocialgame.dto.AiEmbeddingsRequest;
-import com.aisocialgame.dto.AiEmbeddingsResponse;
 import com.aisocialgame.dto.AiModelView;
-import com.aisocialgame.dto.AiOcrRequest;
-import com.aisocialgame.dto.AiOcrResponse;
 import com.aisocialgame.exception.ApiException;
 import com.aisocialgame.model.User;
 import com.aisocialgame.service.AiProxyService;
@@ -92,15 +88,4 @@ public class AiController {
         return emitter;
     }
 
-    @PostMapping("/embeddings")
-    public ResponseEntity<AiEmbeddingsResponse> embeddings(@Valid @RequestBody AiEmbeddingsRequest request,
-                                                           @CurrentUser User user) {
-        return ResponseEntity.ok(new AiEmbeddingsResponse(aiProxyService.embeddings(request, user)));
-    }
-
-    @PostMapping("/ocr")
-    public ResponseEntity<AiOcrResponse> ocr(@Valid @RequestBody AiOcrRequest request,
-                                             @CurrentUser User user) {
-        return ResponseEntity.ok(new AiOcrResponse(aiProxyService.ocrParse(request, user)));
-    }
 }

@@ -13,8 +13,6 @@ import org.springframework.stereotype.Component;
 public class BillingGrpcAuthClientInterceptor implements ClientInterceptor {
     private static final Metadata.Key<String> AUTHORIZATION_KEY =
             Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> LEGACY_INTERNAL_TOKEN_KEY =
-            Metadata.Key.of("x-internal-token", Metadata.ASCII_STRING_MARSHALLER);
 
     private final PayServiceCallerJwtProvider tokenProvider;
 
@@ -30,7 +28,6 @@ public class BillingGrpcAuthClientInterceptor implements ClientInterceptor {
             @Override
             public void start(Listener<RespT> responseListener, Metadata headers) {
                 headers.discardAll(AUTHORIZATION_KEY);
-                headers.discardAll(LEGACY_INTERNAL_TOKEN_KEY);
                 headers.put(AUTHORIZATION_KEY, "Bearer " + tokenProvider.currentToken());
                 super.start(responseListener, headers);
             }

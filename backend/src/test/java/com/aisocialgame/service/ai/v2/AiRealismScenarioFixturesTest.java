@@ -7,11 +7,8 @@ import com.aisocialgame.engine.v2.undercover.UndercoverWordCatalog;
 import com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
+
 import java.util.List;
 import java.util.Set;
 
@@ -51,7 +48,7 @@ class AiRealismScenarioFixturesTest {
         var samples = new java.util.ArrayList<java.util.Map<String, Object>>();
         for (var scenario : fixtures.load()) {
             var o = scenario.observation();
-            var decision = AiTurnDecision.fallback(com.aisocialgame.service.ai.v2.ScriptedAiActions.action(scenario.adapter(), o));
+            var decision = com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(scenario.adapter(), o);
             var capability = o.legalActions().stream().filter(a -> a.type().equals(decision.action().getType())
                     && java.util.Objects.equals(a.nightAction(), decision.action().getNightAction())).findFirst().orElseThrow();
             if (!capability.targets().isEmpty()) assertTrue(capability.targets().contains(decision.action().getTargetPlayerId()), scenario.id());
@@ -149,14 +146,4 @@ class AiRealismScenarioFixturesTest {
         }
     }
 
-    @Test void remoteHarnessIsExplicitlyOptInAndNeverOverwritesEvidence(@TempDir Path external) throws Exception {
-        var condition = AiRealismComparisonIntegrationTest.class.getAnnotation(EnabledIfEnvironmentVariable.class);
-        assertEquals("AI_REALISM_COMPARISON", condition.named()); assertEquals("1", condition.matches());
-        Path requested = external.resolve("new-run");
-        Path created = AiRealismComparisonIntegrationTest.createEvidenceDirectory(requested.toString());
-        assertEquals(external.toRealPath(), created.toRealPath().getParent());
-        assertThrows(FileAlreadyExistsException.class, () -> AiRealismComparisonIntegrationTest.createEvidenceDirectory(requested.toString()));
-        assertThrows(IllegalArgumentException.class, () -> AiRealismComparisonIntegrationTest.createEvidenceDirectory("relative-path"));
-        assertThrows(IllegalArgumentException.class, () -> AiRealismComparisonIntegrationTest.createEvidenceDirectory(Path.of("").toAbsolutePath().resolve("evidence-inside-checkout").toString()));
-    }
 }

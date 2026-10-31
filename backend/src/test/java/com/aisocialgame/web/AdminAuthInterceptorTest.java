@@ -59,7 +59,7 @@ class AdminAuthInterceptorTest {
     void localPasswordModeBypassesStepUpButStillRequiresTrustedOrigin() {
         AdminAuthService auth = mock(AdminAuthService.class);
         AdminAuthInterceptor interceptor = interceptor(auth, new AdminAuthPolicy("local", "password"));
-        HttpServletRequest request = request("POST", "/api/admin/billing/migrate-all");
+        HttpServletRequest request = request("POST", "/api/admin/billing/redeem-codes");
         when(auth.authenticate(request)).thenReturn(principal("password"));
 
         assertTrue(interceptor.preHandle(request, mock(HttpServletResponse.class), new Object()));

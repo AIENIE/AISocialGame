@@ -25,7 +25,6 @@ class AiCallSettlementTest {
     @Autowired TemporaryCreditService temporary;
     @Autowired CreditLedgerEntryRepository ledger;
     @Autowired PlatformTransactionManager manager;
-    @Autowired com.aisocialgame.service.ProjectCreditService projectCredits;
     ChatCompletionsRequest request;
     PrepareCallBudgetResponse budget;
     Instant originalExpiry;
@@ -40,13 +39,22 @@ class AiCallSettlementTest {
             .setUserId(userId).setModel("test-model").addMessages(ChatMessage.newBuilder().setRole("user").setContent("hi")).build();
         budget=PrepareCallBudgetResponse.newBuilder().setBudgetId(UUID.randomUUID().toString()).setBudgetCredential("test-budget")
             .setRequestSha256(AiCallSettlementService.hash(request.toByteArray())).setMaxPromptTokens(100).setMaxCompletionTokens(20)
+            .setPriceQuote(BudgetPriceQuote.newBuilder().setCurrency("CNY").setPriceVersionId(1).setMaxCost("1.20")
+                .setPointsPerCurrency(100).setMaxCreditPoints(120).setPriceSha256("b".repeat(64)))
             .setMaxTotalTokens(120).setMaxProviderAttempts(1).setExpiresAtEpochMs(System.currentTimeMillis()+300000).build();
     }
     GetBudgetCallStatusResponse success(long input,long output) {
+        var charge=BudgetCharge.newBuilder().setCurrency("CNY").setPriceVersionId(budget.getPriceQuote().getPriceVersionId())
+                .setTotalCost(java.math.BigDecimal.valueOf(input+output,2).toPlainString()).setCreditPoints(input+output)
+                .setPriceSha256(budget.getPriceQuote().getPriceSha256()).build();
         return GetBudgetCallStatusResponse.newBuilder().setBudgetId(budget.getBudgetId()).setRequestSha256(budget.getRequestSha256())
             .setState(BudgetCallState.BUDGET_CALL_STATE_SUCCEEDED).setUsageAuthoritative(true).setPromptTokens(input).setCompletionTokens(output)
-            .setTotalTokens(input+output).setChat(ChatCompletionsResponse.newBuilder().setModelKey("test-model").setContent("ok")
-                .setPromptTokens(input).setCompletionTokens(output)).build();
+            .setTotalTokens(input+output).setPriceQuote(budget.getPriceQuote()).setCharge(charge).setChat(ChatCompletionsResponse.newBuilder().setModelKey("test-model").setContent("ok")
+                .setPromptTokens(input).setCompletionTokens(output).setBudgetCharge(charge)).build();
+    }
+    @Test void noMonetaryQuoteCannotRegisterOrDebit() {
+        assertThrows(com.aisocialgame.exception.ApiException.class, () -> escrow.register(request,budget.toBuilder().clearPriceQuote().build()));
+        assertEquals(180,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
     }
     CreditAccount account(){return accounts.findByUserIdAndProjectKey(userId,"aisocialgame").orElseThrow();}
     @Test void largeQuotesDoNotHoldCreditsAndConcurrentCallsMaySettleNegative() throws Exception {
@@ -56,7 +64,6 @@ class AiCallSettlementTest {
                 .setRequestSha256(AiCallSettlementService.hash(next.toByteArray())).build();
         var second=escrow.register(next,nextBudget);
         assertEquals(180,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
-        assertEquals(0,first.reservation().reservedTemp+first.reservation().reservedPermanent);
         assertFalse(ledger.findByRequestId("ai-hold:"+first.reservation().id).isPresent());
         var nextStatus=success(100,20).toBuilder().setBudgetId(nextBudget.getBudgetId()).setRequestSha256(nextBudget.getRequestSha256()).build();
         try (var executor=Executors.newFixedThreadPool(2)) {
@@ -120,51 +127,5 @@ class AiCallSettlementTest {
         assertEquals(180,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
         assertEquals("NOT_SENT",reservations.findById(claim.reservation().id).orElseThrow().state);
         assertFalse(ledger.findByRequestId("ai-consume:"+claim.reservation().id).isPresent());
-    }
-    private String legacyHold(Instant expiry) {
-        var row=escrow.register(request,budget).reservation();
-        new TransactionTemplate(manager).executeWithoutResult(tx->{
-            var a=accounts.findForUpdate(userId,"aisocialgame").orElseThrow();
-            temporary.take(a,80,Instant.now());a.setPermanentBalance(60);accounts.saveAndFlush(a);
-            var saved=reservations.lock(row.id).orElseThrow();saved.state="HELD";saved.reservedTemp=80;saved.reservedPermanent=40;
-            saved.tempPortionsJson="[{\"amount\":80,\"expiresAt\":\""+expiry+"\"}]";reservations.saveAndFlush(saved);
-        });
-        return row.id;
-    }
-    @Test void legacyReleaseIsIdempotentAndLateOriginalUsageStillSettlesOnce() {
-        String id=legacyHold(originalExpiry);
-        escrow.releaseLegacyHold(id);escrow.releaseLegacyHold(id);
-        assertEquals(180,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
-        var row=reservations.findById(id).orElseThrow();
-        assertEquals("USAGE_UNKNOWN",row.state);assertNull(row.billedPoints);assertEquals(0,row.reservedTemp+row.reservedPermanent);
-        assertEquals(originalExpiry,lots.findByUserIdAndProjectKeyAndRemainingGreaterThan(userId,"aisocialgame",0).getFirst().expiresAt);
-        escrow.reconcile(id,success(20,10));escrow.reconcile(id,success(20,10));
-        assertEquals(150,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
-        assertEquals(30,reservations.findById(id).orElseThrow().billedPoints);
-    }
-    @Test void expiredLegacyTemporaryCreditsNeverBecomeSpendable() {
-        String id=legacyHold(Instant.parse("2000-01-01T00:00:00Z"));
-        escrow.releaseLegacyHold(id);
-        assertEquals(0,temporary.balance(account(),Instant.now()));assertEquals(100,account().getPermanentBalance());
-        assertEquals(-80,ledger.findByRequestId("ai-expire:"+id).orElseThrow().getTokenDeltaTemp());
-        escrow.reconcile(id,success(20,10));
-        assertEquals(70,account().getPermanentBalance());
-    }
-    @Test void corruptLegacyAllocationRollsBackReleaseAndCanBeRepairedWithoutAnotherCall() {
-        String id=legacyHold(originalExpiry);
-        new TransactionTemplate(manager).executeWithoutResult(tx->{var row=reservations.lock(id).orElseThrow();
-            row.tempPortionsJson="[]";reservations.saveAndFlush(row);});
-        assertThrows(RuntimeException.class,()->escrow.releaseLegacyHold(id));
-        assertEquals(60,account().getPermanentBalance());assertEquals("HELD",reservations.findById(id).orElseThrow().state);
-        assertFalse(ledger.findByRequestId("ai-release:"+id).isPresent());
-    }
-    @Test void historicalBalanceImportCannotOverwritePostpaidDebits() {
-        var claim=escrow.register(request,budget);
-        assertThrows(com.aisocialgame.exception.ApiException.class,
-                ()->projectCredits.migrateFromPayServiceSnapshot(userId,80,100,0,"test"));
-        escrow.reconcile(claim.reservation().id,success(20,10));
-        assertThrows(com.aisocialgame.exception.ApiException.class,
-                ()->projectCredits.migrateFromPayServiceSnapshot(userId,80,100,0,"test"));
-        assertEquals(150,temporary.balance(account(),Instant.now())+account().getPermanentBalance());
     }
 }

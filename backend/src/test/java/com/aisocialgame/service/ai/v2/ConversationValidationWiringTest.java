@@ -29,7 +29,7 @@ class ConversationValidationWiringTest {
    String body=ConversationValidation.JSON.writeValueAsString(Map.of("action",a,"evidenceEventIds",s.adapter().conversation(s.observation()).replyTo().stream().map(AiConversationContext.ReplyReference::eventId).toList()));
    when(client.chatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
    when(client.undercoverChatCompletions(anyString(),anyLong(),anyString(),any(com.aisocialgame.service.ai.config.AiModelSelection.class),anyList(),anyString(),anyInt())).thenReturn(new AiChatResult(body,"mock-only",10,10));
-   var d=generator.generate(s.adapter(),s.observation(),"mock-"+UUID.randomUUID());assertFalse(d.fallback(),s.id()+":"+d.diagnostics());return d;
+   var d=generator.generate(s.adapter(),s.observation(),"mock-"+UUID.randomUUID());assertNotNull(d.action(),s.id()+":"+d.diagnostics());return d;
   };
   var pilot=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("pilot.json"),Map.of(),"PILOT",Set.of(),generate);pilot.run();
   var remaining=new ConversationValidation(frozen.manifest(),frozen.bundle(),temp.resolve("remaining.json"),ConversationValidation.read(pilot.output),"REMAINING",Set.of(),generate);remaining.run();

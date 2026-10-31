@@ -49,15 +49,13 @@ import java.util.UUID;
 public class ProjectCreditService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.aisocialgame.service.credit.TemporaryCreditService temporaryCredits;
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.aisocialgame.repository.credit.AiCreditReservationRepository aiReservations;
     private static final String CREDIT_TYPE_UNSPECIFIED = "CREDIT_TYPE_UNSPECIFIED";
     private static final String CREDIT_TYPE_TEMP = "CREDIT_TYPE_TEMP";
     private static final String CREDIT_TYPE_PERMANENT = "CREDIT_TYPE_PERMANENT";
 
     private static final String EXCHANGE_PENDING = "PENDING";
     private static final String EXCHANGE_SUCCESS = "SUCCESS";
-    private static final String EXCHANGE_FAILED = "FAILED";
+    private static final String EXCHANGE_REJECTED = "REJECTED";
 
     private final CreditAccountRepository creditAccountRepository;
     private final CreditLedgerEntryRepository creditLedgerEntryRepository;
@@ -106,7 +104,7 @@ public class ProjectCreditService {
             tempExpiresAt = null;
         }
         if (temporaryCredits != null) {
-            tempBalance = Math.addExact(tempBalance, temporaryCredits.returnedBalance(account));
+            tempBalance = Math.addExact(tempBalance, temporaryCredits.lotBalance(account));
             tempExpiresAt = temporaryCredits.earliestExpiry(account, tempExpiresAt);
         }
         return new BalanceSnapshot(
@@ -352,66 +350,13 @@ public class ProjectCreditService {
         return creditLedgerService.listLedgerEntriesForAdmin(userId, page, size);
     }
 
-    @Transactional
-    public BalanceSnapshot consumeProjectTokens(long userId,
-                                                long billedTokens,
-                                                String source,
-                                                Map<String, String> metadata,
-                                                String requestId) {
-        if (billedTokens <= 0) {
-            return getBalance(userId, safeGetPublicTokens(userId));
-        }
-
-        String normalizedRequestId = normalizeRequestId(requestId, "consume", userId);
-        if (creditLedgerEntryRepository.findByRequestId(normalizedRequestId).isPresent()) {
-            return getBalance(userId, safeGetPublicTokens(userId));
-        }
-
-        long publicTokens = safeGetPublicTokens(userId);
-        CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
-        expireTempIfNeeded(account, publicTokens);
-
-        long temporaryBalance = temporaryCredits == null ? account.getTempBalance() : temporaryCredits.balance(account, Instant.now());
-        long available = Math.addExact(Math.max(0, temporaryBalance), Math.max(0, account.getPermanentBalance()));
-        if (available < billedTokens) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "专属积分不足，请先充值或兑换");
-        }
-
-        long consumeTemp = Math.min(temporaryBalance, billedTokens);
-        long consumePermanent = billedTokens - consumeTemp;
-        if (temporaryCredits == null) account.setTempBalance(account.getTempBalance() - consumeTemp);
-        else temporaryCredits.take(account, consumeTemp, Instant.now());
-        account.setPermanentBalance(account.getPermanentBalance() - consumePermanent);
-        if (account.getTempBalance() == 0) {
-            account.setTempExpiresAt(null);
-        }
-        creditAccountRepository.save(account);
-
-        Map<String, String> normalizedMetadata = metadata == null ? new HashMap<>() : new HashMap<>(metadata);
-        normalizedMetadata.put("billedTokens", String.valueOf(billedTokens));
-        creditLedgerService.insertLedgerEntry(
-                normalizedRequestId,
-                userId,
-                "CONSUME",
-                -consumeTemp,
-                -consumePermanent,
-                0,
-                publicTokens,
-                StringUtils.hasText(source) ? source.trim() : "AI_CONSUME",
-                normalizedMetadata,
-                null,
-                account
-        );
-        return toBalanceSnapshot(account, publicTokens);
-    }
-
     public CreditExchangeResult exchangePublicToProject(long userId, long tokens, String requestId) {
         if (tokens <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "兑换数量必须大于 0");
         }
         String normalizedRequestId = requireRequestId(requestId);
         String projectKey = appProperties.getProjectKey();
-        long publicBefore = safeGetPublicTokens(userId);
+        long publicBefore = billingGrpcClient.getPublicPermanentTokens(userId);
 
         CreditExchangeTransaction pending = transactionTemplate.execute(status -> {
             Optional<CreditExchangeTransaction> existing = creditExchangeTransactionRepository.findByRequestId(normalizedRequestId);
@@ -423,7 +368,9 @@ public class ProjectCreditService {
                 if (EXCHANGE_PENDING.equals(txn.getStatus())) {
                     throw new ApiException(HttpStatus.CONFLICT, "请求处理中，请勿重复提交");
                 }
-                throw new ApiException(HttpStatus.BAD_REQUEST, "该 requestId 已失败，请使用新的 requestId 重试");
+                if (EXCHANGE_REJECTED.equals(txn.getStatus())) throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "该兑换请求已被拒绝，请检查兑换信息", "CREDIT_EXCHANGE_REJECTED", Map.of("exchangeRequestId", normalizedRequestId));
+                throw exchangeUnknown(normalizedRequestId);
             }
 
             LocalDateTime start = LocalDate.now(ZoneOffset.UTC).atStartOfDay();
@@ -444,7 +391,7 @@ public class ProjectCreditService {
             txn.setPublicTokens(tokens);
             txn.setProjectTokens(tokens);
             txn.setStatus(EXCHANGE_PENDING);
-            txn.setRetriable(true);
+            txn.setRetriable(false);
             txn.setPublicBefore(publicBefore);
             txn.setPublicAfter(publicBefore);
             txn.setProjectPermanentBefore(projectPermanentBefore);
@@ -453,7 +400,7 @@ public class ProjectCreditService {
         });
 
         if (pending != null && EXCHANGE_SUCCESS.equals(pending.getStatus())) {
-            long publicTokens = safeGetPublicTokens(userId);
+            long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
             return new CreditExchangeResult(normalizedRequestId, pending.getProjectTokens(), getBalance(userId, publicTokens));
         }
 
@@ -461,8 +408,13 @@ public class ProjectCreditService {
         try {
             converted = billingGrpcClient.convertPublicToProject(normalizedRequestId, projectKey, userId, tokens);
         } catch (Exception ex) {
-            markExchangeFailed(normalizedRequestId, ex);
-            throw ex;
+            boolean rejected = ex instanceof ApiException api && api.getStatus().is4xxClientError();
+            markExchangeOutcome(normalizedRequestId, ex, rejected);
+            if (rejected) {
+                var api = (ApiException) ex;
+                throw new ApiException(api.getStatus(), api.getMessage(), "CREDIT_EXCHANGE_REJECTED", Map.of("exchangeRequestId", normalizedRequestId));
+            }
+            throw exchangeUnknown(normalizedRequestId);
         }
 
         long publicAfterConvert = converted.publicPermanentTokens();
@@ -500,13 +452,18 @@ public class ProjectCreditService {
         });
     }
 
-    private void markExchangeFailed(String requestId, Exception ex) {
+    private void markExchangeOutcome(String requestId, Exception ex, boolean rejected) {
         transactionTemplate.executeWithoutResult(status -> creditExchangeTransactionRepository.findByRequestId(requestId).ifPresent(txn -> {
-            txn.setStatus(EXCHANGE_FAILED);
-            txn.setRetriable(true);
+            txn.setStatus(rejected ? EXCHANGE_REJECTED : "UNKNOWN");
+            txn.setRetriable(false);
             txn.setFailReason(truncate(ex.getMessage(), 255));
             creditExchangeTransactionRepository.save(txn);
         }));
+    }
+
+    private static ApiException exchangeUnknown(String requestId) {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "兑换结果暂无法确认，请保留原请求编号核对",
+                "CREDIT_EXCHANGE_RESULT_UNKNOWN", Map.of("exchangeRequestId", requestId));
     }
 
     public PagedResult<ExchangeHistorySnapshot> listExchangeHistory(long userId, int page, int size) {
@@ -539,7 +496,7 @@ public class ProjectCreditService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "调整值不能同时为 0");
         }
         String projectKey = appProperties.getProjectKey();
-        long publicTokens = safeGetPublicTokens(userId);
+        long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
         CreditAccount account = getOrCreateAccountForUpdate(userId, projectKey);
         expireTempIfNeeded(account, publicTokens);
 
@@ -598,7 +555,7 @@ public class ProjectCreditService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "该流水已冲正");
         }
 
-        long publicTokens = safeGetPublicTokens(userId);
+        long publicTokens = billingGrpcClient.getPublicPermanentTokens(userId);
         CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
         expireTempIfNeeded(account, publicTokens);
 
@@ -634,51 +591,6 @@ public class ProjectCreditService {
                 account
         );
         return toBalanceSnapshot(account, publicTokens);
-    }
-
-    @Transactional
-    public BalanceSnapshot migrateFromPayServiceSnapshot(long userId,
-                                                         long projectTempTokens,
-                                                         long projectPermanentTokens,
-                                                         long publicPermanentTokens,
-                                                         String operator) {
-        String requestId = appProperties.getProjectKey() + ":migrate:" + userId;
-        if (creditLedgerEntryRepository.findByRequestId(requestId).isPresent()) {
-            return getBalance(userId, publicPermanentTokens);
-        }
-
-        CreditAccount account = getOrCreateAccountForUpdate(userId, appProperties.getProjectKey());
-        if (aiReservations != null && aiReservations.existsByUserIdAndProjectKey(userId, appProperties.getProjectKey())) {
-            throw new ApiException(HttpStatus.CONFLICT, "已有 AI 预算流水，不能再用历史快照覆盖项目余额");
-        }
-        long deltaTemp = projectTempTokens - account.getTempBalance();
-        long deltaPermanent = projectPermanentTokens - account.getPermanentBalance();
-        account.setTempBalance(Math.max(0, projectTempTokens));
-        account.setPermanentBalance(Math.max(0, projectPermanentTokens));
-        if (projectTempTokens > 0) {
-            account.setTempExpiresAt(Instant.now().plusSeconds(Math.max(1, appProperties.getCredit().getTempExpiryDays()) * 86400L));
-        } else {
-            account.setTempExpiresAt(null);
-        }
-        creditAccountRepository.save(account);
-
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("operator", StringUtils.hasText(operator) ? operator.trim() : "admin");
-        metadata.put("source", "payservice_snapshot");
-        creditLedgerService.insertLedgerEntry(
-                requestId,
-                userId,
-                "MIGRATION_INIT",
-                deltaTemp,
-                deltaPermanent,
-                0,
-                publicPermanentTokens,
-                "MIGRATION",
-                metadata,
-                null,
-                account
-        );
-        return toBalanceSnapshot(account, publicPermanentTokens);
     }
 
     private String validateRedeemCode(CreditRedeemCode redeemCode) {
@@ -762,7 +674,7 @@ public class ProjectCreditService {
             expiresAt = null;
         }
         if (temporaryCredits != null) {
-            temp = Math.addExact(temp, temporaryCredits.returnedBalance(account));
+            temp = Math.addExact(temp, temporaryCredits.lotBalance(account));
             expiresAt = temporaryCredits.earliestExpiry(account, expiresAt);
         }
         return new BalanceSnapshot(publicPermanentTokens, temp, account.getPermanentBalance(), expiresAt);
@@ -833,11 +745,4 @@ public class ProjectCreditService {
         return text.substring(0, maxLength);
     }
 
-    private long safeGetPublicTokens(long userId) {
-        try {
-            return billingGrpcClient.getPublicPermanentTokens(userId);
-        } catch (Exception ignored) {
-            return 0;
-        }
-    }
 }

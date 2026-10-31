@@ -25,24 +25,9 @@ class ExternalGrpcAuthValidatorTest {
         assertDoesNotThrow(() -> new ExternalGrpcAuthValidator(properties).validate());
     }
 
-    @Test
-    void rejectsLegacyStaticTokenEvenWhenExternalAuthFlagIsDisabled() {
-        AppProperties properties = validProperties();
-        properties.getExternal().setGrpcAuthRequired(false);
-        properties.getExternal().setUserserviceInternalGrpcToken("legacy-private-token");
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
-                () -> new ExternalGrpcAuthValidator(properties).validate());
-        assertFalse(error.getMessage().contains("legacy-private-token"));
-    }
 
-    @Test
-    void rejectsLegacyPayToken() {
-        AppProperties legacy = validProperties();
-        legacy.getExternal().setPayserviceLegacyStaticToken("legacy-private-token");
-        assertThrows(IllegalStateException.class,
-                () -> new ExternalGrpcAuthValidator(legacy).validate());
-    }
+
 
     @Test
     void rejectsInvalidCallerConfigurationWithoutDisclosingSecret() {

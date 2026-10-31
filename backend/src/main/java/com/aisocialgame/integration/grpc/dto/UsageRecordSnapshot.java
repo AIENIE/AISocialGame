@@ -9,7 +9,7 @@ public record UsageRecordSnapshot(
         String modelKey,
         long promptTokens,
         long completionTokens,
-        long billedTokens,
+        long billedPoints,
         Instant createdAt
 ) {
 }

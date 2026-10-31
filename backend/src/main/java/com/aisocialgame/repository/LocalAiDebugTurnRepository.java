@@ -9,6 +9,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LocalAiDebugTurnRepository extends JpaRepository<LocalAiDebugTurn, String> {
+    interface InstanceMetadata {
+        String getInstanceId(); LocalDateTime getStartedAt(); long getTurnCount();
+    }
+    @Query(value = "select t.instanceId as instanceId, min(t.createdAt) as startedAt, count(t) as turnCount from LocalAiDebugTurn t where t.roomId=:roomId group by t.instanceId order by min(t.createdAt) desc, t.instanceId desc",
+            countQuery = "select count(distinct t.instanceId) from LocalAiDebugTurn t where t.roomId=:roomId")
+    org.springframework.data.domain.Page<InstanceMetadata> instances(@Param("roomId") String roomId, org.springframework.data.domain.Pageable page);
     /** Closed projection: list/summary queries never load prompts or responses. */
     interface Metadata {
         String getId(); String getActorId(); String getActorName(); Integer getSeatNumber(); String getRoleKey();

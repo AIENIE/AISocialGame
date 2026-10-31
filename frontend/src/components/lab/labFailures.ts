@@ -1,6 +1,5 @@
 export function failureText(code:string):string {
   return ({
-    LEGACY_WORD_SCOPE_REJECTION:"旧版禁词范围错误，动作被拒绝",
     OWN_WORD_FORBIDDEN:"命中本人禁词，等待修正",
     SECRET_WORD_LEAK:"命中本人禁词，等待修正",
     FORBIDDEN_WORD_ELIMINATED:"三次禁词违规，角色出局",

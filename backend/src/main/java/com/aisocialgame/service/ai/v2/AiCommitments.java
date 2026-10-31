@@ -2,7 +2,6 @@ package com.aisocialgame.service.ai.v2;
 
 import com.aisocialgame.engine.v2.*;
 import com.aisocialgame.model.GameState;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import static com.aisocialgame.engine.v2.RuleSupport.*;
@@ -57,24 +56,14 @@ public final class AiCommitments {
         }
         return List.of();
     }
-    /** Legacy IDs are deterministic on pure reads, and become persisted only on the next write. */
-    public static List<Map<String, Object>> stored(Object value, int version, String instance, String actor) {
+    public static List<Map<String, Object>> stored(Object value) {
         if (!(value instanceof List<?> list)) return new ArrayList<>();
-        List<Map<String, Object>> result = new ArrayList<>(); int index = 0;
+        List<Map<String, Object>> result = new ArrayList<>();
         for (Object item : list) {
-            Map<String, Object> entry;
-            if (version >= 3 && item instanceof Map<?, ?> m && m.get("id") instanceof String && validStatus(m.get("status"))) {
-                entry = new LinkedHashMap<>(map(item));
-            } else {
-                var old = AiMemoryEntries.stored(Collections.singletonList(item), false, version >= 2);
-                if (old.isEmpty()) continue;
-                entry = new LinkedHashMap<>(old.getFirst()); entry.put("status", Status.UNVERIFIED.name());
-                entry.put("id", UUID.nameUUIDFromBytes((instance + ":" + actor + ":legacy:" + index + ":" + entry.get("text")).getBytes(StandardCharsets.UTF_8)).toString());
-                entry.put("sourceQuote", ""); entry.put("action", Map.of()); entry.put("opportunity", Map.of());
-            }
-            result.add(entry); index++;
+            if (!(item instanceof Map<?, ?> m) || !(m.get("id") instanceof String) || !validStatus(m.get("status")))
+                throw new IllegalStateException("Stored commitment is unreadable");
+            result.add(new LinkedHashMap<>(map(item)));
         }
-        // Persisted v3 is produced bounded. For legacy overflow keep the newest records.
         return new ArrayList<>(result.subList(Math.max(0, result.size() - 16), result.size()));
     }
     private static boolean validStatus(Object value) {
@@ -82,7 +71,7 @@ public final class AiCommitments {
     }
     public static List<String> update(GameState s, GameRuleSet rules, String actor, Map<String, Object> memory,
                                       AiTurnDecision decision, VisibleObservation o, int newEventStart) {
-        List<Map<String, Object>> entries = stored(memory.get("commitments"), 3, o.instanceId(), actor);
+        List<Map<String, Object>> entries = stored(memory.get("commitments"));
         List<Map<String, Object>> sources = new ArrayList<>(o.events());
         List<Map<String, Object>> allEvents = maps(s.getData().get("events"));
         sources.addAll(allEvents.subList(Math.min(newEventStart, allEvents.size()), allEvents.size()).stream()
@@ -234,9 +223,7 @@ public final class AiCommitments {
         Map<String, Object> all = map(s.getData().get("aiMemoriesV2"));
         for (String actor : all.keySet()) {
             Map<String, Object> memory = map(all.get(actor));
-            // Do not rewrite legacy rooms on ticks or infer past outcomes during migration.
-            if (number(memory.get("formatVersion"), 1) < 3) continue;
-            List<Map<String, Object>> entries = stored(memory.get("commitments"), 3, text(s.getData().get("archiveId")), actor);
+            List<Map<String, Object>> entries = stored(memory.get("commitments"));
             for (Map<String, Object> entry : entries) if ("ACTIVE".equals(entry.get("status"))) update.accept(actor, entry);
             memory.put("commitments", entries); all.put(actor, memory);
         }

@@ -35,7 +35,7 @@ def inventory(manifest):
     require(same_header(manifest, expected_set=SET), "INVALID_HEADER")
     for k, v in dict(sampleCount=96, maxDiscreteCalls=192, inputFormatVersion=3, memoryFormatVersion=4).items():
         require(type(manifest.get(k)) is int and manifest[k] == v, "INVALID_PROFILE")
-    require(manifest.get("promptVersion") == "social-v2.10", "INVALID_PROMPT")
+    require(manifest.get("promptVersion") == "social-v2.11", "INVALID_PROMPT")
     expected = {}
     for game, scenarios in SCENARIOS.items():
         for persona in PERSONAS:
@@ -71,10 +71,7 @@ def resume_check(m,e):
     require(set(rows)==set(planned),"RESUME_INVENTORY_MISMATCH")
     for key,row in rows.items():
         require(all(row.get(k)==planned[key][k] for k in META),"RESUME_METADATA_MISMATCH")
-        require(row.get("status") in ("NOT_RUN","STARTED","NO_RESPONSE","GENERATED","LOCAL_FALLBACK"),"RESUME_STATUS_INVALID")
-        if row["status"] in ("GENERATED","LOCAL_FALLBACK"):
-            fallback=row.get("decision",{}).get("fallback")
-            require(type(fallback) is bool and (row["status"]=="LOCAL_FALLBACK")==fallback,"RESUME_FALLBACK_INVALID")
+        require(row.get("status") in ("NOT_RUN","STARTED","NO_RESPONSE","GENERATED"),"RESUME_STATUS_INVALID")
     return rows
 
 def measure(m,b,e,r,evidence_hash,pilot=False):
@@ -89,7 +86,7 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
     reservation_ids=set();request_ids=set()
     for key in wanted:
         row=rows[key];meta=planned[key];d=row.get("decision",{});cover=row.get("coverage",{});obs=row.get("observation",{})
-        if row.get("status")!="GENERATED" or d.get("fallback") is not False: errors.append(key+":NORMAL_GENERATION_REQUIRED")
+        if row.get("status")!="GENERATED": errors.append(key+":NORMAL_GENERATION_REQUIRED")
         if m["evidenceKind"]=="REAL_MODEL":
             reservations=row.get("reservations",[]);calls=d.get("diagnostics",{}).get("calls")
             if type(calls) is not int or calls not in (1,2) or not isinstance(reservations,list) or len(reservations)!=calls: errors.append(key+":RPC_RESERVATIONS_MISSING")
@@ -110,10 +107,8 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
     groups={}
     for group in ("SINGLE",) if pilot else ("SINGLE","SEQUENCE"):
         ids=[k for k in wanted if planned[k]["group"]==group]
-        normal=[k for k in ids if rows[k].get("status")=="GENERATED" and rows[k].get("decision",{}).get("fallback") is False]
-        known=[k for k in ids if type(rows[k].get("decision",{}).get("fallback")) is bool]
+        normal=[k for k in ids if rows[k].get("status")=="GENERATED"]
         result=dict(planned=len(ids), normal=len(normal), applied=sum(rows[k].get("coverage",{}).get("status")=="APPLIED" for k in ids),
-                    fallbackKnown=len(known),fallbackUnknown=len(ids)-len(known),fallback=sum(rows[k]["decision"]["fallback"] for k in known),
                     repaired=sum(rows[k].get("decision",{}).get("diagnostics",{}).get("repaired") is True for k in normal),
                     noResponse=sum(rows[k]["status"] in ("NO_RESPONSE","STARTED") for k in ids),notRun=sum(rows[k]["status"]=="NOT_RUN" for k in ids),means={})
         for persona in ("ALL",) if pilot else ("ALL",)+PERSONAS:
@@ -133,7 +128,6 @@ def measure(m,b,e,r,evidence_hash,pilot=False):
     return dict(algorithmPassed=not errors,qualityPassed=not errors and m["evidenceKind"]=="REAL_MODEL",L4Passed=False,groups=groups,measurements=measurements,problems=sorted(set(errors)),reviewType="CODING_AGENT_NOT_INDEPENDENT_HUMAN_BLIND_REVIEW")
 
 def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phase):
-    historical_hold_check(g.get("historicalHoldException"))
     require(g.get("authorizationStatus")=="APPROVED" and all(nonblank(g.get(k)) for k in ("approvedBy","approvalReference","callerId")),"EXPLICIT_GRANT_REQUIRED")
     require(g.get("callerLifecycle")=="SHARED" and g.get("enableOriginalCaller") is False and g.get("disableCallerOnExit") is False,"SHARED_CALLER_MUST_REMAIN_UNCHANGED")
     require(type(g.get("callerRecordId")) is int and g["callerRecordId"]>0,"VALID_CALLER_RECORD_REQUIRED")
@@ -151,14 +145,6 @@ def grant_check(m,g,ledger_path,manifest_path,bundle_path,jar_hash,consumed,phas
     pilot_calls=sum(1 for line in lines[base:] if (row:=json.loads(line)).get("variant")==variant and row.get("scenarioId") in m["pilotIds"])
     require(phase!="PILOT" or pilot_calls<24,"PILOT_LIMIT_EXHAUSTED")
     return g
-
-def historical_hold_check(hold):
-    if hold is None: return
-    fields={"id","budget_id","request_id","project_key","user_id","state","reserved_temp","reserved_permanent"}
-    require(isinstance(hold,dict) and set(hold)==fields,"INVALID_HISTORICAL_HOLD")
-    require(all(nonblank(hold[k]) for k in ("id","budget_id","request_id")),"INVALID_HISTORICAL_HOLD_IDENTITY")
-    require(hold["project_key"]=="aisocialgame" and type(hold["user_id"]) is int and hold["user_id"]==85 and hold["state"]=="HELD","INVALID_HISTORICAL_HOLD_SCOPE")
-    require(type(hold["reserved_temp"]) is int and hold["reserved_temp"]>=0 and type(hold["reserved_permanent"]) is int and hold["reserved_permanent"]>0,"INVALID_HISTORICAL_HOLD_AMOUNT")
 
 def main():
     p=argparse.ArgumentParser()

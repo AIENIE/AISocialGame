@@ -2,27 +2,20 @@ package com.aisocialgame.integration.grpc.client;
 
 import com.aisocialgame.config.AppProperties;
 import com.aisocialgame.exception.ApiException;
-import com.aisocialgame.integration.grpc.auth.AiGrpcHmacClientInterceptor;
 import com.aisocialgame.integration.grpc.dto.AiChatMessageDto;
 import com.aisocialgame.integration.grpc.dto.AiChatResult;
-import com.aisocialgame.integration.grpc.dto.AiEmbeddingsResult;
 import com.aisocialgame.integration.grpc.dto.AiModelOptionDto;
-import com.aisocialgame.integration.grpc.dto.AiOcrParams;
-import com.aisocialgame.integration.grpc.dto.AiOcrResult;
 import com.aisocialgame.service.ai.config.AiModelConfigService;
 import com.aisocialgame.service.ai.config.AiModelSelection;
 import fireflychat.ai.v1.AiGatewayServiceGrpc;
 import fireflychat.ai.v1.ChatCompletionsRequest;
 import fireflychat.ai.v1.ChatMessage;
-import fireflychat.ai.v1.EmbeddingsRequest;
 import fireflychat.ai.v1.ListModelsRequest;
-import fireflychat.ai.v1.OcrParseRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -188,90 +181,6 @@ public class AiGrpcClient {
         } catch(StatusRuntimeException failure) { throw toApiException(failure); }
     }
 
-    public AiEmbeddingsResult embeddings(String projectKey,
-                                         long userId,
-                                         String sessionId,
-                                         String model,
-                                         List<String> input,
-                                         boolean normalize) {
-        AppProperties.requireCanonicalProjectKey(projectKey);
-        requireBoundedBudget();
-        String attemptId=UUID.randomUUID().toString(); boolean answered=false;
-        if(admission!=null)admission.begin(attemptId,com.aisocialgame.service.safety.AiCallScope.context(userId,model));
-        try {
-            EmbeddingsRequest.Builder builder = EmbeddingsRequest.newBuilder()
-                    .setRequestId(attemptId)
-                    .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
-                    .setUserId(userId)
-                    .setSessionId(sessionId == null ? "" : sessionId)
-                    .setModel(model == null ? "" : model)
-                    .setNormalize(normalize);
-            if (input != null) {
-                for (String item : input) {
-                    if (StringUtils.hasText(item)) {
-                        builder.addInput(item);
-                    }
-                }
-            }
-            if(callBudget!=null)callBudget.consume();
-            var response = aiStub.withDeadlineAfter(45, java.util.concurrent.TimeUnit.SECONDS).embeddings(builder.build());
-            if(admission!=null)admission.finish(attemptId,"RESPONSE",response.getPromptTokens(),null);answered=true;
-            List<List<Float>> vectors = response.getEmbeddingsList().stream()
-                    .map(embedding -> embedding.getVectorList().stream().toList())
-                    .toList();
-            return new AiEmbeddingsResult(
-                    response.getModelKey(),
-                    response.getDimensions(),
-                    vectors,
-                    response.getPromptTokens()
-            );
-        } catch (StatusRuntimeException ex) {
-            if(admission!=null)admission.finish(attemptId,"RPC_"+ex.getStatus().getCode().name(),null,null);
-            throw toApiException(ex);
-        } finally {
-            if(admission!=null&&!answered)admission.finish(attemptId,"NO_RESPONSE",null,null);
-        }
-    }
-
-    public AiOcrResult ocrParse(String projectKey,
-                                long userId,
-                                String sessionId,
-                                String model,
-                                AiOcrParams params) {
-        AppProperties.requireCanonicalProjectKey(projectKey);
-        requireBoundedBudget();
-        String attemptId=UUID.randomUUID().toString(); boolean answered=false;
-        if(admission!=null)admission.begin(attemptId,com.aisocialgame.service.safety.AiCallScope.context(userId,model));
-        try {
-            OcrParseRequest.Builder builder = OcrParseRequest.newBuilder()
-                    .setRequestId(attemptId)
-                    .setProjectKey(AppProperties.requireCanonicalProjectKey(projectKey))
-                    .setUserId(userId)
-                    .setSessionId(sessionId == null ? "" : sessionId)
-                    .setModel(model == null ? "" : model)
-                    .setImageUrl(normalize(params.imageUrl()))
-                    .setImageBase64(normalize(params.imageBase64()))
-                    .setDocumentUrl(normalize(params.documentUrl()))
-                    .setPages(normalize(params.pages()))
-                    .setOutputType(normalizeOutputType(params.outputType()));
-            if(callBudget!=null)callBudget.consume();
-            var response = aiStub.withDeadlineAfter(45, java.util.concurrent.TimeUnit.SECONDS).ocrParse(builder.build());
-            if(admission!=null)admission.finish(attemptId,"RESPONSE",response.getPromptTokens(),response.getCompletionTokens());answered=true;
-            return new AiOcrResult(
-                    response.getRequestId(),
-                    response.getModelKey(),
-                    response.getOutputType(),
-                    response.getContent(),
-                    response.getRawJson(), response.getPromptTokens(), response.getCompletionTokens(), response.getTotalTokens()
-            );
-        } catch (StatusRuntimeException ex) {
-            if(admission!=null)admission.finish(attemptId,"RPC_"+ex.getStatus().getCode().name(),null,null);
-            throw toApiException(ex);
-        } finally {
-            if(admission!=null&&!answered)admission.finish(attemptId,"NO_RESPONSE",null,null);
-        }
-    }
-
     private ApiException toApiException(StatusRuntimeException ex) {
         Status.Code code = ex.getStatus().getCode();
         HttpStatus status = switch (code) {
@@ -298,18 +207,4 @@ public class AiGrpcClient {
         }
     }
 
-    private String normalizeOutputType(String outputType) {
-        if (!StringUtils.hasText(outputType)) {
-            return "TEXT";
-        }
-        return switch (outputType.trim().toUpperCase()) {
-            case "JSON" -> "JSON";
-            case "MARKDOWN" -> "MARKDOWN";
-            default -> "TEXT";
-        };
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
 }

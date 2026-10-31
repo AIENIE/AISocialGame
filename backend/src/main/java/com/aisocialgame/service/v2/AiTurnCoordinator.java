@@ -113,11 +113,11 @@ public class AiTurnCoordinator {
         // Recover abandoned calls through rule-specific expiry; never publish unvalidated fallback text.
         for (var abandoned : jobs.findRecoveryCandidates("RUNNING", PageRequest.of(0, clockBatchSize))) {
             try {
-                if(Boolean.TRUE.equals(abandoned.getDiagnostics().get("laboratory")) || "werewolf".equals(abandoned.getDiagnostics().get("gameId")) && !AiJobDiagnostics.overdue(abandoned.getDiagnostics(),abandoned.getStartedAt(),java.time.Instant.now(),java.time.ZoneId.systemDefault())) {
+                if(Boolean.TRUE.equals(abandoned.getDiagnostics().get("laboratory")) || "werewolf".equals(abandoned.getDiagnostics().get("gameId")) && !AiJobDiagnostics.overdue(abandoned.getDiagnostics(),java.time.Instant.now())) {
                     if(!activeJobs.contains(abandoned.getId())) runtime.recoverLabJob(abandoned.getId());
                     continue;
                 }
-                if (AiJobDiagnostics.overdue(abandoned.getDiagnostics(), abandoned.getStartedAt(), java.time.Instant.now(), java.time.ZoneId.systemDefault()))
+                if (AiJobDiagnostics.overdue(abandoned.getDiagnostics(), java.time.Instant.now()))
                     runtime.fail(abandoned.getId(), "RECOVERY_TIMEOUT", java.util.Map.of());
             } catch (Exception ex) { log.warn("AI recovery failed jobId={} errorType={}", abandoned.getId(), ex.getClass().getSimpleName()); }
         }

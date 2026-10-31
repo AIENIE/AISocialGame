@@ -329,11 +329,11 @@ class UndercoverRuleSetTest {
         assertEquals(2, rules.wordFeedback(state,actor.getPlayerId()).get("remainingCorrections"));
         assertEquals(logs, state.getLogs().size());
         var observation = observation(state, actor);
-        var leak = AiTurnDecision.fallback(action("SPEAK", actor.getWord(), null));
+        var leak = com.aisocialgame.service.ai.v2.ScriptedAiActions.decision(action("SPEAK", actor.getWord(), null));
         assertTrue(rules.validateDecision(observation, leak).contains("SECRET_WORD_LEAK"));
         goToVoting(state);
         observation = observation(state, actor);
-        var vote = new AiTurnDecision(action("VOTE", "我会投给二号", "p1"), "我会投给二号", Map.of(), List.of(), Map.of(), false, Map.of());
+        var vote = new AiTurnDecision(action("VOTE", "我会投给二号", "p1"), "我会投给二号", Map.of(), List.of(), Map.of(), Map.of());
         assertTrue(rules.validateDecision(observation, vote).contains("VOTE_MUST_REMAIN_PRIVATE"));
     }
 

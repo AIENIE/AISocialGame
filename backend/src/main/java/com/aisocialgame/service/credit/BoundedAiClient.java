@@ -42,17 +42,7 @@ public class BoundedAiClient {
     }
     public ChatCompletionsResponse chat(ChatCompletionsRequest request,int deadlineSeconds,int outputLimit,Runnable beforeSend) {
         requireReady();
-        request = originalRequestFlags(request);
         return execute(request, deadlineSeconds, outputLimit, beforeSend);
-    }
-    // Old reservations are bound to the exact request bytes, including absence of diagnostic flags.
-    private ChatCompletionsRequest originalRequestFlags(ChatCompletionsRequest request) {
-        var original = reservations.findByIdentityHash(identity(request)).orElse(null);
-        if (original == null || original.requestHash.equals(AiCallSettlementService.hash(request.toByteArray()))) return request;
-        for (var legacy:java.util.List.of(request.toBuilder().clearIncludeDebug().build(),
-                request.toBuilder().clearStreamTimeouts().build(),request.toBuilder().clearStreamTimeouts().clearIncludeDebug().build()))
-            if (original.requestHash.equals(AiCallSettlementService.hash(legacy.toByteArray()))) return legacy;
-        return request;
     }
     public Map<String,Object> metadata(ChatCompletionsRequest request) {
         return reservations.findByIdentityHash(identity(request)).map(r -> Map.<String,Object>of("budgetId",r.budgetId,"settlementState",r.state)).orElse(Map.of());
@@ -229,8 +219,6 @@ public class BoundedAiClient {
     }
     @Scheduled(fixedDelayString="${app.ai.budget-reconcile-delay-ms:30000}")
     public void reconcilePending() {
-        // Release historical holds independently of remote availability.
-        for (var row:reservations.findByStateOrderByUpdatedAtAsc("HELD",PageRequest.of(0,100))) escrow.releaseLegacyHold(row.id);
         for(var row:reservations.findByStateInOrderByUpdatedAtAsc(java.util.List.of("PENDING","USAGE_UNKNOWN"),PageRequest.of(0,20))) {
             try { reconcile(row); } catch(RuntimeException failure) {
                 log.warn("AI usage query deferred callId={} rpcCode={}",row.id,io.grpc.Status.fromThrowable(failure).getCode());

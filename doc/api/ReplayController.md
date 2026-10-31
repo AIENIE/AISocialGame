@@ -23,7 +23,7 @@
 
 返回公开摘要 `ReplayArchiveView`，不存在 404。字段保留 id/roomId/gameId/roomName/winner/playerCount/totalRounds/durationSeconds/eventCount/summary/startedAt/finishedAt/createdAt/aiQualitySummary，增加 `players` 公开投影：playerId、displayName、seatNumber、ai、personaId。无完整原始快照、role、word、内部记忆或 Prompt。
 
-新归档 aiQualitySummary 使用 instanceId 关联 trace，包含 traceCount/fallbackCount/association=INSTANCE_ID/legacyUnattributed。最后一项只是房间内无法归属的旧样本数量，不属于当前局指标，不可据此计算本局 fallback。
+新归档 aiQualitySummary 使用 instanceId 关联 trace，包含 traceCount/fallbackCount/association=INSTANCE_ID。统计只关联本局保存的 trace。
 
 ## GET /api/replays/{archiveId}/events
 

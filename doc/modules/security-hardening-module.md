@@ -25,7 +25,7 @@
 ## AI 接口保护
 
 - `/api/ai/models` 保持公开。
-- `/api/ai/chat`、`/api/ai/chat/stream`、`/api/ai/embeddings`、`/api/ai/ocr` 均要求登录。
+- `/api/ai/chat`、`/api/ai/chat/stream` 均要求登录。
 - Chat 请求限制最多 20 条消息，单条 role 最多 32 字符，content 最多 4000 字符。
 
 ## 运行配置

@@ -5,11 +5,8 @@ import com.aisocialgame.integration.grpc.auth.BillingGrpcAuthClientInterceptor;
 import com.aisocialgame.integration.grpc.auth.UserGrpcAuthClientInterceptor;
 import fireflychat.ai.v1.AiGatewayServiceGrpc;
 import fireflychat.billing.v1.BillingBalanceServiceGrpc;
-import fireflychat.billing.v1.BillingCheckinServiceGrpc;
 import fireflychat.billing.v1.BillingConversionServiceGrpc;
 import fireflychat.billing.v1.BillingOnboardingServiceGrpc;
-import fireflychat.billing.v1.BillingQueryServiceGrpc;
-import fireflychat.billing.v1.BillingRedeemCodeServiceGrpc;
 import fireflychat.user.v1.UserAuthServiceGrpc;
 import fireflychat.user.v1.UserBanServiceGrpc;
 import fireflychat.user.v1.UserDirectoryServiceGrpc;
@@ -121,24 +118,6 @@ public class GrpcClientConfiguration {
     BillingBalanceServiceGrpc.BillingBalanceServiceBlockingStub billingBalanceStub(
             @Qualifier("billingGrpcChannel") ManagedChannel channel, BillingGrpcAuthClientInterceptor auth) {
         return BillingBalanceServiceGrpc.newBlockingStub(channel).withInterceptors(auth);
-    }
-
-    @Bean
-    BillingQueryServiceGrpc.BillingQueryServiceBlockingStub billingQueryStub(
-            @Qualifier("billingGrpcChannel") ManagedChannel channel, BillingGrpcAuthClientInterceptor auth) {
-        return BillingQueryServiceGrpc.newBlockingStub(channel).withInterceptors(auth);
-    }
-
-    @Bean
-    BillingCheckinServiceGrpc.BillingCheckinServiceBlockingStub billingCheckinStub(
-            @Qualifier("billingGrpcChannel") ManagedChannel channel, BillingGrpcAuthClientInterceptor auth) {
-        return BillingCheckinServiceGrpc.newBlockingStub(channel).withInterceptors(auth);
-    }
-
-    @Bean
-    BillingRedeemCodeServiceGrpc.BillingRedeemCodeServiceBlockingStub billingRedeemStub(
-            @Qualifier("billingGrpcChannel") ManagedChannel channel, BillingGrpcAuthClientInterceptor auth) {
-        return BillingRedeemCodeServiceGrpc.newBlockingStub(channel).withInterceptors(auth);
     }
 
     @Bean

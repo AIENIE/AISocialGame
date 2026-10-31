@@ -108,7 +108,7 @@ class LabTrainingRecoveryTest {
         var next=f.task(run,f.item("DEVELOPMENT","next-source","ai2"),"PRACTICE","BASELINE");
         var action=new PlayerAction();action.setType("SPEAK");action.setContent("依据公开事实保留判断。");
         when(f.generator.generate(any(),any(),eq(task.id),eq(0L),any(),eq(checkpoint),any()))
-                .thenReturn(new AiTurnDecision(action,action.getContent(),Map.of(),List.of(),Map.of(),false,Map.of("usageComplete",true)));
+                .thenReturn(new AiTurnDecision(action,action.getContent(),Map.of(),List.of(),Map.of(),Map.of("usageComplete",true)));
         assertTrue(f.worker().process(f.experiment.id));assertEquals("SUCCEEDED",task.status);assertEquals("player-original",task.requestId);
         assertEquals("PAUSED",run.status);assertEquals("PENDING",next.status);assertFalse(f.worker().process(f.experiment.id));
         verify(f.generator,times(1)).generate(any(),any(),eq(task.id),eq(0L),any(),eq(checkpoint),any());

@@ -40,7 +40,7 @@ class WerewolfFlowIntegrationTest {
     private AiTurnJob claim(Room room) {
         var job=coordinator.claim(queued(room).getId()); assertNotNull(job); assertTrue(runtime.beginWerewolfTurn(job.getId()));return job;
     }
-    private AiTurnDecision skip() {return new AiTurnDecision(action("SKIP","",null),"",Map.of(),List.of(),Map.of(),false,Map.of());}
+    private AiTurnDecision skip() {return new AiTurnDecision(action("SKIP","",null),"",Map.of(),List.of(),Map.of(),Map.of());}
 
     @Test void staleRunningNightJobDoesNotConsumeTheNextRoleWindowOrSubmitLate() {
         var room=room();runtime.start("werewolf",room.getId(),host(room));var old=claim(room);
@@ -132,7 +132,7 @@ class WerewolfFlowIntegrationTest {
                     var wolf=state.getPlayers().stream().filter(p->p.isAlive()&&"WEREWOLF".equals(p.getRole())&&!p.getPlayerId().equals(job.getActorId())).findFirst();
                     if(wolf.isPresent()) selected=action("VOTE","依据本轮公开发言。",wolf.get().getPlayerId());
                 }
-                runtime.complete(job.getId(),new AiTurnDecision(selected,"",Map.of(),List.of(),Map.of(),false,Map.of()));
+                runtime.complete(job.getId(),new AiTurnDecision(selected,"",Map.of(),List.of(),Map.of(),Map.of()));
             }
             var result=states.findById(room.getId()).orElseThrow();assertEquals("SETTLEMENT",result.getPhase());assertEquals(RoomStatus.WAITING,rooms.findById(room.getId()).orElseThrow().getStatus());
             assertTrue(archives.existsById(archive));assertTrue(jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED","RUNNING")).isEmpty());

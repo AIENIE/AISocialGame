@@ -21,6 +21,6 @@ class CanonicalProjectKeyGrpcClientTest {
 
         BillingGrpcClient billing = new BillingGrpcClient();
         assertThrows(IllegalArgumentException.class,
-                () -> billing.getProjectBalance("attacker", 1L));
+                () -> billing.convertPublicToProject("request", "attacker", 1L, 1L));
     }
 }

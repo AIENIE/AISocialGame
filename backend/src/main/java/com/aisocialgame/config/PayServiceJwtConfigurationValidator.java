@@ -28,11 +28,6 @@ public final class PayServiceJwtConfigurationValidator {
         if (external == null) {
             throw new IllegalArgumentException("External gRPC authentication configuration is required");
         }
-        if (external.getPayserviceLegacyStaticToken() != null
-                && !external.getPayserviceLegacyStaticToken().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Legacy APP_EXTERNAL_PAYSERVICE_JWT must be absent or empty");
-        }
         AppProperties.PayServiceJwt configuration = external.getPayserviceJwt();
         if (configuration == null) {
             throw new IllegalArgumentException("PayService caller JWT configuration is required");

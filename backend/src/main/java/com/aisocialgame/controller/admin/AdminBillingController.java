@@ -4,9 +4,6 @@ import com.aisocialgame.dto.BalanceView;
 import com.aisocialgame.dto.admin.AdminAdjustBalanceRequest;
 import com.aisocialgame.dto.admin.AdminCreateRedeemCodeRequest;
 import com.aisocialgame.dto.admin.AdminLedgerPageResponse;
-import com.aisocialgame.dto.admin.AdminMigrateAllBalanceRequest;
-import com.aisocialgame.dto.admin.AdminMigrateAllBalanceResponse;
-import com.aisocialgame.dto.admin.AdminMigrateBalanceRequest;
 import com.aisocialgame.dto.admin.AdminRedeemCodeResponse;
 import com.aisocialgame.dto.admin.AdminReverseBalanceRequest;
 import com.aisocialgame.service.AdminOpsService;
@@ -57,20 +54,6 @@ public class AdminBillingController {
         return ResponseEntity.ok(new BalanceView(
                 adminOpsService.reverseBalance(request.getUserId(), request.getOriginalRequestId(), request.getReason(), operator)
         ));
-    }
-
-    @PostMapping("/migrate-user")
-    public ResponseEntity<BalanceView> migrateUser(@Valid @RequestBody AdminMigrateBalanceRequest request,
-                                                   @CurrentAdmin String operator) {
-        return ResponseEntity.ok(new BalanceView(adminOpsService.migrateUserBalance(request.getUserId(), operator)));
-    }
-
-    @PostMapping("/migrate-all")
-    public ResponseEntity<AdminMigrateAllBalanceResponse> migrateAllUsers(
-            @Valid @RequestBody(required = false) AdminMigrateAllBalanceRequest request,
-            @CurrentAdmin String operator) {
-        Integer batchSize = request == null ? null : request.getBatchSize();
-        return ResponseEntity.ok(adminOpsService.migrateAllUsersBalance(operator, batchSize));
     }
 
     @PostMapping("/redeem-codes")

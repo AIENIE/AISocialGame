@@ -13,36 +13,23 @@ public final class LabRequests {
                             String thinkingEffort) {
         public AiModelSelection snapshot() { return new AiModelSelection(null, modelKey, thinkingMode, thinkingEffort, 0); }
     }
-    public record Participant(@NotBlank String agentId, String initialExperienceId, @Valid Selection selection) {
-        public Participant(String agentId,String initialExperienceId) { this(agentId,initialExperienceId,null); }
-    }
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("concurrency")
+    public record Participant(@NotBlank String agentId, String initialExperienceId, @Valid Selection selection) {}
     public record Experiment(@NotBlank @Size(max=128) String name,
-                             @Size(min=4,max=10) List<@NotBlank String> agentIds,
                              @Min(4) @Max(10) int playerCount, @Min(1) @Max(10000) int targetGames,
                              String wordPack, Boolean hasBlank,
                              @Min(1) long budgetPoints, @NotNull @Valid Selection coach,
-                             Map<String,String> initialExperienceIds,
-                             @Size(min=4,max=10) List<@NotNull @Valid Participant> participants,
+                             @NotNull @Size(min=4,max=10) List<@NotNull @Valid Participant> participants,
                              String gameId, Map<String,Object> rules, String learningMode,
                              String initialStrategyVersionId, Long randomSeed, Long trainingCheckpointPoints) {
         public Experiment {
             // Werewolf requests omit this undercover-only option. Keep the default local to this optional field.
             hasBlank=Boolean.TRUE.equals(hasBlank);
         }
-        public Experiment(String name,List<String> agentIds,int playerCount,int targetGames,String wordPack,
-                          boolean hasBlank,long budgetPoints,Selection coach,Map<String,String> initialExperienceIds,
-                          List<Participant> participants) {
-            this(name,agentIds,playerCount,targetGames,wordPack,hasBlank,budgetPoints,coach,initialExperienceIds,
-                    participants,null,null,null,null,null,null);
-        }
     }
-    public record Evaluation(String participantId, String agentId, @Min(1) @Max(1000) int pairs,
+
+    public record Evaluation(@NotBlank String participantId, @Min(1) @Max(1000) int pairs,
                              String candidateExperienceId, String candidateStrategyVersionId,
                              String operationId, String targetRole, Long randomSeed) {
-        public Evaluation(String participantId,String agentId,int pairs,String candidateExperienceId) {
-            this(participantId,agentId,pairs,candidateExperienceId,null,null,null,null);
-        }
     }
     public record Review(@NotBlank @Pattern(regexp="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}") String operationId,
                          @NotNull @Valid Selection coach) {}

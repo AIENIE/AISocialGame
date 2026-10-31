@@ -99,10 +99,6 @@ public class PayServiceJwtStartupGuard {
         requireBound(rawEnvironment, PREFIX + "TTL_SECONDS", Long.toString(jwt.getTtlSeconds()));
         requireBound(rawEnvironment, PREFIX + "SCOPES", jwt.getScopes());
         requireBound(rawEnvironment, "APP_EXTERNAL_GRPC_AUTH_REQUIRED", "true");
-        String legacy = rawEnvironment.get("APP_EXTERNAL_PAYSERVICE_JWT");
-        if (legacy != null && !legacy.isEmpty()) {
-            throw new IllegalStateException("Legacy APP_EXTERNAL_PAYSERVICE_JWT must be absent or empty");
-        }
     }
 
     private static boolean isWindowsLocal(Map<String, String> rawEnvironment,

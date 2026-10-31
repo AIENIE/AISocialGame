@@ -77,7 +77,7 @@ class MilestoneClosureRealIntegrationTest {
                 Map<String,Object> row=new LinkedHashMap<>(sample.metadata());row.put("coverage",sample.coverage());row.put("observation",sample.observation());row.put("expected",sample.expected());row.put("status","NO_RESPONSE");results.add(row);
                 write(output,results,ledger.consumed(),"RUNNING");
                 AiTurnDecision generated=generator.generate(sample.adapter(),sample.observation(),"closure-"+UUID.randomUUID());
-                row.put("decision",generated);row.put("status",generated.fallback()?"LOCAL_FALLBACK":"GENERATED");write(output,results,ledger.consumed(),"RUNNING");
+                row.put("decision",generated);row.put("status","GENERATED");write(output,results,ledger.consumed(),"RUNNING");
                 var flags=strings(generated.diagnostics().get("qualityFlags"));
                 if(flags.stream().anyMatch(f->f.contains("RESOURCE")||f.contains("AUTH")||f.contains("PERMISSION")||f.contains("BUDGET")||f.equals("CALL_RATE_LIMITED")||f.equals("ADMIN_CONTROL")))throw new IllegalStateException("STOP_RESOURCE_OR_AUTHORITY");
                 return generated;

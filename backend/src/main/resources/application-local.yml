@@ -125,8 +125,6 @@ app:
   security:
     allow-weak-runtime-defaults: true
     allow-plaintext-grpc: true
-  demo-seed:
-    enabled: false
   external:
     payservice-plaintext-enabled: false
     grpc-auth-required: true
@@ -148,11 +146,6 @@ app:
       scopes: billing.balance.read,billing.checkin.write,billing.checkin.read,billing.ledger.read,billing.balance.convert,billing.onboarding.write,billing.redeem.write
     aiservice-hmac-caller: integration-test
     aiservice-hmac-secret: ${GRPC_SHARED_SECRET}
-qdrant:
-  host: http://localqdrant.testhut.top
-  http-port: 26333
-  enabled: true
-  api-key: ${QDRANT_API_KEY:}
 connection:
   disconnect-threshold-seconds: 60
 runtime:

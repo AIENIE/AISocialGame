@@ -83,29 +83,18 @@
 
 - Mock 自动化：
   - `cd backend`
-  - `mvn test -Dtest=AiDecisionServiceTest,GamePlayServiceUndercoverTest,GamePlayServiceWerewolfTest`
+  - `mvn test -Dtest=AiTurnGeneratorTest,V2GameServiceIntegrationTest`
 - 真实 ai-service 联调：
   - `cd backend`
   - `set -a && source ../env.local && set +a`
-  - `REAL_AI_INTEGRATION=1 mvn test -Dtest=AiDecisionRealIntegrationTest`
 - 验收重点：
   - AI 发言/投票/夜晚行动后生成 `ai_decision_traces`。
   - 日志 metadata 只有安全摘要，不包含隐藏词语、隐藏身份或完整 Prompt。
   - `ai_persona_memories` 会沉淀 Persona 级策略和错误记忆，可通过管理端重置。
 
-## 8. 本地开箱即用数据
+## 8. 测试数据
 
-- 只有显式导出 `APP_DEMO_SEED_ENABLED=true` 时才会写入本地演示数据。
-- 部署脚本与默认配置保持 `APP_DEMO_SEED_ENABLED=false`，避免测试服/正式服启动时自动写入演示数据。
-- 本地 seed 内容：
-  - 社区演示帖：AI 质检、谁是卧底、狼人杀。
-  - 等待房：`demo-undercover-room`、`demo-werewolf-room`。
-  - 排行榜样例：总榜、谁是卧底、狼人杀。
-  - 兑换码：`DEMO-LOCAL-1000`、`DEMO-LOCAL-TEMP-300`。
-  - AI 质检样例：`ai_decision_traces` 与 `ai_persona_memories`。
-- 后端验证：
-  - `cd backend`
-  - `mvn test -Dtest=DemoSeedServiceTest`
+演示种子入口和开关已退役。离线测试使用各自 fixture，真实验收使用明确授权的现行账号与数据；参见 `doc/modules/acceptance-module.md`。
 
 ## 9. Playwright 可复用验收
 

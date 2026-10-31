@@ -1,9 +1,0 @@
-{
-  "schema_version": "aienie-staging-oci-role-contract-v1",
-  "component_id": "ai-social-game",
-  "oci_repository": "ghcr.io/aienie/ai-social-game",
-  "roles": [
-    {"role": "backend", "compose_service": "backend", "environment_variable": "AISOCIALGAME_BACKEND_IMAGE", "oci_repository": "ghcr.io/aienie/ai-social-game", "build": {"source": "pinned-source-tree", "context": "backend", "dockerfile": "backend/Dockerfile", "target": null, "build_args": {}}},
-    {"role": "frontend", "compose_service": "frontend", "environment_variable": "AISOCIALGAME_FRONTEND_IMAGE", "oci_repository": "ghcr.io/aienie/ai-social-game", "container_port": 11030, "build": {"source": "pinned-source-tree", "context": "frontend", "dockerfile": "frontend/Dockerfile", "target": null, "build_args": {}}}
-  ]
-}

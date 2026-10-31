@@ -12,15 +12,15 @@ import org.mockito.Mockito;
 class BalanceServiceTest {
 
     @Test
-    void shouldReturnEmptyWhenUserHasNoExternalId() {
+    void shouldRejectBalanceReadWhenUserHasNoExternalId() {
         BillingGrpcClient billingGrpcClient = Mockito.mock(BillingGrpcClient.class);
         ProjectCreditService projectCreditService = Mockito.mock(ProjectCreditService.class);
         BalanceService balanceService = new BalanceService(billingGrpcClient, projectCreditService);
 
         User user = new User();
         user.setId("u1");
-        BalanceSnapshot snapshot = balanceService.getUserBalance(user);
-        Assertions.assertEquals(0, snapshot.totalTokens());
+        Assertions.assertThrows(com.aisocialgame.exception.ApiException.class,
+                () -> balanceService.getDisplayBalance(user));
         Mockito.verifyNoInteractions(billingGrpcClient);
     }
 
@@ -36,7 +36,7 @@ class BalanceServiceTest {
 
         User user = new User();
         user.setExternalUserId(1001L);
-        BalanceSnapshot snapshot = balanceService.getUserBalance(user);
+        BalanceSnapshot snapshot = balanceService.getDisplayBalance(user);
 
         Assertions.assertEquals(60, snapshot.totalTokens());
         Mockito.verify(billingGrpcClient).getPublicPermanentTokens(1001L);

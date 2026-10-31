@@ -12,7 +12,6 @@ import com.aisocialgame.service.ai.v2.*;
 import com.aisocialgame.service.safety.*;
 import com.aisocialgame.websocket.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.*;
@@ -48,7 +47,6 @@ public class V2GameService {
     private final PlayerConnectionService connections;
     private final AiSafetyService safety;
     private final AiDecisionTraceRepository traces;
-    private final boolean enabled;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private com.aisocialgame.config.AppProperties appProperties;
     @org.springframework.beans.factory.annotation.Autowired
@@ -57,16 +55,13 @@ public class V2GameService {
     public V2GameService(List<GameRuleSet> rules, RoomRepository rooms, GameStateRepository states, AiTurnJobRepository jobs,
                          org.springframework.transaction.PlatformTransactionManager manager, ObservationFactory observations,
                          AiMemoryServiceV2 memories, GameEventRecorder recorder, ReplayArchiveService archives, StatsService stats,
-                         GamePushService push, PlayerConnectionService connections, AiSafetyService safety, AiDecisionTraceRepository traces,
-                         @Value("${app.game.v2-enabled:true}") boolean enabled) {
+                         GamePushService push, PlayerConnectionService connections, AiSafetyService safety, AiDecisionTraceRepository traces) {
         rules.forEach(r -> { if (ruleSets.put(r.gameId(), r) != null) throw new IllegalStateException("Duplicate v2 game " + r.gameId()); });
         this.rooms = rooms; this.states = states; this.jobs = jobs; this.transaction = new TransactionTemplate(manager);
         this.observations = observations; this.memories = memories; this.recorder = recorder; this.archives = archives; this.stats = stats;
-        this.push = push; this.connections = connections; this.safety = safety; this.traces = traces; this.enabled = enabled;
+        this.push = push; this.connections = connections; this.safety = safety; this.traces = traces;
     }
-    public boolean newGamesEnabled() { return enabled; }
-    public boolean hasState(String roomId) { return states.existsById(roomId); }
-    public boolean isV2(String roomId) { return states.findRoutingSnapshotByRoomId(roomId).map(s -> RuleSupport.number(s.getData().get("ruleVersion"), 1) == 2).orElse(false); }
+
     public GameRuleSet rules(String gameId) { return Optional.ofNullable(ruleSets.get(gameId)).orElseThrow(() -> RuleSupport.bad("玩法规则尚未就绪")); }
 
     /** Read the current persisted opportunity before remote work, without retaining a transaction. */
@@ -289,7 +284,7 @@ public class V2GameService {
             else { RuleSupport.require(!room.isLab(), "实验房间由实验室调度"); requireHost(room, user); }
             GameState previous = states.findByIdForUpdate(roomId).orElse(null);
             if (previous != null && !"SETTLEMENT".equals(previous.getPhase())) {
-                RuleSupport.require(RuleSupport.number(previous.getData().get("ruleVersion"), 1) == 2, "请先完成当前旧版本对局");
+
                 return response(room, previous, user == null ? null : user.getId());
             }
             GameRuleSet rules = rules(gameId);
@@ -319,7 +314,7 @@ public class V2GameService {
             if(validationBudgetPaused(roomId)) throw new ApiException(HttpStatus.CONFLICT,"本次验收已达到积分实扣停止线","AI_VALIDATION_BUDGET_EXHAUSTED",Map.of());
             if (roomControls(state).contains("PAUSE_ROOM") || roomControls(state).contains("BLOCK")) throw new ApiException(HttpStatus.CONFLICT,"房间已暂停");
             syncSafetyClock(state);
-            RuleSupport.require(RuleSupport.number(state.getData().get("ruleVersion"), 1) == 2, "对局版本不匹配");
+
             GameRuleSet rules = rules(gameId);
             GamePlayerState actor = RuleSupport.player(state, user.getId());
             String requestKey = user.getId() + ":" + RuleSupport.text(action.getRequestId());
@@ -368,7 +363,7 @@ public class V2GameService {
     public boolean acceptSideChat(String roomId, String actorId, String type, String content) {
         lifecycle.requireActive(roomId);
         GameStateRepository.RoutingSnapshot current = states.findRoutingSnapshotByRoomId(roomId).orElse(null);
-        if (current == null || RuleSupport.number(current.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(current.getPhase())) return true;
+        if (current == null || "SETTLEMENT".equals(current.getPhase())) return true;
         if ("TEXT".equals(type) && "turtle_soup".equals(current.getGameId())) {
             User user = new User(); user.setId(actorId);
             action(current.getGameId(), roomId, user, RuleSupport.action("DISCUSS", content, null)); return true;
@@ -389,7 +384,7 @@ public class V2GameService {
         transaction.executeWithoutResult(status -> {
             Room room = rooms.findByIdForUpdateSkipLocked(roomId).orElse(null); if (room == null || room.getStatus() != RoomStatus.PLAYING) return;
             GameState state = states.findByIdForUpdateSkipLocked(roomId).orElse(null);
-            if (state == null || RuleSupport.number(state.getData().get("ruleVersion"), 1) != 2 || "SETTLEMENT".equals(state.getPhase())) return;
+            if (state == null || "SETTLEMENT".equals(state.getPhase())) return;
             int beforeSafety=RuleSupport.maps(state.getData().get("events")).size();
             boolean frozen=syncSafetyClock(state);
             frozen=syncLabBudgetClock(state) || frozen;
@@ -419,7 +414,6 @@ public class V2GameService {
             AiTurnJob job = jobs.findByIdForUpdate(jobId).orElseThrow();
             if (!"RUNNING".equals(job.getStatus())) return;
             job.getDiagnostics().put("generation", AiJobDiagnostics.generation(decision.diagnostics()));
-            job.getDiagnostics().put("fallback", decision.fallback());
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
             syncLabBudgetClock(state);
             if (automationBlocked(state,job.getActorId(),jobModel(job,state.getGameId()))) { syncSafetyClock(state); states.save(state); finishJob(job,"DISCARDED","ADMIN_CONTROL"); return; }
@@ -433,9 +427,9 @@ public class V2GameService {
                 persist(room, state, rules, false); prepareJob(state, rules); return;
             }
             VisibleObservation observation = JSON.convertValue(observationPayload(job), VisibleObservation.class);
-            if ("werewolf".equals(state.getGameId()) && (decision.fallback() || com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.expired(state,now))) {
+            if ("werewolf".equals(state.getGameId()) && com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.expired(state,now)) {
                 if (com.aisocialgame.lab.LabRunPolicy.pureWerewolfTraining(state)) {
-                    state.getData().put("labCallPause",decision.fallback()?"REQUEST_FAILED":"TIMEOUT");
+                    state.getData().put("labCallPause","TIMEOUT");
                     job.setStatus("QUEUED"); job.getDiagnostics().put("waitingReason",state.getData().get("labCallPause"));
                     var saved=RuleSupport.map(job.getObservation().get("generationCheckpoint"));
                     saved.put("lastCallCode","AI_RESULT_PENDING"); saved.put("lastCallState",Map.of("remoteState","RESULT_RECEIVED"));
@@ -443,8 +437,8 @@ public class V2GameService {
                     com.aisocialgame.engine.v2.werewolf.WerewolfAiClock.suspend(state,now,true);
                     freezeLabBudget(state); persist(room,state,rules,true); return;
                 }
-                ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules).onAiFailure(state,turn,now,decision.fallback()?"REQUEST_FAILED":"TIMEOUT");
-                finishJob(job,"FAILED",decision.fallback()?"FALLBACK_REJECTED":"TURN_EXPIRED");
+                ((com.aisocialgame.engine.v2.werewolf.WerewolfRuleSet)rules).onAiFailure(state,turn,now,"TIMEOUT");
+                finishJob(job,"FAILED","TURN_EXPIRED");
                 persist(room,state,rules,false); prepareJob(state,rules); return;
             }
             if(!decision.speech().isBlank()) {
@@ -480,12 +474,11 @@ public class V2GameService {
             rules.apply(state, job.getActorId(), decision.action(), LocalDateTime.now());
             decorateEvents(state, before, job.getActorId(), decision);
             memories.commit(state, job.getActorId(), decision, observation, rules, before);
-            String origin = !decision.fallback() ? "MODEL" : RuleSupport.strings(decision.diagnostics().get("qualityFlags")).stream().anyMatch(f -> f.contains("TIMEOUT") || f.contains("DEADLINE")) ? "TIMEOUT_FALLBACK" : "LEGAL_FALLBACK";
-            AiCommitments.submitted(state, receipt, origin, before);
+            AiCommitments.submitted(state, receipt, "MODEL", before);
             rules.advance(state, LocalDateTime.now());
             AiCommitments.reconcile(state, rules, "OPPORTUNITY_LOST");
             job.getDiagnostics().put("submissionProcessingMs", Math.max(0, (System.nanoTime() - submissionStarted) / 1_000_000));
-            finishJob(job, "SUCCEEDED", decision.fallback() ? "FALLBACK_APPLIED" : "MODEL_ACTION_APPLIED");
+            finishJob(job, "SUCCEEDED", "MODEL_ACTION_APPLIED");
             AiRoundReflection.closeRounds(state);
             recordTrace(state, job, observation, decision, before);
             if (debugRecorder != null) debugRecorder.applied(job.getId(), decision);
@@ -584,7 +577,7 @@ public class V2GameService {
             GameState state = states.findByIdForUpdate(lookup.getRoomId()).orElse(null);
             AiTurnJob job = jobs.findByIdForUpdate(jobId).orElse(null);
             if (job == null || !"RUNNING".equals(job.getStatus())) return;
-            if ("RECOVERY_TIMEOUT".equals(reason) && !AiJobDiagnostics.overdue(job, java.time.Instant.now(), java.time.ZoneId.systemDefault())) return;
+            if ("RECOVERY_TIMEOUT".equals(reason) && !AiJobDiagnostics.overdue(job, java.time.Instant.now())) return;
             if (!generation.isEmpty()) job.getDiagnostics().put("generation", AiJobDiagnostics.generation(generation));
             job.getDiagnostics().put("failureReason", reason);
             if (room == null || room.getStatus() != RoomStatus.PLAYING || state == null || !job.getInstanceId().equals(state.getData().get("archiveId"))) { finishJob(job, "DISCARDED", "INSTANCE_UNAVAILABLE"); return; }
@@ -633,7 +626,7 @@ public class V2GameService {
                     if (rules instanceof com.aisocialgame.engine.v2.undercover.UndercoverRuleSet undercover)
                         undercover.onAiFailure(state, turn, now, Set.of("TIMEOUT", "NO_ACTION_BUDGET", "RECOVERY_TIMEOUT").contains(reason) ? "TIMEOUT" : Set.of("OUTPUT_LIMIT_REACHED", "AI_CREDIT_INSUFFICIENT", "BUDGET_RECONCILIATION_REQUIRED").contains(reason) ? reason : "REQUEST_FAILED");
                     else rules.onAiFailure(state, turn, now);
-                    AiCommitments.submitted(state, receipt, "undercover".equals(state.getGameId()) ? reason : "LEGAL_FALLBACK", actionStart);
+                    AiCommitments.submitted(state, receipt, reason, actionStart);
                 }
                 finishJob(job, "FAILED", reason); persist(room, state, rules, false);
             } else finishJob(job, "DISCARDED", "TURN_OBSOLETE");
@@ -735,7 +728,7 @@ public class V2GameService {
         }
         // The event table is the complete history for new V2 instances. Keep only
         // the live public window in the mutable state row after event persistence.
-        if (Boolean.TRUE.equals(state.getData().get("eventTableComplete")) && state.getLogs().size() > 100)
+        if (state.getLogs().size() > 100)
             state.setLogs(new ArrayList<>(state.getLogs().subList(state.getLogs().size() - 100, state.getLogs().size())));
         states.saveAndFlush(state);
         if (publicChanged) publishAfterCommit(room, state);
@@ -819,7 +812,7 @@ public class V2GameService {
         trace.setRoomId(state.getRoomId()); trace.setInstanceId(job.getInstanceId()); trace.setGameId(state.getGameId()); trace.setPhase(observation.phase()); trace.setRoundNumber(observation.round());
         trace.setActorPlayerId(job.getActorId()); trace.setAction(job.getKind()); trace.setRoleKey(RuleSupport.text(observation.self().get("role")));
         trace.setPersonaId(state.getPlayers().stream().filter(p -> p.getPlayerId().equals(job.getActorId())).map(p -> p.getPersonaId() == null ? "takeover" : p.getPersonaId()).findFirst().orElse("host"));
-        trace.setFallback(decision.fallback()); trace.setValidDecision(true); trace.setModelKey(RuleSupport.text(metrics.get("modelKey")));
+        trace.setFallback(false); trace.setValidDecision(true); trace.setModelKey(RuleSupport.text(metrics.get("modelKey")));
         trace.setPromptTokens(RuleSupport.number(metrics.get("promptTokens"), 0)); trace.setCompletionTokens(RuleSupport.number(metrics.get("completionTokens"), 0));
         trace.setLatencyMs(RuleSupport.number(metrics.get("latencyMs"), 0)); trace.setTargetPlayerId(decision.action().getTargetPlayerId()); trace.setNightAction(decision.action().getNightAction());
         trace.setInputSummary("v2/" + observation.phase() + "/" + job.getKind() + "/events=" + observation.events().size());
@@ -830,7 +823,7 @@ public class V2GameService {
         qualityFlags.addAll(RuleSupport.strings(committedMemory.get("commitmentQualityFlags")));
         Map<String, Integer> commitmentStatuses = new LinkedHashMap<>();
         RuleSupport.maps(committedMemory.get("commitments")).forEach(e -> commitmentStatuses.merge(RuleSupport.text(e.get("status")), 1, Integer::sum));
-        Map<String, Object> quality = new LinkedHashMap<>(Map.of("flags", qualityFlags.stream().distinct().toList(), "fallback", decision.fallback(),
+        Map<String, Object> quality = new LinkedHashMap<>(Map.of("flags", qualityFlags.stream().distinct().toList(), "fallback", false,
                 "calls", RuleSupport.number(metrics.get("calls"), 0), "promptVersion", RuleSupport.text(metrics.getOrDefault("promptVersion", AiTurnGenerator.promptVersion(observation.gameId()))),
                 "attempts", RuleSupport.maps(metrics.get("attempts")), "repaired", Boolean.TRUE.equals(metrics.get("repaired")), "jobId", job.getId(),
                 "commitmentStatuses", commitmentStatuses, "memoryFormatVersion", AiMemoryEntries.FORMAT_VERSION, "memorySnapshotStage", "POST_ACTION"));
@@ -846,7 +839,7 @@ public class V2GameService {
         traces.save(trace);
         for(int i=firstEvent;i<generatedEvents.size();i++) {
             var event=generatedEvents.get(i);var data=RuleSupport.map(event.get("data"));
-            data.put("aiTraceId",trace.getId());data.put("aiFallback",decision.fallback());event.put("data",data);
+            data.put("aiTraceId",trace.getId());data.put("aiFallback",false);event.put("data",data);
         }
         state.getData().put("events",generatedEvents);
     }

@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @EnabledIfEnvironmentVariable(named = "AI_REALISM_LOGIN_BOOTSTRAP", matches = "1")
 @SpringBootTest(classes = AiSocialGameApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = {"app.game.scheduler-enabled=false", "app.demo-seed.enabled=false", "spring.jpa.hibernate.ddl-auto=validate"})
+        properties = {"app.game.scheduler-enabled=false", "spring.jpa.hibernate.ddl-auto=validate"})
 @ActiveProfiles("local")
 @Import(LocalRealismLoginBootstrapTest.LoginConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)

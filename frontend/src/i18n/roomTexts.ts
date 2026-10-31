@@ -7,8 +7,7 @@ export const roomTexts = {
     "rooms.visibilityHelp": "公开房间显示在大厅列表；私密房间仅能通过房间号搜索或邀请链接找到，加入仍需密码。",
     "rooms.password": "房间密码", "rooms.passwordHelp": "输入密码验证后加入房间。", "rooms.cancel": "取消",
     "rooms.joining": "正在加入…", "rooms.return": "返回房间", "rooms.privatePlaying": "私密对局进行中，仅参与者可以返回。",
-    "rooms.full": "房间已满", "rooms.copy": "复制房间号", "rooms.copied": "房间号已复制", "rooms.copyFailed": "复制失败，请手动复制房间号。",
-    "rooms.expiresAt": "未开局失效时间：{{time}}", "rooms.publicList": "公开房间", "rooms.previous": "上一页", "rooms.next": "下一页",
+    "rooms.full": "房间已满", "rooms.copy": "复制房间号", "rooms.copied": "房间号已复制", "rooms.copyFailed": "复制失败，请手动复制房间号。", "rooms.publicList": "公开房间", "rooms.previous": "上一页", "rooms.next": "下一页",
   },
   "zh-TW": {
     "rooms.search": "房間號搜尋", "rooms.code": "房間號", "rooms.searchHelp": "輸入完整六位房間號，可搜尋所有玩法的公開或私密房間。",
@@ -18,8 +17,7 @@ export const roomTexts = {
     "rooms.visibilityHelp": "公開房間顯示在大廳列表；私密房間僅能透過房間號搜尋或邀請連結找到，加入仍需密碼。",
     "rooms.password": "房間密碼", "rooms.passwordHelp": "輸入密碼驗證後加入房間。", "rooms.cancel": "取消",
     "rooms.joining": "正在加入…", "rooms.return": "返回房間", "rooms.privatePlaying": "私密對局進行中，僅參與者可以返回。",
-    "rooms.full": "房間已滿", "rooms.copy": "複製房間號", "rooms.copied": "房間號已複製", "rooms.copyFailed": "複製失敗，請手動複製房間號。",
-    "rooms.expiresAt": "未開局失效時間：{{time}}", "rooms.publicList": "公開房間", "rooms.previous": "上一頁", "rooms.next": "下一頁",
+    "rooms.full": "房間已滿", "rooms.copy": "複製房間號", "rooms.copied": "房間號已複製", "rooms.copyFailed": "複製失敗，請手動複製房間號。", "rooms.publicList": "公開房間", "rooms.previous": "上一頁", "rooms.next": "下一頁",
   },
   en: {
     "rooms.search": "Search by room number", "rooms.code": "Room number", "rooms.searchHelp": "Enter all six digits to find public or private rooms across all games.",
@@ -29,7 +27,6 @@ export const roomTexts = {
     "rooms.visibilityHelp": "Public rooms appear in the lobby. Private rooms can be found by room number or invitation link and require a password to join.",
     "rooms.password": "Room password", "rooms.passwordHelp": "Enter the password to join this room.", "rooms.cancel": "Cancel",
     "rooms.joining": "Joining…", "rooms.return": "Return to room", "rooms.privatePlaying": "This private game is in progress. Only participants can return.",
-    "rooms.full": "Room is full", "rooms.copy": "Copy room number", "rooms.copied": "Room number copied", "rooms.copyFailed": "Could not copy. Please copy the room number manually.",
-    "rooms.expiresAt": "Expires if not started by {{time}}", "rooms.publicList": "Public rooms", "rooms.previous": "Previous", "rooms.next": "Next",
+    "rooms.full": "Room is full", "rooms.copy": "Copy room number", "rooms.copied": "Room number copied", "rooms.copyFailed": "Could not copy. Please copy the room number manually.", "rooms.publicList": "Public rooms", "rooms.previous": "Previous", "rooms.next": "Next",
   },
 };
