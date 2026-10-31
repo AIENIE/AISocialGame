@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.aisocialgame</groupId>
     <artifactId>ai-social-game</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <name>AI Social Game Backend</name>
     <description>Spring Boot backend for AI-powered social game platform</description>
 
