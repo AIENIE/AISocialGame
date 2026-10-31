@@ -4,8 +4,20 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class StagingTrustPolicyTest {
+    @Test
+    void readsTheSamePropertiesAsTheGrpcChannels() {
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withUserConfiguration(StagingTrustPolicy.class)
+                .withPropertyValues("ENV=test",
+                        "app.grpc.user-trust-cert-collection=" + StagingTrustPolicy.STAGING_ROOT,
+                        "app.grpc.billing-trust-cert-collection=" + StagingTrustPolicy.STAGING_ROOT,
+                        "app.grpc.ai-trust-cert-collection=" + StagingTrustPolicy.STAGING_ROOT)
+                .run(context -> assertNull(context.getStartupFailure()));
+    }
+
     @Test
     void localRequiresExportedRootForEveryGrpcClient() {
         java.nio.file.Path root = java.nio.file.Path.of("").toAbsolutePath();
