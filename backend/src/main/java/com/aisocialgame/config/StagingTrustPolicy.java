@@ -16,9 +16,9 @@ public final class StagingTrustPolicy {
 
     public StagingTrustPolicy(
             @Value("${ENV:}") String runtimeEnvironment,
-            @Value("${grpc.client.user.security.trust-cert-collection:}") String userTrust,
-            @Value("${grpc.client.billing.security.trust-cert-collection:}") String billingTrust,
-            @Value("${grpc.client.ai.security.trust-cert-collection:}") String aiTrust) {
+            @Value("${app.grpc.user-trust-cert-collection:}") String userTrust,
+            @Value("${app.grpc.billing-trust-cert-collection:}") String billingTrust,
+            @Value("${app.grpc.ai-trust-cert-collection:}") String aiTrust) {
         this.runtimeEnvironment = runtimeEnvironment;
         this.userTrust = userTrust;
         this.billingTrust = billingTrust;
