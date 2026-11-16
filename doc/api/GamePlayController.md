@@ -16,7 +16,7 @@
 
 合法动作由状态中的 `extra.legalActions` 提供。服务端核查当前阶段、行动者、目标、规则、权限及治理控制，返回更新后的 `GameStateResponse`。私密信息和回放视角以服务端过滤结果为准。
 
-当 `extra.voiceInputEnabled` 为 true 时，当前玩家可在对局中录音。转写请求使用 `Content-Type: audio/wav`，发送完整的 16 kHz、16 位 PCM 单声道 WAV，最多 30 秒。请求头 `X-Expected-Phase-Token` 使用当前回合令牌，`X-Game-Action` 使用动作类型和夜间子动作组成的键，例如 `DISCUSS:`。
+当 `extra.voiceInputEnabled` 为 true 时，当前玩家可在对局中录音。转写请求使用 `Content-Type: audio/wav`，发送完整的 16 kHz、16 位 PCM 单声道 WAV，最多 30 秒。请求头 `X-Expected-Phase-Token` 使用当前回合令牌，`X-Game-Action` 使用动作类型和夜间子动作组成的键，例如 `DISCUSS:`。部署时为该路径配置流式转发，避免代理将录音写入临时文件。
 
 转写返回 `text` 和 `durationMs`。静音可能返回空文本。回合过期或动作变化返回 `409 PHASE_CHANGED`，超过录音上限返回 `413 VOICE_AUDIO_INVALID`。浏览器把识别文字加到当前草稿，玩家确认后仍通过 `/action` 提交。
 
