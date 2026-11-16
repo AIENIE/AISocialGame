@@ -352,6 +352,26 @@ message GenerateImageResponse {
   int64 total_tokens = 4;
 }
 
+message TranscribeAudioRequest {
+  // Required: existing positive user ID, project key and registered AUDIO model key.
+  int64 user_id = 1;
+  string project_key = 2;
+  string model_key = 3;
+  // Complete 16 kHz, 16-bit PCM mono WAV. At most 120 seconds and 4 MiB.
+  bytes audio = 4;
+  // Optional correlation identifier, not an idempotency key.
+  string request_id = 5;
+  string session_id = 6;
+}
+
+message TranscribeAudioResponse {
+  string request_id = 1;
+  string model_key = 2;
+  // A successful recognition can produce an empty transcript.
+  string text = 3;
+  int64 duration_ms = 4;
+}
+
 enum BudgetOperation {
   BUDGET_OPERATION_UNSPECIFIED = 0;
   BUDGET_OPERATION_CHAT = 1;
@@ -478,4 +498,6 @@ service AiGatewayService {
   rpc GenerateImage(GenerateImageRequest) returns (GenerateImageResponse);
   // Read-only caller catalog; no ordinary user ID or inference consumption.
   rpc ListCallerModels(ListCallerModelsRequest) returns (ListCallerModelsResponse);
+  // Transcribe a complete audio clip in one request.
+  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse);
 }

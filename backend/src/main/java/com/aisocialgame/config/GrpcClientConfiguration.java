@@ -27,8 +27,8 @@ import java.nio.file.Path;
 /** Build caller channels with the reviewed TLS trust source for each service. */
 @Configuration(proxyBeanMethods = false)
 public class GrpcClientConfiguration {
-    private ManagedChannel channel(String name, Environment environment,
-                                   ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+    private NettyChannelBuilder channelBuilder(String name, Environment environment,
+                                               ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
         boolean tls = Boolean.TRUE.equals(environment.getProperty(
                 "spring.grpc.client.channel." + name + ".ssl.enabled", Boolean.class));
         boolean authorizedTest = environment.acceptsProfiles(Profiles.of("test"))
@@ -63,7 +63,7 @@ public class GrpcClientConfiguration {
             }
         }
         configureBillingRetry(name, builder);
-        return builder.build();
+        return builder;
     }
 
     static void configureBillingRetry(String name, ManagedChannelBuilder<?> builder) {
@@ -75,19 +75,25 @@ public class GrpcClientConfiguration {
     @Bean(value = "aiGrpcChannel", destroyMethod = "shutdown")
     ManagedChannel aiGrpcChannel(Environment environment,
                                  ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
-        return channel("ai", environment, testAuthorization);
+        return channelBuilder("ai", environment, testAuthorization).build();
+    }
+
+    @Bean(value = "aiTranscriptionGrpcChannel", destroyMethod = "shutdown")
+    ManagedChannel aiTranscriptionGrpcChannel(Environment environment,
+                                               ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
+        return channelBuilder("ai", environment, testAuthorization).disableRetry().build();
     }
 
     @Bean(value = "userGrpcChannel", destroyMethod = "shutdown")
     ManagedChannel userGrpcChannel(Environment environment,
                                    ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
-        return channel("user", environment, testAuthorization);
+        return channelBuilder("user", environment, testAuthorization).build();
     }
 
     @Bean(value = "billingGrpcChannel", destroyMethod = "shutdown")
     ManagedChannel billingGrpcChannel(Environment environment,
                                       ObjectProvider<RuntimeProfileTestAuthorization> testAuthorization) {
-        return channel("billing", environment, testAuthorization);
+        return channelBuilder("billing", environment, testAuthorization).build();
     }
 
     @Bean

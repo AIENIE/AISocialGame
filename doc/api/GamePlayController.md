@@ -8,11 +8,18 @@
 | GET | `/logs` | 按公开游标分页读取日志 |
 | POST | `/start` | 房主验证配置和人数后开局 |
 | POST | `/action` | 提交当前规则允许的动作 |
+| POST | `/transcriptions` | 将当前行动的录音转写成草稿文本 |
 
 `/logs` 接收可选 `before` 游标与 `size`，返回 `items`、`nextCursor` 和 `hasMore`。游标对应公开事件序列。
 
 统一动作包含 `type`、`requestId` 与 `expectedPhaseToken`；后者使用当前状态返回的 `extra.phaseToken`。按动作需要提交 `content`、`targetPlayerId`、`nightAction`、`useHeal` 或 `abstain`。重试同一次提交复用请求 ID，新的行动使用新 ID。
 
 合法动作由状态中的 `extra.legalActions` 提供。服务端核查当前阶段、行动者、目标、规则、权限及治理控制，返回更新后的 `GameStateResponse`。私密信息和回放视角以服务端过滤结果为准。
+
+当 `extra.voiceInputEnabled` 为 true 时，当前玩家可在对局中录音。转写请求使用 `Content-Type: audio/wav`，发送完整的 16 kHz、16 位 PCM 单声道 WAV，最多 30 秒。请求头 `X-Expected-Phase-Token` 使用当前回合令牌，`X-Game-Action` 使用动作类型和夜间子动作组成的键，例如 `DISCUSS:`。
+
+转写返回 `text` 和 `durationMs`。静音可能返回空文本。回合过期或动作变化返回 `409 PHASE_CHANGED`，超过录音上限返回 `413 VOICE_AUDIO_INVALID`。浏览器把识别文字加到当前草稿，玩家确认后仍通过 `/action` 提交。
+
+默认关闭 `app.ai.voice-input-enabled`。目标环境的 AIService 须先登记 `deepseek-asr` 路线和音频价格，并为本项目调用方授予 `AUDIO` 权限。转写按 AIService 音频用量记账，游戏行动按现有规则计费。
 
 接口退役回归由 `RetiredRoutesTest` 验证，当前三款游戏流程由 `V2GameServiceIntegrationTest` 覆盖。

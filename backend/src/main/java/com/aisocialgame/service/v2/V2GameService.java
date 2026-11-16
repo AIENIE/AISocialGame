@@ -12,6 +12,8 @@ import com.aisocialgame.service.ai.v2.*;
 import com.aisocialgame.service.safety.*;
 import com.aisocialgame.websocket.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.*;
@@ -34,6 +36,8 @@ public class V2GameService {
     private final Map<String, GameRuleSet> ruleSets = new LinkedHashMap<>();
     @org.springframework.beans.factory.annotation.Autowired
     private RoomLifecycle lifecycle;
+    @PersistenceContext
+    private EntityManager entityManager;
     private final RoomRepository rooms;
     private final GameStateRepository states;
     private final AiTurnJobRepository jobs;
@@ -157,6 +161,51 @@ public class V2GameService {
         if (viewer != null) connections.markActive(viewer.getId(), roomId);
         return response(room, state, viewer == null ? null : viewer.getId());
     }
+
+    public record VoiceOpportunity(String archiveId, LocalDateTime endsAt) {}
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public VoiceOpportunity requireVoiceOpportunity(String gameId, String roomId, String playerId,
+                                                    String expectedPhaseToken, String actionKey) {
+        Room room = room(roomId, gameId, false);
+        // The request's persistence context may still contain the snapshot loaded before the RPC.
+        entityManager.refresh(room);
+        if (!voiceInputEnabled(room)) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "语音转写暂不可用", "VOICE_UNAVAILABLE", Map.of());
+        }
+        if (room.getStatus() != RoomStatus.PLAYING) throw voiceOpportunityEnded();
+        GameState state = states.findById(roomId).orElseThrow(V2GameService::voiceOpportunityEnded);
+        entityManager.refresh(state);
+        RoomAccessPolicy.requireRead(room, state, playerId);
+        if (state.getPlayers().stream().noneMatch(player -> !player.isAi() && player.getPlayerId().equals(playerId))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "仅本局玩家可以使用语音输入", "VOICE_UNAVAILABLE", Map.of());
+        }
+        GameRuleSet rules = rules(gameId);
+        if (!viewerPhaseToken(state, rules, playerId).equals(expectedPhaseToken)
+                || rules.legalActions(state, playerId).stream().noneMatch(action ->
+                action.maxLength() > 0 && (action.type() + ":" + RuleSupport.text(action.nightAction())).equals(actionKey))) {
+            throw voiceOpportunityEnded();
+        }
+        var controls = roomControls(state);
+        if (controls.contains("PAUSE_ROOM") || controls.contains("BLOCK") || state.getData().containsKey("validationBudgetPause")) {
+            throw voiceOpportunityEnded();
+        }
+        Object playerDeadline = rules.privateData(state, playerId).get("actionEndsAt");
+        LocalDateTime deadline = playerDeadline instanceof String value && !value.isBlank()
+                ? LocalDateTime.parse(value) : state.getPhaseEndsAt();
+        if (deadline != null && !LocalDateTime.now().isBefore(deadline)) throw voiceOpportunityEnded();
+        return new VoiceOpportunity(RuleSupport.text(state.getData().get("archiveId")), deadline);
+    }
+
+    private boolean voiceInputEnabled(Room room) {
+        return appProperties != null && appProperties.getAi().isVoiceInputEnabled()
+                && !room.isLab() && !room.getPrivateConfig().containsKey(AiValidationBudgetService.RUN_ID_KEY);
+    }
+
+    private static ApiException voiceOpportunityEnded() {
+        return new ApiException(HttpStatus.CONFLICT, "局面已更新，请重新选择操作", "PHASE_CHANGED", Map.of());
+    }
+
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public GameStateResponse labSpectatorState(String roomId) {
         Room room=rooms.findById(roomId).orElseThrow(() -> RuleSupport.bad("房间不存在"));
@@ -884,7 +933,12 @@ public class V2GameService {
             extra.put("labCallPaused",state.getData().containsKey("labCallPause"));
             extra.put("labPauseReason",state.getData().getOrDefault("labCallPause",budgetPaused?"LAB_BUDGET_EXHAUSTED":""));
         }
-        extra.put("legalActions", viewer == null || budgetPaused ? List.of() : rules.legalActions(state, viewerId));
+        List<LegalAction> legalActions = viewer == null || budgetPaused ? List.of() : rules.legalActions(state, viewerId);
+        extra.put("legalActions", legalActions);
+        if (voiceInputEnabled(room) && room.getStatus() == RoomStatus.PLAYING && viewer != null && !viewer.isAi()
+                && legalActions.stream().anyMatch(action -> action.maxLength() > 0)) {
+            extra.put("voiceInputEnabled", true);
+        }
         boolean night = Set.of("NIGHT", "DEATH_ACTION").contains(state.getPhase()); Integer seat = night ? null : state.getCurrentSeat();
         String speaker = seat == null ? null : players.stream().filter(p -> p.getSeatNumber() == seat).map(GamePlayerView::getDisplayName).findFirst().orElse(null);
         LocalDateTime visibleDeadline = state.getPhaseEndsAt();

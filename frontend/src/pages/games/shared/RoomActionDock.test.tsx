@@ -5,14 +5,17 @@ import type { GameState, LegalAction, PlayerAction } from "@/types";
 import { RoomActionDock } from "./RoomActionDock";
 import { useRoomActionController } from "./useRoomActionController";
 import { RoomPlayers } from "./RoomPlayers";
+import { gameplayApi } from "@/services/api";
+import { recordVoice, supportsVoiceRecording } from "./voiceRecording";
 
 let language = "zh-CN";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language }, t: (key: string) => key }) }));
+vi.mock("./voiceRecording", () => ({ recordVoice: vi.fn(), supportsVoiceRecording: vi.fn() }));
 const players = ["me", "p2", "p3"].map((id, index) => ({ playerId: id, displayName: id, seatNumber: index, ai: false, alive: true }));
 const state = (legalActions: LegalAction[], phaseToken = "one", phase = "VOTING"): GameState => ({ roomId: "room", gameId: "undercover", phase, round: 1, myPlayerId: "me", players, logs: [], extra: { ruleVersion: 2, legalActions, phaseToken } });
 let root: Root, container: HTMLDivElement;
 beforeEach(() => { language = "zh-CN"; (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement("div"); document.body.append(container); root = createRoot(container); });
-afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.clearAllMocks(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 function Harness({ value, send, connected = true }: { value: GameState; send: (action: PlayerAction) => Promise<unknown>; connected?: boolean }) {
   const control = useRoomActionController(value, send);
   return <><RoomPlayers players={players} targets={control.selected?.targets} selected={control.target} onSelect={control.selectTarget} pending={control.busy || control.actionExpired} />
@@ -23,6 +26,58 @@ const fill = (text: string) => act(() => {
   const textarea = container.querySelector("textarea")!;
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
+const voiceAction = { type: "SPEAK" as const, label: "发言", targets: [], maxLength: 90 };
+const voiceState = (token = "voice-turn"): GameState => ({
+  ...state([voiceAction], token, "DESCRIPTION"),
+  extra: { ruleVersion: 2, legalActions: [voiceAction], phaseToken: token, voiceInputEnabled: true },
+});
+
+async function startVoiceCapture() {
+  const audio = new Blob(["fixture"], { type: "audio/wav" });
+  vi.mocked(supportsVoiceRecording).mockReturnValue(true);
+  vi.mocked(recordVoice).mockImplementation((_signal, ready) => new Promise(resolve => ready(() => resolve(audio))));
+  await act(async () => { click('[aria-label="开始录音"]'); });
+  await act(async () => { click('[aria-label="结束录音并转写"]'); });
+  return audio;
+}
+
+it("adds the transcript to the latest draft and waits for the player to submit", async () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  let complete!: (value: { text: string; durationMs: number }) => void;
+  const transcribe = vi.spyOn(gameplayApi, "transcribe").mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+  act(() => root.render(<Harness value={voiceState()} send={send} />));
+  fill("我先记录一点");
+  const audio = await startVoiceCapture();
+  expect(transcribe).toHaveBeenCalledExactlyOnceWith("undercover", "room", "voice-turn", "SPEAK:", audio,
+    expect.any(AbortSignal));
+  fill("转写期间补充的文字");
+  await act(async () => complete({ text: "新的线索", durationMs: 2800 }));
+  expect(container.querySelector("textarea")!.value).toBe("转写期间补充的文字\n新的线索");
+  expect(send).not.toHaveBeenCalled();
+  await act(async () => { click('[data-testid="v2-action-submit"]'); });
+  expect(send).toHaveBeenCalledExactlyOnceWith({ type: "SPEAK", content: "转写期间补充的文字\n新的线索" });
+});
+
+it.each(["phase", "disconnect", "deadline"])("discards a late transcript after %s", async change => {
+  vi.useFakeTimers();
+  const send = vi.fn();
+  let complete!: (value: { text: string; durationMs: number }) => void;
+  const transcribe = vi.spyOn(gameplayApi, "transcribe").mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+  const initial = voiceState();
+  if (change === "deadline") initial.phaseEndsAt = new Date(Date.now() + 1000).toISOString();
+  act(() => root.render(<Harness value={initial} send={send} />));
+  await startVoiceCapture();
+  act(() => {
+    if (change === "deadline") vi.advanceTimersByTime(1000);
+    else root.render(<Harness value={change === "phase" ? voiceState("next") : initial} send={send}
+      connected={change !== "disconnect"} />);
+  });
+  expect(transcribe.mock.calls[0][5].aborted).toBe(true);
+  await act(async () => complete({ text: "已经过期的识别结果", durationMs: 2800 }));
+  expect(container.querySelector("textarea")!.value).toBe("");
+  expect(send).not.toHaveBeenCalled();
 });
 
 it.each(["public", "private"])("closes a Werewolf action at its %s deadline and restores the next opportunity", async source => {

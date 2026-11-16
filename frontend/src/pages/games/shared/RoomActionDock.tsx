@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { GameState } from "@/types";
 import { actionKey, buildPlayerAction, needsText } from "./v2Actions";
 import { actionLabel } from "./roomActions";
+import { RoomVoiceInput } from "./RoomVoiceInput";
 import { useRoomActionController } from "./useRoomActionController";
 import { useRoomText } from "./roomText";
 
@@ -20,6 +21,7 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
   const feedback = state.extra?.wordFeedback as {forbiddenTerms:string[];remainingCorrections:number;eliminated:boolean} | undefined;
   const { selected, primary, key, draft, target, prepared, abstain, busy, capabilities, submitted } = control;
   const disabled = busy || !connected || control.actionExpired;
+  const phaseToken = state.extra?.phaseToken;
   const player = state.players.find(p => p.playerId === target);
   const extraDescription = state.gameId === "undercover" && state.phase === "TIE_DEFENSE";
   const label = selected?.type === "SPEAK" && extraDescription ? copy("extraDescription") : selected ? actionLabel(selected, copy) : "";
@@ -59,9 +61,16 @@ export function RoomActionDock({ state, control, connected, waitingText, onChoos
           {selected.type === "SELF_DESTRUCT" && <span>{copy("selfDestructWarning")}</span>}
           {selected.maxLength > 0 && <span className={`ml-2 tabular-nums ${Array.from(draft.trim()).length > selected.maxLength ? "text-destructive" : ""}`}>{Array.from(draft.trim()).length}/{selected.maxLength}</span>}
         </div>
-        <Button type="submit" data-testid="v2-action-submit" disabled={disabled || !prepared} className="room-submit">
-          {busy ? <LoaderCircle className="mr-1 h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="mr-1 h-4 w-4 shrink-0" />}<span className="truncate">{busy ? copy("sending") : buttonText}</span>
-        </Button>
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+          {state.extra?.voiceInputEnabled === true && typeof phaseToken === "string" && phaseToken && selected.maxLength > 0 &&
+            <RoomVoiceInput key={JSON.stringify([state.roomId, state.myPlayerId, phaseToken, key, target])}
+              gameId={state.gameId} roomId={state.roomId} phaseToken={phaseToken} actionKey={key}
+              endsAt={state.extra?.actionEndsAt || state.phaseEndsAt} disabled={disabled || !!control.confirmation}
+              onTranscript={control.appendTranscript} />}
+          <Button type="submit" data-testid="v2-action-submit" disabled={disabled || !prepared} className="room-submit">
+            {busy ? <LoaderCircle className="mr-1 h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="mr-1 h-4 w-4 shrink-0" />}<span className="truncate">{busy ? copy("sending") : buttonText}</span>
+          </Button>
+        </div>
       </div>
     </form>}
     {capabilities.filter(a => !primary.includes(a) && !(abstain && a.type === "SKIP")).length > 0 && <div className="flex flex-wrap gap-1">

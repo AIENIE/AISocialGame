@@ -84,6 +84,7 @@ public class AppProperties {
     public static class Ai {
         private String defaultModel = "";
         private long systemUserId = 0;
+        private boolean voiceInputEnabled;
 
         public String getDefaultModel() {
             return defaultModel;
@@ -99,6 +100,14 @@ public class AppProperties {
 
         public void setSystemUserId(long systemUserId) {
             this.systemUserId = systemUserId;
+        }
+
+        public boolean isVoiceInputEnabled() {
+            return voiceInputEnabled;
+        }
+
+        public void setVoiceInputEnabled(boolean voiceInputEnabled) {
+            this.voiceInputEnabled = voiceInputEnabled;
         }
     }
 

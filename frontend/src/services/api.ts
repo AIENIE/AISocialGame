@@ -261,6 +261,15 @@ export const personaApi = {
 };
 
 export const gameplayApi = {
+  async transcribe(gameId: string, roomId: string, phaseToken: string, actionKey: string, audio: Blob,
+                   signal: AbortSignal): Promise<{ text: string; durationMs: number }> {
+    const response = await api.post(`/games/${gameId}/rooms/${roomId}/transcriptions`, audio, {
+      headers: { "Content-Type": "audio/wav", "X-Expected-Phase-Token": phaseToken, "X-Game-Action": actionKey },
+      timeout: 45_000,
+      signal,
+    });
+    return response.data;
+  },
   async logs(gameId: string, roomId: string, before?: number, size = 100, signal?: AbortSignal): Promise<GameLogPage> {
     const res = await api.get(`/games/${gameId}/rooms/${roomId}/logs`, { params: { before, size }, signal });
     return res.data;

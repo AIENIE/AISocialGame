@@ -81,5 +81,9 @@ export function useRoomActionController(state: GameState, onAction: (action: Pla
   return { capabilities, primary, selected, key, draft, target, prepared, abstain, busy, actionExpired, submitted, changed, confirmation, submissionError,
     setConfirmation, submit, choose: (value: string) => { setChosen(value); setSubmitted(false); },
     selectTarget: (id: string) => setTargets(previous => ({ ...previous, [key]: id })),
+    appendTranscript: (text: string) => {
+      setDrafts(previous => ({ ...previous, [key]: previous[key] ? `${previous[key]}\n${text}` : text }));
+      setSubmitted(false);
+    },
     setDraft: (text: string) => { setDrafts(previous => ({ ...previous, [key]: text })); setSubmitted(false); } };
 }
