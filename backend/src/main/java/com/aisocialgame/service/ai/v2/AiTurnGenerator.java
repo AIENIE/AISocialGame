@@ -41,7 +41,7 @@ public class AiTurnGenerator {
     private final String undercoverSystem;
     private final LongSupplier nanoTime;
 
-    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : "werewolf".equals(gameId)?"werewolf-v2.13":PROMPT_VERSION; }
+    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : "werewolf".equals(gameId)?"werewolf-v2.14":PROMPT_VERSION; }
 
     @Autowired
     public AiTurnGenerator(AiGrpcClient client, AppProperties properties, AiMemoryServiceV2 memories, AiSafetyService safety) {

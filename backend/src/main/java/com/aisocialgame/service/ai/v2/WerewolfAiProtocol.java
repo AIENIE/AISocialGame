@@ -23,7 +23,8 @@ public final class WerewolfAiProtocol {
     private static final Set<String> TEXT_FIELDS=Set.of("content","message","speech","text","hypothesis","sourceQuote","advice","condition","exceptions","statement","reason","summary");
     private static final Set<String> PUBLIC_ACTIONS = Set.of("SPEAK", "ASK_PLAYER", "ANSWER_PLAYER", "VOTE");
     public static final String PUBLIC_TEXT_REFERENCE = "PUBLIC_TEXT_REFERENCE";
-    private static final Pattern TEXT_REFERENCE = Pattern.compile("(?<![A-Za-z0-9_])([PE][0-9]+)(?![A-Za-z0-9_])(?:\\h*号)?");
+    // A model reply used a T prefix as an improvised event reference.
+    private static final Pattern TEXT_REFERENCE = Pattern.compile("(?<![A-Za-z0-9_])([PET][0-9]+)(?![A-Za-z0-9_])(?:\\h*号)?");
     public record References(Map<String,String> players,Map<String,String> events) {
         public Map<String,Object> snapshot() { return Map.of("players",players,"events",events); }
     }

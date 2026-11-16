@@ -27,6 +27,7 @@ class WerewolfPublicReferencesTest {
     private static final String ORIGINAL_ANSWER = "支持我判断的是公开公告本身：E7原文写着‘天亮了，昨夜无人死亡’，E8写着‘第1天，按座位开始讨论’。";
     private static final String ORIGINAL_QUESTION = "P3，你压我时称E7才是无人死亡，但公开记录E6已写明昨夜无人死亡。你没核对就压票，解释一下？";
     private static final String ORIGINAL_VOTE = "编号我再核一次：E6 是无人死亡、E7 是白天开始、E8 是 P1 发言。P6 把 E7、E8、E9 顺延后还说我错位，这一条我不接受；本轮投 P6。";
+    private static final String RECENT_NUMBERING_DISPUTE = "E6 和 E7 对不上，3号拿错位编号压人。";
     private final WerewolfRuleSet rules = new WerewolfRuleSet();
 
     @Test void samePublicEventKeepsItsIdentityAndOldNumberArgumentsAreOmittedFromThePrompt() {
@@ -55,6 +56,11 @@ class WerewolfPublicReferencesTest {
             var hypothesis = maps(map(projected.get("memory")).get("hypotheses")).getFirst();
             assertEquals("", hypothesis.get("text"));
             assertEquals(List.of(sample.getValue()), hypothesis.get("evidenceEventIds"));
+            var recent = maps(map(projected.get("memory")).get("recentDecisions"));
+            assertEquals(Map.of("action", "SPEAK", "round", 1, "speech", "", "targetPlayerId", "P3",
+                    "evidenceEventIds", List.of(sample.getValue())), recent.getFirst());
+            assertEquals("先听3号解释。", recent.getLast().get("speech"));
+            assertEquals(RECENT_NUMBERING_DISPUTE, maps(original.memory().get("recentDecisions")).getFirst().get("speech"));
             assertTrue(visible.stream().anyMatch(e -> "1号先请大家给出依据。".equals(e.get("message"))));
             assertTrue(original.events().stream().anyMatch(e -> ORIGINAL_QUESTION.equals(e.get("message"))));
         }
@@ -88,7 +94,8 @@ class WerewolfPublicReferencesTest {
             assertEquals("等P2号补充理由。", raw.get("speech"));
             var badContent = Map.<String, Object>of("speech", "我先听一轮。", "action", Map.of("type", type, "content", "等P20补充。"));
             var badSpeech = Map.<String, Object>of("speech", "依据E6。", "action", Map.of("type", type, "content", "我先听一轮。"));
-            for (var bad : List.of(badContent, badSpeech)) {
+            var fabricatedReference = Map.<String, Object>of("action", Map.of("type", type, "content", "T7（昨夜无人死亡）是一个事实。"));
+            for (var bad : List.of(badContent, badSpeech, fabricatedReference)) {
                 assertTrue(generator.validate(rules, sparse, generator.parse(WerewolfAiProtocol.decode(sparse, bad, refs).output()))
                         .contains(WerewolfAiProtocol.PUBLIC_TEXT_REFERENCE));
             }
@@ -171,7 +178,11 @@ class WerewolfPublicReferencesTest {
         return new VisibleObservation("werewolf", "reference-replay", phase, 1, actor, action.type(),
                 Map.of("playerId", actor, "seatNumber", Integer.parseInt(actor.substring(1)) - 1, "role", role),
                 players, Map.of(), List.copyOf(events), Map.of(), List.of(action), Map.of(),
-                Map.of("hypotheses", List.of(Map.of("text", "E6 和 E7 对不上，所以要压票。", "evidenceEventIds", List.of(PEACEFUL_NIGHT)))), List.of());
+                Map.of("hypotheses", List.of(Map.of("text", "E6 和 E7 对不上，所以要压票。", "evidenceEventIds", List.of(PEACEFUL_NIGHT))),
+                        "recentDecisions", List.of(
+                                Map.of("action", "SPEAK", "round", 1, "speech", RECENT_NUMBERING_DISPUTE,
+                                        "targetPlayerId", "p3", "evidenceEventIds", List.of(PEACEFUL_NIGHT)),
+                                Map.of("action", "SPEAK", "round", 1, "speech", "先听3号解释。"))), List.of());
     }
 
     private static Map<String, Object> event(String id, String type, String visibility, String phase,

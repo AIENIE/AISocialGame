@@ -28,7 +28,7 @@ class WerewolfProtocolReplayTest {
             var decoded=WerewolfAiProtocol.decode(observation,raw,WerewolfAiProtocol.references(observation));var errors=new ArrayList<String>();
             try {var decision=generator.parse(decoded.output());errors.addAll(AiGrounding.check(observation,decoded.output()));errors.addAll(generator.validate(rules,observation,decision));}
             catch(IllegalArgumentException malformed){errors.add("INVALID_JSON_FIELDS");}
-            if(!decoded.normalizations().isEmpty())normalized++;
+            if(decoded.normalizations().contains("WITCH_SAVE_MISSING_USE_HEAL_TRUE"))normalized++;
             rows.add(Map.of("taskId",task.get("id"),"requestId",task.get("requestId"),"historicalFlags",diagnostics.getOrDefault("qualityFlags",List.of()),
                     "afterErrors",errors,"normalizations",decoded.normalizations(),"acceptedAfterRepair",errors.isEmpty()));
         }

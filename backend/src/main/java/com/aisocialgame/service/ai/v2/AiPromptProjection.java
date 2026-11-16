@@ -12,7 +12,7 @@ public final class AiPromptProjection {
     public static final int WEREWOLF_VERSION = 5;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private static final Set<String> PUBLIC_WEREWOLF_PROSE = Set.of("SPEECH", "ASK_PLAYER", "ANSWER_PLAYER", "LAST_WORDS", "VOTE_REVEALED");
-    private static final List<String> WEREWOLF_MEMORY_PROSE = List.of("text", "sourceQuote", "hypothesis", "summary", "content", "message", "reason");
+    private static final List<String> WEREWOLF_MEMORY_PROSE = List.of("text", "sourceQuote", "hypothesis", "summary", "speech", "content", "message", "reason");
     private AiPromptProjection() {}
 
     public static int version(String gameId) {
@@ -68,7 +68,7 @@ public final class AiPromptProjection {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("inputFormatVersion", version(o.gameId()));
         if (werewolf) payload.put("seatNumbering",
-                "self 和 players 的 seatNumber 是从 1 开始的页面座号。公开文字用座号和实际事件，例如‘3号刚才问我为何改票’或‘昨夜无人死亡’。行动目标使用合法列表中的 targetPlayerId。留空的旧发言正文无法作为判断依据，可核对相应事件的公开事实。");
+                "self 和 players 的 seatNumber 是从 1 开始的页面座号。公开文字用座号和实际事件，例如‘3号刚才问我为何改票’或‘昨夜无人死亡’。行动目标使用合法列表中的 targetPlayerId。只转述正文可核对的发言。遇到留空的旧话，围绕仍可核对的公开事实作判断。");
         payload.put("referenceFormat", "$ref is a JSON pointer within this payload; follow references to the original data. References do not change source or visibility.");
         payload.put("instruction", adapter.instruction(o)); payload.put("observation", observation);
         if(werewolf&&!map(o.memory().get("protocolCalibration")).isEmpty())
@@ -114,7 +114,7 @@ public final class AiPromptProjection {
     }
 
     private static void maskWerewolfMemory(Map<String, Object> memory) {
-        for (String key : List.of("hypotheses", "commitments", "beliefs", "roundReflections", "pendingReflection")) {
+        for (String key : List.of("hypotheses", "commitments", "beliefs", "recentDecisions", "roundReflections", "pendingReflection")) {
             memory.computeIfPresent(key, (ignored, stored) -> maskMemoryProse(stored));
         }
         memory.computeIfPresent("usedDescriptions", (ignored, descriptions) ->
