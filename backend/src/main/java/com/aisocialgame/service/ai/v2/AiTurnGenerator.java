@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 @Service
 public class AiTurnGenerator {
     public static final String PROMPT_VERSION = "social-v2.11";
-    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.2";
+    public static final String UNDERCOVER_PROMPT_VERSION = "undercover-v1.3";
     public static final long MAX_DECISION_MILLIS = 50_000;
     public static final long UNDERCOVER_DECISION_MILLIS = 89_000;
     private static final Set<String> ORIGINAL_RESULT_WAIT = Set.of("AI_RESULT_PENDING", "AI_RESULT_UNKNOWN", "AI_USAGE_UNKNOWN", "BUDGET_RECONCILIATION_REQUIRED");

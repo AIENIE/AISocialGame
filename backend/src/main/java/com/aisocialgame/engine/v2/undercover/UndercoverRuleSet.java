@@ -353,8 +353,9 @@ public final class UndercoverRuleSet implements GameRuleSet {
 
     @Override public String instruction(VisibleObservation observation) {
         return switch (observation.phase()) {
-            case "DESCRIPTION" -> "根据局势选择合法动作；描述时通常先概括，自行把握细节，不重复旧描述。";
-            case "TIE_DEFENSE" -> "最高票并列：选择合法动作；描述时补充新线索，最多60字，无法补充可SKIP。";
+            case "DESCRIPTION" -> "根据局势选择合法动作。描述时给出一个相关特征，已有描述时换一个尚未提过的用途、场景或细节。"
+                    + "白板从已听到的线索推测，再试探一个新方向。首位白板线索有限，先给出一条留有余地、便于后续比较的描述。";
+            case "TIE_DEFENSE" -> "最高票并列。选择合法动作，补充描述时给出一个尚未提过的相关特征，最多60字。没有合适的新线索时可选择SKIP。";
             case "VOTING", "RUNOFF" -> "根据整局公开线索自主选择合法动作，不能只凭发言字数判人。投票或弃票的content留空，不公开解释。";
             default -> "只执行当前合法动作。";
         };
