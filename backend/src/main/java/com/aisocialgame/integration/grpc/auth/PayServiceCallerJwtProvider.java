@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -38,6 +39,17 @@ public class PayServiceCallerJwtProvider {
     }
 
     public String currentToken() {
+        return sign(PayServiceJwtConfigurationValidator.REQUIRED_SCOPES);
+    }
+
+    String currentToken(String scope) {
+        if (!PayServiceJwtConfigurationValidator.REQUIRED_SCOPES.contains(scope)) {
+            throw new IllegalArgumentException("PayService caller JWT scope is not configured");
+        }
+        return sign(List.of(scope));
+    }
+
+    private String sign(List<String> scopes) {
         Configuration configuration = snapshotAndValidate();
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = now.plusSeconds(PayServiceJwtConfigurationValidator.REQUIRED_TTL_SECONDS);
@@ -51,7 +63,7 @@ public class PayServiceCallerJwtProvider {
                 .setId(requireJti(jtiSupplier.get()))
                 .claim("role", configuration.role)
                 .claim("service", configuration.service)
-                .claim("scopes", PayServiceJwtConfigurationValidator.REQUIRED_SCOPES)
+                .claim("scopes", scopes)
                 .signWith(
                         Keys.hmacShaKeyFor(configuration.secret.getBytes(StandardCharsets.UTF_8)),
                         SignatureAlgorithm.HS256

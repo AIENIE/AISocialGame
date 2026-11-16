@@ -54,17 +54,11 @@
 封禁读取和封禁写入；扩权、弱 secret、错误
 identity/audience 或 TTL 越界均拒绝启动。
 
-### pay-service JWT 时效要求
+### PayService JWT
 
-- `GRPC_SHARED_SECRET` 为服务间 Bearer JWT，必须包含：
-  - `iss=aienie-services`
-  - `aud=aienie-payservice-grpc`
-  - `role=SERVICE`
-  - `scopes` 至少包含 `billing.balance.read`、`billing.balance.convert`、`billing.onboarding.write`、`billing.checkin.read`、`billing.checkin.write`、`billing.redeem.write`、`billing.ledger.read`
-- 若该 JWT 过期，会在 SSO 回调阶段触发 pay-service onboarding 调用失败，外显为：
-  - `POST /api/auth/sso-callback` 返回 `401`
-  - 响应消息：`Invalid token`
-- 发布前建议重新签发该 JWT 并注入环境变量，再通过发版中心发布。
+AISocialGame 使用 `GRPC_SHARED_SECRET` 为每次 PayService 请求签发 HS256 JWT，有效期为 300 秒。签发者和调用方均为 `aisocialgame`，受众为 `aienie-payservice-grpc`，角色为 `SERVICE`。
+
+SSO 回调调用 `EnsureUserInitialized` 时声明 `billing.onboarding.write`。读取公共积分的 `GetPublicBalance` 声明 `billing.balance.read`。PayService 校验 JWT 中声明的全部权限，因此这两个调用各自只声明对应方法所需的权限。
 
 ## 运行链路
 
