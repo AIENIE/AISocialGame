@@ -2,6 +2,7 @@ import { test, expect, type APIRequestContext, type TestInfo } from "@playwright
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import undercoverOpeningCues from "./fixtures/undercover-opening-cues.json" with { type: "json" };
 
 /**
  * Explicitly opt-in, chargeable acceptance. Uses HTTP only: no browser, mock,
@@ -377,11 +378,22 @@ function chooseTarget(state: State, targets: string[], nightAction?: string): st
 function ownCue(state: State, human: Human): string {
   const knowledge = object(state.extra.wordKnowledge);
   const forbidden = [...stringArray(knowledge.forbiddenTerms), String(state.myWord || "")].filter(Boolean);
-  const cues = [...stringArray(knowledge.attributes), ...stringArray(knowledge.scenes)].filter(cue => !forbidden.some(term => normalize(cue).includes(normalize(term))));
+  const safe = (cue: string) => !forbidden.some(term => normalize(cue).includes(normalize(term)));
+  const cues = [...stringArray(knowledge.attributes), ...stringArray(knowledge.scenes)].filter(safe);
+  if (state.round === 1 && state.phase === "DESCRIPTION") {
+    const reviewed = undercoverOpeningCues.find(group => group.words.includes(state.myWord || ""))?.clues.filter(safe) || [];
+    const options = reviewed.length ? reviewed : cues.slice(0, 1);
+    if (!options.length) return "我想到的范围还比较宽，先听听其他人的描述";
+    const earlier = state.logs.filter(log => log.type === "SPEAK" && log.roundNumber === 1)
+      .map(log => normalize(String(log.metadata?.content || log.message)));
+    const shared = earlier.length >= 2 ? options.find(cue => earlier.some(said => said.includes(normalize(cue)))) : undefined;
+    return shared ?? options[human.index % options.length];
+  }
   return cues.length ? cues[(Math.max(0, state.round - 1) + human.index) % cues.length] : "我还需要结合前面的线索判断具体范围";
 }
 function undercoverSpeech(state: State, human: Human): string {
   const cue = ownCue(state, human);
+  if (state.round === 1 && state.phase === "DESCRIPTION") return `${cue}。`;
   return state.phase === "TIE_DEFENSE" ? `我的描述依据是“${cue}”。如果前面说得太宽泛，这是我补充的具体特点。` : `我想到的是：${cue}。先听听大家会从哪个角度描述。`;
 }
 function werewolfSpeech(state: State): string {

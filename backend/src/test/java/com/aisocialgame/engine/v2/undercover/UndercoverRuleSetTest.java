@@ -64,6 +64,27 @@ class UndercoverRuleSetTest {
         assertTrue(rules.privateData(state, "spectator").isEmpty());
     }
 
+    @Test void firstRoundWordPlayersConsiderTheCombinedCluesBeforeDescribing() {
+        GameState state = rules.initialize(room(4, Map.of("hasBlank", true)), NOW);
+        for (GamePlayerState actor : state.getPlayers()) {
+            String opening = rules.instruction(observation(state, actor));
+            if ("BLANK".equals(actor.getRole())) {
+                assertTrue(opening.contains("先给出一条留有余地、便于后续比较的描述"));
+                assertFalse(opening.contains("关于自己词语的真实线索"));
+            } else {
+                assertTrue(opening.contains("几种相近的事物都可能符合"));
+                assertTrue(opening.contains("和桌上已有的公开发言合起来判断"));
+            }
+        }
+
+        GamePlayerState wordPlayer = state.getPlayers().stream().filter(actor -> !actor.getWord().isBlank()).findFirst().orElseThrow();
+        state.setRoundNumber(2);
+        assertTrue(rules.instruction(observation(state, wordPlayer)).contains("尚未提过的用途、场景或细节"));
+        state.setRoundNumber(1);
+        state.setPhase("TIE_DEFENSE");
+        assertTrue(rules.instruction(observation(state, wordPlayer)).contains("没有合适的新线索时可选择SKIP"));
+    }
+
     @Test void roomPoolDoesNotRepeatAndBothWordSidesCanBeTheMajority() {
         Room room = room(4, Map.of("wordPack", "tech"));
         Set<String> used = new HashSet<>();

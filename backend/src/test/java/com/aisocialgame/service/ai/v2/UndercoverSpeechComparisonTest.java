@@ -22,8 +22,9 @@ class UndercoverSpeechComparisonTest {
 
     @Test void eightPairsUseTheSameObservationAndChangeOnlyThePhaseInstruction() throws Exception {
         var trials = UndercoverSpeechComparison.trials();
-        assertEquals(UndercoverSpeechComparison.inputSha256(trials),
-                UndercoverSpeechComparison.inputSha256(UndercoverSpeechComparison.trials()));
+        String inputHash = UndercoverSpeechComparison.inputSha256(trials);
+        assertEquals("cc0e4c56e745081ceeb9d5540ac07b06a4ee3d1f2045c312f818124d21c1da3b", inputHash);
+        assertEquals(inputHash, UndercoverSpeechComparison.inputSha256(UndercoverSpeechComparison.trials()));
         var pairs = trials.stream()
                 .collect(Collectors.groupingBy(UndercoverSpeechComparison.Trial::sampleId));
         assertEquals(8, pairs.size());
@@ -35,7 +36,7 @@ class UndercoverSpeechComparisonTest {
             var baseline = pair.getFirst();
             var candidate = pair.getLast();
             assertEquals(UndercoverSpeechComparison.BASELINE, baseline.promptVersion());
-            assertEquals("undercover-v1.3", candidate.promptVersion());
+            assertEquals(UndercoverSpeechComparison.CANDIDATE, candidate.promptVersion());
             assertEquals(baseline.observation(), candidate.observation());
             var original = new LinkedHashMap<>(AiPromptProjection.project(baseline.adapter(), baseline.observation()));
             var changed = new LinkedHashMap<>(AiPromptProjection.project(candidate.adapter(), candidate.observation()));

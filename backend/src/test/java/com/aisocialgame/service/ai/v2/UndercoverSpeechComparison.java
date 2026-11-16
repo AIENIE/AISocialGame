@@ -25,6 +25,7 @@ import static org.mockito.Mockito.*;
 
 final class UndercoverSpeechComparison {
     static final String BASELINE = "undercover-v1.2";
+    static final String CANDIDATE = "undercover-v1.3";
     static final String BASELINE_COMMIT = "7276aecb6fb76e793bc33d18f89bc74ad8cdb566";
     static final int CALL_LIMIT = 16;
     private static final Set<String> PERSONAS = Set.of("ai1", "ai2");
@@ -38,13 +39,19 @@ final class UndercoverSpeechComparison {
 
     static List<Trial> trials() throws Exception {
         var fixtures = new MilestoneClosureScenarios();
-        var candidate = fixtures.rules.getFirst();
-        var baseline = mock(GameAiAdapter.class, delegatesTo(candidate));
-        // Exact phase instructions from the frozen develop baseline.
+        var rules = fixtures.rules.getFirst();
+        var baseline = mock(GameAiAdapter.class, delegatesTo(rules));
+        var candidate = mock(GameAiAdapter.class, delegatesTo(rules));
+        // Preserve the two phase instructions used by the recorded comparison.
         doReturn("根据局势选择合法动作；描述时通常先概括，自行把握细节，不重复旧描述。")
                 .when(baseline).instruction(argThat(o -> "DESCRIPTION".equals(o.phase())));
         doReturn("最高票并列：选择合法动作；描述时补充新线索，最多60字，无法补充可SKIP。")
                 .when(baseline).instruction(argThat(o -> "TIE_DEFENSE".equals(o.phase())));
+        doReturn("根据局势选择合法动作。描述时给出一个相关特征，已有描述时换一个尚未提过的用途、场景或细节。"
+                + "白板从已听到的线索推测，再试探一个新方向。首位白板线索有限，先给出一条留有余地、便于后续比较的描述。")
+                .when(candidate).instruction(argThat(o -> "DESCRIPTION".equals(o.phase())));
+        doReturn("最高票并列。选择合法动作，补充描述时给出一个尚未提过的相关特征，最多60字。没有合适的新线索时可选择SKIP。")
+                .when(candidate).instruction(argThat(o -> "TIE_DEFENSE".equals(o.phase())));
 
         var trials = new ArrayList<Trial>();
         for (var sample : fixtures.singles()) {
@@ -96,7 +103,7 @@ final class UndercoverSpeechComparison {
     private static void addPair(List<Trial> trials, String caseId, String personaId, String criterion,
                                 VisibleObservation observation, GameAiAdapter baseline, GameAiAdapter candidate) {
         trials.add(new Trial(caseId, personaId, criterion, observation, baseline, BASELINE));
-        trials.add(new Trial(caseId, personaId, criterion, observation, candidate, AiTurnGenerator.UNDERCOVER_PROMPT_VERSION));
+        trials.add(new Trial(caseId, personaId, criterion, observation, candidate, CANDIDATE));
     }
 
     static void intercept(AiGrpcClient client, Supplier<Attempt> active, Answer<AiChatResult> transport) {

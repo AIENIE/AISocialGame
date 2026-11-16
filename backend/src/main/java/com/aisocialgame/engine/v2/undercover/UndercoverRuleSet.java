@@ -353,8 +353,15 @@ public final class UndercoverRuleSet implements GameRuleSet {
 
     @Override public String instruction(VisibleObservation observation) {
         return switch (observation.phase()) {
-            case "DESCRIPTION" -> "根据局势选择合法动作。描述时给出一个相关特征，已有描述时换一个尚未提过的用途、场景或细节。"
-                    + "白板从已听到的线索推测，再试探一个新方向。首位白板线索有限，先给出一条留有余地、便于后续比较的描述。";
+            case "DESCRIPTION" -> {
+                String word = text(observation.privateFacts().getOrDefault("word", observation.self().get("word")));
+                if (observation.round() == 1 && !word.isBlank()) {
+                    yield "根据局势选择合法动作。首轮描述时只给一条关于自己词语的真实线索，让几种相近的事物都可能符合。"
+                            + "先把这条线索和桌上已有的公开发言合起来判断。如果听众几乎能锁定你的词，就换一个范围更宽、仍能让大家比较的真实特点。";
+                }
+                yield "根据局势选择合法动作。描述时给出一个相关特征，已有描述时换一个尚未提过的用途、场景或细节。"
+                        + "白板从已听到的线索推测，再试探一个新方向。首位白板线索有限，先给出一条留有余地、便于后续比较的描述。";
+            }
             case "TIE_DEFENSE" -> "最高票并列。选择合法动作，补充描述时给出一个尚未提过的相关特征，最多60字。没有合适的新线索时可选择SKIP。";
             case "VOTING", "RUNOFF" -> "根据整局公开线索自主选择合法动作，不能只凭发言字数判人。投票或弃票的content留空，不公开解释。";
             default -> "只执行当前合法动作。";
