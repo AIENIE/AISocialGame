@@ -11,6 +11,8 @@ public final class AiPromptProjection {
     public static final int UNDERCOVER_VERSION = 5;
     public static final int WEREWOLF_VERSION = 5;
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
+    private static final Set<String> PUBLIC_WEREWOLF_PROSE = Set.of("SPEECH", "ASK_PLAYER", "ANSWER_PLAYER", "LAST_WORDS", "VOTE_REVEALED");
+    private static final List<String> WEREWOLF_MEMORY_PROSE = List.of("text", "sourceQuote", "hypothesis", "summary", "content", "message", "reason");
     private AiPromptProjection() {}
 
     public static int version(String gameId) {
@@ -19,13 +21,15 @@ public final class AiPromptProjection {
 
     public static Map<String, Object> project(GameAiAdapter adapter, VisibleObservation o) {
         if ("undercover".equals(o.gameId())) return undercover(adapter, o);
+        boolean werewolf = "werewolf".equals(o.gameId());
         Map<String, Object> observation = JSON.convertValue(o, Map.class);
-        if ("werewolf".equals(o.gameId())) {
+        if (werewolf) {
             observation.put("self", displayedSeat(map(observation.get("self"))));
             observation.put("players", maps(observation.get("players")).stream().map(AiPromptProjection::displayedSeat).toList());
         }
         List<Map<String, Object>> sources = new ArrayList<>();
         List<Map<String, Object>> events = maps(observation.get("events"));
+        if (werewolf) maskWerewolfHistory(events);
         Map<String, Object> classified = AiInformationSources.project(adapter, o);
         for (Map<String, Object> item : maps(classified.get("events"))) {
             int index = -1;
@@ -58,15 +62,16 @@ public final class AiPromptProjection {
         Map<String, Object> hypotheses = new LinkedHashMap<>(map(classified.get("hypotheses")));
         hypotheses.put("entries", RuleSupport.HOST.equals(o.actorId()) ? List.of() : ref("/observation/memory/hypotheses"));
         Map<String, Object> memory = map(observation.get("memory"));
+        if (werewolf) maskWerewolfMemory(memory);
         if (!RuleSupport.HOST.equals(o.actorId())) memory.putIfAbsent("hypotheses", List.of());
         observation.put("memory", memory);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("inputFormatVersion", version(o.gameId()));
-        if ("werewolf".equals(o.gameId())) payload.put("seatNumbering",
-                "self 和 players 的 seatNumber 是页面显示的座位号，从1开始；发言中的‘几号’均用此编号。playerId 是不透明身份标识，不能从其数字推断座位；所有目标仍提交合法列表中的 targetPlayerId。历史发言原文不改写，应根据当前座位表核对指代。");
+        if (werewolf) payload.put("seatNumbering",
+                "self 和 players 的 seatNumber 是从 1 开始的页面座号。公开文字用座号和实际事件，例如‘3号刚才问我为何改票’或‘昨夜无人死亡’。行动目标使用合法列表中的 targetPlayerId。留空的旧发言正文无法作为判断依据，可核对相应事件的公开事实。");
         payload.put("referenceFormat", "$ref is a JSON pointer within this payload; follow references to the original data. References do not change source or visibility.");
         payload.put("instruction", adapter.instruction(o)); payload.put("observation", observation);
-        if("werewolf".equals(o.gameId())&&!map(o.memory().get("protocolCalibration")).isEmpty())
+        if(werewolf&&!map(o.memory().get("protocolCalibration")).isEmpty())
             payload.put("protocolCalibration",Map.of("instruction","仅作协议校准，请提交required中指定的合法动作、目标与证据；这不是策略评测。","required",o.memory().get("protocolCalibration")));
         payload.put("informationSources", Map.of("events", sources, "privateKnowledge", privateInfo, "hypotheses", hypotheses, "note", classified.get("note")));
         if (!RuleSupport.HOST.equals(o.actorId())) {
@@ -92,6 +97,39 @@ public final class AiPromptProjection {
             }).toList());
         }
         return payload;
+    }
+
+    private static void maskWerewolfHistory(List<Map<String, Object>> events) {
+        for (var event : events) {
+            if (!"PUBLIC".equals(event.get("visibility")) || !PUBLIC_WEREWOLF_PROSE.contains(text(event.get("type")))) continue;
+            var data = map(event.get("data"));
+            var proseFields = List.of("content", "reason", "message");
+            if (!WerewolfAiProtocol.containsTextReference(event.get("message"))
+                    && proseFields.stream().map(data::get).noneMatch(WerewolfAiProtocol::containsTextReference)) continue;
+            // The old statement can include an accusation that only follows from the old numbering.
+            event.put("message", "");
+            proseFields.forEach(key -> data.computeIfPresent(key, (ignored, prose) -> ""));
+            event.put("data", data);
+        }
+    }
+
+    private static void maskWerewolfMemory(Map<String, Object> memory) {
+        for (String key : List.of("hypotheses", "commitments", "beliefs", "roundReflections", "pendingReflection")) {
+            memory.computeIfPresent(key, (ignored, stored) -> maskMemoryProse(stored));
+        }
+        memory.computeIfPresent("usedDescriptions", (ignored, descriptions) ->
+                strings(descriptions).stream().filter(value -> !WerewolfAiProtocol.containsTextReference(value)).toList());
+    }
+
+    private static Object maskMemoryProse(Object value) {
+        if (value instanceof List<?> entries) return entries.stream().map(AiPromptProjection::maskMemoryProse).toList();
+        if (!(value instanceof Map<?, ?>)) return value;
+        var entry = map(value);
+        if (WEREWOLF_MEMORY_PROSE.stream().map(entry::get).anyMatch(WerewolfAiProtocol::containsTextReference)) {
+            WEREWOLF_MEMORY_PROSE.forEach(key -> entry.computeIfPresent(key, (ignored, prose) -> prose instanceof String ? "" : prose));
+        }
+        entry.replaceAll((key, nested) -> maskMemoryProse(nested));
+        return entry;
     }
 
     private static Map<String, Object> displayedSeat(Map<String, Object> player) {

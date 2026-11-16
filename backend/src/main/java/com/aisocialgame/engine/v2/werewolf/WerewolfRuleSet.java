@@ -11,6 +11,7 @@ import com.aisocialgame.model.Room;
 import com.aisocialgame.service.ai.v2.AiTurnDecision;
 import com.aisocialgame.service.ai.v2.AiConversationContext;
 import com.aisocialgame.service.ai.v2.VisibleObservation;
+import com.aisocialgame.service.ai.v2.WerewolfAiProtocol;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -434,8 +435,8 @@ public class WerewolfRuleSet implements GameRuleSet {
                 + "别人点名你时回应具体问题，不要总说先观察，不必每次都带情绪动作。"
                 + ("NIGHT".equals(observation.phase())
                 ? "当前是私密夜晚行动；狼人可以在私密建议里回应队友，其余角色只向自己说明选择。只选一个合法行动，SKIP也是认真权衡后的选择。"
-                : "当前发言是公开的。自己的身份和查验可自愿作出玩家声明，不能把私密记录编号或他人的不可见信息写进公开文本。")
-                + "引用依据使用观察中的eventId；任何关系或情绪更新只能针对本局本人，不能修改系统真值。";
+                : "公开发言、质询和投票理由用座号和可公开的实际事件描述。玩家可自愿公开自己的身份和查验。狼队私聊和他人的不可见信息限于原视角。P/E 短编号只用于结构化字段。同一事件的编号可因视角不同而变化，按实际内容判断有没有矛盾。")
+                + "证据字段填写观察中的 eventId。关系或情绪更新只记录本局本人的判断，系统记录由规则更新。";
     }
 
     @Override
@@ -460,6 +461,11 @@ public class WerewolfRuleSet implements GameRuleSet {
     @Override
     public List<String> validateDecision(VisibleObservation observation, AiTurnDecision decision) {
         List<String> errors = new ArrayList<>();
+        if (WerewolfAiProtocol.isPublicTextAction(observation.phase(), decision.action().getType())
+                && (WerewolfAiProtocol.containsTextReference(decision.speech())
+                || WerewolfAiProtocol.containsTextReference(decision.action().getContent()))) {
+            errors.add(WerewolfAiProtocol.PUBLIC_TEXT_REFERENCE);
+        }
         if ("WITCH_SAVE".equalsIgnoreCase(decision.action().getNightAction()) && !decision.action().isUseHeal()) {
             errors.add("使用解药必须同时设置useHeal=true；决定留药时请选择SKIP。");
         }

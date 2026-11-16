@@ -6,6 +6,10 @@ import com.aisocialgame.repository.*;
 import com.aisocialgame.service.ai.v2.*;
 import com.aisocialgame.service.v2.*;
 import com.aisocialgame.integration.grpc.client.AiGrpcClient;
+import com.aisocialgame.integration.grpc.dto.AiChatResult;
+import com.aisocialgame.service.ReplayArchiveService;
+import com.aisocialgame.service.ai.config.AiModelSelection;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import static com.aisocialgame.engine.v2.RuleSupport.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -25,6 +30,7 @@ class WerewolfFlowIntegrationTest {
     @Autowired GameStateRepository states;
     @Autowired AiTurnJobRepository jobs;
     @Autowired GameArchiveRepository archives;
+    @Autowired ReplayArchiveService replays;
     @MockitoBean AiGrpcClient client;
     @MockitoBean AiValidationBudgetService budgets;
 
@@ -138,5 +144,74 @@ class WerewolfFlowIntegrationTest {
             assertTrue(archives.existsById(archive));assertTrue(jobs.findByRoomIdAndStatusIn(room.getId(),List.of("QUEUED","RUNNING")).isEmpty());
         }
         assertEquals(3,ids.size());verifyNoInteractions(client);
+    }
+
+    @Test void publicSpeechQuestionsAndVoteNotesReachTheOrdinaryReplayWithSeats() throws Exception {
+        var room = room();
+        runtime.start("werewolf", room.getId(), host(room));
+        var json = new ObjectMapper();
+        var reply = new AtomicReference<String>();
+        when(client.chatCompletions(anyString(), anyLong(), anyString(), any(AiModelSelection.class), anyList(), anyString(), anyInt()))
+                .thenAnswer(call -> new AiChatResult(reply.get(), "fixture", 1, 1));
+        for (int step = 0; step < 100; step++) {
+            var state = states.findById(room.getId()).orElseThrow();
+            if ("SETTLEMENT".equals(state.getPhase())) break;
+            runtime.tick(room.getId());
+            var job = coordinator.claim(queued(room).getId());
+            assertNotNull(job);
+            if ("NIGHT".equals(state.getPhase())) {
+                assertTrue(runtime.beginWerewolfTurn(job.getId()));
+                runtime.complete(job.getId(), skip());
+                continue;
+            }
+            var observation = json.convertValue(job.getObservation(), VisibleObservation.class);
+            var refs = WerewolfAiProtocol.references(observation);
+            var capability = observation.legalActions().stream().filter(a -> !"SKIP".equals(a.type())).findFirst().orElseThrow();
+            var action = new LinkedHashMap<String, Object>();
+            action.put("type", capability.type());
+            String target = capability.targets().isEmpty()
+                    ? observation.players().stream().map(p -> text(p.get("playerId"))).filter(id -> !job.getActorId().equals(id)).findFirst().orElseThrow()
+                    : capability.targets().getFirst();
+            if ("VOTE".equals(capability.type())) {
+                target = state.getPlayers().stream().filter(p -> "WEREWOLF".equals(p.getRole()) && capability.targets().contains(p.getPlayerId()))
+                        .map(GamePlayerState::getPlayerId).findFirst().orElse(target);
+            }
+            String playerRef = reference(refs.players(), target);
+            if (!capability.targets().isEmpty()) action.put("targetPlayerId", playerRef);
+            String content = switch (capability.type()) {
+                case "SPEAK" -> "第" + observation.round() + "天先听" + playerRef + "号的理由。";
+                case "ASK_PLAYER" -> playerRef + "号，第" + observation.round() + "天你最想核对哪条发言？";
+                case "ANSWER_PLAYER" -> "回答" + playerRef + "号，我先核对第" + observation.round() + "天的公开公告。";
+                case "VOTE" -> "按今天的公开发言，我先投" + playerRef + "号。";
+                default -> throw new AssertionError(capability.type());
+            };
+            action.put("content", content);
+            var decision = new LinkedHashMap<String, Object>(Map.of("action", action));
+            if ("ANSWER_PLAYER".equals(capability.type())) {
+                var question = runtime.rules("werewolf").conversation(observation).replyTo().getFirst();
+                decision.put("evidenceEventIds", List.of(reference(refs.events(), question.eventId())));
+            }
+            reply.set(json.writeValueAsString(decision));
+            coordinator.run(job);
+            assertEquals("SUCCEEDED", jobs.findById(job.getId()).orElseThrow().getStatus());
+        }
+        var state = states.findById(room.getId()).orElseThrow();
+        assertEquals("SETTLEMENT", state.getPhase());
+        var replay = replays.authorizedEvents(text(state.getData().get("archiveId")), "PUBLIC", null, room.getHostUserId());
+        for (String type : List.of("SPEECH", "ASK_PLAYER", "ANSWER_PLAYER", "VOTE_REVEALED")) {
+            var publicTexts = replay.getEvents().stream().filter(e -> type.equals(e.getEventType()))
+                    .map(e -> text(e.getData().get("message"))).toList();
+            assertFalse(publicTexts.isEmpty(), type);
+            assertTrue(publicTexts.stream().allMatch(prose -> prose.matches("(?s).*\\d号.*")
+                    && !WerewolfAiProtocol.containsTextReference(prose)), type);
+        }
+        var questions = replay.getEvents().stream().filter(e -> "ASK_PLAYER".equals(e.getEventType()))
+                .map(e -> e.getData().get("eventId")).toList();
+        assertTrue(replay.getEvents().stream().filter(e -> "ANSWER_PLAYER".equals(e.getEventType()))
+                .allMatch(e -> questions.contains(e.getData().get("questionEventId"))));
+    }
+
+    private static String reference(Map<String, String> aliases, String id) {
+        return aliases.entrySet().stream().filter(entry -> id.equals(entry.getValue())).findFirst().orElseThrow().getKey();
     }
 }

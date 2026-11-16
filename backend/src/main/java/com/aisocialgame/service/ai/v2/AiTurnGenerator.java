@@ -41,7 +41,7 @@ public class AiTurnGenerator {
     private final String undercoverSystem;
     private final LongSupplier nanoTime;
 
-    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : "werewolf".equals(gameId)?"werewolf-v2.12":PROMPT_VERSION; }
+    public static String promptVersion(String gameId) { return "undercover".equals(gameId) ? UNDERCOVER_PROMPT_VERSION : "werewolf".equals(gameId)?"werewolf-v2.13":PROMPT_VERSION; }
 
     @Autowired
     public AiTurnGenerator(AiGrpcClient client, AppProperties properties, AiMemoryServiceV2 memories, AiSafetyService safety) {
@@ -446,6 +446,8 @@ public class AiTurnGenerator {
         if (errors.contains("REPEATED_SPEECH")) hint += "不要复述自己的旧句子，换一个尚未描述的可见属性；不编造新事实。";
         if (errors.contains("MISSING_TARGET")) hint += "从所选legalAction的targets中填写targetPlayerId。";
         if (errors.contains("CONTENT_TOO_LONG")) hint += "压缩到所选legalAction的maxLength以内，省略不必要的解释。";
+        if (errors.contains(WerewolfAiProtocol.PUBLIC_TEXT_REFERENCE))
+            hint += "按可见发言、公告和实际票型重新判断。公开文字用座号和实际事件描述。P/E 编号只填在结构化引用字段。";
         if (undercover && errors.stream().anyMatch(e -> e.contains("MEMORY") || e.contains("COMMITMENT"))) hint += "省略memoryUpdates，根据events直接判断并输出本次action。";
         if (!undercover && errors.stream().anyMatch(e -> e.contains("MEMORY"))) hint += "hypotheses/commitments每条只写text和evidenceEventIds；hypotheses可加0到1的confidence。只引用可见事件，不填写round/source，不编造证据；无需更新可省略。";
         if (!undercover && errors.stream().anyMatch(e -> e.contains("COMMITMENT"))) hint += "承诺只能提出text/sourceQuote/evidenceEventIds/action/roundOffset/conditional；撤回只用id/sourceQuote/eventId，不输出服务端状态。无可核对行动时省略action。";
